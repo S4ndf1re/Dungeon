@@ -31,6 +31,10 @@ tasks.register('testDgirAndVm', Test) {
 
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
+    testLogging {
+        showStandardStreams = true
+        events 'passed', 'skipped', 'failed'
+    }
 }
 
 repositories {
