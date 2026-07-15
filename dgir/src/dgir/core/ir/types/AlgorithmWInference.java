@@ -1,0 +1,771 @@
+package dgir.core.ir.types;
+
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Arrow;
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Boolean;
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Integer;
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Tuple;
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.UnifyResult;
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Var;
+import dgir.core.ir.types.AlgorithmWInference.Expr.InferResult;
+import dgir.core.ir.types.AlgorithmWInference.Expr.Lit.LitBool;
+import dgir.core.ir.types.AlgorithmWInference.Expr.Lit.LitInt;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public sealed interface AlgorithmWInference {
+  public abstract class AlgorithmWExpr {}
+
+  public sealed interface Expr {
+    public record InferResult(
+      Subst subst,
+      AlgorithmWType type,
+      InferenceTree tree
+    ) {}
+
+    public InferResult infer(TypeInference engine, Env env);
+
+    public sealed interface Lit {
+      public final record LitInt(int value) implements Lit {
+        @Override
+        public final String toString() {
+          return "Int(" + value + ")";
+        }
+      }
+
+      public final record LitBool(boolean value) implements Lit {
+        @Override
+        public final String toString() {
+          return "Bool(" + value + ")";
+        }
+      }
+    }
+
+    public final record ExprLit(Lit value) implements Expr {
+      @Override
+      public final String toString() {
+        return value.toString();
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        if (value instanceof LitInt) {
+          return new InferResult(
+            Subst.newEmpty(),
+            new AlgorithmWType.Integer(),
+            new InferenceTree("T-Int", env + " |- " + this, "Int", List.of())
+          );
+        } else if (value instanceof LitBool) {
+          return new InferResult(
+            Subst.newEmpty(),
+            new AlgorithmWType.Boolean(),
+            new InferenceTree("T-Bool", env + " |- " + this, "Bool", List.of())
+          );
+        } else {
+          throw new RuntimeException("value is not of type Lit");
+        }
+      }
+    }
+
+    public final record ExprTuple(List<Expr> elements) implements Expr {
+      @Override
+      public final String toString() {
+        return (
+          "(" +
+          elements
+            .stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(", ")) +
+          ")"
+        );
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        String input = env + " |- " + this;
+        Subst subst = Subst.newEmpty();
+        ArrayList<AlgorithmWType> types = new ArrayList<>();
+        ArrayList<InferenceTree> trees = new ArrayList<>();
+        Env currentEnv = env.copy();
+
+        for (var expr : elements) {
+          var res = expr.infer(engine, currentEnv);
+          subst = res.subst.compose(subst);
+          currentEnv = currentEnv.apply(res.subst);
+          types.add(res.type);
+          trees.add(res.tree);
+        }
+
+        var resultType = new AlgorithmWType.Tuple(List.copyOf(types));
+
+        return new InferResult(
+          subst,
+          resultType,
+          new InferenceTree(
+            "T-Tuple",
+            input,
+            "" + resultType,
+            List.copyOf(trees)
+          )
+        );
+      }
+    }
+
+    public final record ExprVar(String name) implements Expr {
+      @Override
+      public final String toString() {
+        return name;
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        String input = env + " |- " + this;
+
+        Scheme scheme = env.env.get(name);
+        if (scheme != null) {
+          AlgorithmWType instantiated = scheme.instantiate(engine);
+          return new InferResult(
+            Subst.newEmpty(),
+            instantiated,
+            new InferenceTree(
+              "T-Var",
+              input,
+              instantiated.toString(),
+              List.of()
+            )
+          );
+        } else {
+          // TODO: replace with exception class here
+          throw new RuntimeException("Unknown variable: " + name);
+        }
+      }
+    }
+
+    public final record ExprApp(Expr func, Expr arg) implements Expr {
+      @Override
+      public final String toString() {
+        return func + " " + arg;
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        String input = env + " |- " + this;
+
+        AlgorithmWType resultType = new AlgorithmWType.Var(
+          engine.freshTypeVar()
+        );
+
+        InferResult res1 = func.infer(engine, env);
+        Env envSubst = env.apply(res1.subst);
+        InferResult res2 = arg.infer(engine, envSubst);
+
+        AlgorithmWType funcTypeSubst = res2.subst.apply(res1.type);
+        AlgorithmWType expectedFuncType = new Arrow(res2.type, resultType);
+
+        UnifyResult res3 = funcTypeSubst.unify(expectedFuncType);
+
+        Subst finalSubst = res3.subst.compose(res2.subst.compose(res1.subst));
+        AlgorithmWType finalType = res3.subst.apply(resultType);
+
+        return new InferResult(
+          finalSubst,
+          finalType,
+          new InferenceTree(
+            "T-App",
+            input,
+            "" + finalType,
+            List.of(res1.tree, res2.tree, res3.tree)
+          )
+        );
+      }
+    }
+
+    public final record ExprAbs(String param, Expr body) implements Expr {
+      @Override
+      public final String toString() {
+        return "λ" + param + "." + body + "";
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        String input = env + " |- " + this;
+
+        AlgorithmWType freshTypeVar = new AlgorithmWType.Var(
+          engine.freshTypeVar()
+        );
+        Env newEnv = env.copy();
+        Scheme newScheme = new Scheme(List.of(), freshTypeVar);
+        newEnv.env.put(param, newScheme);
+
+        InferResult res = body.infer(engine, newEnv);
+        AlgorithmWType resultType = new Arrow(
+          res.subst.apply(freshTypeVar),
+          res.type
+        );
+
+        return new InferResult(
+          res.subst,
+          resultType,
+          new InferenceTree(
+            "T-Abs",
+            input,
+            resultType.toString(),
+            List.of(res.tree)
+          )
+        );
+      }
+    }
+
+    public final record ExprLet(
+      String param,
+      Expr value,
+      Expr body
+    ) implements Expr {
+      @Override
+      public final String toString() {
+        return "let " + param + " = " + value + " in " + body;
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        String input = env + " |- " + this;
+
+        InferResult res1 = value.infer(engine, env);
+        Env envSubst = env.apply(res1.subst);
+        Scheme generalizedType = res1.type.generalize(envSubst);
+
+        Env newEnv = envSubst.copy();
+        newEnv.env.put(param, generalizedType);
+
+        InferResult res2 = body.infer(engine, newEnv);
+        Subst finalSubst = res2.subst.compose(res1.subst);
+
+        return new InferResult(
+          finalSubst,
+          res2.type,
+          new InferenceTree(
+            "T-Let",
+            input,
+            "" + res2.type,
+            List.of(res1.tree, res2.tree)
+          )
+        );
+      }
+    }
+  }
+
+  public final class TypeInference implements AlgorithmWInference {
+
+    private int counter;
+
+    public TypeInference() {
+      this.counter = 0;
+    }
+
+    public String freshTypeVar() {
+      return "t" + counter++;
+    }
+
+    public AlgorithmWType inferType(Expr expr) {
+      Env env = new Env(new HashMap<>());
+      InferResult res = expr.infer(this, env);
+      AlgorithmWType finalType = res.subst.apply(res.type);
+      System.out.println(res.tree + "");
+      return finalType;
+    }
+  }
+
+  public final record Env(HashMap<String, Scheme> env) {
+    @Override
+    public final String toString() {
+      return (
+        "{" +
+        env
+          .entrySet()
+          .stream()
+          .map(entry -> entry.getKey() + " -> " + entry.getValue())
+          .collect(Collectors.joining(", ")) +
+        "}"
+      );
+    }
+
+    /**
+     * Apply the subst to this env.
+     *
+     * @param subst the subst to apply with
+     * @return the applied env where subst is applied to this
+     */
+    public Env apply(Subst subst) {
+      var newEnv = new HashMap<String, Scheme>(env);
+      for (var entry : this.env.entrySet()) {
+        newEnv.put(entry.getKey(), entry.getValue().apply(subst));
+      }
+      return new Env(newEnv);
+    }
+
+    /**
+     * Get the free type Variables that are unbound for the whole environment
+     * @return
+     */
+    public Set<String> freeTypeVars() {
+      var set = new HashSet<String>();
+
+      for (var entry : this.env.entrySet()) {
+        set.addAll(entry.getValue().freeTypeVars());
+      }
+
+      return Set.copyOf(set);
+    }
+
+    public Env copy() {
+      return new Env(new HashMap<>(this.env));
+    }
+  }
+
+  public final record Scheme(List<String> vars, AlgorithmWType type) {
+    /**
+     * Apply the subst to this scheme. First filter all bound variables from the subst, then apply
+     * the filtered subst to the type.
+     *
+     * @param subst the subst to apply with
+     * @return the applied scheme where subst is applied to this
+     */
+    public Scheme apply(Subst subst) {
+      var filtered = new HashMap<String, AlgorithmWType>(subst.types);
+
+      for (var s : this.vars) {
+        filtered.remove(s);
+      }
+
+      var newType = new Subst(filtered).apply(this.type);
+      return new Scheme(this.vars, newType);
+    }
+
+    @Override
+    public final String toString() {
+      return (
+        "[{" +
+        this.vars
+          .stream()
+          .map(Object::toString)
+          .collect(Collectors.joining(", ")) +
+        "}, " +
+        this.type +
+        "]"
+      );
+    }
+
+    /**
+     * Find all non bound type variables
+     * @return
+     */
+    public Set<String> freeTypeVars() {
+      var ftv = this.type.freeTypeVars();
+      var set = new HashSet<String>(ftv);
+      set.removeAll(this.vars);
+      return Set.copyOf(set);
+    }
+
+    public AlgorithmWType instantiate(TypeInference engine) {
+      Subst s = Subst.newEmpty();
+
+      for (var typeVar : this.vars) {
+        var fresh = engine.freshTypeVar();
+        s.types.put(typeVar, new AlgorithmWType.Var(fresh));
+      }
+
+      return s.apply(this.type);
+    }
+  }
+
+  public final record Subst(HashMap<String, AlgorithmWType> types) {
+    public static Subst newEmpty() {
+      return new Subst(new HashMap<>());
+    }
+
+    public static Subst newSingleton(String key, AlgorithmWType type) {
+      var map = new HashMap<String, AlgorithmWType>();
+      map.put(key, type);
+      return new Subst(map);
+    }
+
+    @Override
+    public final String toString() {
+      return (
+        "{" +
+        types
+          .entrySet()
+          .stream()
+          .map(entry -> entry.getKey() + " -> " + entry.getValue())
+          .collect(Collectors.joining(", ")) +
+        "}"
+      );
+    }
+
+    public AlgorithmWType apply(AlgorithmWType type) {
+      if (type instanceof Var var) {
+        var t = types.get(var.name);
+        if (t != null) {
+          return apply(t);
+        } else {
+          return type;
+        }
+      } else if (type instanceof Arrow arrow) {
+        return new AlgorithmWType.Arrow(apply(arrow.from), apply(arrow.to));
+      } else if (type instanceof Integer) {
+        return type;
+      } else if (type instanceof Boolean) {
+        return type;
+      } else if (type instanceof Tuple tuple) {
+        return new Tuple(tuple.elements.stream().map(this::apply).toList());
+      } else {
+        throw new RuntimeException("Unknown type: " + type);
+      }
+    }
+
+    /**
+     * Compose this subst with another subst, by first relaying other through this
+     *
+     * @param other the other subst to compose with
+     * @return the composed subst
+     */
+    public Subst compose(Subst other) {
+      var otherTypes = new HashMap<String, AlgorithmWType>(other.types);
+      otherTypes
+        .entrySet()
+        .stream()
+        .forEach(entry -> entry.setValue(this.apply(entry.getValue())));
+
+      this.types
+        .entrySet()
+        .stream()
+        .forEach(entry ->
+          otherTypes.putIfAbsent(entry.getKey(), entry.getValue())
+        );
+
+      return new Subst(otherTypes);
+    }
+  }
+
+  public abstract sealed class AlgorithmWType {
+
+    public record UnifyResult(Subst subst, InferenceTree tree) {
+      public AlgorithmWType applySubst(AlgorithmWType type) {
+        return this.subst.apply(type);
+      }
+    }
+
+    public Scheme generalize(Env env) {
+      Set<String> ftv = this.freeTypeVars();
+      Set<String> envFtv = env.freeTypeVars();
+
+      List<String> unboundFtv = ftv
+        .stream()
+        .filter(ty -> !envFtv.contains(ty))
+        .collect(Collectors.toList());
+
+      return new Scheme(unboundFtv, this);
+    }
+
+    /**
+     * unify both this and other to a common substitution that can be used for inference
+     *
+     * @param other The other type to unify with.
+     * @return The unification result consisting of a substitution and an inference tree.
+     * @throws RuntimeException if unimplemented
+     */
+    public abstract UnifyResult unify(AlgorithmWType other);
+
+    public boolean occursCheck(String ty) {
+      var ftv = this.freeTypeVars();
+      return ftv.contains(ty);
+    }
+
+    public abstract Set<String> freeTypeVars();
+
+    public static final class Var extends AlgorithmWType {
+
+      public final String name;
+
+      public Var(String name) {
+        this.name = name;
+      }
+
+      @Override
+      public String toString() {
+        return name;
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        return obj instanceof Var other && this.name.equals(other.name);
+      }
+
+      @Override
+      public int hashCode() {
+        return super.hashCode();
+      }
+
+      @Override
+      public UnifyResult unify(AlgorithmWType other) {
+        // Maybe the two types (this and other) are actually the same type variable
+        if (other instanceof Var b && this.name.equals(b.name)) {
+          return new UnifyResult(
+            Subst.newEmpty(),
+            new InferenceTree(
+              "Unify-Var-Same",
+              this.toString() + " ~ " + b.toString()
+            )
+          );
+        } else if (other.occursCheck(this.name)) {
+          throw new RuntimeException("Occurs check failed");
+        } else {
+          // In every other case, the type variable can be substituded with the concrete type that is other
+          var subst = Subst.newSingleton(this.name, other);
+          return new UnifyResult(
+            subst,
+            new InferenceTree(
+              "Unify-Var",
+              this.toString() + " ~ " + other.toString(),
+              other.toString() + "/" + this.toString()
+            )
+          );
+        }
+      }
+
+      @Override
+      public Set<String> freeTypeVars() {
+        return Set.of(this.name);
+      }
+    }
+
+    public static final class Arrow extends AlgorithmWType {
+
+      public final AlgorithmWType from;
+      public final AlgorithmWType to;
+
+      public Arrow(AlgorithmWType from, AlgorithmWType to) {
+        this.from = from;
+        this.to = to;
+      }
+
+      @Override
+      public String toString() {
+        return from + " -> " + to;
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        return (
+          obj instanceof Arrow other &&
+          this.from.equals(other.from) &&
+          this.to.equals(other.to)
+        );
+      }
+
+      @Override
+      public int hashCode() {
+        return super.hashCode();
+      }
+
+      @Override
+      public UnifyResult unify(AlgorithmWType other) {
+        if (other instanceof Arrow b) {
+          UnifyResult u1 = this.from.unify(b.from);
+          UnifyResult u2 = u1.applySubst(this.to).unify(u1.applySubst(b.to));
+
+          Subst finalSubst = u2.subst().compose(u1.subst());
+
+          return new UnifyResult(
+            finalSubst,
+            new InferenceTree(
+              "Unify-Arrow",
+              this.toString() + " ~ " + b.toString(),
+              finalSubst.toString(),
+              List.of(u1.tree, u2.tree)
+            )
+          );
+        } else if (other instanceof Var) {
+          return other.unify(this);
+        } else {
+          throw new RuntimeException(
+            "Unify-Arrow: " + this.toString() + " ~ " + other.toString()
+          );
+        }
+      }
+
+      @Override
+      public Set<String> freeTypeVars() {
+        var set = new HashSet<String>();
+        set.addAll(this.from.freeTypeVars());
+        set.addAll(this.to.freeTypeVars());
+        return Set.copyOf(set);
+      }
+    }
+
+    public static final class Integer extends AlgorithmWType {
+
+      public Integer() {}
+
+      @Override
+      public String toString() {
+        return "Int";
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        return obj instanceof Integer;
+      }
+
+      @Override
+      public int hashCode() {
+        return super.hashCode();
+      }
+
+      @Override
+      public UnifyResult unify(AlgorithmWType other) {
+        if (other instanceof Integer) {
+          return new UnifyResult(
+            Subst.newEmpty(),
+            new InferenceTree(
+              "Unify-Base",
+              this.toString() + " ~ " + other.toString()
+            )
+          );
+        } else if (other instanceof Var) {
+          return other.unify(this);
+        } else {
+          throw new RuntimeException("unify failed: " + this + " vs " + other);
+        }
+      }
+
+      @Override
+      public Set<String> freeTypeVars() {
+        return Set.of();
+      }
+    }
+
+    public static final class Boolean extends AlgorithmWType {
+
+      public Boolean() {}
+
+      @Override
+      public String toString() {
+        return "Bool";
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        return obj instanceof Boolean;
+      }
+
+      @Override
+      public int hashCode() {
+        return super.hashCode();
+      }
+
+      @Override
+      public UnifyResult unify(AlgorithmWType other) {
+        if (other instanceof Boolean) {
+          return new UnifyResult(
+            Subst.newEmpty(),
+            new InferenceTree(
+              "Unify-Base",
+              this.toString() + " ~ " + other.toString()
+            )
+          );
+        } else if (other instanceof Var) {
+          return other.unify(this);
+        } else {
+          throw new RuntimeException("unify failed: " + this + " vs " + other);
+        }
+      }
+
+      @Override
+      public Set<String> freeTypeVars() {
+        return Set.of();
+      }
+    }
+
+    public static final class Tuple extends AlgorithmWType {
+
+      public final List<AlgorithmWType> elements;
+
+      public Tuple(List<AlgorithmWType> elements) {
+        this.elements = elements;
+      }
+
+      @Override
+      public String toString() {
+        return (
+          "(" +
+          this.elements
+            .stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(", ")) +
+          ")"
+        );
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        return obj instanceof Tuple other && this.elements.equals(other.elements);
+      }
+
+      @Override
+      public int hashCode() {
+        return super.hashCode();
+      }
+
+      @Override
+      public Set<String> freeTypeVars() {
+        var set = new HashSet<String>();
+
+        this.elements.stream().forEach(e -> set.addAll(e.freeTypeVars()));
+
+        return Set.copyOf(set);
+      }
+
+      @Override
+      public UnifyResult unify(AlgorithmWType other) {
+        if (other instanceof Tuple b) {
+          if (this.elements.size() != b.elements.size()) {
+            throw new RuntimeException(
+              "Tuple size does not match: " +
+                this.elements.size() +
+                " != " +
+                b.elements.size()
+            );
+          }
+          Subst subst = Subst.newEmpty();
+          ArrayList<InferenceTree> trees = new ArrayList<>();
+
+          for (int i = 0; i < this.elements.size(); i++) {
+            UnifyResult result = subst
+              .apply(this.elements.get(i))
+              .unify(subst.apply(b.elements.get(i)));
+            subst = result.subst().compose(subst);
+            trees.add(result.tree);
+          }
+
+          return new UnifyResult(
+            subst,
+            new InferenceTree(
+              "Unify-Tuple",
+              this + " ~ " + other,
+              subst + "",
+              List.copyOf(trees)
+            )
+          );
+        } else if (other instanceof Var) {
+          return other.unify(this);
+        } else {
+          throw new RuntimeException("Unify failed: " + this + " vs " + other);
+        }
+      }
+    }
+  }
+}
