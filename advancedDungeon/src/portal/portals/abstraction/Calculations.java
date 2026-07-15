@@ -43,13 +43,13 @@ public abstract class Calculations {
    * <p>The returned {@link Point} represents the last valid position the light wall may occupy
    * before being blocked.
    *
-   * @param from          the starting point of the light wall
+   * @param from the starting point of the light wall
    * @param beamDirection the direction in which the light wall propagates
    * @param stoppingTiles level elements that block the light wall
    * @return the final reachable point of the light wall
    */
   public abstract Point calculateLightWallAndBridgeEnd(
-    Point from, Direction beamDirection, LevelElement[] stoppingTiles);
+      Point from, Direction beamDirection, LevelElement[] stoppingTiles);
 
   /**
    * Calculates the force applied by a tractor beam.

@@ -156,7 +156,7 @@ public final class LevelSystem extends System {
 
     // Check if all heroes are on the same open door and load that level
     List<ILevel> doorLevels =
-      Game.allPlayers().map(this::isOnDoor).flatMap(Optional::stream).distinct().toList();
+        Game.allPlayers().map(this::isOnDoor).flatMap(Optional::stream).distinct().toList();
 
     if (doorLevels.size() == 1) {
       loadLevel(doorLevels.get(0));

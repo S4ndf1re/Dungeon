@@ -10,15 +10,15 @@ class SoundPlayMessageTest {
   @Test
   void storesFields() {
     SoundSpec spec =
-      SoundSpec.builder("boom")
-        .instanceId(10L)
-        .volume(0.6f)
-        .pitch(1.1f)
-        .pan(-0.2f)
-        .looping(true)
-        .maxDistance(30f)
-        .attenuation(0.3f)
-        .build();
+        SoundSpec.builder("boom")
+            .instanceId(10L)
+            .volume(0.6f)
+            .pitch(1.1f)
+            .pan(-0.2f)
+            .looping(true)
+            .maxDistance(30f)
+            .attenuation(0.3f)
+            .build();
     SoundPlayMessage msg = new SoundPlayMessage(42, spec);
 
     assertEquals(42, msg.entityId());

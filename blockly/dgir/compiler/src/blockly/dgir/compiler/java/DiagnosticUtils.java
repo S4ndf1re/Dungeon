@@ -3,9 +3,6 @@ package blockly.dgir.compiler.java;
 import com.github.javaparser.Range;
 import com.github.javaparser.ast.Node;
 import dgir.core.debug.Location;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +10,8 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class DiagnosticUtils {
   private static final Logger LOGGER = Logger.getLogger(DiagnosticUtils.class.getName());

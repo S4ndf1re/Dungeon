@@ -4,14 +4,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dgir.core.serialization.NamedAttributeDeserializer;
 import dgir.core.serialization.NamedAttributeSerializer;
+import java.util.Objects;
+import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tools.jackson.databind.annotation.JsonDeserialize;
 import tools.jackson.databind.annotation.JsonSerialize;
-
-import java.util.Objects;
-import java.util.Optional;
 
 /** An {@link Attribute} paired with its name, as stored inside an {@link Operation}. */
 @JsonSerialize(using = NamedAttributeSerializer.class)

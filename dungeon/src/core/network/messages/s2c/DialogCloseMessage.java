@@ -12,5 +12,4 @@ import core.network.messages.NetworkMessage;
  * @see DialogShowMessage
  * @see core.network.server.DialogTracker#closeDialog(String)
  */
-public record DialogCloseMessage(String dialogId) implements NetworkMessage {
-}
+public record DialogCloseMessage(String dialogId) implements NetworkMessage {}

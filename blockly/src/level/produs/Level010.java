@@ -69,6 +69,4 @@ public class Level010 extends BlocklyLevel {
     hedgehogBuilder.build(getPoint(3));
     hedgehogBuilder.build(getPoint(4));
   }
-
-
 }

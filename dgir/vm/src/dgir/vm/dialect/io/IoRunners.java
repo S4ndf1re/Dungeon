@@ -8,13 +8,12 @@ import dgir.dialect.str.StrTypes;
 import dgir.vm.api.Action;
 import dgir.vm.api.OpRunner;
 import dgir.vm.api.State;
-import org.jetbrains.annotations.NotNull;
-
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Scanner;
+import org.jetbrains.annotations.NotNull;
 
 public sealed interface IoRunners {
   final class ConsoleInRunner extends OpRunner implements IoRunners {

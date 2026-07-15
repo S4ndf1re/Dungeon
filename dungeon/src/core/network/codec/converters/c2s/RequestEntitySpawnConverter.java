@@ -4,18 +4,16 @@ import com.google.protobuf.Parser;
 import core.network.codec.MessageConverter;
 import core.network.messages.c2s.RequestEntitySpawn;
 
-/**
- * Converter for client-to-server entity spawn request messages.
- */
+/** Converter for client-to-server entity spawn request messages. */
 public final class RequestEntitySpawnConverter
-  implements MessageConverter<RequestEntitySpawn, core.network.proto.c2s.RequestEntitySpawn> {
+    implements MessageConverter<RequestEntitySpawn, core.network.proto.c2s.RequestEntitySpawn> {
   private static final byte WIRE_TYPE_ID = 5;
 
   @Override
   public core.network.proto.c2s.RequestEntitySpawn toProto(RequestEntitySpawn message) {
     return core.network.proto.c2s.RequestEntitySpawn.newBuilder()
-      .setEntityId(message.entityId())
-      .build();
+        .setEntityId(message.entityId())
+        .build();
   }
 
   @Override

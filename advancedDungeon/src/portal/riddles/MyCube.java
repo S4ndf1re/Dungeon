@@ -22,19 +22,13 @@ import portal.physicsobject.PortalCube;
  */
 public class MyCube extends PortalCube {
 
-  /**
-   * Die Masse des Würfels (beeinflusst, wie schwer er zu bewegen ist).
-   */
+  /** Die Masse des Würfels (beeinflusst, wie schwer er zu bewegen ist). */
   private float mass = 0.1f;
 
-  /**
-   * Gibt an, ob der Würfel aufgehoben werden kann.
-   */
+  /** Gibt an, ob der Würfel aufgehoben werden kann. */
   private boolean isPickupable = false;
 
-  /**
-   * Der Pfad zur Grafik des Würfels.
-   */
+  /** Der Pfad zur Grafik des Würfels. */
   private String texture = "portal/portal_cube/portal_cube.png";
 
   /**

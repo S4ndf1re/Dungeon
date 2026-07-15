@@ -1,7 +1,6 @@
 package modules.computer;
 
 import core.network.codec.DialogValueCodec;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -36,7 +35,7 @@ public final class ComputerStateComponentCodec implements DialogValueCodec<Compu
   @Override
   public byte[] encode(ComputerStateComponent value) {
     try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-         DataOutputStream dataOutput = new DataOutputStream(outputStream)) {
+        DataOutputStream dataOutput = new DataOutputStream(outputStream)) {
       dataOutput.writeUTF(value.state().name());
       dataOutput.writeBoolean(value.isInfected());
       boolean hasVirusType = value.virusType() != null;

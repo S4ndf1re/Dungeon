@@ -438,82 +438,82 @@ public class InventoryGUI extends CombinableGUI implements IInventoryHolder, Dis
     setBounds(0, 0, this.width(), this.height());
 
     this.addListener(
-      new InputListener() {
-        @Override
-        public boolean keyDown(InputEvent event, int keycode) {
-          Entity player = Game.player().orElseThrow();
-          if (UIUtils.getPlayerInventoryGUI(player).isPresent()) {
-            if (KeyboardConfig.USE_ITEM.value() == keycode) {
-              if (Game.network().isServer()) {
-                return HeroController.useItem(player, getSlotByMousePosition());
-              } else {
-                Game.network()
-                  .send((short) 0, InputMessage.invUse(getSlotByMousePosition()), true);
-                return true;
-              }
-            }
-          }
-          return false;
-        }
-
-        @Override
-        public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-          Entity player = Game.player().orElseThrow();
-          UIComponent uiComponent = player.fetch(UIComponent.class).orElse(null);
-          InventoryComponent inventoryComponent =
-            player.fetch(InventoryComponent.class).orElse(null);
-          if (uiComponent != null
-            && UIUtils.getInventoriesFromUI(uiComponent)
-            .allMatch(ic -> ic == inventoryComponent)) {
-            if (KeyboardConfig.MOUSE_USE_ITEM.value() == button) {
-              if (Game.network().isServer()) {
-                return HeroController.useItem(player, getSlotByMousePosition());
-              } else {
-                Game.network()
-                  .send((short) 0, InputMessage.invUse(getSlotByMousePosition()), true);
-                return true;
+        new InputListener() {
+          @Override
+          public boolean keyDown(InputEvent event, int keycode) {
+            Entity player = Game.player().orElseThrow();
+            if (UIUtils.getPlayerInventoryGUI(player).isPresent()) {
+              if (KeyboardConfig.USE_ITEM.value() == keycode) {
+                if (Game.network().isServer()) {
+                  return HeroController.useItem(player, getSlotByMousePosition());
+                } else {
+                  Game.network()
+                      .send((short) 0, InputMessage.invUse(getSlotByMousePosition()), true);
+                  return true;
+                }
               }
             }
             return false;
           }
 
-          if (uiComponent != null && uiComponent.dialog() instanceof GUICombination) {
-            // if two inventories are open, transfer items between them if key is pressed
-            if (KeyboardConfig.TRANSFER_ITEM.value() == button) {
-              int sourceSlot = getSlotByMousePosition();
-              if (isPlayersInventory(
-                Game.player().orElseThrow(), InventoryGUI.this.inventoryComponent)) {
-                sourceSlot = (-sourceSlot) - 1; // negative slots for hero inventory
+          @Override
+          public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+            Entity player = Game.player().orElseThrow();
+            UIComponent uiComponent = player.fetch(UIComponent.class).orElse(null);
+            InventoryComponent inventoryComponent =
+                player.fetch(InventoryComponent.class).orElse(null);
+            if (uiComponent != null
+                && UIUtils.getInventoriesFromUI(uiComponent)
+                    .allMatch(ic -> ic == inventoryComponent)) {
+              if (KeyboardConfig.MOUSE_USE_ITEM.value() == button) {
+                if (Game.network().isServer()) {
+                  return HeroController.useItem(player, getSlotByMousePosition());
+                } else {
+                  Game.network()
+                      .send((short) 0, InputMessage.invUse(getSlotByMousePosition()), true);
+                  return true;
+                }
               }
-              Optional<InventoryComponent> targetInventory =
-                UIUtils.getInventoriesFromUI(uiComponent)
-                  .filter(invComp -> invComp != InventoryGUI.this.inventoryComponent)
-                  .findFirst();
+              return false;
+            }
 
-              if (targetInventory.isEmpty()) return false;
+            if (uiComponent != null && uiComponent.dialog() instanceof GUICombination) {
+              // if two inventories are open, transfer items between them if key is pressed
+              if (KeyboardConfig.TRANSFER_ITEM.value() == button) {
+                int sourceSlot = getSlotByMousePosition();
+                if (isPlayersInventory(
+                    Game.player().orElseThrow(), InventoryGUI.this.inventoryComponent)) {
+                  sourceSlot = (-sourceSlot) - 1; // negative slots for hero inventory
+                }
+                Optional<InventoryComponent> targetInventory =
+                    UIUtils.getInventoriesFromUI(uiComponent)
+                        .filter(invComp -> invComp != InventoryGUI.this.inventoryComponent)
+                        .findFirst();
 
-              int nextBestTargetSlot = targetInventory.get().findNextAvailableSlot();
-              if (nextBestTargetSlot == -1) {
-                LOGGER.debug("No available slot in target inventory for transfer.");
-                return false;
-              }
-              if (isPlayersInventory(Game.player().orElseThrow(), targetInventory.get())) {
-                nextBestTargetSlot = (-nextBestTargetSlot) - 1; // negative slots for hero
-              }
+                if (targetInventory.isEmpty()) return false;
 
-              if (Game.network().isServer()) {
-                return HeroController.moveItem(
-                  Game.player().orElseThrow(), sourceSlot, nextBestTargetSlot);
-              } else {
-                Game.network()
-                  .send((short) 0, InputMessage.invMove(sourceSlot, nextBestTargetSlot), true);
-                return true;
+                int nextBestTargetSlot = targetInventory.get().findNextAvailableSlot();
+                if (nextBestTargetSlot == -1) {
+                  LOGGER.debug("No available slot in target inventory for transfer.");
+                  return false;
+                }
+                if (isPlayersInventory(Game.player().orElseThrow(), targetInventory.get())) {
+                  nextBestTargetSlot = (-nextBestTargetSlot) - 1; // negative slots for hero
+                }
+
+                if (Game.network().isServer()) {
+                  return HeroController.moveItem(
+                      Game.player().orElseThrow(), sourceSlot, nextBestTargetSlot);
+                } else {
+                  Game.network()
+                      .send((short) 0, InputMessage.invMove(sourceSlot, nextBestTargetSlot), true);
+                  return true;
+                }
               }
             }
+            return false;
           }
-          return false;
-        }
-      });
+        });
   }
 
   @Override

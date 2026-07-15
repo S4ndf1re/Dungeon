@@ -1,10 +1,9 @@
 package blockly.dgir.vm.dialect.dg;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Bridge between the VM-side {@link DgRunners} and the game-side action system.

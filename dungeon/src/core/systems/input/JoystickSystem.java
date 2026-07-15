@@ -17,7 +17,6 @@ import core.network.messages.c2s.InputMessage;
 import core.utils.Direction;
 import core.utils.Point;
 import core.utils.Vector2;
-
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -66,17 +65,13 @@ public class JoystickSystem extends System {
     var controllers = Controllers.getControllers();
   }
 
-  /**
-   * Keep joystick input active even when the game is paused by UI dialogs.
-   */
+  /** Keep joystick input active even when the game is paused by UI dialogs. */
   @Override
   public void stop() {
     this.run = true; // This system can not be stopped.
   }
 
-  /**
-   * This system is always running, even when the game is unpaused.
-   */
+  /** This system is always running, even when the game is unpaused. */
   @Override
   public void run() {
     this.run = true;
@@ -85,10 +80,10 @@ public class JoystickSystem extends System {
   @Override
   public void execute() {
     filteredEntityStream()
-      .filter(
-        entity ->
-          entity.fetch(PlayerComponent.class).map(PlayerComponent::isLocal).orElse(false))
-      .forEach(this::executeJoystick);
+        .filter(
+            entity ->
+                entity.fetch(PlayerComponent.class).map(PlayerComponent::isLocal).orElse(false))
+        .forEach(this::executeJoystick);
   }
 
   /**
@@ -100,14 +95,14 @@ public class JoystickSystem extends System {
    */
   private void executeJoystick(Entity player) {
     getActiveController()
-      .ifPresent(
-        controller -> {
-          updateMouseCursor(controller);
-          handleMouse(controller);
-          handleMovement(controller);
-          handleActions(controller, SkillTools.cursorPositionAsPoint());
-          handleInventoryToggle(controller, player);
-        });
+        .ifPresent(
+            controller -> {
+              updateMouseCursor(controller);
+              handleMouse(controller);
+              handleMovement(controller);
+              handleActions(controller, SkillTools.cursorPositionAsPoint());
+              handleInventoryToggle(controller, player);
+            });
   }
 
   private Optional<Controller> getActiveController() {
@@ -172,7 +167,7 @@ public class JoystickSystem extends System {
    * triggers while the button is held down.
    *
    * @param controller the controller to check the button state from
-   * @param button     the button index to check
+   * @param button the button index to check
    * @return true if the button was just pressed this frame, false otherwise
    */
   private boolean isJustPressed(Controller controller, int button) {
@@ -325,7 +320,7 @@ public class JoystickSystem extends System {
     }
 
     boolean ltDown =
-      Math.abs(controller.getAxis(JoystickConfig.LT_AXIS)) > JoystickConfig.TRIGGER_DEADZONE;
+        Math.abs(controller.getAxis(JoystickConfig.LT_AXIS)) > JoystickConfig.TRIGGER_DEADZONE;
     int x = Gdx.input.getX();
     int y = Gdx.input.getY();
 

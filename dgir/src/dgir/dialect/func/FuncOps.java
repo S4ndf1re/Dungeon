@@ -1,15 +1,15 @@
 package dgir.dialect.func;
 
-import dgir.core.ir.Dialect;
-import dgir.core.ir.SymbolTable;
+import static dgir.dialect.builtin.BuiltinAttrs.SymbolRefAttribute;
+import static dgir.dialect.builtin.BuiltinAttrs.TypeAttribute;
+import static dgir.dialect.func.FuncTypes.FuncType;
+import static dgir.dialect.str.StrAttrs.StringAttribute;
+
 import dgir.core.debug.Location;
 import dgir.core.ir.*;
+import dgir.core.ir.Dialect;
+import dgir.core.ir.SymbolTable;
 import dgir.core.traits.*;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Unmodifiable;
-
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,11 +17,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import static dgir.dialect.builtin.BuiltinAttrs.SymbolRefAttribute;
-import static dgir.dialect.builtin.BuiltinAttrs.TypeAttribute;
-import static dgir.dialect.func.FuncTypes.FuncType;
-import static dgir.dialect.str.StrAttrs.StringAttribute;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 /**
  * Sealed marker interface for all operations in the {@link FuncDialect}.

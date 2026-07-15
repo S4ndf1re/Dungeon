@@ -29,9 +29,9 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
    *
    * <p>The callback key and payload may be {@code null} depending on the interaction type.
    *
-   * @param dialogId    The unique identifier of the dialog being responded to.
+   * @param dialogId The unique identifier of the dialog being responded to.
    * @param callbackKey The callback key to execute, or {@code null} when the dialog was closed.
-   * @param payload     The optional callback payload, or {@code null} when no payload is provided.
+   * @param payload The optional callback payload, or {@code null} when no payload is provided.
    * @throws NullPointerException If {@code dialogId} is {@code null}.
    */
   public DialogResponseMessage {
@@ -45,11 +45,11 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
    * the requested type.
    *
    * @param type The expected payload class.
-   * @param <T>  The expected payload subtype.
+   * @param <T> The expected payload subtype.
    * @return The payload as the requested type.
-   * @throws NullPointerException     If {@code type} is {@code null}.
+   * @throws NullPointerException If {@code type} is {@code null}.
    * @throws IllegalArgumentException If {@code payload} is {@code null} or not assignable to {@code
-   *                                  type}.
+   *     type}.
    */
   public <T extends Payload> T payloadAs(Class<T> type) {
     Objects.requireNonNull(type, "type");
@@ -58,10 +58,10 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
     }
     if (!type.isInstance(payload)) {
       throw new IllegalArgumentException(
-        "Expected payload of type "
-          + type.getSimpleName()
-          + " but got "
-          + payload.getClass().getSimpleName());
+          "Expected payload of type "
+              + type.getSimpleName()
+              + " but got "
+              + payload.getClass().getSimpleName());
     }
     return type.cast(payload);
   }
@@ -73,8 +73,7 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
    *
    * @see DialogResponseMessage
    */
-  public interface Payload extends Serializable {
-  }
+  public interface Payload extends Serializable {}
 
   /**
    * Represents a string payload for dialog responses.
@@ -104,8 +103,7 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
    *
    * @param value The integer value sent as payload.
    */
-  public record IntValue(int value) implements Payload {
-  }
+  public record IntValue(int value) implements Payload {}
 
   /**
    * Represents a long payload for dialog responses.
@@ -114,8 +112,7 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
    *
    * @param value The long value sent as payload.
    */
-  public record LongValue(long value) implements Payload {
-  }
+  public record LongValue(long value) implements Payload {}
 
   /**
    * Represents a float payload for dialog responses.
@@ -124,8 +121,7 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
    *
    * @param value The float value sent as payload.
    */
-  public record FloatValue(float value) implements Payload {
-  }
+  public record FloatValue(float value) implements Payload {}
 
   /**
    * Represents a double payload for dialog responses.
@@ -134,8 +130,7 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
    *
    * @param value The double value sent as payload.
    */
-  public record DoubleValue(double value) implements Payload {
-  }
+  public record DoubleValue(double value) implements Payload {}
 
   /**
    * Represents a boolean payload for dialog responses.
@@ -144,8 +139,7 @@ public record DialogResponseMessage(String dialogId, String callbackKey, Payload
    *
    * @param value The boolean value sent as payload.
    */
-  public record BoolValue(boolean value) implements Payload {
-  }
+  public record BoolValue(boolean value) implements Payload {}
 
   /**
    * Represents a string-array payload for dialog responses.

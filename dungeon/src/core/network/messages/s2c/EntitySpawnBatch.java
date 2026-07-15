@@ -1,7 +1,6 @@
 package core.network.messages.s2c;
 
 import core.network.messages.NetworkMessage;
-
 import java.util.List;
 
 /**
@@ -11,5 +10,4 @@ import java.util.List;
  *
  * @param entities the list of entity spawn events
  */
-public record EntitySpawnBatch(List<EntitySpawnEvent> entities) implements NetworkMessage {
-}
+public record EntitySpawnBatch(List<EntitySpawnEvent> entities) implements NetworkMessage {}

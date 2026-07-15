@@ -11,10 +11,9 @@ import core.configuration.KeyboardConfig;
 import core.utils.Direction;
 import core.utils.Vector2;
 import core.utils.components.MissingComponentException;
-import level.BlocklyLevel;
-
 import java.io.IOException;
 import java.util.Objects;
+import level.BlocklyLevel;
 
 /**
  * This class is used to create a player entity with tank controls. The player can only move in the

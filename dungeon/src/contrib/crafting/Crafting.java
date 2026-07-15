@@ -199,28 +199,28 @@ public final class Crafting {
                   "'param' must be an array of strings. File: " + name);
             List<Object> paramList = (List<Object>) paramObj;
             ItemRegistry.lookup(id)
-              .orElseThrow(
-                () ->
-                  new MissingItemRegistrationException(
-                    "Unknown item id: " + id + ". File: " + name));
+                .orElseThrow(
+                    () ->
+                        new MissingItemRegistrationException(
+                            "Unknown item id: " + id + ". File: " + name));
             Map<String, String> paramData = parseParamData(paramList, name);
             Item item =
-              ItemRegistry.create(id, paramData)
-                .orElseThrow(
-                  () ->
-                    new IllegalArgumentException(
-                      "Item '"
-                        + id
-                        + "' uses 'param' but no factory is registered. File: "
-                        + name));
+                ItemRegistry.create(id, paramData)
+                    .orElseThrow(
+                        () ->
+                            new IllegalArgumentException(
+                                "Item '"
+                                    + id
+                                    + "' uses 'param' but no factory is registered. File: "
+                                    + name));
             ingredientsArray[i] = item;
           } else {
             Class<? extends Item> itemClass =
-              ItemRegistry.lookup(id)
-                .orElseThrow(
-                  () ->
-                    new MissingItemRegistrationException(
-                      "Unknown item id: " + id + ". File: " + name));
+                ItemRegistry.lookup(id)
+                    .orElseThrow(
+                        () ->
+                            new MissingItemRegistrationException(
+                                "Unknown item id: " + id + ". File: " + name));
             ingredientsArray[i] = itemClass.getDeclaredConstructor().newInstance();
           }
           if (itemMap.containsKey("count")) {
@@ -263,29 +263,29 @@ public final class Crafting {
             List<Object> paramList = (List<Object>) paramObj;
 
             Class<? extends Item> itemClass =
-              ItemRegistry.lookup(id)
-                .orElseThrow(
-                  () ->
-                    new MissingItemRegistrationException(
-                      "Unknown item id: " + id + ". File: " + name));
+                ItemRegistry.lookup(id)
+                    .orElseThrow(
+                        () ->
+                            new MissingItemRegistrationException(
+                                "Unknown item id: " + id + ". File: " + name));
             Map<String, String> paramData = parseParamData(paramList, name);
             Item item =
-              ItemRegistry.create(id, paramData)
-                .orElseThrow(
-                  () ->
-                    new IllegalArgumentException(
-                      "Item '"
-                        + id
-                        + "' uses 'param' but no factory is registered. File: "
-                        + name));
+                ItemRegistry.create(id, paramData)
+                    .orElseThrow(
+                        () ->
+                            new IllegalArgumentException(
+                                "Item '"
+                                    + id
+                                    + "' uses 'param' but no factory is registered. File: "
+                                    + name));
             resultsArray[i] = item;
           } else {
             Class<? extends Item> itemClass =
-              ItemRegistry.lookup(id)
-                .orElseThrow(
-                  () ->
-                    new MissingItemRegistrationException(
-                      "Unknown item id: " + id + ". File: " + name));
+                ItemRegistry.lookup(id)
+                    .orElseThrow(
+                        () ->
+                            new MissingItemRegistrationException(
+                                "Unknown item id: " + id + ". File: " + name));
             resultsArray[i] = itemClass.getDeclaredConstructor().newInstance();
           }
           if (itemMap.containsKey("count")) {
@@ -335,7 +335,7 @@ public final class Crafting {
       String paramString = ((String) pObj).trim();
       if (paramString.isEmpty()) {
         throw new IllegalArgumentException(
-          "Parameter in 'param' list must not be blank. Recipe: " + recipeName);
+            "Parameter in 'param' list must not be blank. Recipe: " + recipeName);
       }
       data.put("param" + i, paramString);
     }

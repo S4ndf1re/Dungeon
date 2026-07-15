@@ -17,11 +17,8 @@ public final class DialogValueCodecRegistry {
   private final Map<Class<?>, DialogValueCodec<?>> byType = new ConcurrentHashMap<>();
   private final Map<String, DialogValueCodec<?>> byTypeId = new ConcurrentHashMap<>();
 
-  /**
-   * Creates an empty registry.
-   */
-  public DialogValueCodecRegistry() {
-  }
+  /** Creates an empty registry. */
+  public DialogValueCodecRegistry() {}
 
   /**
    * Returns the shared global registry instance.
@@ -60,22 +57,22 @@ public final class DialogValueCodecRegistry {
     DialogValueCodec<?> existingType = byType.putIfAbsent(codec.type(), codec);
     if (existingType != null) {
       throw new IllegalStateException(
-        "Duplicate DialogValueCodec for type "
-          + codec.type().getName()
-          + " (existing: "
-          + existingType.getClass().getName()
-          + ")");
+          "Duplicate DialogValueCodec for type "
+              + codec.type().getName()
+              + " (existing: "
+              + existingType.getClass().getName()
+              + ")");
     }
 
     DialogValueCodec<?> existingTypeId = byTypeId.putIfAbsent(codec.typeId(), codec);
     if (existingTypeId != null) {
       byType.remove(codec.type(), codec);
       throw new IllegalStateException(
-        "Duplicate DialogValueCodec for typeId '"
-          + codec.typeId()
-          + "' (existing: "
-          + existingTypeId.getClass().getName()
-          + ")");
+          "Duplicate DialogValueCodec for typeId '"
+              + codec.typeId()
+              + "' (existing: "
+              + existingTypeId.getClass().getName()
+              + ")");
     }
   }
 

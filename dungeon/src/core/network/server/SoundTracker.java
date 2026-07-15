@@ -7,7 +7,6 @@ import core.network.messages.s2c.SoundPlayMessage;
 import core.network.messages.s2c.SoundStopMessage;
 import core.sound.SoundSpec;
 import core.utils.logging.DungeonLogger;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,17 +36,15 @@ public final class SoundTracker {
   private static final DungeonLogger LOGGER = DungeonLogger.getLogger(SoundTracker.class);
 
   private record SoundInfo(
-    SoundSpec spec,
-    int entityId,
-    Set<Short> authorizedClientIds,
-    List<Runnable> onFinishedCallbacks) {
-  }
+      SoundSpec spec,
+      int entityId,
+      Set<Short> authorizedClientIds,
+      List<Runnable> onFinishedCallbacks) {}
 
   private final Map<Long, SoundInfo> sounds = new ConcurrentHashMap<>();
   private final Map<Short, Set<Long>> clientSounds = new ConcurrentHashMap<>();
 
-  private SoundTracker() {
-  }
+  private SoundTracker() {}
 
   /**
    * Returns the singleton instance of the SoundTracker.
@@ -61,15 +58,15 @@ public final class SoundTracker {
   /**
    * Registers a sound and sends SoundPlayMessage to target clients.
    *
-   * @param spec     the sound specification
+   * @param spec the sound specification
    * @param entityId the entity emitting the sound
    */
   public void registerAndSend(SoundSpec spec, int entityId) {
     int[] targets = spec.targetEntityIds();
     Set<Short> clientIds =
-      (targets.length == 0)
-        ? NetworkUtils.getAllConnectedClientIds()
-        : NetworkUtils.entityIdsToClientIds(targets);
+        (targets.length == 0)
+            ? NetworkUtils.getAllConnectedClientIds()
+            : NetworkUtils.entityIdsToClientIds(targets);
 
     if (clientIds.isEmpty()) {
       LOGGER.debug("No clients to send sound {} to", spec.soundName());
@@ -78,14 +75,14 @@ public final class SoundTracker {
 
     Set<Short> authorizedClientIds = Set.copyOf(clientIds);
     SoundInfo info =
-      new SoundInfo(spec, entityId, authorizedClientIds, new CopyOnWriteArrayList<>());
+        new SoundInfo(spec, entityId, authorizedClientIds, new CopyOnWriteArrayList<>());
     sounds.put(spec.instanceId(), info);
 
     // Track sounds per client for resync
     for (short clientId : authorizedClientIds) {
       clientSounds
-        .computeIfAbsent(clientId, k -> ConcurrentHashMap.newKeySet())
-        .add(spec.instanceId());
+          .computeIfAbsent(clientId, k -> ConcurrentHashMap.newKeySet())
+          .add(spec.instanceId());
     }
 
     // Send to all target clients
@@ -96,17 +93,17 @@ public final class SoundTracker {
     }
 
     LOGGER.debug(
-      "Registered sound '{}' (instance={}) for {} clients",
-      spec.soundName(),
-      spec.instanceId(),
-      authorizedClientIds.size());
+        "Registered sound '{}' (instance={}) for {} clients",
+        spec.soundName(),
+        spec.instanceId(),
+        authorizedClientIds.size());
   }
 
   /**
    * Registers an onFinished callback for a sound instance.
    *
    * @param instanceId the sound instance id
-   * @param callback   the callback to execute when finished
+   * @param callback the callback to execute when finished
    */
   public void registerOnFinished(long instanceId, Runnable callback) {
     SoundInfo info = sounds.get(instanceId);
@@ -118,7 +115,7 @@ public final class SoundTracker {
   /**
    * Checks if a client is authorized to report sound completion.
    *
-   * @param clientId        the client attempting to report completion
+   * @param clientId the client attempting to report completion
    * @param soundInstanceId the sound instance id
    * @return true if the client can report completion
    */
@@ -158,9 +155,9 @@ public final class SoundTracker {
     // Execute callbacks
     if (!info.onFinishedCallbacks().isEmpty()) {
       LOGGER.debug(
-        "Sound {} finished, executing {} callbacks",
-        instanceId,
-        info.onFinishedCallbacks().size());
+          "Sound {} finished, executing {} callbacks",
+          instanceId,
+          info.onFinishedCallbacks().size());
       info.onFinishedCallbacks().forEach(Runnable::run);
     }
   }

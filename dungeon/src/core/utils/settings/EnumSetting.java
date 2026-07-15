@@ -12,7 +12,6 @@ import com.badlogic.gdx.utils.Array;
 import core.sound.CoreSounds;
 import core.sound.Sounds;
 import core.utils.Scene2dElementFactory;
-
 import java.util.Collection;
 import java.util.function.Function;
 
@@ -30,9 +29,9 @@ public class EnumSetting<E extends Enum<E>> extends SettingValue<E> {
    * Creates a new EnumSetting with the specified name and default value, using all enum constants
    * as options.
    *
-   * @param name         the name of the setting
+   * @param name the name of the setting
    * @param defaultValue the default enum value for the setting, which must be one of the enum
-   *                     constants
+   *     constants
    */
   public EnumSetting(String name, E defaultValue) {
     this(name, defaultValue, defaultValue.getDeclaringClass().getEnumConstants(), null);
@@ -41,11 +40,11 @@ public class EnumSetting<E extends Enum<E>> extends SettingValue<E> {
   /**
    * Creates a new EnumSetting with the specified name, default value, and subset of enum constants.
    *
-   * @param name         the name of the setting
+   * @param name the name of the setting
    * @param defaultValue the default enum value for the setting, which must be included in the
-   *                     subset
-   * @param subset       an array of enum constants to use as options for this setting, which must include
-   *                     the default value
+   *     subset
+   * @param subset an array of enum constants to use as options for this setting, which must include
+   *     the default value
    */
   public EnumSetting(String name, E defaultValue, E[] subset) {
     this(name, defaultValue, subset, null);
@@ -54,11 +53,11 @@ public class EnumSetting<E extends Enum<E>> extends SettingValue<E> {
   /**
    * Creates a new EnumSetting with the specified name, default value, subset of enum constants.
    *
-   * @param name         the name of the setting
+   * @param name the name of the setting
    * @param defaultValue the default enum value for the setting, which must be included in the
-   *                     subset
-   * @param subset       a collection of enum constants to use as options for this setting, which must
-   *                     include the default value
+   *     subset
+   * @param subset a collection of enum constants to use as options for this setting, which must
+   *     include the default value
    */
   public EnumSetting(String name, E defaultValue, Collection<E> subset) {
     this(name, defaultValue, subset.toArray((E[]) new Enum[0]), null);
@@ -68,13 +67,13 @@ public class EnumSetting<E extends Enum<E>> extends SettingValue<E> {
    * Creates a new EnumSetting with the specified name, default value, subset of enum constants, and
    * label formatter.
    *
-   * @param name           the name of the setting
-   * @param defaultValue   the default enum value for the setting, which must be included in the
-   *                       subset
-   * @param subset         an array of enum constants to use as options for this setting, which must include
-   *                       the default value
+   * @param name the name of the setting
+   * @param defaultValue the default enum value for the setting, which must be included in the
+   *     subset
+   * @param subset an array of enum constants to use as options for this setting, which must include
+   *     the default value
    * @param labelFormatter a function that converts enum values to display strings in the UI; if
-   *                       null, the enum's name() method will be used
+   *     null, the enum's name() method will be used
    */
   public EnumSetting(String name, E defaultValue, E[] subset, Function<E, String> labelFormatter) {
     super(name, defaultValue);
@@ -102,13 +101,13 @@ public class EnumSetting<E extends Enum<E>> extends SettingValue<E> {
     selectBox.setSelected(value());
 
     selectBox.addListener(
-      new ChangeListener() {
-        @Override
-        public void changed(ChangeEvent event, Actor actor) {
-          value(selectBox.getSelected());
-          Sounds.play(CoreSounds.SETTINGS_ENUM_VALUE_SELECTED, 1.0f);
-        }
-      });
+        new ChangeListener() {
+          @Override
+          public void changed(ChangeEvent event, Actor actor) {
+            value(selectBox.getSelected());
+            Sounds.play(CoreSounds.SETTINGS_ENUM_VALUE_SELECTED, 1.0f);
+          }
+        });
 
     Table table = new Table();
     table.setTouchable(Touchable.enabled);

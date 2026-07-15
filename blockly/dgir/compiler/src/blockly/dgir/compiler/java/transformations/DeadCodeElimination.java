@@ -1,11 +1,11 @@
 package blockly.dgir.compiler.java.transformations;
 
+import static blockly.dgir.compiler.java.CompilerUtils.markDebugSkip;
+import static blockly.dgir.compiler.java.CompilerUtils.setTokenRangeFrom;
+
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-
-import static blockly.dgir.compiler.java.CompilerUtils.markDebugSkip;
-import static blockly.dgir.compiler.java.CompilerUtils.setTokenRangeFrom;
 
 public class DeadCodeElimination extends VoidVisitorAdapter<Void> {
   @Override

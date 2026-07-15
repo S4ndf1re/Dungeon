@@ -4,10 +4,9 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
 import dgir.core.ir.ValueOperand;
+import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
 
 /**
  * A trait for operations that can have zero or one operand. This is used for operations like

@@ -7,5 +7,4 @@ package core.utils.components.draw.state;
  * @param signal the signal that triggers this transition
  * @param targetState the state to transition to when the signal is received
  */
-public record Transition(String signal, State targetState) {
-}
+public record Transition(String signal, State targetState) {}

@@ -4,7 +4,6 @@ import core.Entity;
 import core.components.DrawComponent;
 import core.components.PositionComponent;
 import core.network.messages.s2c.EntitySpawnEvent;
-
 import java.util.Optional;
 
 /**

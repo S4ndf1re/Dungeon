@@ -9,16 +9,13 @@ import core.network.messages.c2s.DialogResponseMessage;
 import core.network.proto.common.CustomValue;
 import core.network.proto.common.IntList;
 import core.network.proto.common.StringList;
-
 import java.io.Serializable;
 import java.util.Arrays;
 
-/**
- * Converter for client-to-server dialog response messages.
- */
+/** Converter for client-to-server dialog response messages. */
 public final class DialogResponseConverter
-  implements MessageConverter<
-  DialogResponseMessage, core.network.proto.c2s.DialogResponseMessage> {
+    implements MessageConverter<
+        DialogResponseMessage, core.network.proto.c2s.DialogResponseMessage> {
   private static final String DIALOG_CLOSED_KEY = "CLOSED";
   private static final byte WIRE_TYPE_ID = 3;
 
@@ -29,9 +26,9 @@ public final class DialogResponseConverter
       callbackKey = DIALOG_CLOSED_KEY;
     }
     core.network.proto.c2s.DialogResponseMessage.Builder builder =
-      core.network.proto.c2s.DialogResponseMessage.newBuilder()
-        .setDialogId(message.dialogId())
-        .setCallbackKey(callbackKey);
+        core.network.proto.c2s.DialogResponseMessage.newBuilder()
+            .setDialogId(message.dialogId())
+            .setCallbackKey(callbackKey);
     DialogResponseMessage.Payload payload = message.payload();
     if (payload != null) {
       setDialogPayload(builder, payload);
@@ -70,8 +67,8 @@ public final class DialogResponseConverter
   }
 
   private static void setDialogPayload(
-    core.network.proto.c2s.DialogResponseMessage.Builder builder,
-    DialogResponseMessage.Payload payload) {
+      core.network.proto.c2s.DialogResponseMessage.Builder builder,
+      DialogResponseMessage.Payload payload) {
     switch (payload) {
       case DialogResponseMessage.StringValue(String value5) -> builder.setStringValue(value5);
       case DialogResponseMessage.IntValue(int value4) -> builder.setIntValue(value4);
@@ -80,7 +77,7 @@ public final class DialogResponseConverter
       case DialogResponseMessage.DoubleValue(double value1) -> builder.setDoubleValue(value1);
       case DialogResponseMessage.BoolValue(boolean value1) -> builder.setBoolValue(value1);
       case DialogResponseMessage.StringList(String[] stringArray) ->
-        builder.setStringList(StringList.newBuilder().addAllValues(Arrays.asList(stringArray)));
+          builder.setStringList(StringList.newBuilder().addAllValues(Arrays.asList(stringArray)));
       case DialogResponseMessage.IntList(int[] intArray) -> {
         IntList.Builder listBuilder = IntList.newBuilder();
         for (int value : intArray) {
@@ -92,31 +89,31 @@ public final class DialogResponseConverter
         if (payload instanceof Serializable serializablePayload) {
           @SuppressWarnings("unchecked")
           DialogValueCodec<Serializable> codec =
-            (DialogValueCodec<Serializable>)
-              DialogValueCodecRegistry.global()
-                .byType(payload.getClass())
-                .orElseThrow(
-                  () ->
-                    new IllegalArgumentException(
-                      "Unsupported dialog response payload type: "
-                        + payload.getClass().getName()
-                        + ". Register a DialogValueCodec for this type."));
+              (DialogValueCodec<Serializable>)
+                  DialogValueCodecRegistry.global()
+                      .byType(payload.getClass())
+                      .orElseThrow(
+                          () ->
+                              new IllegalArgumentException(
+                                  "Unsupported dialog response payload type: "
+                                      + payload.getClass().getName()
+                                      + ". Register a DialogValueCodec for this type."));
           builder.setCustomValue(
-            CustomValue.newBuilder()
-              .setTypeId(codec.typeId())
-              .setData(ByteString.copyFrom(codec.encode(serializablePayload))));
+              CustomValue.newBuilder()
+                  .setTypeId(codec.typeId())
+                  .setData(ByteString.copyFrom(codec.encode(serializablePayload))));
         } else {
           throw new IllegalArgumentException(
-            "Unsupported dialog response payload type: "
-              + payload.getClass().getName()
-              + ". Register a DialogValueCodec for this type.");
+              "Unsupported dialog response payload type: "
+                  + payload.getClass().getName()
+                  + ". Register a DialogValueCodec for this type.");
         }
       }
     }
   }
 
   private static DialogResponseMessage.Payload parseDialogPayload(
-    core.network.proto.c2s.DialogResponseMessage proto) {
+      core.network.proto.c2s.DialogResponseMessage proto) {
     return switch (proto.getPayloadCase()) {
       case STRING_VALUE -> new DialogResponseMessage.StringValue(proto.getStringValue());
       case INT_VALUE -> new DialogResponseMessage.IntValue(proto.getIntValue());
@@ -124,21 +121,23 @@ public final class DialogResponseConverter
       case FLOAT_VALUE -> new DialogResponseMessage.FloatValue(proto.getFloatValue());
       case DOUBLE_VALUE -> new DialogResponseMessage.DoubleValue(proto.getDoubleValue());
       case BOOL_VALUE -> new DialogResponseMessage.BoolValue(proto.getBoolValue());
-      case STRING_LIST -> new DialogResponseMessage.StringList(
-        proto.getStringList().getValuesList().toArray(new String[0]));
-      case INT_LIST -> new DialogResponseMessage.IntList(
-        proto.getIntList().getValuesList().stream().mapToInt(i -> i).toArray());
+      case STRING_LIST ->
+          new DialogResponseMessage.StringList(
+              proto.getStringList().getValuesList().toArray(new String[0]));
+      case INT_LIST ->
+          new DialogResponseMessage.IntList(
+              proto.getIntList().getValuesList().stream().mapToInt(i -> i).toArray());
       case CUSTOM_VALUE -> {
         CustomValue custom = proto.getCustomValue();
         DialogValueCodec<?> codec =
-          DialogValueCodecRegistry.global()
-            .byTypeId(custom.getTypeId())
-            .orElseThrow(
-              () ->
-                new IllegalArgumentException(
-                  "No DialogValueCodec registered for typeId '"
-                    + custom.getTypeId()
-                    + "'"));
+            DialogValueCodecRegistry.global()
+                .byTypeId(custom.getTypeId())
+                .orElseThrow(
+                    () ->
+                        new IllegalArgumentException(
+                            "No DialogValueCodec registered for typeId '"
+                                + custom.getTypeId()
+                                + "'"));
         Serializable decoded = codec.decode(custom.getData().toByteArray());
         if (decoded instanceof DialogResponseMessage.Payload payload) {
           yield payload;

@@ -129,7 +129,7 @@ public class FontHelper {
    * @return the generated or cached {@link BitmapFont}
    */
   public static BitmapFont getFont(
-    String path, int size, Color color, float borderWidth, Color borderColor) {
+      String path, int size, Color color, float borderWidth, Color borderColor) {
     FontSpec entry = new FontSpec(path, size, color, borderWidth, borderColor);
     return getFont(entry);
   }

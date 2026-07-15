@@ -7,20 +7,17 @@ import core.network.codec.MessageConverter;
 import core.network.messages.s2c.EntityState;
 import core.utils.Direction;
 import core.utils.Vector2;
-
 import java.util.List;
 
-/**
- * Converter for server-to-client entity state messages.
- */
+/** Converter for server-to-client entity state messages. */
 public final class EntityStateConverter
-  implements MessageConverter<EntityState, core.network.proto.s2c.EntityState> {
+    implements MessageConverter<EntityState, core.network.proto.s2c.EntityState> {
   private static final byte WIRE_TYPE_ID = 14;
 
   @Override
   public core.network.proto.s2c.EntityState toProto(EntityState message) {
     core.network.proto.s2c.EntityState.Builder builder =
-      core.network.proto.s2c.EntityState.newBuilder().setEntityId(message.entityId());
+        core.network.proto.s2c.EntityState.newBuilder().setEntityId(message.entityId());
 
     message.entityName().ifPresent(builder::setEntityName);
     boolean hasPosition = message.position().isPresent();
@@ -30,17 +27,17 @@ public final class EntityStateConverter
     if (hasPosition) {
       // TODO: Support partial position updates once snapshot diffing is introduced.
       Direction viewDirection =
-        message.viewDirection().map(CommonProtoConverters::parseDirection).orElse(Direction.NONE);
+          message.viewDirection().map(CommonProtoConverters::parseDirection).orElse(Direction.NONE);
       float rotation = message.rotation().orElse(0.0f);
       Vector2 scale = message.scale().orElse(Vector2.ONE);
 
       core.network.proto.common.PositionInfo positionInfo =
-        core.network.proto.common.PositionInfo.newBuilder()
-          .setPosition(CommonProtoConverters.toProto(message.position().orElseThrow()))
-          .setViewDirection(CommonProtoConverters.toProto(viewDirection))
-          .setRotation(rotation)
-          .setScale(CommonProtoConverters.toProto(scale))
-          .build();
+          core.network.proto.common.PositionInfo.newBuilder()
+              .setPosition(CommonProtoConverters.toProto(message.position().orElseThrow()))
+              .setViewDirection(CommonProtoConverters.toProto(viewDirection))
+              .setRotation(rotation)
+              .setScale(CommonProtoConverters.toProto(scale))
+              .build();
       builder.setPosition(positionInfo);
     } else if (hasViewDirection || hasRotation || hasScale) {
       throw new IllegalArgumentException("Position is required to send rotation or scale.");
@@ -53,19 +50,19 @@ public final class EntityStateConverter
     message.tintColor().ifPresent(builder::setTintColor);
 
     message
-      .inventory()
-      .ifPresent(
-        items -> {
-          for (int i = 0; i < items.length; i++) {
-            core.network.proto.s2c.ItemSlot.Builder slot =
-              core.network.proto.s2c.ItemSlot.newBuilder().setSlotIndex(i);
-            Item item = items[i];
-            if (item != null) {
-              slot.setItem(CommonProtoConverters.toProto(item));
-            }
-            builder.addInventory(slot);
-          }
-        });
+        .inventory()
+        .ifPresent(
+            items -> {
+              for (int i = 0; i < items.length; i++) {
+                core.network.proto.s2c.ItemSlot.Builder slot =
+                    core.network.proto.s2c.ItemSlot.newBuilder().setSlotIndex(i);
+                Item item = items[i];
+                if (item != null) {
+                  slot.setItem(CommonProtoConverters.toProto(item));
+                }
+                builder.addInventory(slot);
+              }
+            });
     message.metadata().filter(metadata -> !metadata.isEmpty()).ifPresent(builder::putAllMetadata);
 
     return builder.build();
@@ -83,7 +80,7 @@ public final class EntityStateConverter
       builder.position(CommonProtoConverters.fromProto(positionInfo.getPosition()));
       core.network.proto.common.Direction viewDirection = positionInfo.getViewDirection();
       if (viewDirection != core.network.proto.common.Direction.DIRECTION_UNSPECIFIED
-        && viewDirection != core.network.proto.common.Direction.UNRECOGNIZED) {
+          && viewDirection != core.network.proto.common.Direction.UNRECOGNIZED) {
         builder.viewDirection(CommonProtoConverters.fromProto(viewDirection));
       }
       builder.rotation(positionInfo.getRotation());
@@ -113,7 +110,7 @@ public final class EntityStateConverter
     List<core.network.proto.s2c.ItemSlot> slots = proto.getInventoryList();
     if (!slots.isEmpty()) {
       int maxIndex =
-        slots.stream().mapToInt(core.network.proto.s2c.ItemSlot::getSlotIndex).max().orElse(-1);
+          slots.stream().mapToInt(core.network.proto.s2c.ItemSlot::getSlotIndex).max().orElse(-1);
       if (maxIndex < 0) {
         throw new IllegalArgumentException("Inventory slot indices must be non-negative.");
       }

@@ -5,12 +5,11 @@ import dgir.core.ir.Operation;
 import dgir.vm.api.Action;
 import dgir.vm.api.OpRunner;
 import dgir.vm.api.State;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import org.jetbrains.annotations.NotNull;
 
 public sealed interface DgRunners {
 

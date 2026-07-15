@@ -1,16 +1,15 @@
 package dgir.dialect.arith;
 
-import dgir.core.ir.Dialect;
-import dgir.core.ir.Attribute;
-import dgir.core.ir.AttributeDescriptor;
-import dgir.dialect.builtin.BuiltinTypes;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
-
 import static dgir.dialect.arith.ArithOps.BinaryOp;
 import static dgir.dialect.arith.ArithOps.UnaryOp;
 import static dgir.dialect.builtin.BuiltinTypes.isNumeric;
+
+import dgir.core.ir.Attribute;
+import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
+import dgir.dialect.builtin.BuiltinTypes;
+import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 /** Marker interface for attributes contributed by the {@link ArithDialect}. */
 public sealed interface ArithAttrs {

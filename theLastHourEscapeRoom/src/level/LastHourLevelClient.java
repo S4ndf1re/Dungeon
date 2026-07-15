@@ -10,14 +10,10 @@ import core.level.DungeonLevel;
 import core.level.utils.DesignLabel;
 import core.level.utils.LevelElement;
 import core.utils.Point;
-
 import java.util.Map;
-
 import modules.computer.*;
 
-/**
- * The Last Hour Room.
- */
+/** The Last Hour Room. */
 public class LastHourLevelClient extends DungeonLevel {
 
   private static Entity keypad;
@@ -26,12 +22,12 @@ public class LastHourLevelClient extends DungeonLevel {
   /**
    * Creates a new Demo Level.
    *
-   * @param layout      The layout of the level.
+   * @param layout The layout of the level.
    * @param designLabel The design label of the level.
    * @param namedPoints The custom points of the level.
    */
   public LastHourLevelClient(
-    LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
+      LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
     super(layout, designLabel, namedPoints, "last-hour-1");
   }
 
@@ -51,26 +47,26 @@ public class LastHourLevelClient extends DungeonLevel {
 
     if (ComputerStateComponent.getState().isPresent())
       ComputerDialog.getInstance()
-        .ifPresent(
-          cd -> {
-            if (cd.sharedState() != ComputerStateComponent.getState().get()) {
-              cd.updateState(ComputerStateComponent.getState().get());
-            }
-          });
+          .ifPresent(
+              cd -> {
+                if (cd.sharedState() != ComputerStateComponent.getState().get()) {
+                  cd.updateState(ComputerStateComponent.getState().get());
+                }
+              });
   }
 
   private void findEntities() {
     if (pc == null) {
       Game.levelEntities()
-        .filter(e -> e.name().equals("pc-main"))
-        .findFirst()
-        .ifPresent(e -> pc = e);
+          .filter(e -> e.name().equals("pc-main"))
+          .findFirst()
+          .ifPresent(e -> pc = e);
     }
     if (keypad == null) {
       Game.levelEntities()
-        .filter(e -> e.name().equals("keypad"))
-        .findFirst()
-        .ifPresent(e -> keypad = e);
+          .filter(e -> e.name().equals("keypad"))
+          .findFirst()
+          .ifPresent(e -> keypad = e);
     }
   }
 }

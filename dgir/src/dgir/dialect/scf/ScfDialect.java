@@ -1,16 +1,15 @@
 package dgir.dialect.scf;
 
-import dgir.core.ir.Dialect;
+import static dgir.dialect.scf.ScfOps.*;
+
 import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.TypeDescriptor;
+import java.util.List;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-
-import static dgir.dialect.scf.ScfOps.*;
 
 /**
  * The {@code scf} (structured control flow) dialect provides higher-level loop and conditional

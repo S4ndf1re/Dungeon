@@ -8,9 +8,7 @@ import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 import core.network.messages.NetworkMessage;
 import core.network.messages.s2c.RegisterAck;
-
 import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
 class ConverterRegistryTest {
@@ -41,8 +39,8 @@ class ConverterRegistryTest {
 
     assertThrows(IllegalArgumentException.class, () -> registry.toProto(new RegisterAck(true)));
     assertThrows(
-      IllegalArgumentException.class,
-      () -> registry.fromProto(core.network.proto.s2c.RegisterAck.getDefaultInstance()));
+        IllegalArgumentException.class,
+        () -> registry.fromProto(core.network.proto.s2c.RegisterAck.getDefaultInstance()));
     assertThrows(IllegalArgumentException.class, () -> registry.parse((byte) 1, new byte[0]));
   }
 
@@ -76,39 +74,38 @@ class ConverterRegistryTest {
 
   private static List<Message> protoDefaults() {
     return List.of(
-      core.network.proto.c2s.ConnectRequest.getDefaultInstance(),
-      core.network.proto.c2s.InputMessage.getDefaultInstance(),
-      core.network.proto.c2s.DialogResponseMessage.getDefaultInstance(),
-      core.network.proto.c2s.RegisterUdp.getDefaultInstance(),
-      core.network.proto.c2s.RequestEntitySpawn.getDefaultInstance(),
-      core.network.proto.c2s.SoundFinishedMessage.getDefaultInstance(),
-      core.network.proto.s2c.ConnectAck.getDefaultInstance(),
-      core.network.proto.s2c.ConnectReject.getDefaultInstance(),
-      core.network.proto.s2c.DialogShowMessage.getDefaultInstance(),
-      core.network.proto.s2c.DialogCloseMessage.getDefaultInstance(),
-      core.network.proto.s2c.EntitySpawnEvent.getDefaultInstance(),
-      core.network.proto.s2c.EntitySpawnBatch.getDefaultInstance(),
-      core.network.proto.s2c.EntityDespawnEvent.getDefaultInstance(),
-      core.network.proto.s2c.EntityState.getDefaultInstance(),
-      core.network.proto.s2c.GameOverEvent.getDefaultInstance(),
-      core.network.proto.s2c.LevelChangeEvent.getDefaultInstance(),
-      core.network.proto.s2c.RegisterAck.getDefaultInstance(),
-      core.network.proto.s2c.SnapshotMessage.getDefaultInstance(),
-      core.network.proto.s2c.SoundPlayMessage.getDefaultInstance(),
-      core.network.proto.s2c.SoundStopMessage.getDefaultInstance());
+        core.network.proto.c2s.ConnectRequest.getDefaultInstance(),
+        core.network.proto.c2s.InputMessage.getDefaultInstance(),
+        core.network.proto.c2s.DialogResponseMessage.getDefaultInstance(),
+        core.network.proto.c2s.RegisterUdp.getDefaultInstance(),
+        core.network.proto.c2s.RequestEntitySpawn.getDefaultInstance(),
+        core.network.proto.c2s.SoundFinishedMessage.getDefaultInstance(),
+        core.network.proto.s2c.ConnectAck.getDefaultInstance(),
+        core.network.proto.s2c.ConnectReject.getDefaultInstance(),
+        core.network.proto.s2c.DialogShowMessage.getDefaultInstance(),
+        core.network.proto.s2c.DialogCloseMessage.getDefaultInstance(),
+        core.network.proto.s2c.EntitySpawnEvent.getDefaultInstance(),
+        core.network.proto.s2c.EntitySpawnBatch.getDefaultInstance(),
+        core.network.proto.s2c.EntityDespawnEvent.getDefaultInstance(),
+        core.network.proto.s2c.EntityState.getDefaultInstance(),
+        core.network.proto.s2c.GameOverEvent.getDefaultInstance(),
+        core.network.proto.s2c.LevelChangeEvent.getDefaultInstance(),
+        core.network.proto.s2c.RegisterAck.getDefaultInstance(),
+        core.network.proto.s2c.SnapshotMessage.getDefaultInstance(),
+        core.network.proto.s2c.SoundPlayMessage.getDefaultInstance(),
+        core.network.proto.s2c.SoundStopMessage.getDefaultInstance());
   }
 
-  private record CustomPing(long value) implements NetworkMessage {
-  }
+  private record CustomPing(long value) implements NetworkMessage {}
 
   private static final class CustomPingConverter
-    implements MessageConverter<CustomPing, core.network.proto.common.SoundSpec> {
+      implements MessageConverter<CustomPing, core.network.proto.common.SoundSpec> {
 
     @Override
     public core.network.proto.common.SoundSpec toProto(CustomPing message) {
       return core.network.proto.common.SoundSpec.newBuilder()
-        .setInstanceId(message.value())
-        .build();
+          .setInstanceId(message.value())
+          .build();
     }
 
     @Override

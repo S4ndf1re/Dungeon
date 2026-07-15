@@ -1,9 +1,7 @@
 package portal.riddles;
 
 import core.utils.Point;
-
 import java.util.function.Supplier;
-
 import portal.controlls.Hero;
 import portal.portals.abstraction.PortalConfig;
 
@@ -20,9 +18,7 @@ import portal.portals.abstraction.PortalConfig;
  */
 public class MyPortalConfig extends PortalConfig {
 
-  /**
-   * Der Held, zu dem diese Portal-Konfiguration gehört.
-   */
+  /** Der Held, zu dem diese Portal-Konfiguration gehört. */
   private Hero hero;
 
   /**

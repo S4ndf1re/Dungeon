@@ -13,15 +13,13 @@ import core.sound.CoreSounds;
 import core.sound.Sounds;
 import core.utils.Scene2dElementFactory;
 
-/**
- * A concrete implementation of SettingValue for boolean settings.
- */
+/** A concrete implementation of SettingValue for boolean settings. */
 public class BoolSetting extends SettingValue<Boolean> {
 
   /**
    * Creates a new BoolSetting with the specified name and default value.
    *
-   * @param name         the name of the setting
+   * @param name the name of the setting
    * @param defaultValue the default boolean value for the setting
    */
   public BoolSetting(String name, boolean defaultValue) {
@@ -38,14 +36,14 @@ public class BoolSetting extends SettingValue<Boolean> {
     checkBox.align(Align.left);
 
     checkBox.addListener(
-      new ChangeListener() {
-        @Override
-        public void changed(ChangeEvent event, Actor actor) {
-          value(checkBox.isChecked());
-          float pitch = value() ? 1.0f : 0.8f;
-          Sounds.play(CoreSounds.SETTINGS_TOGGLE_CLICK, pitch);
-        }
-      });
+        new ChangeListener() {
+          @Override
+          public void changed(ChangeEvent event, Actor actor) {
+            value(checkBox.isChecked());
+            float pitch = value() ? 1.0f : 0.8f;
+            Sounds.play(CoreSounds.SETTINGS_TOGGLE_CLICK, pitch);
+          }
+        });
 
     Table table = new Table();
     table.setTouchable(Touchable.enabled);

@@ -16,42 +16,31 @@ import contrib.hud.elements.CustomSelectBox;
 import core.sound.CoreSounds;
 import core.sound.Sounds;
 import core.utils.logging.DungeonLogger;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-/**
- * Factory for creating common Scene2d UI elements with consistent styling and behavior.
- */
+/** Factory for creating common Scene2d UI elements with consistent styling and behavior. */
 public class Scene2dElementFactory {
 
   private static final DungeonLogger LOGGER = DungeonLogger.getLogger(Scene2dElementFactory.class);
   private static final Skin DEFAULT_SKIN = UIUtils.defaultSkin();
 
-  /**
-   * The path to the default font used for UI elements.
-   */
+  /** The path to the default font used for UI elements. */
   public static String FONT_PATH = "fonts/Lexend-Regular.ttf";
 
-  /**
-   * The path to the bold font used for UI elements.
-   */
+  /** The path to the bold font used for UI elements. */
   public static String FONT_PATH_BOLD = "fonts/Lexend-Bold.ttf";
 
-  /**
-   * The default font specification for UI elements.
-   */
+  /** The default font specification for UI elements. */
   public static final FontSpec FONT_SPEC = FontSpec.of(FONT_PATH, 24, Color.WHITE);
 
-  /**
-   * The default bold font specification for UI elements.
-   */
+  /** The default bold font specification for UI elements. */
   public static final FontSpec FONT_SPEC_BOLD = FontSpec.of(FONT_PATH_BOLD, 24, Color.WHITE);
 
   /**
    * Creates a Label with the specified text and font specification.
    *
-   * @param text     the text to display in the label
+   * @param text the text to display in the label
    * @param fontSpec the font specification to use for the label's text
    * @return a new Label instance with the specified text and font specification
    */
@@ -64,8 +53,8 @@ public class Scene2dElementFactory {
   /**
    * Creates a Label with the specified text, font size, and color.
    *
-   * @param text      the text to display in the label
-   * @param fontSize  the size of the font
+   * @param text the text to display in the label
+   * @param fontSize the size of the font
    * @param fontColor the color of the font
    * @return a new Label instance
    */
@@ -76,7 +65,7 @@ public class Scene2dElementFactory {
   /**
    * Creates a Label with the specified text and font size, using the default white color.
    *
-   * @param text     the text to display in the label
+   * @param text the text to display in the label
    * @param fontSize the size of the font
    * @return a new Label instance
    */
@@ -115,15 +104,15 @@ public class Scene2dElementFactory {
     element.setStyle(style);
     element.setUserObject(Cursors.TEXT);
     element.addListener(
-      new ChangeListener() {
-        @Override
-        public void changed(ChangeEvent event, Actor actor) {
-          if (actor instanceof TextField) {
-            float pitch = 0.85f + (float) Math.random() * 0.3f;
-            Sounds.play(CoreSounds.INTERFACE_TEXTFIELD_TYPED, pitch);
+        new ChangeListener() {
+          @Override
+          public void changed(ChangeEvent event, Actor actor) {
+            if (actor instanceof TextField) {
+              float pitch = 0.85f + (float) Math.random() * 0.3f;
+              Sounds.play(CoreSounds.INTERFACE_TEXTFIELD_TYPED, pitch);
+            }
           }
-        }
-      });
+        });
     return element;
   }
 
@@ -131,28 +120,28 @@ public class Scene2dElementFactory {
    * Adds a ChangeListener to a TextField that executes a Consumer whenever the text changes.
    *
    * @param textField the TextField to listen to
-   * @param consumer  the action to perform with the new text string
+   * @param consumer the action to perform with the new text string
    */
   public static void addTextFieldChangeListener(TextField textField, Consumer<String> consumer) {
     textField.addListener(
-      new ChangeListener() {
-        @Override
-        public void changed(ChangeEvent event, Actor actor) {
-          if (actor instanceof TextField textField) {
-            consumer.accept(textField.getText());
-          } else {
-            LOGGER.warn("Actor is not a TextField: {}", actor);
+        new ChangeListener() {
+          @Override
+          public void changed(ChangeEvent event, Actor actor) {
+            if (actor instanceof TextField textField) {
+              consumer.accept(textField.getText());
+            } else {
+              LOGGER.warn("Actor is not a TextField: {}", actor);
+            }
           }
-        }
-      });
+        });
   }
 
   /**
    * Creates a TextButton with a specific style, font size, and hover sounds.
    *
-   * @param text      the text to display on the button
+   * @param text the text to display on the button
    * @param styleName the name of the style in the skin
-   * @param fontSize  the size of the button font
+   * @param fontSize the size of the button font
    * @return a new TextButton instance
    */
   public static TextButton createButton(String text, String styleName, int fontSize) {
@@ -168,7 +157,7 @@ public class Scene2dElementFactory {
   /**
    * Creates a TextButton with a specific style and the default font size.
    *
-   * @param text      the text to display on the button
+   * @param text the text to display on the button
    * @param styleName the name of the style in the skin
    * @return a new TextButton instance
    */
@@ -197,7 +186,7 @@ public class Scene2dElementFactory {
   /**
    * Creates a ScrollPane for the given actor with automatic scroll focus handling.
    *
-   * @param actor   the content actor to be placed inside the scroll pane
+   * @param actor the content actor to be placed inside the scroll pane
    * @param scrollX whether horizontal scrolling is enabled
    * @param scrollY whether vertical scrolling is enabled
    * @return a new ScrollPane instance
@@ -209,27 +198,27 @@ public class Scene2dElementFactory {
     scrollPane.setScrollbarsVisible(true);
     scrollPane.setScrollbarsOnTop(true);
     scrollPane.addListener(
-      new InputListener() {
-        @Override
-        public boolean mouseMoved(InputEvent event, float x, float y) {
-          event.getStage().setScrollFocus(scrollPane);
-          return false;
-        }
+        new InputListener() {
+          @Override
+          public boolean mouseMoved(InputEvent event, float x, float y) {
+            event.getStage().setScrollFocus(scrollPane);
+            return false;
+          }
 
-        @Override
-        public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
-          if (toActor != null && toActor.isDescendantOf(scrollPane)) return;
-          if (event.getStage().getScrollFocus() != scrollPane) return;
+          @Override
+          public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
+            if (toActor != null && toActor.isDescendantOf(scrollPane)) return;
+            if (event.getStage().getScrollFocus() != scrollPane) return;
 
-          event.getStage().setScrollFocus(null);
-        }
+            event.getStage().setScrollFocus(null);
+          }
 
-        @Override
-        public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
-          if (event.getStage() == null) return;
-          event.getStage().setScrollFocus(scrollPane);
-        }
-      });
+          @Override
+          public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
+            if (event.getStage() == null) return;
+            event.getStage().setScrollFocus(scrollPane);
+          }
+        });
     return scrollPane;
   }
 
@@ -238,8 +227,8 @@ public class Scene2dElementFactory {
    * scrolling.
    *
    * @param scrollPane the ScrollPane to manipulate
-   * @param x          the target x scroll position
-   * @param y          the target y scroll position
+   * @param x the target x scroll position
+   * @param y the target y scroll position
    */
   public static void scrollPaneScrollTo(ScrollPane scrollPane, float x, float y) {
     scrollPane.invalidate();
@@ -250,28 +239,28 @@ public class Scene2dElementFactory {
 
     if (Gdx.app == null) return;
     Gdx.app.postRunnable(
-      () -> {
-        scrollPane.setSmoothScrolling(true);
-      });
+        () -> {
+          scrollPane.setSmoothScrolling(true);
+        });
   }
 
   /**
    * Creates a SelectBox with custom font sizing and a value formatter.
    *
-   * @param <T>            the type of items in the SelectBox
+   * @param <T> the type of items in the SelectBox
    * @param valueFormatter a function to convert items to display strings
-   * @param small          whether to use the small style and font size
+   * @param small whether to use the small style and font size
    * @return a new SelectBox instance
    */
   public static <T> SelectBox<T> createSelectBox(
-    Function<T, String> valueFormatter, boolean small) {
+      Function<T, String> valueFormatter, boolean small) {
     FontSpec spec = Scene2dElementFactory.FONT_SPEC;
     if (!small) {
       spec = spec.withSize(32);
     }
     BitmapFont font = FontHelper.getFont(spec);
     CustomSelectBox<T> selectBox =
-      new CustomSelectBox<>(UIUtils.defaultSkin(), small ? "small" : "default");
+        new CustomSelectBox<>(UIUtils.defaultSkin(), small ? "small" : "default");
     selectBox.getStyle().font = font;
     selectBox.getList().getStyle().font = font;
     selectBox.setValueFormatter(valueFormatter);
@@ -281,7 +270,7 @@ public class Scene2dElementFactory {
   /**
    * Creates a small SelectBox with a custom value formatter.
    *
-   * @param <T>            the type of items in the SelectBox
+   * @param <T> the type of items in the SelectBox
    * @param valueFormatter a function to convert items to display strings
    * @return a new SelectBox instance
    */
@@ -301,17 +290,17 @@ public class Scene2dElementFactory {
 
   private static void addHoverSound(Actor actor) {
     actor.addListener(
-      new InputListener() {
-        @Override
-        public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
-          // Only play sound if the mouse newly entered this button (not when moving onto a child
-          // actor)
-          if ((fromActor != null && fromActor.isDescendantOf(actor))
-            || pointer != -1
-            || (actor instanceof Disableable disableable && disableable.isDisabled())) return;
-          Sounds.play(CoreSounds.INTERFACE_ITEM_HOVERED);
-          super.enter(event, x, y, pointer, fromActor);
-        }
-      });
+        new InputListener() {
+          @Override
+          public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
+            // Only play sound if the mouse newly entered this button (not when moving onto a child
+            // actor)
+            if ((fromActor != null && fromActor.isDescendantOf(actor))
+                || pointer != -1
+                || (actor instanceof Disableable disableable && disableable.isDisabled())) return;
+            Sounds.play(CoreSounds.INTERFACE_ITEM_HOVERED);
+            super.enter(event, x, y, pointer, fromActor);
+          }
+        });
   }
 }

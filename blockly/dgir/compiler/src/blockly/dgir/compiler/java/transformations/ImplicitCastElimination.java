@@ -1,7 +1,10 @@
 package blockly.dgir.compiler.java.transformations;
 
-import blockly.dgir.compiler.java.ImplicitConversionUtils;
+import static blockly.dgir.compiler.java.CompilerUtils.markDebugSkip;
+import static blockly.dgir.compiler.java.CompilerUtils.setTokenRangeFrom;
+
 import blockly.dgir.compiler.java.EmitContext;
+import blockly.dgir.compiler.java.ImplicitConversionUtils;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.*;
@@ -9,12 +12,8 @@ import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.GenericVisitorAdapter;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
-
 import java.util.Objects;
 import java.util.Optional;
-
-import static blockly.dgir.compiler.java.CompilerUtils.markDebugSkip;
-import static blockly.dgir.compiler.java.CompilerUtils.setTokenRangeFrom;
 
 /**
  * Replaces implicit casts (e.g. byte a = 1) with explicit casts (e.g. byte a = (byte) 1). Also

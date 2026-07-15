@@ -32,7 +32,6 @@ import core.utils.components.draw.animation.Animation;
 import core.utils.components.path.IPath;
 import core.utils.components.path.SimpleIPath;
 import core.utils.logging.DungeonLogger;
-
 import java.awt.*;
 import java.util.Arrays;
 import java.util.Objects;
@@ -192,7 +191,7 @@ public class CraftingGUI extends CombinableGUI implements IInventoryHolder {
             this, new Animation(new SimpleIPath(BUTTON_CANCEL_TEXTURE_PATH)), 0, 0, 1, 1);
     this.buttonOk.onClick(
         (button) ->
-          DialogCallbackResolver.createButtonCallback(dialogId, CALLBACK_CRAFT).accept(null));
+            DialogCallbackResolver.createButtonCallback(dialogId, CALLBACK_CRAFT).accept(null));
     this.buttonCancel.onClick(
         (button) ->
             DialogCallbackResolver.createButtonCallback(dialogId, CALLBACK_CANCEL).accept(null));
@@ -204,7 +203,7 @@ public class CraftingGUI extends CombinableGUI implements IInventoryHolder {
   @Override
   protected void initDragAndDrop(DragAndDrop dragAndDrop) {
     dragAndDrop.addTarget(
-      new DragAndDrop.Target(this) {
+        new DragAndDrop.Target(this) {
           @Override
           public boolean drag(
               DragAndDrop.Source source,
@@ -276,11 +275,11 @@ public class CraftingGUI extends CombinableGUI implements IInventoryHolder {
   private static void registerCallbacks(UIComponent uiComponent, CraftingGUI craftingGUI) {
     uiComponent.registerCallback(
         CALLBACK_CRAFT,
-      payload -> {
-        // validate recipe
-        if (craftingGUI.currentRecipe == null) {
-          LOGGER.warn("Craft requested but no valid recipe found");
-          return;
+        payload -> {
+          // validate recipe
+          if (craftingGUI.currentRecipe == null) {
+            LOGGER.warn("Craft requested but no valid recipe found");
+            return;
           }
 
           craftingGUI.craft();
@@ -352,7 +351,7 @@ public class CraftingGUI extends CombinableGUI implements IInventoryHolder {
 
       for (int i = 0; i < this.inventory.count(); i++) {
         Sprite sprite =
-          this.inventory.get(i).map(item -> item.inventoryAnimation().update()).orElse(null);
+            this.inventory.get(i).map(item -> item.inventoryAnimation().update()).orElse(null);
         if (sprite == null) {
           continue;
         }
@@ -467,31 +466,31 @@ public class CraftingGUI extends CombinableGUI implements IInventoryHolder {
               // otherwise drop the items on the ground
               if (!res) {
                 Point centerPos =
-                  Game.positionOf(this.entity)
-                    .orElse(null); // TODO: vlt schon vorher im Ctor als Supplier speichern
+                    Game.positionOf(this.entity)
+                        .orElse(null); // TODO: vlt schon vorher im Ctor als Supplier speichern
                 if (centerPos == null) {
                   LOGGER.error("Failed to get position of entity for dropping crafted item");
                   return;
                 }
                 LevelUtils.randomAccessibleTileInRangeAsPoint(centerPos, DROP_RADIUS)
-                  .ifPresentOrElse(
-                    dropPos -> {
-                      if (item.drop(dropPos).isEmpty()) {
-                        LOGGER.error("Failed to drop crafted item on the ground");
-                      }
-                    },
-                    () -> LOGGER.error("Failed to find drop position for crafted item"));
+                    .ifPresentOrElse(
+                        dropPos -> {
+                          if (item.drop(dropPos).isEmpty()) {
+                            LOGGER.error("Failed to drop crafted item on the ground");
+                          }
+                        },
+                        () -> LOGGER.error("Failed to find drop position for crafted item"));
               }
             });
     Arrays.stream(this.currentRecipe.ingredients())
-      .filter(Item.class::isInstance)
-      .map(Item.class::cast)
-      .forEach(
-        item -> {
-          for (int i = 0; i < item.stackSize(); i++) {
-            this.inventory.removeOne(item);
-          }
-        });
+        .filter(Item.class::isInstance)
+        .map(Item.class::cast)
+        .forEach(
+            item -> {
+              for (int i = 0; i < item.stackSize(); i++) {
+                this.inventory.removeOne(item);
+              }
+            });
     this.updateRecipe();
   }
 

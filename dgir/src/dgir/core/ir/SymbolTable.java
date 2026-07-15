@@ -4,11 +4,10 @@ import dgir.core.traits.IOpTrait;
 import dgir.core.traits.ISymbol;
 import dgir.core.traits.ISymbolTable;
 import dgir.dialect.str.StrAttrs;
+import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Optional;
 
 /**
  * Static helpers for resolving named symbols within the IR.

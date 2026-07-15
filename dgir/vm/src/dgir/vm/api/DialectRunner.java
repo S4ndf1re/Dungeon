@@ -9,15 +9,14 @@ import dgir.vm.dialect.io.IoDialectRunner;
 import dgir.vm.dialect.mem.MemoryDialectRunner;
 import dgir.vm.dialect.scf.ScfDialectRunner;
 import dgir.vm.dialect.str.StrDialectRunner;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Unmodifiable;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 public abstract class DialectRunner {
   private static final @NotNull Map<Class<? extends DialectRunner>, List<@NotNull OpRunner>>

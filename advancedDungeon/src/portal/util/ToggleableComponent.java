@@ -23,7 +23,7 @@ public class ToggleableComponent implements Component {
    * Creates a new {@code ToggleableComponent} with the given initial state.
    *
    * @param active {@code true} if the entity should start in an active state, {@code false}
-   *               otherwise
+   *     otherwise
    */
   public ToggleableComponent(boolean active) {
     this.active = active;
@@ -38,16 +38,12 @@ public class ToggleableComponent implements Component {
     return active;
   }
 
-  /**
-   * Sets the component's state to active.
-   */
+  /** Sets the component's state to active. */
   public void activate() {
     this.active = true;
   }
 
-  /**
-   * Sets the component's state to inactive.
-   */
+  /** Sets the component's state to inactive. */
   public void deactivate() {
     this.active = false;
   }

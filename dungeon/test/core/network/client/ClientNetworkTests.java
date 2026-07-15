@@ -94,12 +94,12 @@ public class ClientNetworkTests {
     assertDoesNotThrow(
         () ->
             client.sendUnreliableInput(
-              new InputMessage(
-                0,
-                0,
-                (short) 0,
-                InputMessage.Action.MOVE,
-                new InputMessage.Move(Vector2.of(0, 0)))));
+                new InputMessage(
+                    0,
+                    0,
+                    (short) 0,
+                    InputMessage.Action.MOVE,
+                    new InputMessage.Move(Vector2.of(0, 0)))));
   }
 
   /** Validates that adding a null connection listener does not throw exceptions. */

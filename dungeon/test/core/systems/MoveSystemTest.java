@@ -16,7 +16,6 @@ import core.level.utils.DesignLabel;
 import core.level.utils.LevelElement;
 import core.utils.Point;
 import core.utils.Vector2;
-
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -144,26 +143,26 @@ public class MoveSystemTest {
     vc.currentVelocity(Vector2.of(1, 1));
 
     pc.position(
-      new Point(
-        2 - cc.collider().size().x() - cc.collider().offset().x(),
-        2 - cc.collider().size().y() - cc.collider().offset().y()));
+        new Point(
+            2 - cc.collider().size().x() - cc.collider().offset().x(),
+            2 - cc.collider().size().y() - cc.collider().offset().y()));
     Point oldPos = pc.position();
     // We already started right up against the wall, with 0.0f space in between. Any amount of
     // movement would call the wall collision, and should thus also result in the entity moving
     // flush into the corner (meaning exactly in the corner as before minus the collide set
     // distance).
     Point resultingPos =
-      new Point(
-        oldPos.x() - CollisionSystem.COLLIDE_SET_DISTANCE,
-        oldPos.y() - CollisionSystem.COLLIDE_SET_DISTANCE);
+        new Point(
+            oldPos.x() - CollisionSystem.COLLIDE_SET_DISTANCE,
+            oldPos.y() - CollisionSystem.COLLIDE_SET_DISTANCE);
 
     String layoutStr =
-      """
+        """
         WWW
         FFW
         FFW""";
     LevelElement[][] layout =
-      V2FormatParser.loadLevelLayout(Arrays.stream(layoutStr.split("\n")).toList());
+        V2FormatParser.loadLevelLayout(Arrays.stream(layoutStr.split("\n")).toList());
     DungeonLevel l = new DungeonLevel(layout, DesignLabel.DEFAULT);
     Game.currentLevel(l);
 
@@ -186,18 +185,18 @@ public class MoveSystemTest {
     vc.currentVelocity(Vector2.of(1, 0));
 
     pc.position(
-      new Point(
-        2 - cc.collider().size().x() - cc.collider().offset().x(),
-        1 - cc.collider().offset().y() - MoveSystem.CORNER_CORRECT_DISTANCE));
+        new Point(
+            2 - cc.collider().size().x() - cc.collider().offset().x(),
+            1 - cc.collider().offset().y() - MoveSystem.CORNER_CORRECT_DISTANCE));
     Point oldPos = pc.position();
 
     String layoutStr =
-      """
+        """
         FFF
         FFF
         FFW""";
     LevelElement[][] layout =
-      V2FormatParser.loadLevelLayout(Arrays.stream(layoutStr.split("\n")).toList());
+        V2FormatParser.loadLevelLayout(Arrays.stream(layoutStr.split("\n")).toList());
     DungeonLevel l = new DungeonLevel(layout, DesignLabel.DEFAULT);
     Game.currentLevel(l);
 

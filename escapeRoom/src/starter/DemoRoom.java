@@ -69,26 +69,26 @@ public class DemoRoom {
    */
   private static void bindLocalHintLogInput() {
     Game.player()
-      .ifPresent(
-        player ->
-          player
-            .fetch(InputComponent.class)
-            .ifPresent(
-              inputComponent -> {
-                inputComponent.removeCallback(Input.Keys.T);
-                if (player.fetch(HintLogComponent.class).isEmpty()) {
-                  return;
-                }
-                inputComponent.registerCallback(
-                  Input.Keys.T,
-                  ignored ->
-                    Game.network()
-                      .sendInput(InputMessage.custom("escapeRoom:hint_log.open")),
-                  false,
-                  true);
-                LOGGER.debug(
-                  "Registered hint-log key binding for player {}", player.id());
-              }));
+        .ifPresent(
+            player ->
+                player
+                    .fetch(InputComponent.class)
+                    .ifPresent(
+                        inputComponent -> {
+                          inputComponent.removeCallback(Input.Keys.T);
+                          if (player.fetch(HintLogComponent.class).isEmpty()) {
+                            return;
+                          }
+                          inputComponent.registerCallback(
+                              Input.Keys.T,
+                              ignored ->
+                                  Game.network()
+                                      .sendInput(InputMessage.custom("escapeRoom:hint_log.open")),
+                              false,
+                              true);
+                          LOGGER.debug(
+                              "Registered hint-log key binding for player {}", player.id());
+                        }));
   }
 
   /**
@@ -98,14 +98,14 @@ public class DemoRoom {
    */
   private static void registerServerHintLogCommand() {
     InputCommandRouter.register(
-      "escapeRoom:hint_log.open",
-      true,
-      context ->
-        context
-          .playerEntity()
-          .fetch(HintLogComponent.class)
-          .ifPresent(
-            hintLog -> HintLogDialog.showHintLog(hintLog, context.playerEntity().id())));
+        "escapeRoom:hint_log.open",
+        true,
+        context ->
+            context
+                .playerEntity()
+                .fetch(HintLogComponent.class)
+                .ifPresent(
+                    hintLog -> HintLogDialog.showHintLog(hintLog, context.playerEntity().id())));
   }
 
   private static void createHero() {

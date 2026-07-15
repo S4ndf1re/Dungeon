@@ -1,11 +1,3 @@
-import dgir.core.debug.Location;
-import dgir.core.ir.Block;
-import dgir.vm.api.VM;
-import org.junit.jupiter.api.Test;
-
-import java.io.ByteArrayInputStream;
-import java.util.List;
-
 import static dgir.dialect.arith.ArithAttrs.BinModeAttr;
 import static dgir.dialect.arith.ArithOps.BinaryOp;
 import static dgir.dialect.arith.ArithOps.ConstantOp;
@@ -21,6 +13,13 @@ import static dgir.dialect.io.IoOps.PrintOp;
 import static dgir.dialect.str.StrTypes.StringT;
 import static dgir.vm.dialect.io.IoRunners.ConsoleInRunner;
 import static java.nio.charset.StandardCharsets.UTF_8;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.Block;
+import dgir.vm.api.VM;
+import java.io.ByteArrayInputStream;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 /** Testcases for the VM, only testing output from and to the console. */
 public class VmConsoleTest extends VmTestBase {

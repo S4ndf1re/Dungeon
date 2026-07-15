@@ -1,9 +1,8 @@
-import dgir.vm.dialect.io.IoRunners;
-import org.junit.jupiter.api.Test;
-
-import java.io.ByteArrayInputStream;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
+
+import dgir.vm.dialect.io.IoRunners;
+import java.io.ByteArrayInputStream;
+import org.junit.jupiter.api.Test;
 
 public class DungeonDialectCompilationTests extends CompilerTestBase {
   @Test

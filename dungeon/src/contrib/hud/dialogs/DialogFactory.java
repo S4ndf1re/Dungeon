@@ -15,7 +15,6 @@ import core.game.PreRunConfiguration;
 import core.network.messages.c2s.DialogResponseMessage;
 import core.utils.IVoidFunction;
 import core.utils.logging.DungeonLogger;
-
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -125,7 +124,7 @@ public class DialogFactory {
    *     found after creation
    */
   public static UIComponent show(
-    DialogContext context, boolean willPause, boolean canBeClosed, int... targetEntityIds) {
+      DialogContext context, boolean willPause, boolean canBeClosed, int... targetEntityIds) {
     Objects.requireNonNull(context, "context");
 
     // Determine the owner entity (who holds the UIComponent)
@@ -299,11 +298,11 @@ public class DialogFactory {
     UIComponent ui = show(builder.build(), targetEntityIds);
 
     ui.registerCallback(
-      DialogContextKeys.ON_CONFIRM,
-      data -> {
-        onConfirm.execute();
-        UIUtils.closeDialog(ui);
-      });
+        DialogContextKeys.ON_CONFIRM,
+        data -> {
+          onConfirm.execute();
+          UIUtils.closeDialog(ui);
+        });
     ui.registerCallback(DialogContextKeys.ON_CLOSE, data -> onConfirm.execute());
 
     return ui;
@@ -313,52 +312,52 @@ public class DialogFactory {
    * Shows a dialog for a text message. Similar to an OK dialog, but designed for bigger texts that
    * need scrolling.
    *
-   * @param text             The message to display in the dialog body
-   * @param title            The dialog window title
-   * @param inputPrefill     The pre-filled text in the input field
+   * @param text The message to display in the dialog body
+   * @param title The dialog window title
+   * @param inputPrefill The pre-filled text in the input field
    * @param inputPlaceholder The placeholder text for the input field
-   * @param onConfirm        Callback executed when the confirm button is pressed
-   * @param confirmLabel     Label for the confirm button (uses default if null)
-   * @param cancelLabel      Label for the cancel button (uses default if null)
-   * @param onCancel         Callback executed when the cancel button is pressed
-   * @param targetEntityIds  The target entity IDs for which the dialog is displayed
+   * @param onConfirm Callback executed when the confirm button is pressed
+   * @param confirmLabel Label for the confirm button (uses default if null)
+   * @param cancelLabel Label for the cancel button (uses default if null)
+   * @param onCancel Callback executed when the cancel button is pressed
+   * @param targetEntityIds The target entity IDs for which the dialog is displayed
    * @return The {@link UIComponent} containing the dialog
    */
   public static UIComponent showInputDialog(
-    String text,
-    String title,
-    String inputPrefill,
-    String inputPlaceholder,
-    String confirmLabel,
-    String cancelLabel,
-    Consumer<DialogResponseMessage.Payload> onConfirm,
-    IVoidFunction onCancel,
-    int... targetEntityIds) {
+      String text,
+      String title,
+      String inputPrefill,
+      String inputPlaceholder,
+      String confirmLabel,
+      String cancelLabel,
+      Consumer<DialogResponseMessage.Payload> onConfirm,
+      IVoidFunction onCancel,
+      int... targetEntityIds) {
     Objects.requireNonNull(onConfirm, "onConfirm callback cannot be null");
     Objects.requireNonNull(onCancel, "onCancel callback cannot be null");
     DialogContext.Builder builder =
-      DialogContext.builder()
-        .type(DialogType.DefaultTypes.FREE_INPUT)
-        .put(DialogContextKeys.TITLE, title)
-        .put(DialogContextKeys.MESSAGE, text)
-        .put(DialogContextKeys.INPUT_PREFILL, inputPrefill)
-        .put(DialogContextKeys.INPUT_PLACEHOLDER, inputPlaceholder)
-        .put(DialogContextKeys.CONFIRM_LABEL, confirmLabel)
-        .put(DialogContextKeys.CANCEL_LABEL, cancelLabel);
+        DialogContext.builder()
+            .type(DialogType.DefaultTypes.FREE_INPUT)
+            .put(DialogContextKeys.TITLE, title)
+            .put(DialogContextKeys.MESSAGE, text)
+            .put(DialogContextKeys.INPUT_PREFILL, inputPrefill)
+            .put(DialogContextKeys.INPUT_PLACEHOLDER, inputPlaceholder)
+            .put(DialogContextKeys.CONFIRM_LABEL, confirmLabel)
+            .put(DialogContextKeys.CANCEL_LABEL, cancelLabel);
 
     UIComponent ui = show(builder.build(), targetEntityIds);
 
     // Register callbacks
     ui.registerCallback(
-      DialogContextKeys.ON_CONFIRM,
-      data -> {
-        onConfirm.accept(data);
-        UIUtils.closeDialog(ui);
-      });
+        DialogContextKeys.ON_CONFIRM,
+        data -> {
+          onConfirm.accept(data);
+          UIUtils.closeDialog(ui);
+        });
     ui.registerCallback(
-      DialogContextKeys.ON_CANCEL,
-      data -> {
-        onCancel.execute();
+        DialogContextKeys.ON_CANCEL,
+        data -> {
+          onCancel.execute();
           UIUtils.closeDialog(ui);
         });
 

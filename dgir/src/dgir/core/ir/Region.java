@@ -1,9 +1,8 @@
 package dgir.core.ir;
 
 import com.fasterxml.jackson.annotation.*;
-import org.jetbrains.annotations.*;
-
 import java.util.*;
+import org.jetbrains.annotations.*;
 
 /**
  * A region containing an ordered list of {@link Block}s, attached to an {@link Operation}.

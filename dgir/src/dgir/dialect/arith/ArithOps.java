@@ -1,28 +1,27 @@
 package dgir.dialect.arith;
 
-import dgir.core.ir.Dialect;
-import dgir.core.debug.Location;
-import dgir.core.ir.*;
-import dgir.core.traits.IBinaryOperands;
-import dgir.core.traits.IHasResult;
-import dgir.core.traits.INoOperands;
-import dgir.core.traits.ISingleOperand;
-import dgir.dialect.str.StrAttrs;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import static dgir.dialect.arith.ArithAttrs.BinModeAttr;
 import static dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode;
 import static dgir.dialect.arith.ArithAttrs.UnaryModeAttr;
 import static dgir.dialect.builtin.BuiltinAttrs.IntegerAttribute;
 import static dgir.dialect.builtin.BuiltinAttrs.TypeAttribute;
 import static dgir.dialect.builtin.BuiltinTypes.*;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.*;
+import dgir.core.ir.Dialect;
+import dgir.core.traits.IBinaryOperands;
+import dgir.core.traits.IHasResult;
+import dgir.core.traits.INoOperands;
+import dgir.core.traits.ISingleOperand;
+import dgir.dialect.str.StrAttrs;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 /**
  * Sealed marker interface for all operations in the {@link ArithDialect}.

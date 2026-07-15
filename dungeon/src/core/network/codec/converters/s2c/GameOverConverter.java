@@ -4,11 +4,9 @@ import com.google.protobuf.Parser;
 import core.network.codec.MessageConverter;
 import core.network.messages.s2c.GameOverEvent;
 
-/**
- * Converter for server-to-client game-over event messages.
- */
+/** Converter for server-to-client game-over event messages. */
 public final class GameOverConverter
-  implements MessageConverter<GameOverEvent, core.network.proto.s2c.GameOverEvent> {
+    implements MessageConverter<GameOverEvent, core.network.proto.s2c.GameOverEvent> {
   private static final byte WIRE_TYPE_ID = 15;
 
   @Override

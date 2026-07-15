@@ -3,9 +3,7 @@ package portal.portals.components;
 import core.Component;
 import core.Entity;
 
-/**
- * Holder component for entities are that represents a portal.
- */
+/** Holder component for entities are that represents a portal. */
 public class PortalComponent implements Component {
   private Entity extendedEntityThrough;
 

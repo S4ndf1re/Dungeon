@@ -4,11 +4,9 @@ import com.google.protobuf.Parser;
 import core.network.codec.MessageConverter;
 import core.network.messages.s2c.ConnectReject;
 
-/**
- * Converter for server-to-client connection rejection messages.
- */
+/** Converter for server-to-client connection rejection messages. */
 public final class ConnectRejectConverter
-  implements MessageConverter<ConnectReject, core.network.proto.s2c.ConnectReject> {
+    implements MessageConverter<ConnectReject, core.network.proto.s2c.ConnectReject> {
   private static final byte WIRE_TYPE_ID = 8;
 
   @Override
@@ -43,25 +41,29 @@ public final class ConnectRejectConverter
   }
 
   private static core.network.proto.s2c.ConnectReject.RejectReason toProto(
-    ConnectReject.Reason reason) {
+      ConnectReject.Reason reason) {
     return switch (reason) {
-      case INVALID_NAME -> core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_INVALID_NAME;
-      case INCOMPATIBLE_VERSION -> core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_INCOMPATIBLE_VERSION;
-      case NO_SESSION_FOUND -> core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_NO_SESSION_FOUND;
+      case INVALID_NAME ->
+          core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_INVALID_NAME;
+      case INCOMPATIBLE_VERSION ->
+          core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_INCOMPATIBLE_VERSION;
+      case NO_SESSION_FOUND ->
+          core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_NO_SESSION_FOUND;
       case INVALID_SESSION_TOKEN ->
-        core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_INVALID_SESSION_TOKEN;
+          core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_INVALID_SESSION_TOKEN;
       case OTHER -> core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_OTHER;
     };
   }
 
   private static ConnectReject.Reason fromProto(
-    core.network.proto.s2c.ConnectReject.RejectReason reason) {
+      core.network.proto.s2c.ConnectReject.RejectReason reason) {
     return switch (reason) {
       case REJECT_REASON_INVALID_NAME -> ConnectReject.Reason.INVALID_NAME;
       case REJECT_REASON_INCOMPATIBLE_VERSION -> ConnectReject.Reason.INCOMPATIBLE_VERSION;
       case REJECT_REASON_NO_SESSION_FOUND -> ConnectReject.Reason.NO_SESSION_FOUND;
       case REJECT_REASON_INVALID_SESSION_TOKEN -> ConnectReject.Reason.INVALID_SESSION_TOKEN;
-      case REJECT_REASON_OTHER, REJECT_REASON_UNSPECIFIED, UNRECOGNIZED -> ConnectReject.Reason.OTHER;
+      case REJECT_REASON_OTHER, REJECT_REASON_UNSPECIFIED, UNRECOGNIZED ->
+          ConnectReject.Reason.OTHER;
     };
   }
 }

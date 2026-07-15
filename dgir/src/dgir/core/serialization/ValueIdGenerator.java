@@ -3,7 +3,6 @@ package dgir.core.serialization;
 import com.fasterxml.jackson.annotation.ObjectIdGenerator;
 import dgir.core.debug.ValueDebugInfo;
 import dgir.core.ir.Value;
-
 import java.io.Serial;
 import java.util.IdentityHashMap;
 

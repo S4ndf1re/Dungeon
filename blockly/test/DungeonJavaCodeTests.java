@@ -1,13 +1,12 @@
-import core.utils.Point;
-import entities.monster.BlocklyMonster;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.time.Duration;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import core.utils.Point;
+import entities.monster.BlocklyMonster;
+import java.io.IOException;
+import java.time.Duration;
+import org.junit.jupiter.api.Test;
 
 public class DungeonJavaCodeTests extends DungeonCompilerTestBase {
   @Test

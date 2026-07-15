@@ -138,13 +138,13 @@ public class SoundSystem extends System {
             soundSpec.looping(),
             soundSpec.pitch(),
             0,
-          () -> {
-            if (PreRunConfiguration.multiplayerEnabled()
-              && !PreRunConfiguration.isNetworkServer()) {
-              Game.network().send((short) 0, new SoundFinishedMessage(soundInstanceId), true);
-            }
-            Game.audio().notifySoundFinished(soundInstanceId);
-          });
+            () -> {
+              if (PreRunConfiguration.multiplayerEnabled()
+                  && !PreRunConfiguration.isNetworkServer()) {
+                Game.network().send((short) 0, new SoundFinishedMessage(soundInstanceId), true);
+              }
+              Game.audio().notifySoundFinished(soundInstanceId);
+            });
 
     handleOpt.ifPresentOrElse(
         handle -> entityActiveSounds.put(soundInstanceId, handle),

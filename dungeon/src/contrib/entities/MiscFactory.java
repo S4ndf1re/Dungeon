@@ -296,7 +296,7 @@ public final class MiscFactory {
                                       UIUtils.closeDialog(dialogUI);
                                     });
                                 dialogUI.registerCallback(
-                                  DialogContextKeys.ON_NO, data -> UIUtils.closeDialog(dialogUI));
+                                    DialogContextKeys.ON_NO, data -> UIUtils.closeDialog(dialogUI));
                               }));
 
               lockedChest.remove(InteractionComponent.class);
@@ -672,7 +672,7 @@ public final class MiscFactory {
                             UIUtils.closeDialog(doorUI);
                           });
                       doorUI.registerCallback(
-                        DialogContextKeys.ON_NO, data -> UIUtils.closeDialog(doorUI));
+                          DialogContextKeys.ON_NO, data -> UIUtils.closeDialog(doorUI));
                     },
                     2f)));
     door.close();

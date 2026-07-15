@@ -4,19 +4,17 @@ import com.google.protobuf.Parser;
 import core.network.codec.MessageConverter;
 import core.network.messages.s2c.LevelChangeEvent;
 
-/**
- * Converter for server-to-client level-change event messages.
- */
+/** Converter for server-to-client level-change event messages. */
 public final class LevelChangeConverter
-  implements MessageConverter<LevelChangeEvent, core.network.proto.s2c.LevelChangeEvent> {
+    implements MessageConverter<LevelChangeEvent, core.network.proto.s2c.LevelChangeEvent> {
   private static final byte WIRE_TYPE_ID = 16;
 
   @Override
   public core.network.proto.s2c.LevelChangeEvent toProto(LevelChangeEvent message) {
     return core.network.proto.s2c.LevelChangeEvent.newBuilder()
-      .setLevelName(message.levelName())
-      .setLevelData(message.levelData())
-      .build();
+        .setLevelName(message.levelName())
+        .setLevelData(message.levelData())
+        .build();
   }
 
   @Override

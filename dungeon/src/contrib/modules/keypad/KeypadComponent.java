@@ -45,16 +45,16 @@ public class KeypadComponent implements Component {
   /**
    * Creates a KeypadComponent.
    *
-   * @param correctDigits  the correct digits to enter.
-   * @param enteredDigits  the current entered digits.
-   * @param isUnlocked     if the keypad is already unlocked.
+   * @param correctDigits the correct digits to enter.
+   * @param enteredDigits the current entered digits.
+   * @param isUnlocked if the keypad is already unlocked.
    * @param showDigitCount whether the digit count should be shown
    */
   public KeypadComponent(
-    List<Integer> correctDigits,
-    List<Integer> enteredDigits,
-    boolean isUnlocked,
-    boolean showDigitCount) {
+      List<Integer> correctDigits,
+      List<Integer> enteredDigits,
+      boolean isUnlocked,
+      boolean showDigitCount) {
     this.correctDigits = correctDigits;
     this.enteredDigits = enteredDigits;
     this.isUnlocked = isUnlocked;

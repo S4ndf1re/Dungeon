@@ -10,9 +10,7 @@ import core.level.utils.DesignLabel;
 import core.level.utils.LevelElement;
 import core.utils.Direction;
 import core.utils.Point;
-
 import java.util.Map;
-
 import portal.antiMaterialBarrier.AntiMaterialBarrier;
 import portal.antiMaterialBarrier.AntiMaterialBarrierComponent;
 import portal.energyPellet.EnergyPelletCatcher;
@@ -28,62 +26,60 @@ import portal.tractorBeam.TractorBeamComponent;
 import portal.tractorBeam.TractorBeamFactory;
 import portal.util.AdvancedLevel;
 
-/**
- * demo level.
- */
+/** demo level. */
 public class PortalDemoLevel extends AdvancedLevel {
 
   private Entity cube1,
-    sphere1,
-    launcher1,
-    catcher1,
-    tractorBeam1,
-    lightBridge1,
-    lightWall1,
-    tractorBeam2,
-    lightBridge2,
-    lightWall2,
-    lightWall3,
-    laserGrid1,
-    pressurePlate1,
-    pressurePlate2;
+      sphere1,
+      launcher1,
+      catcher1,
+      tractorBeam1,
+      lightBridge1,
+      lightWall1,
+      tractorBeam2,
+      lightBridge2,
+      lightWall2,
+      lightWall3,
+      laserGrid1,
+      pressurePlate1,
+      pressurePlate2;
   private LeverComponent switch1,
-    switch2,
-    switch3,
-    switch4,
-    switch5,
-    switch6,
-    switch7,
-    switch8,
-    switch9,
-    plate1,
-    plate2;
+      switch2,
+      switch3,
+      switch4,
+      switch5,
+      switch6,
+      switch7,
+      switch8,
+      switch9,
+      plate1,
+      plate2;
 
   ICommand switch0Action =
-    new ICommand() {
-      @Override
-      public void execute() {
-        TractorBeamFactory.reverseTractorBeam(
-          tractorBeam1.fetch(TractorBeamComponent.class).get().getTractorBeamEntities());
-      }
+      new ICommand() {
+        @Override
+        public void execute() {
+          TractorBeamFactory.reverseTractorBeam(
+              tractorBeam1.fetch(TractorBeamComponent.class).get().getTractorBeamEntities());
+        }
 
-      @Override
-      public void undo() {
-        TractorBeamFactory.reverseTractorBeam(
-          tractorBeam1.fetch(TractorBeamComponent.class).get().getTractorBeamEntities());
-      }
-    };
+        @Override
+        public void undo() {
+          TractorBeamFactory.reverseTractorBeam(
+              tractorBeam1.fetch(TractorBeamComponent.class).get().getTractorBeamEntities());
+        }
+      };
 
   /**
    * Call the parent constructor of a tile level with the given layout and design label. Set the
    * start tile of the player to the given heroPos.
    *
-   * @param layout      2D array containing the tile layout.
+   * @param layout 2D array containing the tile layout.
    * @param designLabel The design label for the level.
    * @param namedPoints The custom points of the level.
    */
   public PortalDemoLevel(
-    LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
+      LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
     super(layout, designLabel, namedPoints, "Portal Demo Level");
   }
 
@@ -96,19 +92,19 @@ public class PortalDemoLevel extends AdvancedLevel {
     cube1 = Cube.portalCube(namedPoints.get("Würfel1"));
     sphere1 = Sphere.portalSphere(namedPoints.get("Kugel1"));
     launcher1 =
-      EnergyPelletLauncher.energyPelletLauncher(
-        namedPoints.get("Energie"), Direction.RIGHT, 10000000, 10000);
+        EnergyPelletLauncher.energyPelletLauncher(
+            namedPoints.get("Energie"), Direction.RIGHT, 10000000, 10000);
     catcher1 =
-      EnergyPelletCatcher.energyPelletCatcher(namedPoints.get("Energie2"), Direction.RIGHT);
+        EnergyPelletCatcher.energyPelletCatcher(namedPoints.get("Energie2"), Direction.RIGHT);
     tractorBeam1 =
-      TractorBeamFactory.createTractorBeam(namedPoints.get("Traktor1"), Direction.DOWN);
+        TractorBeamFactory.createTractorBeam(namedPoints.get("Traktor1"), Direction.DOWN);
     lightBridge1 =
-      LightBridgeFactory.createEmitter(namedPoints.get("Brücke1"), Direction.DOWN, false);
+        LightBridgeFactory.createEmitter(namedPoints.get("Brücke1"), Direction.DOWN, false);
     lightWall1 = LightWallFactory.createEmitter(namedPoints.get("Wand1"), Direction.DOWN, false);
     tractorBeam2 =
-      TractorBeamFactory.createTractorBeam(namedPoints.get("Traktor2"), Direction.DOWN);
+        TractorBeamFactory.createTractorBeam(namedPoints.get("Traktor2"), Direction.DOWN);
     lightBridge2 =
-      LightBridgeFactory.createEmitter(namedPoints.get("Brücke2"), Direction.DOWN, false);
+        LightBridgeFactory.createEmitter(namedPoints.get("Brücke2"), Direction.DOWN, false);
     lightWall2 = LightWallFactory.createEmitter(namedPoints.get("Wand2"), Direction.DOWN, false);
     lightWall3 = LightWallFactory.createEmitter(namedPoints.get("Wand3"), Direction.LEFT, false);
     Game.add(LaserGrid.laserGrid(namedPoints.get("Grid1"), true));
@@ -182,24 +178,24 @@ public class PortalDemoLevel extends AdvancedLevel {
     else LightWallFactory.deactivate(lightWall3);
     if (switch8.isOn()) {
       Game.allEntities()
-        .forEach(
-          e ->
-            e.fetch(AntiMaterialBarrierComponent.class)
-              .ifPresent(AntiMaterialBarrierComponent::activate));
+          .forEach(
+              e ->
+                  e.fetch(AntiMaterialBarrierComponent.class)
+                      .ifPresent(AntiMaterialBarrierComponent::activate));
     } else {
       Game.allEntities()
-        .forEach(
-          e ->
-            e.fetch(AntiMaterialBarrierComponent.class)
-              .ifPresent(AntiMaterialBarrierComponent::deactivate));
+          .forEach(
+              e ->
+                  e.fetch(AntiMaterialBarrierComponent.class)
+                      .ifPresent(AntiMaterialBarrierComponent::deactivate));
     }
     if (switch9.isOn()) {
       Game.allEntities()
-        .forEach(e -> e.fetch(LasergridComponent.class).ifPresent(LasergridComponent::activate));
+          .forEach(e -> e.fetch(LasergridComponent.class).ifPresent(LasergridComponent::activate));
     } else {
       Game.allEntities()
-        .forEach(
-          e -> e.fetch(LasergridComponent.class).ifPresent(LasergridComponent::deactivate));
+          .forEach(
+              e -> e.fetch(LasergridComponent.class).ifPresent(LasergridComponent::deactivate));
     }
     /*if (catcher1.fetch(ToggleableComponent.class).get().isActive()) {
       launcher1.remove(AIComponent.class);

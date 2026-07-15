@@ -51,9 +51,7 @@ public class Debugger extends System {
   private static Entity pauseMenu;
   private static int advanceTimer = 0;
 
-  /**
-   * Use this value to quickly test different states or values in any other part of the game.
-   */
+  /** Use this value to quickly test different states or values in any other part of the game. */
   public static int multiPurposeDebugValue = 0;
 
   /** Creates a new Debugger system. */

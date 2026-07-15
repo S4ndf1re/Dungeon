@@ -52,15 +52,15 @@ public class AntiMaterialBarrierSystem extends System {
    */
   private BarrierSystemData buildDataObject(Entity entity) {
     AntiMaterialBarrierComponent barrier =
-      entity
-        .fetch(AntiMaterialBarrierComponent.class)
-        .orElseThrow(
-          () -> MissingComponentException.build(entity, AntiMaterialBarrierComponent.class));
+        entity
+            .fetch(AntiMaterialBarrierComponent.class)
+            .orElseThrow(
+                () -> MissingComponentException.build(entity, AntiMaterialBarrierComponent.class));
 
     DrawComponent draw =
-      entity
-        .fetch(DrawComponent.class)
-        .orElseThrow(() -> MissingComponentException.build(entity, DrawComponent.class));
+        entity
+            .fetch(DrawComponent.class)
+            .orElseThrow(() -> MissingComponentException.build(entity, DrawComponent.class));
 
     CollideComponent collide = entity.fetch(CollideComponent.class).orElse(null);
 
@@ -97,9 +97,8 @@ public class AntiMaterialBarrierSystem extends System {
   }
 
   private record BarrierSystemData(
-    Entity entity,
-    AntiMaterialBarrierComponent barrier,
-    DrawComponent draw,
-    CollideComponent collide) {
-  }
+      Entity entity,
+      AntiMaterialBarrierComponent barrier,
+      DrawComponent draw,
+      CollideComponent collide) {}
 }

@@ -45,7 +45,7 @@ public class CollisionUtils {
    * Checks if a point is colliding with a non-accessible level tile.
    *
    * @param pos the position to check for collision
-   * @param vc  the velocity component containing movement capabilities
+   * @param vc the velocity component containing movement capabilities
    * @return true if the tile at the given position is not accessible, false otherwise
    */
   public static boolean isCollidingWithLevel(Point pos, VelocityComponent vc) {
@@ -65,7 +65,7 @@ public class CollisionUtils {
   public static boolean isCollidingWithLevel(Collider collider, Point pos, VelocityComponent vc) {
     List<Vector2> corners = collider.cornersScaled();
     return corners.stream()
-      .anyMatch(v -> !tileIsAccessible(Game.tileAt(pos.translate(v)).orElse(null), vc));
+        .anyMatch(v -> !tileIsAccessible(Game.tileAt(pos.translate(v)).orElse(null), vc));
   }
 
   /**

@@ -4,9 +4,8 @@ import dgir.core.ir.Dialect;
 import dgir.dialect.io.IoDialect;
 import dgir.vm.api.DialectRunner;
 import dgir.vm.api.OpRunner;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 public class IoDialectRunner extends DialectRunner {
   private static IoDialectRunner instance;

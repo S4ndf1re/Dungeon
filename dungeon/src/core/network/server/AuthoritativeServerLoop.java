@@ -72,10 +72,10 @@ public final class AuthoritativeServerLoop {
     PreRunConfiguration.frameRate(SERVER_TICK_HZ);
 
     DungeonLoader.afterAllLevels(
-      () -> {
-        Game.network().broadcast(new GameOverEvent("All levels completed"), true);
-        Game.exit("Game Over");
-      });
+        () -> {
+          Game.network().broadcast(new GameOverEvent("All levels completed"), true);
+          Game.exit("Game Over");
+        });
 
     long tickPeriodMs = 1000L / SERVER_TICK_HZ;
     long snapshotPeriodMs = 1000L / SERVER_SNAPSHOT_HZ;

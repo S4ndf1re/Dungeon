@@ -27,9 +27,7 @@ import core.utils.components.MissingComponentException;
  */
 public class LasergridSystem extends System {
 
-  /**
-   * Constructs a new LasergridSystem that processes entities with a laser grid.
-   */
+  /** Constructs a new LasergridSystem that processes entities with a laser grid. */
   public LasergridSystem() {
     super(LasergridComponent.class);
   }
@@ -54,14 +52,14 @@ public class LasergridSystem extends System {
    */
   private LaserSystemData buildDataObject(Entity entity) {
     LasergridComponent laser =
-      entity
-        .fetch(LasergridComponent.class)
-        .orElseThrow(() -> MissingComponentException.build(entity, LasergridComponent.class));
+        entity
+            .fetch(LasergridComponent.class)
+            .orElseThrow(() -> MissingComponentException.build(entity, LasergridComponent.class));
 
     DrawComponent draw =
-      entity
-        .fetch(DrawComponent.class)
-        .orElseThrow(() -> MissingComponentException.build(entity, DrawComponent.class));
+        entity
+            .fetch(DrawComponent.class)
+            .orElseThrow(() -> MissingComponentException.build(entity, DrawComponent.class));
 
     SpikyComponent spiky = entity.fetch(SpikyComponent.class).orElse(null);
 
@@ -100,6 +98,5 @@ public class LasergridSystem extends System {
   }
 
   private record LaserSystemData(
-    Entity entity, LasergridComponent lasergrid, DrawComponent draw, SpikyComponent spiky) {
-  }
+      Entity entity, LasergridComponent lasergrid, DrawComponent draw, SpikyComponent spiky) {}
 }

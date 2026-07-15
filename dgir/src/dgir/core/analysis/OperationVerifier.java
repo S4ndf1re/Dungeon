@@ -3,13 +3,12 @@ package dgir.core.analysis;
 import dgir.core.ir.*;
 import dgir.core.traits.IIsolatedFromAbove;
 import dgir.core.traits.INoTerminator;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Validates the structural and semantic correctness of an {@link Operation} and, optionally, all

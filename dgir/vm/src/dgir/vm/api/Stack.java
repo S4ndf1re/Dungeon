@@ -3,9 +3,8 @@ package dgir.vm.api;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.ValueOperand;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.*;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A scoped, allocation-efficient store that maps {@link Value} objects to their runtime objects.

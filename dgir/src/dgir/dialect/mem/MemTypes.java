@@ -3,16 +3,15 @@ package dgir.dialect.mem;
 import dgir.core.ir.*;
 import dgir.core.utility.DgirCoreUtils;
 import dgir.dialect.builtin.BuiltinTypes;
-import org.apache.commons.lang3.tuple.Pair;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Unmodifiable;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 /** Sealed marker interface for all types contributed by the {@link MemoryDialect}. */
 public sealed interface MemTypes {

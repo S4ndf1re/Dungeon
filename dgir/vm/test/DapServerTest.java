@@ -1,21 +1,3 @@
-import dgir.core.ir.Dialect;
-import dgir.core.debug.Location;
-import dgir.core.debug.ValueDebugInfo;
-import dgir.vm.api.OpRunnerRegistry;
-import dgir.vm.api.VM;
-import dgir.vm.dap.DapServer;
-import dgir.vm.dialect.io.IoRunners;
-import org.eclipse.lsp4j.debug.*;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.net.Socket;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import static dgir.dialect.arith.ArithOps.ConstantOp;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import static dgir.dialect.func.FuncOps.FuncOp;
@@ -23,6 +5,23 @@ import static dgir.dialect.func.FuncOps.ReturnOp;
 import static dgir.dialect.io.IoOps.PrintOp;
 import static dgir.vm.api.DapServerUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
+
+import dgir.core.debug.Location;
+import dgir.core.debug.ValueDebugInfo;
+import dgir.core.ir.Dialect;
+import dgir.vm.api.OpRunnerRegistry;
+import dgir.vm.api.VM;
+import dgir.vm.dap.DapServer;
+import dgir.vm.dialect.io.IoRunners;
+import java.io.IOException;
+import java.net.Socket;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import org.eclipse.lsp4j.debug.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * Integration tests for {@link DapServer}.

@@ -67,7 +67,7 @@ public class Level002 extends BlocklyLevel {
         .attackRange(3)
         .viewDirection(Direction.LEFT)
         .addToGame()
-      .build(getPoint("guard"));
+        .build(getPoint("guard"));
 
     removeNamedPoint("guard");
 

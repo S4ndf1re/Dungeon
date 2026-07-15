@@ -1,8 +1,8 @@
 package dgir.dialect.str;
 
-import dgir.core.ir.Dialect;
 import dgir.core.ir.Attribute;
 import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.TypedAttribute;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

@@ -1,5 +1,10 @@
 package blockly.dgir.compiler.java.emission;
 
+import static blockly.dgir.compiler.java.Access.isDeclarationAccessibleFrom;
+import static blockly.dgir.compiler.java.CompilerUtils.fromAstType;
+import static blockly.dgir.compiler.java.CompilerUtils.resolve;
+import static blockly.dgir.compiler.java.emission.Intrinsics.emitIntrinsic;
+
 import blockly.dgir.compiler.java.EmitContext;
 import blockly.dgir.compiler.java.EmitResult;
 import blockly.dgir.compiler.java.IntrinsicRegistry;
@@ -13,16 +18,10 @@ import dgir.core.debug.ValueDebugInfo;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
 import dgir.dialect.func.FuncOps;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static blockly.dgir.compiler.java.Access.isDeclarationAccessibleFrom;
-import static blockly.dgir.compiler.java.CompilerUtils.fromAstType;
-import static blockly.dgir.compiler.java.CompilerUtils.resolve;
-import static blockly.dgir.compiler.java.emission.Intrinsics.emitIntrinsic;
+import org.jetbrains.annotations.NotNull;
 
 public class EmissionUtils {
   public static @NotNull Optional<Value> resolveName(

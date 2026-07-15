@@ -1,5 +1,8 @@
 package transformations;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import blockly.dgir.compiler.java.CompilerUtils;
 import blockly.dgir.compiler.java.EmitContext;
 import blockly.dgir.compiler.java.transformations.ImplicitCastElimination;
@@ -9,9 +12,6 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.expr.CastExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ImplicitCastEliminationTests extends TransformationTestBase {
   @Test
@@ -192,7 +192,7 @@ public class %ClassName<T> {
   @Test
   void generatedCallArgumentCastsKeepSameLineSourceOrder() {
     String code =
-        """
+"""
 public class RangeCastClass {
   public void test() {
     int i = Long.compare(1, 2);
@@ -205,7 +205,8 @@ public class RangeCastClass {
     TokenRange firstArgRange = originalCall.getArgument(0).getTokenRange().orElseThrow();
     TokenRange secondArgRange = originalCall.getArgument(1).getTokenRange().orElseThrow();
 
-    new ImplicitCastElimination().visit(cu, new EmitContext("generatedCallArgumentCastsKeepSameLineSourceOrder"));
+    new ImplicitCastElimination()
+        .visit(cu, new EmitContext("generatedCallArgumentCastsKeepSameLineSourceOrder"));
 
     MethodCallExpr loweredCall = cu.findFirst(MethodCallExpr.class).orElseThrow();
     CastExpr firstCast = loweredCall.getArgument(0).asCastExpr();

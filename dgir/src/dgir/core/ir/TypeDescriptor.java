@@ -1,11 +1,10 @@
 package dgir.core.ir;
 
 import dgir.dialect.builtin.BuiltinTypes;
+import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.function.Function;
 
 /**
  * A descriptor for a type, containing metadata such as its unique identifier, namespace, and

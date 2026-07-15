@@ -4,14 +4,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * Tests for {@link InputMessage}.
- */
+/** Tests for {@link InputMessage}. */
 class InputMessageTest {
 
-  /**
-   * Verifies custom factory defaults.
-   */
+  /** Verifies custom factory defaults. */
   @Test
   void customFactoryUsesDefaults() {
     InputMessage message = InputMessage.custom("escapeRoom:hint_log.open");
@@ -23,24 +19,20 @@ class InputMessageTest {
     assertEquals(1, custom.schemaVersion());
   }
 
-  /**
-   * Verifies command id validation for custom messages.
-   */
+  /** Verifies command id validation for custom messages. */
   @Test
   void customRejectsInvalidCommandId() {
     assertThrows(
-      IllegalArgumentException.class,
-      () -> InputMessage.custom("invalid-command-id", new byte[0]));
+        IllegalArgumentException.class,
+        () -> InputMessage.custom("invalid-command-id", new byte[0]));
   }
 
-  /**
-   * Verifies payload size validation for custom messages.
-   */
+  /** Verifies payload size validation for custom messages. */
   @Test
   void customRejectsTooLargePayload() {
     byte[] tooLargePayload = new byte[8_193];
     assertThrows(
-      IllegalArgumentException.class,
-      () -> InputMessage.custom("escapeRoom:hint_log.open", tooLargePayload));
+        IllegalArgumentException.class,
+        () -> InputMessage.custom("escapeRoom:hint_log.open", tooLargePayload));
   }
 }

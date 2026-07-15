@@ -62,12 +62,12 @@ public final class HudSystem extends System {
    */
   public boolean hasOpenPausingUI(Entity entity) {
     return entityUIComponentMap.values().stream()
-      .anyMatch(
-        component ->
-          component.willPauseGame()
-            && component.isVisible()
-            && Arrays.stream(component.targetEntityIds())
-            .anyMatch(id -> id == entity.id()));
+        .anyMatch(
+            component ->
+                component.willPauseGame()
+                    && component.isVisible()
+                    && Arrays.stream(component.targetEntityIds())
+                        .anyMatch(id -> id == entity.id()));
   }
 
   /**
@@ -82,23 +82,23 @@ public final class HudSystem extends System {
     }
     entityUIComponentMap.remove(entity);
     int[] targets =
-      entity.fetch(UIComponent.class).map(UIComponent::targetEntityIds).orElse(new int[0]);
+        entity.fetch(UIComponent.class).map(UIComponent::targetEntityIds).orElse(new int[0]);
 
     if (targets.length == 0) {
       // if no specific targets, decrease for all players
       Game.allPlayers()
-        .forEach(
-          playerEntity -> {
-            playerEntity
-              .fetch(PlayerComponent.class)
-              .ifPresent(PlayerComponent::decrementOpenDialogs);
-          });
+          .forEach(
+              playerEntity -> {
+                playerEntity
+                    .fetch(PlayerComponent.class)
+                    .ifPresent(PlayerComponent::decrementOpenDialogs);
+              });
     } else {
       for (Integer targetId : targets) {
         Optional<Entity> target = Game.findEntityById(targetId);
         target
-          .flatMap(t -> t.fetch(PlayerComponent.class))
-          .ifPresent(PlayerComponent::decrementOpenDialogs);
+            .flatMap(t -> t.fetch(PlayerComponent.class))
+            .ifPresent(PlayerComponent::decrementOpenDialogs);
       }
     }
   }
@@ -140,8 +140,8 @@ public final class HudSystem extends System {
 
     Game.stage()
         .ifPresentOrElse(
-          stage -> addDialogToStage(dialog, stage),
-          () -> sendDialogToClients(entity, component, affectedIds));
+            stage -> addDialogToStage(dialog, stage),
+            () -> sendDialogToClients(entity, component, affectedIds));
 
     addMapping(entity, dialog, component);
     DialogTracker.instance().registerDialog(component);

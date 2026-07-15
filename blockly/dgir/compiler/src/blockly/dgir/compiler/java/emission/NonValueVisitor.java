@@ -1,5 +1,9 @@
 package blockly.dgir.compiler.java.emission;
 
+import static blockly.dgir.compiler.java.CompilerUtils.*;
+import static blockly.dgir.compiler.java.emission.EmissionUtils.visitNonValueNodeList;
+import static blockly.dgir.compiler.java.emission.EmissionUtils.visitRValueNodeList;
+
 import blockly.dgir.compiler.java.CompilerUtils;
 import blockly.dgir.compiler.java.EmitContext;
 import blockly.dgir.compiler.java.EmitResult;
@@ -27,17 +31,12 @@ import dgir.dialect.cf.CfOps;
 import dgir.dialect.func.FuncOps;
 import dgir.dialect.func.FuncTypes;
 import dgir.dialect.scf.ScfOps;
-import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static blockly.dgir.compiler.java.CompilerUtils.*;
-import static blockly.dgir.compiler.java.emission.EmissionUtils.visitNonValueNodeList;
-import static blockly.dgir.compiler.java.emission.EmissionUtils.visitRValueNodeList;
+import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, EmitContext> {
   private static final NonValueVisitor INSTANCE = new NonValueVisitor();

@@ -677,8 +677,8 @@ public final class DrawSystem extends System implements Disposable {
 
       // Final world size includes padding on all sides
       Vector2 finalWorldSize =
-        Vector2.of(
-          worldWidth + 2 * paddingX * worldWidth, worldHeight + 2 * paddingY * worldHeight);
+          Vector2.of(
+              worldWidth + 2 * paddingX * worldWidth, worldHeight + 2 * paddingY * worldHeight);
 
       // Scale is being factored into the transformation everywhere except the position, since it is
       // passed directly to the draw method. Thus, we need to factor it in here to offset the
@@ -687,8 +687,8 @@ public final class DrawSystem extends System implements Disposable {
           dsd.pc
               .position()
               .translate(
-                -paddingX * dsd.pc.scale().x() * worldWidth,
-                -paddingY * dsd.pc.scale().y() * worldHeight);
+                  -paddingX * dsd.pc.scale().x() * worldWidth,
+                  -paddingY * dsd.pc.scale().y() * worldHeight);
 
       DrawConfig conf = makeConfig(dsd, finalWorldSize, dsd.pc.scale());
       draw(offsetPosition, fboTexture, conf);

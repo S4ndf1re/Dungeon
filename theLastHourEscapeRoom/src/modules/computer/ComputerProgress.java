@@ -1,21 +1,13 @@
 package modules.computer;
 
-/**
- * Represents the player's progress on the computer.
- */
+/** Represents the player's progress on the computer. */
 public enum ComputerProgress {
 
-  /**
-   * Before the light is turned on.
-   */
+  /** Before the light is turned on. */
   OFF(0),
-  /**
-   * After the light is turned on, but before the player has logged in.
-   */
+  /** After the light is turned on, but before the player has logged in. */
   ON(1),
-  /**
-   * After the player has logged in.
-   */
+  /** After the player has logged in. */
   LOGGED_IN(2),
   ;
 
@@ -29,7 +21,7 @@ public enum ComputerProgress {
    * Returns the progress value associated with this ComputerProgress state.
    *
    * @return the progress value, where higher values indicate further progress in the computer
-   * interaction sequence
+   *     interaction sequence
    */
   public int progress() {
     return progress;
@@ -40,7 +32,7 @@ public enum ComputerProgress {
    *
    * @param other the ComputerProgress state to compare against
    * @return true if this ComputerProgress state has reached or exceeded the progress of the other
-   * state, false otherwise
+   *     state, false otherwise
    */
   public boolean hasReached(ComputerProgress other) {
     return this.progress >= other.progress;

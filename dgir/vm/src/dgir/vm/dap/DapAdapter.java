@@ -1,5 +1,8 @@
 package dgir.vm.dap;
 
+import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
+import static dgir.dialect.func.FuncOps.FuncOp;
+
 import dgir.core.debug.Location;
 import dgir.core.debug.ValueDebugInfo;
 import dgir.core.ir.Block;
@@ -9,14 +12,6 @@ import dgir.core.ir.Value;
 import dgir.vm.api.DebugControl;
 import dgir.vm.api.Debugger;
 import dgir.vm.api.VM;
-import org.eclipse.lsp4j.debug.*;
-import org.eclipse.lsp4j.debug.services.IDebugProtocolClient;
-import org.eclipse.lsp4j.debug.services.IDebugProtocolServer;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.lang.Thread;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -27,9 +22,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-
-import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
-import static dgir.dialect.func.FuncOps.FuncOp;
+import org.eclipse.lsp4j.debug.*;
+import org.eclipse.lsp4j.debug.services.IDebugProtocolClient;
+import org.eclipse.lsp4j.debug.services.IDebugProtocolServer;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * DAP adapter for the DGIR {@link VM}.
@@ -87,7 +85,7 @@ public class DapAdapter implements IDebugProtocolServer, Debugger {
    * Reference to the currently running (or most recently started) VM daemon thread. Used by {@link
    * #reloadProgram} to join the old thread before starting a new one.
    */
-  private final @NotNull AtomicReference<Thread> vmThreadRef = new AtomicReference<>();
+  private final @NotNull AtomicReference<java.lang.Thread> vmThreadRef = new AtomicReference<>();
 
   /**
    * Set to {@code true} when the VM thread was launched once. After that it always stays {@code
@@ -195,7 +193,7 @@ public class DapAdapter implements IDebugProtocolServer, Debugger {
    * @return {@code true} when the VM daemon thread is alive
    */
   public boolean isVmRunning() {
-    Thread t = vmThreadRef.get();
+    java.lang.Thread t = vmThreadRef.get();
     return t != null && t.isAlive();
   }
 
@@ -217,7 +215,7 @@ public class DapAdapter implements IDebugProtocolServer, Debugger {
     // Do not call stop() if the VM is already stopped.
     if (vmThreadRef.get() == null || !vmThreadRef.get().isAlive() || vm.isStopRequested()) return;
     vm.stop();
-    Thread t = vmThreadRef.get();
+    java.lang.Thread t = vmThreadRef.get();
     if (t != null && t.isAlive()) {
       t.interrupt();
     }
@@ -815,13 +813,13 @@ public class DapAdapter implements IDebugProtocolServer, Debugger {
    * session end.
    */
   private void startVmThread() {
-    Thread t =
-        new Thread(
+    java.lang.Thread t =
+        new java.lang.Thread(
             () -> {
               try {
                 configDone.await();
               } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                java.lang.Thread.currentThread().interrupt();
                 return;
               }
 
@@ -914,7 +912,7 @@ public class DapAdapter implements IDebugProtocolServer, Debugger {
 
     // Stop the running VM and wait for its thread to finish.
     vm.stop();
-    Thread oldThread = vmThreadRef.getAndSet(null);
+    java.lang.Thread oldThread = vmThreadRef.getAndSet(null);
     if (oldThread != null && oldThread.isAlive()) {
       // Interrupt the VM thread so that any CountDownLatch.await() calls inside op runners
       // (e.g. waiting for a HeroActionComponent to finish) are unblocked immediately.

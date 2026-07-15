@@ -4,18 +4,16 @@ import com.google.protobuf.Parser;
 import core.network.codec.MessageConverter;
 import core.network.messages.s2c.DialogCloseMessage;
 
-/**
- * Converter for server-to-client dialog close messages.
- */
+/** Converter for server-to-client dialog close messages. */
 public final class DialogCloseConverter
-  implements MessageConverter<DialogCloseMessage, core.network.proto.s2c.DialogCloseMessage> {
+    implements MessageConverter<DialogCloseMessage, core.network.proto.s2c.DialogCloseMessage> {
   private static final byte WIRE_TYPE_ID = 10;
 
   @Override
   public core.network.proto.s2c.DialogCloseMessage toProto(DialogCloseMessage message) {
     return core.network.proto.s2c.DialogCloseMessage.newBuilder()
-      .setDialogId(message.dialogId())
-      .build();
+        .setDialogId(message.dialogId())
+        .build();
   }
 
   @Override

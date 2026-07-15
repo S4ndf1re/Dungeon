@@ -83,9 +83,9 @@ public final class HintLogDialog {
             .build();
 
     UIComponent ui =
-      targetEntityIds.length == 0
-        ? DialogFactory.show(context)
-        : DialogFactory.show(context, targetEntityIds);
+        targetEntityIds.length == 0
+            ? DialogFactory.show(context)
+            : DialogFactory.show(context, targetEntityIds);
 
     // Register navigation callbacks
     ui.registerCallback(
@@ -150,7 +150,7 @@ public final class HintLogDialog {
         };
 
     Dialog textDialog =
-      new HandledDialog(hint.title(), skin, DEFAULT_WINDOW_STYLE_NAME, resultHandler);
+        new HandledDialog(hint.title(), skin, DEFAULT_WINDOW_STYLE_NAME, resultHandler);
     textDialog
         .getContentTable()
         .add(DialogDesign.createTextDialog(skin, UIUtils.formatString(hint.text())))

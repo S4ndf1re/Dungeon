@@ -35,52 +35,52 @@ import starter.PortalStarter;
  */
 public class LevelCreatorTools {
   private static final SimpleIPath CUBE_PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MyCube.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MyCube.java");
   private static final String CUBE_CLASSNAME = "portal.riddles.MyCube";
   private static final SimpleIPath SPHERE_PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MySphere.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MySphere.java");
   private static final String SPHERE_CLASSNAME = "portal.riddles.MySphere";
   private static final SimpleIPath LASER_PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MyLaserGridSwitch.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MyLaserGridSwitch.java");
   private static final String LASER_CLASSNAME = "portal.riddles.MyLaserGridSwitch";
   private static final SimpleIPath BRIDGESWITCH_PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MyBridgeSwitch.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MyBridgeSwitch.java");
   private static final String BRIDGESWITCH_CLASSNAME = "portal.riddles.MyBridgeSwitch";
   private static final String WALLSWITCH_CLASSNAME = "portal.riddles.MyLightWallSwitch";
   private static final SimpleIPath WALLSWITCH_PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MyLightWallSwitch.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MyLightWallSwitch.java");
   private static final SimpleIPath BEAMSWITCH_PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MyTractorBeamLever.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MyTractorBeamLever.java");
   private static final String BEAMSWITCH_CLASSNAME = "portal.riddles.MyTractorBeamLever";
   private static final String UNDOTRACTORLEVER =
-    "Der Traktorstrahl konnte nicht zurückgesetzt werden. Überprüfe, ob dein Traktorstrahl-Lever korrekt implementiert ist und das übergebene Objekt gültig ist.";
+      "Der Traktorstrahl konnte nicht zurückgesetzt werden. Überprüfe, ob dein Traktorstrahl-Lever korrekt implementiert ist und das übergebene Objekt gültig ist.";
 
   private static final String EXECUTETRACORLEVER =
-    "Der Traktorstrahl konnte nicht umgedreht werden. Stelle sicher, dass deine Lever-Logik korrekt geladen wird und der Traktorstrahl existiert.";
+      "Der Traktorstrahl konnte nicht umgedreht werden. Stelle sicher, dass deine Lever-Logik korrekt geladen wird und der Traktorstrahl existiert.";
 
   private static final String UNDOWALLEVER =
-    "Die Lichtwand konnte nicht deaktiviert werden. Prüfe, ob dein LightWallSwitch korrekt implementiert ist und ein gültiger Emitter übergeben wurde.";
+      "Die Lichtwand konnte nicht deaktiviert werden. Prüfe, ob dein LightWallSwitch korrekt implementiert ist und ein gültiger Emitter übergeben wurde.";
 
   private static final String EXECUTEWALLLEVER =
-    "Die Lichtwand konnte nicht aktiviert werden. Überprüfe deine Implementierung des LightWallSwitch und ob der Emitter korrekt referenziert wird.";
+      "Die Lichtwand konnte nicht aktiviert werden. Überprüfe deine Implementierung des LightWallSwitch und ob der Emitter korrekt referenziert wird.";
 
   private static final String UNDOBRDIGELEVER =
-    "Die Lichtbrücke konnte nicht deaktiviert werden. Stelle sicher, dass dein BridgeSwitch korrekt implementiert ist und die Brücke existiert.";
+      "Die Lichtbrücke konnte nicht deaktiviert werden. Stelle sicher, dass dein BridgeSwitch korrekt implementiert ist und die Brücke existiert.";
 
   private static final String EXECUTEBRIDGELEVER =
-    "Die Lichtbrücke konnte nicht aktiviert werden. Überprüfe, ob dein BridgeSwitch korrekt geladen wird und die Brücke korrekt übergeben wurde.";
+      "Die Lichtbrücke konnte nicht aktiviert werden. Überprüfe, ob dein BridgeSwitch korrekt geladen wird und die Brücke korrekt übergeben wurde.";
 
   private static final String UNDOLASERGRIDCUBEPLATE =
-    "Das Lasergitter konnte nicht wieder aktiviert werden. Prüfe deine Implementierung des LaserGridSwitch und ob die übergebenen Lasergitter gültig sind.";
+      "Das Lasergitter konnte nicht wieder aktiviert werden. Prüfe deine Implementierung des LaserGridSwitch und ob die übergebenen Lasergitter gültig sind.";
 
   private static final String EXECUTEUNDOLASERGRIDCUBEPLATE =
-    "Das Lasergitter konnte nicht deaktiviert werden. Stelle sicher, dass dein LaserGridSwitch korrekt implementiert ist und alle Lasergitter existieren.";
+      "Das Lasergitter konnte nicht deaktiviert werden. Stelle sicher, dass dein LaserGridSwitch korrekt implementiert ist und alle Lasergitter existieren.";
 
   private static final String CUBESPAWNER =
-    "Der Würfel konnte nicht erzeugt werden. Überprüfe deine Cube-Klasse, den Rückgabewert der spawn-Methode und die angegebene Spawn-Position.";
+      "Der Würfel konnte nicht erzeugt werden. Überprüfe deine Cube-Klasse, den Rückgabewert der spawn-Methode und die angegebene Spawn-Position.";
 
   private static final String SPHERESPAWNER =
-    "Die Kugel konnte nicht erzeugt werden. Überprüfe deine Sphere-Klasse, den Rückgabewert der spawn-Methode und die angegebene Spawn-Position.";
+      "Die Kugel konnte nicht erzeugt werden. Überprüfe deine Sphere-Klasse, den Rückgabewert der spawn-Methode und die angegebene Spawn-Position.";
 
   /**
    * Creates a lever that opens and closes a door.
@@ -89,7 +89,7 @@ public class LevelCreatorTools {
    * closes it again.
    *
    * @param leverP the position of the lever entity
-   * @param doorP  the position of the door tile to be controlled
+   * @param doorP the position of the door tile to be controlled
    * @return an {@link Entity} representing the lever
    * @throws java.util.NoSuchElementException if no tile exists at {@code doorP}
    */
@@ -98,18 +98,18 @@ public class LevelCreatorTools {
     door.close();
 
     return LeverFactory.createLever(
-      leverP,
-      new ICommand() {
-        @Override
-        public void execute() {
-          door.open();
-        }
+        leverP,
+        new ICommand() {
+          @Override
+          public void execute() {
+            door.open();
+          }
 
-        @Override
-        public void undo() {
-          door.close();
-        }
-      });
+          @Override
+          public void undo() {
+            door.close();
+          }
+        });
   }
 
   /**
@@ -119,8 +119,8 @@ public class LevelCreatorTools {
    * the door opens. Removing the object closes the door.
    *
    * @param plateP the position of the pressure plate
-   * @param doorP  the position of the door tile to be controlled
-   * @param mass   the minimum mass required to trigger the plate
+   * @param doorP the position of the door tile to be controlled
+   * @param mass the minimum mass required to trigger the plate
    * @return an {@link Entity} representing the pressure plate
    * @throws java.util.NoSuchElementException if no tile exists at {@code doorP}
    */
@@ -128,19 +128,19 @@ public class LevelCreatorTools {
     DoorTile door = (DoorTile) Game.tileAt(doorP).orElseThrow();
     door.close();
     return PressurePlates.cubePressurePlate(
-      plateP,
-      mass,
-      new ICommand() {
-        @Override
-        public void execute() {
-          door.open();
-        }
+        plateP,
+        mass,
+        new ICommand() {
+          @Override
+          public void execute() {
+            door.open();
+          }
 
-        @Override
-        public void undo() {
-          door.close();
-        }
-      });
+          @Override
+          public void undo() {
+            door.close();
+          }
+        });
   }
 
   /**
@@ -150,8 +150,8 @@ public class LevelCreatorTools {
    * door opens. Removing the sphere closes the door.
    *
    * @param plateP the position of the pressure plate
-   * @param doorP  the position of the door tile to be controlled
-   * @param mass   the minimum mass required to trigger the plate
+   * @param doorP the position of the door tile to be controlled
+   * @param mass the minimum mass required to trigger the plate
    * @return an {@link Entity} representing the pressure plate
    * @throws java.util.NoSuchElementException if no tile exists at {@code doorP}
    */
@@ -159,19 +159,19 @@ public class LevelCreatorTools {
     DoorTile door = (DoorTile) Game.tileAt(doorP).orElseThrow();
     door.close();
     return PressurePlates.spherePressurePlate(
-      plateP,
-      mass,
-      new ICommand() {
-        @Override
-        public void execute() {
-          door.open();
-        }
+        plateP,
+        mass,
+        new ICommand() {
+          @Override
+          public void execute() {
+            door.open();
+          }
 
-        @Override
-        public void undo() {
-          door.close();
-        }
-      });
+          @Override
+          public void undo() {
+            door.close();
+          }
+        });
   }
 
   /**
@@ -183,39 +183,39 @@ public class LevelCreatorTools {
    *
    * <p>If dynamic compilation or spawning fails, an error dialog is shown.
    *
-   * @param position          the position of the lever
+   * @param position the position of the lever
    * @param cubeSpawnPosition the position where the cube should spawn
    * @return an {@link Entity} representing the lever
    */
   public static Entity cubeSpawner(Point position, Point cubeSpawnPosition) {
     return LeverFactory.createLever(
-      position,
-      new ICommand() {
+        position,
+        new ICommand() {
 
-        private Entity cube;
+          private Entity cube;
 
-        @Override
-        public void execute() {
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(CUBE_PATH, CUBE_CLASSNAME);
-            cube = ((PortalCube) o).spawn(cubeSpawnPosition);
-            PositionComponent pc = cube.fetch(PositionComponent.class).orElseThrow();
-            if (pc.position().equals(cubeSpawnPosition)) {
-              Game.add(cube);
-            } else throw new Exception();
+          @Override
+          public void execute() {
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(CUBE_PATH, CUBE_CLASSNAME);
+              cube = ((PortalCube) o).spawn(cubeSpawnPosition);
+              PositionComponent pc = cube.fetch(PositionComponent.class).orElseThrow();
+              if (pc.position().equals(cubeSpawnPosition)) {
+                Game.add(cube);
+              } else throw new Exception();
 
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(CUBESPAWNER, "Code Error");
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(CUBESPAWNER, "Code Error");
+            }
           }
-        }
 
-        @Override
-        public void undo() {
-          if (cube != null) Game.remove(cube);
-        }
-      });
+          @Override
+          public void undo() {
+            if (cube != null) Game.remove(cube);
+          }
+        });
   }
 
   /**
@@ -227,39 +227,39 @@ public class LevelCreatorTools {
    *
    * <p>If dynamic compilation or spawning fails, an error dialog is shown.
    *
-   * @param position          the position of the lever
+   * @param position the position of the lever
    * @param cubeSpawnPosition the position where the sphere should spawn
    * @return an {@link Entity} representing the lever
    */
   public static Entity sphereSpawner(Point position, Point cubeSpawnPosition) {
     return LeverFactory.createLever(
-      position,
-      new ICommand() {
+        position,
+        new ICommand() {
 
-        private Entity sphere;
+          private Entity sphere;
 
-        @Override
-        public void execute() {
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(SPHERE_PATH, SPHERE_CLASSNAME);
-            sphere = ((PortalSphere) o).spawn(cubeSpawnPosition);
-            PositionComponent pc = sphere.fetch(PositionComponent.class).orElseThrow();
-            if (pc.position().equals(cubeSpawnPosition)) {
-              Game.add(sphere);
-            } else throw new Exception();
+          @Override
+          public void execute() {
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(SPHERE_PATH, SPHERE_CLASSNAME);
+              sphere = ((PortalSphere) o).spawn(cubeSpawnPosition);
+              PositionComponent pc = sphere.fetch(PositionComponent.class).orElseThrow();
+              if (pc.position().equals(cubeSpawnPosition)) {
+                Game.add(sphere);
+              } else throw new Exception();
 
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(SPHERESPAWNER, "Code Error");
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(SPHERESPAWNER, "Code Error");
+            }
           }
-        }
 
-        @Override
-        public void undo() {
-          if (sphere != null) Game.remove(sphere);
-        }
-      });
+          @Override
+          public void undo() {
+            if (sphere != null) Game.remove(sphere);
+          }
+        });
   }
 
   /**
@@ -270,42 +270,42 @@ public class LevelCreatorTools {
    * <p>The laser grid switch logic is loaded dynamically using {@link DynamicCompiler}.
    *
    * @param platePosition the position of the pressure plate
-   * @param mass          the minimum mass required to trigger the plate
-   * @param lasergrid     one or more laser grid entities to be controlled
+   * @param mass the minimum mass required to trigger the plate
+   * @param lasergrid one or more laser grid entities to be controlled
    * @return an {@link Entity} representing the pressure plate
    */
   public static Entity laserCubePlate(Point platePosition, float mass, Entity... lasergrid) {
     return PressurePlates.cubePressurePlate(
-      platePosition,
-      mass,
-      new ICommand() {
-        @Override
-        public void execute() {
+        platePosition,
+        mass,
+        new ICommand() {
+          @Override
+          public void execute() {
 
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(LASER_PATH, LASER_CLASSNAME);
-            LaserGridSwitch laser = ((LaserGridSwitch) o);
-            laser.deactivate(lasergrid);
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(EXECUTEUNDOLASERGRIDCUBEPLATE, "Code Error");
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(LASER_PATH, LASER_CLASSNAME);
+              LaserGridSwitch laser = ((LaserGridSwitch) o);
+              laser.deactivate(lasergrid);
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(EXECUTEUNDOLASERGRIDCUBEPLATE, "Code Error");
+            }
           }
-        }
 
-        @Override
-        public void undo() {
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(LASER_PATH, LASER_CLASSNAME);
-            LaserGridSwitch laser = ((LaserGridSwitch) o);
-            laser.activate(lasergrid);
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(UNDOLASERGRIDCUBEPLATE, "Code Error");
+          @Override
+          public void undo() {
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(LASER_PATH, LASER_CLASSNAME);
+              LaserGridSwitch laser = ((LaserGridSwitch) o);
+              laser.activate(lasergrid);
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(UNDOLASERGRIDCUBEPLATE, "Code Error");
+            }
           }
-        }
-      });
+        });
   }
 
   /**
@@ -315,42 +315,42 @@ public class LevelCreatorTools {
    *
    * <p>The bridge control logic is loaded dynamically using {@link DynamicCompiler}.
    *
-   * @param bridge        the bridge entity to be controlled
+   * @param bridge the bridge entity to be controlled
    * @param leverPosition the position of the lever
    * @return an {@link Entity} representing the lever
    */
   public static Entity bridgeLever(Entity bridge, Point leverPosition) {
     return LeverFactory.createLever(
-      leverPosition,
-      new ICommand() {
-        @Override
-        public void execute() {
+        leverPosition,
+        new ICommand() {
+          @Override
+          public void execute() {
 
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(BRIDGESWITCH_PATH, BRIDGESWITCH_CLASSNAME);
-            BridgeSwitch s = ((BridgeSwitch) o);
-            s.activate(bridge);
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(EXECUTEBRIDGELEVER, "Code Error");
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(BRIDGESWITCH_PATH, BRIDGESWITCH_CLASSNAME);
+              BridgeSwitch s = ((BridgeSwitch) o);
+              s.activate(bridge);
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(EXECUTEBRIDGELEVER, "Code Error");
+            }
           }
-        }
 
-        @Override
-        public void undo() {
+          @Override
+          public void undo() {
 
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(BRIDGESWITCH_PATH, BRIDGESWITCH_CLASSNAME);
-            BridgeSwitch s = ((BridgeSwitch) o);
-            s.deactivate(bridge);
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(UNDOBRDIGELEVER, "Code Error");
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(BRIDGESWITCH_PATH, BRIDGESWITCH_CLASSNAME);
+              BridgeSwitch s = ((BridgeSwitch) o);
+              s.deactivate(bridge);
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(UNDOBRDIGELEVER, "Code Error");
+            }
           }
-        }
-      });
+        });
   }
 
   /**
@@ -367,36 +367,36 @@ public class LevelCreatorTools {
    */
   public static Entity wallLever(Entity emitter, Point aSwitch) {
     return LeverFactory.createLever(
-      aSwitch,
-      new ICommand() {
-        @Override
-        public void execute() {
+        aSwitch,
+        new ICommand() {
+          @Override
+          public void execute() {
 
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(WALLSWITCH_PATH, WALLSWITCH_CLASSNAME);
-            LightWallSwitch s = ((LightWallSwitch) o);
-            s.activate(emitter);
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(EXECUTEWALLLEVER, "Code Error");
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(WALLSWITCH_PATH, WALLSWITCH_CLASSNAME);
+              LightWallSwitch s = ((LightWallSwitch) o);
+              s.activate(emitter);
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(EXECUTEWALLLEVER, "Code Error");
+            }
           }
-        }
 
-        @Override
-        public void undo() {
+          @Override
+          public void undo() {
 
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(WALLSWITCH_PATH, WALLSWITCH_CLASSNAME);
-            LightWallSwitch s = ((LightWallSwitch) o);
-            s.deactivate(emitter);
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(UNDOWALLEVER, "Code Error");
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(WALLSWITCH_PATH, WALLSWITCH_CLASSNAME);
+              LightWallSwitch s = ((LightWallSwitch) o);
+              s.deactivate(emitter);
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(UNDOWALLEVER, "Code Error");
+            }
           }
-        }
-      });
+        });
   }
 
   /**
@@ -408,38 +408,38 @@ public class LevelCreatorTools {
    * <p>The tractor beam logic is loaded dynamically using {@link DynamicCompiler}.
    *
    * @param tractorbeam the tractor beam entity to be controlled
-   * @param aSwitch     the position of the lever
+   * @param aSwitch the position of the lever
    * @return an {@link Entity} representing the lever
    */
   public static Entity tractorLever(Entity tractorbeam, Point aSwitch) {
     return LeverFactory.createLever(
-      aSwitch,
-      new ICommand() {
-        @Override
-        public void execute() {
+        aSwitch,
+        new ICommand() {
+          @Override
+          public void execute() {
 
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(BEAMSWITCH_PATH, BEAMSWITCH_CLASSNAME);
-            ((TractorBeamLever) o).reverse(tractorbeam);
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(EXECUTETRACORLEVER, "Code Error");
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(BEAMSWITCH_PATH, BEAMSWITCH_CLASSNAME);
+              ((TractorBeamLever) o).reverse(tractorbeam);
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(EXECUTETRACORLEVER, "Code Error");
+            }
           }
-        }
 
-        @Override
-        public void undo() {
+          @Override
+          public void undo() {
 
-          Object o;
-          try {
-            o = DynamicCompiler.loadUserInstance(BEAMSWITCH_PATH, BEAMSWITCH_CLASSNAME);
-            ((TractorBeamLever) o).reverse(tractorbeam);
-          } catch (Exception e) {
-            if (PortalStarter.DEBUG_MODE) e.printStackTrace();
-            DialogUtils.showTextPopup(UNDOTRACTORLEVER, "Code Error");
+            Object o;
+            try {
+              o = DynamicCompiler.loadUserInstance(BEAMSWITCH_PATH, BEAMSWITCH_CLASSNAME);
+              ((TractorBeamLever) o).reverse(tractorbeam);
+            } catch (Exception e) {
+              if (PortalStarter.DEBUG_MODE) e.printStackTrace();
+              DialogUtils.showTextPopup(UNDOTRACTORLEVER, "Code Error");
+            }
           }
-        }
-      });
+        });
   }
 }

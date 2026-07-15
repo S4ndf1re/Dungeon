@@ -131,7 +131,7 @@ public class SkillComponent implements Component {
    * Returns the currently active main skill.
    *
    * @return an {@link Optional} containing the active main skill, or {@link Optional#empty()} if no
-   * main skill is active
+   *     main skill is active
    */
   public Optional<Skill> activeMainSkill() {
     if (activeMainSkill == -1 || activeMainSkill >= this.skills.size()) {

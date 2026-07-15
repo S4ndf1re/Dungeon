@@ -1,11 +1,11 @@
 package blockly.dgir.compiler.java.transformations;
 
+import static blockly.dgir.compiler.java.CompilerUtils.markDebugSkip;
+
 import blockly.dgir.compiler.java.CompilerUtils;
 import com.github.javaparser.ast.stmt.ForStmt;
 import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-
-import static blockly.dgir.compiler.java.CompilerUtils.markDebugSkip;
 
 /**
  * Marker class for debug skips. This class goes over the ast and marks all statements that should

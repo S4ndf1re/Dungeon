@@ -60,10 +60,10 @@ public final class CollisionSystem extends System {
     // Check if this entity is colliding, if yes trigger onLeave
     // Remove all collisions where this id is part of
     collisions.keySet().stream()
-      .filter(key -> key.a == e.id() || key.b == e.id())
-      .peek(key -> triggerOnLeave(e, key))
-      .toList()
-      .forEach(collisions::remove);
+        .filter(key -> key.a == e.id() || key.b == e.id())
+        .peek(key -> triggerOnLeave(e, key))
+        .toList()
+        .forEach(collisions::remove);
   }
 
   private void triggerOnLeave(Entity removedEntity, CollisionKey key) {
@@ -72,16 +72,16 @@ public final class CollisionSystem extends System {
 
     // iterate over ALL entities, so collisions will be resolved if a new level was loaded
     Entity other =
-      Game.allEntities().filter(entity -> entity.id() == otherId).findFirst().orElse(null);
+        Game.allEntities().filter(entity -> entity.id() == otherId).findFirst().orElse(null);
 
     if (other == null) return;
     // Trigger onLeave for both entities
     removedEntity
-      .fetch(CollideComponent.class)
-      .ifPresent(comp -> comp.onLeave(removedEntity, other, Direction.NONE));
+        .fetch(CollideComponent.class)
+        .ifPresent(comp -> comp.onLeave(removedEntity, other, Direction.NONE));
     other
-      .fetch(CollideComponent.class)
-      .ifPresent(comp -> comp.onLeave(other, removedEntity, Direction.NONE));
+        .fetch(CollideComponent.class)
+        .ifPresent(comp -> comp.onLeave(other, removedEntity, Direction.NONE));
   }
 
   /**
@@ -319,7 +319,7 @@ public final class CollisionSystem extends System {
     VelocityComponent vcb = eb.fetch(VelocityComponent.class).orElse(null);
 
     if (!aStationary
-      && (CollisionUtils.isCollidingWithLevel(b, newPos, vcb)
+        && (CollisionUtils.isCollidingWithLevel(b, newPos, vcb)
             || CollisionUtils.isCollidingWithOtherSolids(b, newPos))) {
       if (firstCollision) {
         // If the new position collides with the level, block the other entity instead.

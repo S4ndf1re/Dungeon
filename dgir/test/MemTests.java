@@ -1,13 +1,3 @@
-import dgir.core.ir.Dialect;
-import dgir.core.debug.Location;
-import dgir.dialect.builtin.BuiltinTypes.FloatT;
-import dgir.dialect.mem.MemTypes;
-import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import java.util.OptionalInt;
-
 import static dgir.dialect.arith.ArithOps.ConstantOp;
 import static dgir.dialect.builtin.BuiltinAttrs.IntegerAttribute;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
@@ -16,6 +6,15 @@ import static dgir.dialect.func.FuncOps.FuncOp;
 import static dgir.dialect.func.FuncOps.ReturnOp;
 import static dgir.dialect.mem.MemOps.*;
 import static org.junit.jupiter.api.Assertions.*;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.Dialect;
+import dgir.dialect.builtin.BuiltinTypes.FloatT;
+import dgir.dialect.mem.MemTypes;
+import java.util.OptionalInt;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class MemTests {
   private static final Location LOC = Location.UNKNOWN;

@@ -9,16 +9,12 @@ import core.Game;
 import core.utils.Direction;
 import core.utils.Point;
 import core.utils.Vector2;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
 import portal.portals.components.PortalExtendComponent;
 
-/**
- * Component represents a tractor beam that can be extended and trimmed.
- */
+/** Component represents a tractor beam that can be extended and trimmed. */
 public class TractorBeamComponent implements Component {
 
   private List<Entity> tractorBeamEntities;
@@ -28,9 +24,7 @@ public class TractorBeamComponent implements Component {
   private Vector2 forceToApply = Vector2.ZERO;
   private Vector2 reversedForceToApply = Vector2.ZERO;
 
-  /**
-   * Store old forces for the Entities.
-   */
+  /** Store old forces for the Entities. */
   public HashMap<Entity, Vector2> oldForces = new HashMap<>();
 
   /**
@@ -44,9 +38,7 @@ public class TractorBeamComponent implements Component {
     activate();
   }
 
-  /**
-   * Activates the TractorBeam if not already active.
-   */
+  /** Activates the TractorBeam if not already active. */
   public void activate() {
     if (active) return;
     for (Entity e : tractorBeamEntities) {
@@ -65,9 +57,7 @@ public class TractorBeamComponent implements Component {
     active = true;
   }
 
-  /**
-   * Deactivates the TractorBeam if not already deactivated.
-   */
+  /** Deactivates the TractorBeam if not already deactivated. */
   public void deactivate() {
     if (!active) return;
     for (Entity e : tractorBeamEntities) {
@@ -76,32 +66,28 @@ public class TractorBeamComponent implements Component {
         Game.remove(e);
       } else {
         e.fetch(CollideComponent.class)
-          .ifPresent(
-            collideComponent -> {
-              oldhitbox.add(
-                new Hitbox(
-                  collideComponent.collider().size(),
-                  collideComponent.collider().offset()));
-              collideComponent.collider(new Hitbox(0, 0));
-              PositionSync.syncPosition(e);
-            });
+            .ifPresent(
+                collideComponent -> {
+                  oldhitbox.add(
+                      new Hitbox(
+                          collideComponent.collider().size(),
+                          collideComponent.collider().offset()));
+                  collideComponent.collider(new Hitbox(0, 0));
+                  PositionSync.syncPosition(e);
+                });
       }
     }
 
     active = false;
   }
 
-  /**
-   * Toggles the active status of the TractorBeam.
-   */
+  /** Toggles the active status of the TractorBeam. */
   public void toggle() {
     if (active) deactivate();
     else activate();
   }
 
-  /**
-   * Toggles the reversed status of the TractorBeam.
-   */
+  /** Toggles the reversed status of the TractorBeam. */
   public void toggleReversed() {
     reversed = !reversed;
   }
@@ -128,8 +114,8 @@ public class TractorBeamComponent implements Component {
    * Extends the beam from the given point into the given direction.
    *
    * @param direction Direction where it extends into.
-   * @param from      Point from which the extending happens.
-   * @param pec       Component for further processing.
+   * @param from Point from which the extending happens.
+   * @param pec Component for further processing.
    */
   public void extend(Direction direction, Point from, PortalExtendComponent pec) {
     TractorBeamFactory.extendTractorBeam(direction, from, this.tractorBeamEntities, pec, this);
@@ -143,9 +129,7 @@ public class TractorBeamComponent implements Component {
     }
   }
 
-  /**
-   * Trims the beam with the internal list.
-   */
+  /** Trims the beam with the internal list. */
   public void trim() {
     TractorBeamFactory.trimAfterFirstBeamEmitter(this.tractorBeamEntities);
   }

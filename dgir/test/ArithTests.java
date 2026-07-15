@@ -1,10 +1,3 @@
-import dgir.core.ir.Dialect;
-import dgir.core.debug.Location;
-import dgir.dialect.str.StrTypes;
-import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import static dgir.dialect.arith.ArithAttrs.BinModeAttr;
 import static dgir.dialect.arith.ArithOps.*;
 import static dgir.dialect.builtin.BuiltinAttrs.FloatAttribute;
@@ -14,6 +7,13 @@ import static dgir.dialect.builtin.BuiltinTypes.*;
 import static dgir.dialect.func.FuncOps.FuncOp;
 import static dgir.dialect.func.FuncOps.ReturnOp;
 import static org.junit.jupiter.api.Assertions.*;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.Dialect;
+import dgir.dialect.str.StrTypes;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ArithTests {
   private static final Location LOC = Location.UNKNOWN;

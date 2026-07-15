@@ -17,5 +17,4 @@ import core.network.messages.NetworkMessage;
  * @see contrib.hud.dialogs.DialogCallbackResolver
  */
 public record DialogShowMessage(DialogContext context, boolean canBeClosed)
-  implements NetworkMessage {
-}
+    implements NetworkMessage {}

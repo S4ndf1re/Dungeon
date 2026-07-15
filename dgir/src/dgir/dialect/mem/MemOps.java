@@ -1,19 +1,18 @@
 package dgir.dialect.mem;
 
-import dgir.core.ir.Dialect;
 import dgir.core.debug.Location;
 import dgir.core.ir.*;
+import dgir.core.ir.Dialect;
 import dgir.core.traits.IHasResult;
 import dgir.core.traits.INoResult;
 import dgir.core.traits.ISingleOperand;
 import dgir.core.traits.IZeroOrOneOperand;
 import dgir.dialect.builtin.BuiltinTypes;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Function;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Sealed marker interface for all operations in the {@link MemoryDialect}.

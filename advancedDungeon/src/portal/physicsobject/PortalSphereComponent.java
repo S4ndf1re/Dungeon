@@ -8,5 +8,4 @@ import core.Component;
  * <p>This component does not contain any data or behavior; it simply identifies the entity as a
  * cube for filtering and collision logic (e.g., activating cube-specific pressure plates).
  */
-public record PortalSphereComponent() implements Component {
-}
+public record PortalSphereComponent() implements Component {}

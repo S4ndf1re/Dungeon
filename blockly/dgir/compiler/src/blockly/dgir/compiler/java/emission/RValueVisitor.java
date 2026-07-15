@@ -1,5 +1,10 @@
 package blockly.dgir.compiler.java.emission;
 
+import static blockly.dgir.compiler.java.Access.isTypeUseAccessibleFrom;
+import static blockly.dgir.compiler.java.CompilerUtils.*;
+import static blockly.dgir.compiler.java.emission.EmissionUtils.bindName;
+import static blockly.dgir.compiler.java.emission.EmissionUtils.emitMethodCall;
+
 import blockly.dgir.compiler.java.CompilerUtils;
 import blockly.dgir.compiler.java.EmitContext;
 import blockly.dgir.compiler.java.EmitResult;
@@ -25,16 +30,11 @@ import dgir.dialect.mem.MemOps;
 import dgir.dialect.scf.ScfOps;
 import dgir.dialect.str.StrOps;
 import dgir.dialect.str.StrTypes;
+import java.util.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
-
-import static blockly.dgir.compiler.java.Access.isTypeUseAccessibleFrom;
-import static blockly.dgir.compiler.java.CompilerUtils.*;
-import static blockly.dgir.compiler.java.emission.EmissionUtils.bindName;
-import static blockly.dgir.compiler.java.emission.EmissionUtils.emitMethodCall;
-
 public class RValueVisitor extends GenericVisitorAdapter<EmitResult<Value>, EmitContext> {
+
   private static final RValueVisitor INSTANCE = new RValueVisitor();
 
   public static RValueVisitor get() {
@@ -454,6 +454,7 @@ public class RValueVisitor extends GenericVisitorAdapter<EmitResult<Value>, Emit
                   + " is discarded. This operator has no side effects, so the entire expression will be discarded.");
           return EmitResult.of(Value.DUMMY);
         }
+        default -> throw new IllegalArgumentException("Unexpected value: " + n.getOperator());
       }
     }
     EmitResult<Value> operandResult;

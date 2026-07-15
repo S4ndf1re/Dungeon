@@ -8,19 +8,17 @@ import core.network.codec.MessageConverter;
 import core.network.messages.s2c.EntitySpawnEvent;
 import core.utils.components.draw.DrawInfoData;
 
-/**
- * Converter for server-to-client entity spawn event messages.
- */
+/** Converter for server-to-client entity spawn event messages. */
 public final class EntitySpawnEventConverter
-  implements MessageConverter<EntitySpawnEvent, core.network.proto.s2c.EntitySpawnEvent> {
+    implements MessageConverter<EntitySpawnEvent, core.network.proto.s2c.EntitySpawnEvent> {
   private static final byte WIRE_TYPE_ID = 11;
 
   @Override
   public core.network.proto.s2c.EntitySpawnEvent toProto(EntitySpawnEvent message) {
     core.network.proto.s2c.EntitySpawnEvent.Builder builder =
-      core.network.proto.s2c.EntitySpawnEvent.newBuilder()
-        .setEntityId(message.entityId())
-        .setIsPersistent(message.isPersistent());
+        core.network.proto.s2c.EntitySpawnEvent.newBuilder()
+            .setEntityId(message.entityId())
+            .setIsPersistent(message.isPersistent());
 
     if (message.positionComponent() != null) {
       builder.setPosition(CommonProtoConverters.toProto(message.positionComponent()));
@@ -49,24 +47,24 @@ public final class EntitySpawnEventConverter
   @Override
   public EntitySpawnEvent fromProto(core.network.proto.s2c.EntitySpawnEvent proto) {
     PositionComponent position =
-      proto.hasPosition() ? CommonProtoConverters.fromProto(proto.getPosition()) : null;
+        proto.hasPosition() ? CommonProtoConverters.fromProto(proto.getPosition()) : null;
     DrawInfoData drawInfo =
-      proto.hasDrawInfo() ? CommonProtoConverters.fromProto(proto.getDrawInfo()) : null;
+        proto.hasDrawInfo() ? CommonProtoConverters.fromProto(proto.getDrawInfo()) : null;
     PlayerComponent playerComponent =
-      proto.hasPlayerInfo() ? CommonProtoConverters.fromProto(proto.getPlayerInfo()) : null;
+        proto.hasPlayerInfo() ? CommonProtoConverters.fromProto(proto.getPlayerInfo()) : null;
     byte characterClassId =
-      proto.hasCharacterClassId()
-        ? CommonProtoConverters.toByteExact(proto.getCharacterClassId(), "character_class_id")
-        : 0;
+        proto.hasCharacterClassId()
+            ? CommonProtoConverters.toByteExact(proto.getCharacterClassId(), "character_class_id")
+            : 0;
 
     return new EntitySpawnEvent(
-      proto.getEntityId(),
-      position,
-      drawInfo,
-      proto.getIsPersistent(),
-      playerComponent,
-      characterClassId,
-      proto.getMetadataMap());
+        proto.getEntityId(),
+        position,
+        drawInfo,
+        proto.getIsPersistent(),
+        playerComponent,
+        characterClassId,
+        proto.getMetadataMap());
   }
 
   @Override

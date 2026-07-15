@@ -85,7 +85,7 @@ public final class UIComponent implements Component {
    * @return this UIComponent for method chaining
    */
   public UIComponent registerCallback(
-    String key, Consumer<DialogResponseMessage.Payload> callback) {
+      String key, Consumer<DialogResponseMessage.Payload> callback) {
     if (key == null || callback == null) {
       throw new IllegalArgumentException("key and callback must not be null");
     }

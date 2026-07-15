@@ -1,13 +1,12 @@
+import static dgir.dialect.builtin.BuiltinTypes.IntegerT.INT64;
+import static org.junit.jupiter.api.Assertions.*;
+
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.vm.api.Stack;
-import org.junit.jupiter.api.Test;
-
 import java.util.Map;
-
-import static dgir.dialect.builtin.BuiltinTypes.IntegerT.INT64;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 public class StackTest {
   private static final Location LOC = Location.UNKNOWN;

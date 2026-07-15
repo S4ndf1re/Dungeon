@@ -19,11 +19,9 @@ import core.utils.components.draw.animation.AnimationConfig;
 import core.utils.components.draw.state.State;
 import core.utils.components.draw.state.StateMachine;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import portal.portals.abstraction.Calculations;
 import portal.portals.components.PortalExtendComponent;
 import portal.portals.components.PortalIgnoreComponent;
@@ -35,18 +33,16 @@ import starter.PortalStarter;
  */
 public class LightWallFactory {
   private static final SimpleIPath PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MyCalculations.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MyCalculations.java");
   private static final String CLASSNAME = "portal.riddles.MyCalculations";
 
   private static final SimpleIPath SEGMENT_SPRITESHEET_PATH = new SimpleIPath("portal/light_wall");
   private static final SimpleIPath EMITTER_TEXTURE_ACTIVE =
-    new SimpleIPath("portal/light_wall_emitter/light_wall_emitter_active.png");
+      new SimpleIPath("portal/light_wall_emitter/light_wall_emitter_active.png");
   private static final SimpleIPath EMITTER_TEXTURE_INACTIVE =
-    new SimpleIPath("portal/light_wall_emitter/light_wall_emitter_inactive.png");
+      new SimpleIPath("portal/light_wall_emitter/light_wall_emitter_inactive.png");
 
-  /**
-   * Number of tiles by which the extended start point is offset in front of the emitter.
-   */
+  /** Number of tiles by which the extended start point is offset in front of the emitter. */
   public static int spawnOffset = 1;
 
   private static final LevelElement[] stoppingTiles = {
@@ -57,9 +53,9 @@ public class LightWallFactory {
    * Creates a new light wall emitter at the given position and direction. Can be spawned active or
    * inactive.
    *
-   * @param position  Position of the emitter
+   * @param position Position of the emitter
    * @param direction Direction of the light wall
-   * @param active    true if the emitter should be initially active
+   * @param active true if the emitter should be initially active
    * @return The created emitter entity
    */
   public static Entity createEmitter(Point position, Direction direction, boolean active) {
@@ -103,9 +99,7 @@ public class LightWallFactory {
 
   /* --------------------- Components --------------------- */
 
-  /**
-   * Component representing a light wall emitter and managing its beams.
-   */
+  /** Component representing a light wall emitter and managing its beams. */
   public static class EmitterComponent implements Component {
 
     private final Entity emitter;
@@ -114,9 +108,9 @@ public class LightWallFactory {
     /**
      * Creates a new emitter for light walls.
      *
-     * @param start     Start position of the emitter
+     * @param start Start position of the emitter
      * @param direction The Direction in which the light wall is generated
-     * @param active    Whether the emitter is initially active
+     * @param active Whether the emitter is initially active
      */
     public EmitterComponent(Point start, Direction direction, boolean active) {
       this.emitter = new Entity("wallEmitter");
@@ -126,11 +120,11 @@ public class LightWallFactory {
       emitter.add(pc);
       updateEmitterVisual(false);
       emitter.add(
-        new CollideComponent(
-          Vector2.of(0f, 0f),
-          Vector2.of(1f, 1f),
-          CollideComponent.DEFAULT_COLLIDER,
-          CollideComponent.DEFAULT_COLLIDER));
+          new CollideComponent(
+              Vector2.of(0f, 0f),
+              Vector2.of(1f, 1f),
+              CollideComponent.DEFAULT_COLLIDER,
+              CollideComponent.DEFAULT_COLLIDER));
       beams.add(new BeamComponent(emitter, start, direction, true));
       emitter.add(new PortalIgnoreComponent());
       if (active) activate();
@@ -157,30 +151,26 @@ public class LightWallFactory {
       emitter.name(on ? "lightWallEmitter" : "lightWallEmitterInactive");
     }
 
-    /**
-     * Activates the emitter and all associated beams.
-     */
+    /** Activates the emitter and all associated beams. */
     public void activate() {
       trim();
       beams.forEach(
-        beam -> {
-          if (beam instanceof BeamComponent b) {
-            b.activate();
-          }
-        });
+          beam -> {
+            if (beam instanceof BeamComponent b) {
+              b.activate();
+            }
+          });
       updateEmitterVisual(true);
     }
 
-    /**
-     * Deactivates the emitter and all associated beams.
-     */
+    /** Deactivates the emitter and all associated beams. */
     public void deactivate() {
       beams.forEach(
-        beam -> {
-          if (beam instanceof BeamComponent b) {
-            b.deactivate();
-          }
-        });
+          beam -> {
+            if (beam instanceof BeamComponent b) {
+              b.deactivate();
+            }
+          });
       updateEmitterVisual(false);
     }
 
@@ -194,24 +184,20 @@ public class LightWallFactory {
       beam.activate();
     }
 
-    /**
-     * Removes non-extendable beams.
-     */
+    /** Removes non-extendable beams. */
     public void trim() {
       beams.removeIf(
-        beam -> {
-          if (beam instanceof BeamComponent b && !b.extendable) {
-            b.deactivate();
-            return true;
-          }
-          return false;
-        });
+          beam -> {
+            if (beam instanceof BeamComponent b && !b.extendable) {
+              b.deactivate();
+              return true;
+            }
+            return false;
+          });
     }
   }
 
-  /**
-   * Component representing a light beam between the emitter and a wall.
-   */
+  /** Component representing a light beam between the emitter and a wall. */
   public static class BeamComponent implements Component {
 
     private static Map<String, Animation> SEGMENT_ANIMATION_CACHE;
@@ -235,9 +221,9 @@ public class LightWallFactory {
     /**
      * Creates a new BeamComponent.
      *
-     * @param owner      Emitter entity
-     * @param start      Start point of the beam
-     * @param direction  Direction of the beam
+     * @param owner Emitter entity
+     * @param start Start point of the beam
+     * @param direction Direction of the beam
      * @param extendable true if extendable
      */
     public BeamComponent(Entity owner, Point start, Direction direction, Boolean extendable) {
@@ -249,25 +235,23 @@ public class LightWallFactory {
       if (extendable) {
         PortalExtendComponent pec = new PortalExtendComponent();
         pec.onExtend =
-          (d, e, portalExtendComponent) -> {
-            Point startPoint = e.translate(d.scale(spawnOffset));
-            emitter
-              .fetch(EmitterComponent.class)
-              .ifPresent(ec -> ec.extend(new BeamComponent(emitter, startPoint, d, false)));
-          };
+            (d, e, portalExtendComponent) -> {
+              Point startPoint = e.translate(d.scale(spawnOffset));
+              emitter
+                  .fetch(EmitterComponent.class)
+                  .ifPresent(ec -> ec.extend(new BeamComponent(emitter, startPoint, d, false)));
+            };
         pec.onTrim =
-          (e) -> {
-            emitter.fetch(EmitterComponent.class).ifPresent(EmitterComponent::trim);
-            trimCounter++;
-            System.out.println("Trim called from pec" + " " + trimCounter);
-          };
+            (e) -> {
+              emitter.fetch(EmitterComponent.class).ifPresent(EmitterComponent::trim);
+              trimCounter++;
+              System.out.println("Trim called from pec" + " " + trimCounter);
+            };
         collider.add(pec);
       }
     }
 
-    /**
-     * Activates the beam and creates segments and collider.
-     */
+    /** Activates the beam and creates segments and collider. */
     public void activate() {
       if (active) return; // mehrfaches Aktivieren verhindern
       active = true;
@@ -276,9 +260,7 @@ public class LightWallFactory {
       createCollider(start, end, direction);
     }
 
-    /**
-     * Deactivates the beam and removes segments and collider.
-     */
+    /** Deactivates the beam and removes segments and collider. */
     public void deactivate() {
       if (!active) return; // mehrfaches Deaktivieren verhindern
       active = false;
@@ -289,13 +271,13 @@ public class LightWallFactory {
     /**
      * Creates the segments of the light wall between two points.
      *
-     * @param from      Start point
-     * @param to        End point
+     * @param from Start point
+     * @param to End point
      * @param direction Direction
      */
     private void createSegments(Point from, Point to, Direction direction) {
       int totalPoints =
-        (int) Math.max(Math.abs(to.x() - from.x()), Math.abs(to.y() - from.y())) + 1;
+          (int) Math.max(Math.abs(to.x() - from.x()), Math.abs(to.y() - from.y())) + 1;
       float x;
       float y;
       for (int i = 0; i < totalPoints; i++) {
@@ -318,8 +300,8 @@ public class LightWallFactory {
     /**
      * Creates the collider for the light wall.
      *
-     * @param start     Start point
-     * @param end       End point
+     * @param start Start point
+     * @param end End point
      * @param direction Direction
      */
     private void createCollider(Point start, Point end, Direction direction) {
@@ -338,12 +320,11 @@ public class LightWallFactory {
       collider.add(pc);
       collider.remove(CollideComponent.class);
       CollideComponent cc =
-        new CollideComponent(
-          Vector2.of(offsetX, offsetY),
-          Vector2.of(width, height),
-          CollideComponent.DEFAULT_COLLIDER,
-          (a, b, c) -> {
-          });
+          new CollideComponent(
+              Vector2.of(offsetX, offsetY),
+              Vector2.of(width, height),
+              CollideComponent.DEFAULT_COLLIDER,
+              (a, b, c) -> {});
       collider.add(cc);
     }
 
@@ -351,18 +332,18 @@ public class LightWallFactory {
      * Calculates the end point of the beam based on the direction and obstacles. Stops at walls,
      * portal walls, and glass walls.
      *
-     * @param from          Start point
+     * @param from Start point
      * @param beamDirection Direction
      * @param stoppingTiles List of tiles that should block the lightwall.
      * @return End point of the beam
      */
     private Point calculateEndPoint(
-      Point from, Direction beamDirection, LevelElement[] stoppingTiles) {
+        Point from, Direction beamDirection, LevelElement[] stoppingTiles) {
       Object o = null;
       try {
         o = DynamicCompiler.loadUserInstance(PATH, CLASSNAME);
         Point endPoint =
-          ((Calculations) (o)).calculateLightWallAndBridgeEnd(from, beamDirection, stoppingTiles);
+            ((Calculations) (o)).calculateLightWallAndBridgeEnd(from, beamDirection, stoppingTiles);
         return endPoint;
       } catch (Exception e) {
         if (PortalStarter.DEBUG_MODE) e.printStackTrace();

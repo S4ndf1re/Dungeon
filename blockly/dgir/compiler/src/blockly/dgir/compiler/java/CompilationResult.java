@@ -3,13 +3,12 @@ package blockly.dgir.compiler.java;
 import dgir.core.utility.DgirCoreUtils;
 import dgir.core.utility.IrToText;
 import dgir.dialect.builtin.BuiltinOps;
-import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
-
 import java.util.List;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 public sealed interface CompilationResult {
   record Success(@NotNull BuiltinOps.ProgramOp program, @NotNull List<LogRecord> diagnostics)

@@ -2,11 +2,10 @@ package dgir.core.analysis;
 
 import dgir.core.ir.*;
 import dgir.core.traits.IIsolatedFromAbove;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
 import java.text.MessageFormat;
 import java.util.*;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Forward must-reaching-definitions analysis for DGIR. Tracks, for each block, the set of values
@@ -21,8 +20,8 @@ public final class ReachingDefinitions {
   private ReachingDefinitions() {}
 
   /**
-   * Entry point for clients: run a must-reaching-definitions pass starting at {@code root}.
-   * The result is a list of diagnostics for operands that are used before being definitely defined.
+   * Entry point for clients: run a must-reaching-definitions pass starting at {@code root}. The
+   * result is a list of diagnostics for operands that are used before being definitely defined.
    */
   @Contract(pure = true)
   public static @NotNull List<MissingDefinition> validate(@NotNull Operation root) {

@@ -23,19 +23,13 @@ import portal.physicsobject.Sphere;
  */
 public class MySphere extends PortalSphere {
 
-  /**
-   * Die Masse der Kugel (beeinflusst, wie leicht sie rollt).
-   */
+  /** Die Masse der Kugel (beeinflusst, wie leicht sie rollt). */
   private float mass = 0.1f;
 
-  /**
-   * Gibt an, ob die Kugel aufgehoben werden kann.
-   */
+  /** Gibt an, ob die Kugel aufgehoben werden kann. */
   private boolean isPickupable = false;
 
-  /**
-   * Der Pfad zur Grafik der Kugel.
-   */
+  /** Der Pfad zur Grafik der Kugel. */
   private String texture = "portal/kubus/kubus.png";
 
   /**

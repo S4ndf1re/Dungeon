@@ -3,10 +3,9 @@ package dgir.core.traits;
 import dgir.core.ir.*;
 import dgir.dialect.func.FuncOps;
 import dgir.dialect.scf.ScfOps;
+import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
 
 /**
  * Constrains an operation to have exactly one region.

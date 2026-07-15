@@ -11,7 +11,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.Vector4;
 import com.badlogic.gdx.utils.Disposable;
 import core.utils.Rectangle;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -359,7 +358,7 @@ public abstract class AbstractShader implements Disposable {
    * Binds an array of Vector3 uniforms. Will additionally bind a uniform with the suffix "_count"
    * to indicate how many elements are in the list.
    *
-   * @param name   The uniform name in the shader.
+   * @param name The uniform name in the shader.
    * @param values The list of Vector3 values to bind.
    */
   public record Vector3ArrayUniform(String name, List<Vector3> values) implements UniformBinding {

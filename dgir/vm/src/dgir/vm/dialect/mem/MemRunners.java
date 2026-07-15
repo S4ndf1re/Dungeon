@@ -8,10 +8,9 @@ import dgir.dialect.mem.MemTypes;
 import dgir.vm.api.Action;
 import dgir.vm.api.OpRunner;
 import dgir.vm.api.State;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Arrays;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 public sealed interface MemRunners {
   static Object[] fillArrayWithDefaultValues(Object[] array, Type elementType) {

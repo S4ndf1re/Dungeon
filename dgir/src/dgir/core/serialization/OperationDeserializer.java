@@ -2,17 +2,16 @@ package dgir.core.serialization;
 
 import dgir.core.debug.Location;
 import dgir.core.ir.*;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.JsonParser;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.deser.std.StdDeserializer;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
 /**
  * Deserializes an {@link Operation} from its JSON object form.
@@ -185,7 +184,6 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
             regionsValues);
     if (outputValue != null) operation.setOutputValue(outputValue);
 
-
     if (attributes != null) {
       for (NamedAttribute attribute : attributes) {
         operation.setAttribute(attribute.getName(), attribute.getAttributeOrThrow());
@@ -195,7 +193,7 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
     if (dynamicAttributes != null) {
       for (NamedAttribute dynamicAttribute : dynamicAttributes) {
         operation.setDynamicAttribute(
-          dynamicAttribute.getName(), dynamicAttribute.getAttributeOrThrow());
+            dynamicAttribute.getName(), dynamicAttribute.getAttributeOrThrow());
       }
     }
 

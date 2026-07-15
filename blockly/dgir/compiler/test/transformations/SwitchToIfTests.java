@@ -1,5 +1,8 @@
 package transformations;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import blockly.dgir.compiler.java.CompilerUtils;
 import blockly.dgir.compiler.java.EmitContext;
 import blockly.dgir.compiler.java.transformations.SwitchToIf;
@@ -10,9 +13,6 @@ import com.github.javaparser.ast.expr.ConditionalExpr;
 import com.github.javaparser.ast.expr.SwitchExpr;
 import com.github.javaparser.ast.stmt.*;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SwitchToIfTests extends TransformationTestBase {
   @Test
@@ -316,7 +316,8 @@ public class RangeClass {
     int case2Line = beginLine(original.getEntry(1).getTokenRange().orElseThrow());
     int defaultLine = beginLine(original.getEntry(2).getTokenRange().orElseThrow());
 
-    new SwitchToIf().visit(cu, new EmitContext("generatedIfChainKeepsCaseSourceOrderInTokenRanges"));
+    new SwitchToIf()
+        .visit(cu, new EmitContext("generatedIfChainKeepsCaseSourceOrderInTokenRanges"));
 
     IfStmt firstIf = cu.findFirst(IfStmt.class).orElseThrow();
     assertEquals(case1Line, beginLine(firstIf.getTokenRange().orElseThrow()));
@@ -348,7 +349,8 @@ public class RangeExprClass {
     int case1Line = beginLine(original.getEntry(0).getTokenRange().orElseThrow());
     int case2Line = beginLine(original.getEntry(1).getTokenRange().orElseThrow());
 
-    new SwitchToIf().visit(cu, new EmitContext("generatedTernaryKeepsBranchSourceOrderInTokenRanges"));
+    new SwitchToIf()
+        .visit(cu, new EmitContext("generatedTernaryKeepsBranchSourceOrderInTokenRanges"));
 
     ReturnStmt returnStmt =
         cu.findFirst(ReturnStmt.class, rs -> rs.getExpression().isPresent()).orElseThrow();

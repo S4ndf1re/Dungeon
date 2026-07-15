@@ -4,18 +4,16 @@ import com.google.protobuf.Parser;
 import core.network.codec.MessageConverter;
 import core.network.messages.c2s.SoundFinishedMessage;
 
-/**
- * Converter for client-to-server sound-finished messages.
- */
+/** Converter for client-to-server sound-finished messages. */
 public final class SoundFinishedConverter
-  implements MessageConverter<SoundFinishedMessage, core.network.proto.c2s.SoundFinishedMessage> {
+    implements MessageConverter<SoundFinishedMessage, core.network.proto.c2s.SoundFinishedMessage> {
   private static final byte WIRE_TYPE_ID = 6;
 
   @Override
   public core.network.proto.c2s.SoundFinishedMessage toProto(SoundFinishedMessage message) {
     return core.network.proto.c2s.SoundFinishedMessage.newBuilder()
-      .setSoundInstanceId(message.soundInstanceId())
-      .build();
+        .setSoundInstanceId(message.soundInstanceId())
+        .build();
   }
 
   @Override

@@ -1,21 +1,3 @@
-import dgir.core.debug.Location;
-import dgir.core.ir.*;
-import dgir.core.serialization.Utils;
-import dgir.core.utility.IrToText;
-import dgir.dialect.arith.ArithAttrs;
-import dgir.dialect.arith.ArithOps;
-import dgir.dialect.builtin.BuiltinAttrs;
-import dgir.dialect.mem.MemTypes;
-import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
-
 import static dgir.dialect.arith.ArithOps.ConstantOp;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import static dgir.dialect.builtin.BuiltinTypes.IntegerT;
@@ -26,6 +8,23 @@ import static dgir.dialect.func.FuncOps.ReturnOp;
 import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.io.IoOps.PrintOp;
 import static org.junit.jupiter.api.Assertions.*;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.*;
+import dgir.core.serialization.Utils;
+import dgir.core.utility.IrToText;
+import dgir.dialect.arith.ArithAttrs;
+import dgir.dialect.arith.ArithOps;
+import dgir.dialect.builtin.BuiltinAttrs;
+import dgir.dialect.mem.MemTypes;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * These are test for checking the validity of the core IR and traits. These test are mainly there

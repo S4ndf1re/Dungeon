@@ -5,7 +5,6 @@ import core.network.messages.NetworkMessage;
 import core.utils.Direction;
 import core.utils.Point;
 import core.utils.Vector2;
-
 import java.util.Map;
 import java.util.Optional;
 

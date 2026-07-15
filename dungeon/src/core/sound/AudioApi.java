@@ -91,14 +91,14 @@ public final class AudioApi {
 
     if (!PreRunConfiguration.multiplayerEnabled() || !PreRunConfiguration.isNetworkServer()) {
       SoundComponent sc =
-        entity
-          .fetch(SoundComponent.class)
-          .orElseGet(
-            () -> {
-              SoundComponent newSc = new SoundComponent();
-              entity.add(newSc);
-              return newSc;
-            });
+          entity
+              .fetch(SoundComponent.class)
+              .orElseGet(
+                  () -> {
+                    SoundComponent newSc = new SoundComponent();
+                    entity.add(newSc);
+                    return newSc;
+                  });
       sc.add(spec);
     }
     LOGGER.debug(
@@ -223,8 +223,8 @@ public final class AudioApi {
         SoundTracker.instance().registerOnFinished(instanceId, callback);
       } else {
         onFinishedCallbacks
-          .computeIfAbsent(instanceId, k -> new CopyOnWriteArrayList<>())
-          .add(callback);
+            .computeIfAbsent(instanceId, k -> new CopyOnWriteArrayList<>())
+            .add(callback);
       }
       LOGGER.debug("Registered registerOnFinished callback for sound instance {}", instanceId);
     }
@@ -263,7 +263,7 @@ public final class AudioApi {
       List<Runnable> callbacks = onFinishedCallbacks.remove(instanceId);
       if (callbacks != null && !callbacks.isEmpty()) {
         LOGGER.debug(
-          "Sound instance {} finished, executing {} callback", instanceId, callbacks.size());
+            "Sound instance {} finished, executing {} callback", instanceId, callbacks.size());
         callbacks.forEach(Runnable::run);
       }
     }

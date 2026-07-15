@@ -62,7 +62,7 @@ public class DecoTestSystem extends System {
     }
 
     if (InputManager.isKeyPressed(MODE_MODIFY_MINUS)
-      || InputManager.isKeyPressed(MODE_MODIFY_PLUS)) {
+        || InputManager.isKeyPressed(MODE_MODIFY_PLUS)) {
       if (rapidFireCounter <= 0) {
         rapidFireCounter = RAPID_FIRE_THRESHOLD;
         executeMode(InputManager.isKeyPressed(MODE_MODIFY_PLUS) ? 1 : -1);

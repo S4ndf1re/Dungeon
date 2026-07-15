@@ -8,10 +8,9 @@ import core.utils.Direction;
 import core.utils.Point;
 import entities.MiscFactory;
 import entities.monster.BlocklyMonster;
+import java.util.Map;
 import level.BlocklyLevel;
 import level.LevelManagementUtils;
-
-import java.util.Map;
 
 /**
  * An empty sandbox level used during development and integration testing.

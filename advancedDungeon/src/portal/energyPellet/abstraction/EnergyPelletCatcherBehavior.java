@@ -24,7 +24,7 @@ public abstract class EnergyPelletCatcherBehavior {
    * on the catcher and lifecycle handling of the pellet entity.
    *
    * @param catcher the catcher entity that was hit
-   * @param pellet  the energy pellet entity that collided with the catcher
+   * @param pellet the energy pellet entity that collided with the catcher
    */
   public abstract void catchPellet(Entity catcher, Entity pellet);
 }

@@ -1,13 +1,12 @@
 package dgir.dialect.str;
 
-import dgir.core.ir.Dialect;
 import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.TypeDescriptor;
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
 
 /** Dialect registration for string operations, types, and attributes in namespace {@code str}. */
 public class StrDialect extends Dialect {

@@ -173,21 +173,21 @@ public final class DialogTracker {
    * @return an Optional containing the callback, or empty if not found
    */
   public Optional<Consumer<DialogResponseMessage.Payload>> getCallback(
-    String dialogId, String callbackKey) {
+      String dialogId, String callbackKey) {
     DialogInfo info = dialogs.get(dialogId);
     if (info == null) {
       return Optional.empty();
     }
     if (Objects.equals(callbackKey, DialogContextKeys.ON_CLOSE)) {
       return Optional.of(
-        (data) -> {
-          try {
-            Optional.ofNullable(info.uiComponent().callbacks().get(DialogContextKeys.ON_CLOSE))
-              .ifPresent(cb -> cb.accept(data));
-          } finally {
-            UIUtils.closeDialog(info.uiComponent());
-          }
-        });
+          (data) -> {
+            try {
+              Optional.ofNullable(info.uiComponent().callbacks().get(DialogContextKeys.ON_CLOSE))
+                  .ifPresent(cb -> cb.accept(data));
+            } finally {
+              UIUtils.closeDialog(info.uiComponent());
+            }
+          });
     }
     return Optional.ofNullable(info.uiComponent().callbacks().get(callbackKey));
   }

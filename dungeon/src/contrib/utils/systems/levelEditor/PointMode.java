@@ -47,20 +47,19 @@ public class PointMode extends LevelEditorMode {
       } else {
         // Place new point instance
         DialogFactory.showInputDialog(
-          "",
-          "Add Named Point",
-          "",
-          "Name of point",
-          "Add",
-          "Cancel",
-          payload -> {
-            if (payload instanceof DialogResponseMessage.StringValue(String value)
-              && !value.isBlank()) {
-              getLevel().addNamedPoint(value, snapPos);
+            "",
+            "Add Named Point",
+            "",
+            "Name of point",
+            "Add",
+            "Cancel",
+            payload -> {
+              if (payload instanceof DialogResponseMessage.StringValue(String value)
+                  && !value.isBlank()) {
+                getLevel().addNamedPoint(value, snapPos);
               }
-          },
-          () -> {
-          });
+            },
+            () -> {});
       }
     } else if (InputManager.isButtonJustPressed(Input.Buttons.RIGHT)) {
       Optional<String> clickedPoint = getOnPosition(cursorPos);
@@ -88,12 +87,12 @@ public class PointMode extends LevelEditorMode {
   @Override
   public String getStatusText() {
     String status =
-      "Snap Mode: "
-        + snapMode.name()
-        + "\nHeld Point: "
-        + Objects.requireNonNullElse(heldPointName, "<none>")
-        + "\nTotal Points: "
-        + getLevel().namedPoints().size();
+        "Snap Mode: "
+            + snapMode.name()
+            + "\nHeld Point: "
+            + Objects.requireNonNullElse(heldPointName, "<none>")
+            + "\nTotal Points: "
+            + getLevel().namedPoints().size();
 
     return status;
   }

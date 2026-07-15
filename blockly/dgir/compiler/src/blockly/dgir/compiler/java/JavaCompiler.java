@@ -1,5 +1,7 @@
 package blockly.dgir.compiler.java;
 
+import static blockly.dgir.compiler.java.DiagnosticUtils.formatJavacDiagnostic;
+
 import blockly.dgir.compiler.java.emission.NonValueVisitor;
 import blockly.dgir.compiler.java.transformations.*;
 import blockly.dgir.dialect.dg.DungeonDialect;
@@ -11,8 +13,6 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeS
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import dgir.core.ir.Dialect;
 import dgir.core.utility.IrToText;
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,8 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
-import static blockly.dgir.compiler.java.DiagnosticUtils.formatJavacDiagnostic;
+import org.jetbrains.annotations.NotNull;
 
 public class JavaCompiler {
   static final Logger LOGGER = Logger.getLogger(JavaCompiler.class.getName());

@@ -1,10 +1,9 @@
 package blockly.dgir.compiler.SymbolTable;
 
 import com.github.javaparser.utils.Pair;
+import java.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.*;
 
 public class ScopedSymbolTable<KeyT, ValueT> {
   /**

@@ -4,9 +4,8 @@ import dgir.core.ir.Dialect;
 import dgir.dialect.mem.MemoryDialect;
 import dgir.vm.api.DialectRunner;
 import dgir.vm.api.OpRunner;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 public class MemoryDialectRunner extends DialectRunner {
   private static MemoryDialectRunner instance;

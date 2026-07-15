@@ -4,10 +4,9 @@ import dgir.core.analysis.OperationVerifier;
 import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Region;
-import org.jetbrains.annotations.NotNull;
-
 import java.lang.reflect.Constructor;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Marks an operation as a block terminator — the last operation in a {@link Block} that transfers

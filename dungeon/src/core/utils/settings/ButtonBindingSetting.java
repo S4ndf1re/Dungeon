@@ -17,9 +17,7 @@ import core.sound.CoreSounds;
 import core.sound.Sounds;
 import core.utils.Scene2dElementFactory;
 
-/**
- * A SettingValue that allows the user to bind a keyboard key to an action.
- */
+/** A SettingValue that allows the user to bind a keyboard key to an action. */
 public class ButtonBindingSetting extends SettingValue<Integer> {
 
   private boolean editable = true;
@@ -29,7 +27,7 @@ public class ButtonBindingSetting extends SettingValue<Integer> {
   /**
    * Create a new ButtonBindingSetting with the given name and default key code.
    *
-   * @param name         the display name of the setting
+   * @param name the display name of the setting
    * @param defaultValue the default key code to bind, using libGDX's Input.Keys constants
    */
   public ButtonBindingSetting(String name, int defaultValue) {
@@ -39,10 +37,10 @@ public class ButtonBindingSetting extends SettingValue<Integer> {
   /**
    * Create a new ButtonBindingSetting with the given name, default key code, and editability.
    *
-   * @param name         the display name of the setting
+   * @param name the display name of the setting
    * @param defaultValue the default key code to bind, using libGDX's Input.Keys constants
-   * @param editable     whether the setting can be edited by the user (if false, the button will be
-   *                     displayed but not interactive)
+   * @param editable whether the setting can be edited by the user (if false, the button will be
+   *     displayed but not interactive)
    */
   public ButtonBindingSetting(String name, int defaultValue, boolean editable) {
     super(name, defaultValue);
@@ -62,49 +60,49 @@ public class ButtonBindingSetting extends SettingValue<Integer> {
     Table buttonDisplay = new Table(UIUtils.defaultSkin());
     buttonDisplay.setBackground(editable ? "blue_square_depth_border" : "generic-area");
     Label buttonLabel =
-      Scene2dElementFactory.createLabel(Input.Keys.toString(value()), 24, Color.BLACK);
+        Scene2dElementFactory.createLabel(Input.Keys.toString(value()), 24, Color.BLACK);
     buttonLabel.setAlignment(Align.center);
     buttonDisplay.setTouchable(Touchable.enabled);
     buttonDisplay.addListener(
-      new ClickListener() {
-        @Override
-        public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-          if (!editable) {
-            return;
-          }
-          isEditing = true;
-          buttonLabel.setText("<>");
-          Sounds.play(CoreSounds.INTERFACE_BUTTON_CLICKED);
-          buttonDisplay
-            .getStage()
-            .setKeyboardFocus(
-              dummy); // Prevent the stage from processing key input while waiting for key
-          // press
-          buttonDisplay.addAction(
-            new Action() {
-              @Override
-              public boolean act(float delta) {
-                if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-                  isEditing = false;
-                  buttonLabel.setText(Input.Keys.toString(value()));
-                  buttonDisplay.getStage().setKeyboardFocus(null);
-                  return true;
-                }
-                for (int key = 0; key < Input.Keys.MAX_KEYCODE; key++) {
-                  if (Gdx.input.isKeyJustPressed(key)) {
-                    value(key);
-                    isEditing = false;
-                    buttonLabel.setText(Input.Keys.toString(value()));
-                    buttonDisplay.getStage().setKeyboardFocus(null);
-                    return true;
+        new ClickListener() {
+          @Override
+          public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+            if (!editable) {
+              return;
+            }
+            isEditing = true;
+            buttonLabel.setText("<>");
+            Sounds.play(CoreSounds.INTERFACE_BUTTON_CLICKED);
+            buttonDisplay
+                .getStage()
+                .setKeyboardFocus(
+                    dummy); // Prevent the stage from processing key input while waiting for key
+            // press
+            buttonDisplay.addAction(
+                new Action() {
+                  @Override
+                  public boolean act(float delta) {
+                    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                      isEditing = false;
+                      buttonLabel.setText(Input.Keys.toString(value()));
+                      buttonDisplay.getStage().setKeyboardFocus(null);
+                      return true;
+                    }
+                    for (int key = 0; key < Input.Keys.MAX_KEYCODE; key++) {
+                      if (Gdx.input.isKeyJustPressed(key)) {
+                        value(key);
+                        isEditing = false;
+                        buttonLabel.setText(Input.Keys.toString(value()));
+                        buttonDisplay.getStage().setKeyboardFocus(null);
+                        return true;
+                      }
+                    }
+                    return false;
                   }
-                }
-                return false;
-              }
-            });
-          super.touchUp(event, x, y, pointer, button);
-        }
-      });
+                });
+            super.touchUp(event, x, y, pointer, button);
+          }
+        });
 
     Table table = new Table();
     table.setTouchable(Touchable.enabled);

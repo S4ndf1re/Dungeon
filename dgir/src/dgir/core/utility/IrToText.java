@@ -1,5 +1,7 @@
 package dgir.core.utility;
 
+import static dgir.core.utility.DgirCoreUtils.indent;
+
 import dgir.core.debug.Location;
 import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
@@ -7,10 +9,7 @@ import dgir.core.ir.Region;
 import dgir.core.serialization.BlockIdGenerator;
 import dgir.core.serialization.ValueIdGenerator;
 import dgir.dialect.builtin.BuiltinOps;
-
 import java.util.stream.Collectors;
-
-import static dgir.core.utility.DgirCoreUtils.indent;
 
 /** Util class to convert IR to text. */
 public class IrToText {

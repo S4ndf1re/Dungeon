@@ -1,5 +1,7 @@
 package blockly.dgir.compiler.java;
 
+import static blockly.dgir.compiler.java.DiagnosticUtils.formatDiagnostic;
+
 import blockly.dgir.compiler.SymbolTable.ScopedSymbolTable;
 import com.github.javaparser.ast.Node;
 import dgir.core.debug.Location;
@@ -8,10 +10,6 @@ import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.dialect.builtin.BuiltinOps;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,8 +19,9 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
-
-import static blockly.dgir.compiler.java.DiagnosticUtils.formatDiagnostic;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public final class EmitContext {

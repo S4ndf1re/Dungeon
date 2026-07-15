@@ -121,10 +121,10 @@ public class DoorTile extends Tile {
     String doorStepStr = this.doorstep == null ? "null" : this.doorstep.coordinate().toString();
     String otherDoorStr = this.otherDoor == null ? "null" : this.otherDoor.coordinate().toString();
     String closedTexturePathStr =
-      closedTexturePath() == null ? "null" : closedTexturePath().pathString();
+        closedTexturePath() == null ? "null" : closedTexturePath().pathString();
     return tileStr
         + ", closedTexturePath="
-      + closedTexturePathStr
+        + closedTexturePathStr
         + ", open="
         + this.open
         + ", Doorstep="

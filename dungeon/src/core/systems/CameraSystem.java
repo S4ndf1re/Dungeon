@@ -156,9 +156,9 @@ public final class CameraSystem extends System {
       actualPosition = focusPoint;
     }
     float newX =
-      actualPosition.x() * (1 - CAMERA_FOCUS_LERP) + (focusPoint.x() * CAMERA_FOCUS_LERP);
+        actualPosition.x() * (1 - CAMERA_FOCUS_LERP) + (focusPoint.x() * CAMERA_FOCUS_LERP);
     float newY =
-      actualPosition.y() * (1 - CAMERA_FOCUS_LERP) + (focusPoint.y() * CAMERA_FOCUS_LERP);
+        actualPosition.y() * (1 - CAMERA_FOCUS_LERP) + (focusPoint.y() * CAMERA_FOCUS_LERP);
     actualPosition = new Point(newX, newY);
 
     if (actualPosition.distance(focusPoint) <= 0.01f) {

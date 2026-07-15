@@ -9,7 +9,6 @@ import core.network.messages.NetworkMessage;
 import core.network.messages.c2s.RequestEntitySpawn;
 import core.utils.components.draw.DrawComponentFactory;
 import core.utils.components.draw.DrawInfoData;
-
 import java.util.Map;
 import java.util.Objects;
 
@@ -49,62 +48,62 @@ public final class EntitySpawnEvent implements NetworkMessage {
     this(
         entity.id(),
         entity.fetch(PositionComponent.class).orElseThrow(),
-      DrawComponentFactory.toDrawInfo(entity.fetch(DrawComponent.class).orElseThrow()),
+        DrawComponentFactory.toDrawInfo(entity.fetch(DrawComponent.class).orElseThrow()),
         entity.isPersistent(),
         entity.fetch(PlayerComponent.class).orElse(null),
         entity
             .fetch(CharacterClassComponent.class)
             .map(ccc -> (byte) ccc.characterClass().ordinal())
-          .orElse((byte) 0),
-      Map.of());
+            .orElse((byte) 0),
+        Map.of());
   }
 
   /**
    * Constructs a spawn event without metadata.
    *
-   * @param entityId          the entity id
+   * @param entityId the entity id
    * @param positionComponent the entity position component, may be null for data-only entities
-   * @param drawInfo          the draw info, may be null for data-only entities
-   * @param isPersistent      whether the entity is persistent
-   * @param playerComponent   the player component, may be null
-   * @param characterClassId  the character class id
+   * @param drawInfo the draw info, may be null for data-only entities
+   * @param isPersistent whether the entity is persistent
+   * @param playerComponent the player component, may be null
+   * @param characterClassId the character class id
    */
   public EntitySpawnEvent(
-    int entityId,
-    PositionComponent positionComponent,
-    DrawInfoData drawInfo,
-    boolean isPersistent,
-    PlayerComponent playerComponent,
-    byte characterClassId) {
+      int entityId,
+      PositionComponent positionComponent,
+      DrawInfoData drawInfo,
+      boolean isPersistent,
+      PlayerComponent playerComponent,
+      byte characterClassId) {
     this(
-      entityId,
-      positionComponent,
-      drawInfo,
-      isPersistent,
-      playerComponent,
-      characterClassId,
-      Map.of());
+        entityId,
+        positionComponent,
+        drawInfo,
+        isPersistent,
+        playerComponent,
+        characterClassId,
+        Map.of());
   }
 
   /**
    * Constructs a spawn event.
    *
-   * @param entityId          the entity id
+   * @param entityId the entity id
    * @param positionComponent the entity position component, may be null for data-only entities
-   * @param drawInfo          the draw info, may be null for data-only entities
-   * @param isPersistent      whether the entity is persistent
-   * @param playerComponent   the player component, may be null
-   * @param characterClassId  the character class id
-   * @param metadata          metadata for subproject-specific state
+   * @param drawInfo the draw info, may be null for data-only entities
+   * @param isPersistent whether the entity is persistent
+   * @param playerComponent the player component, may be null
+   * @param characterClassId the character class id
+   * @param metadata metadata for subproject-specific state
    */
   public EntitySpawnEvent(
-    int entityId,
-    PositionComponent positionComponent,
-    DrawInfoData drawInfo,
-    boolean isPersistent,
-    PlayerComponent playerComponent,
-    byte characterClassId,
-    Map<String, String> metadata) {
+      int entityId,
+      PositionComponent positionComponent,
+      DrawInfoData drawInfo,
+      boolean isPersistent,
+      PlayerComponent playerComponent,
+      byte characterClassId,
+      Map<String, String> metadata) {
     this.entityId = entityId;
     this.positionComponent = positionComponent;
     this.drawInfo = drawInfo;
@@ -195,49 +194,47 @@ public final class EntitySpawnEvent implements NetworkMessage {
       return false;
     }
     return entityId == other.entityId
-      && isPersistent == other.isPersistent
-      && characterClassId == other.characterClassId
-      && Objects.equals(positionComponent, other.positionComponent)
-      && Objects.equals(drawInfo, other.drawInfo)
-      && Objects.equals(playerComponent, other.playerComponent)
-      && Objects.equals(metadata, other.metadata);
+        && isPersistent == other.isPersistent
+        && characterClassId == other.characterClassId
+        && Objects.equals(positionComponent, other.positionComponent)
+        && Objects.equals(drawInfo, other.drawInfo)
+        && Objects.equals(playerComponent, other.playerComponent)
+        && Objects.equals(metadata, other.metadata);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-      entityId,
-      positionComponent,
-      drawInfo,
-      isPersistent,
-      playerComponent,
-      characterClassId,
-      metadata);
+        entityId,
+        positionComponent,
+        drawInfo,
+        isPersistent,
+        playerComponent,
+        characterClassId,
+        metadata);
   }
 
   @Override
   public String toString() {
     return "EntitySpawnEvent{"
-      + "entityId="
-      + entityId
-      + ", positionComponent="
-      + positionComponent
-      + ", drawInfo="
-      + drawInfo
-      + ", isPersistent="
-      + isPersistent
-      + ", playerComponent="
-      + playerComponent
-      + ", characterClassId="
-      + characterClassId
-      + ", metadata="
-      + metadata
-      + "}";
+        + "entityId="
+        + entityId
+        + ", positionComponent="
+        + positionComponent
+        + ", drawInfo="
+        + drawInfo
+        + ", isPersistent="
+        + isPersistent
+        + ", playerComponent="
+        + playerComponent
+        + ", characterClassId="
+        + characterClassId
+        + ", metadata="
+        + metadata
+        + "}";
   }
 
-  /**
-   * Builder for {@link EntitySpawnEvent}.
-   */
+  /** Builder for {@link EntitySpawnEvent}. */
   public static final class Builder {
     private int entityId;
     private PositionComponent positionComponent;
@@ -247,8 +244,7 @@ public final class EntitySpawnEvent implements NetworkMessage {
     private byte characterClassId;
     private Map<String, String> metadata = Map.of();
 
-    private Builder() {
-    }
+    private Builder() {}
 
     /**
      * Sets the entity id.
@@ -334,13 +330,13 @@ public final class EntitySpawnEvent implements NetworkMessage {
      */
     public EntitySpawnEvent build() {
       return new EntitySpawnEvent(
-        entityId,
-        positionComponent,
-        drawInfo,
-        isPersistent,
-        playerComponent,
-        characterClassId,
-        metadata);
+          entityId,
+          positionComponent,
+          drawInfo,
+          isPersistent,
+          playerComponent,
+          characterClassId,
+          metadata);
     }
   }
 }

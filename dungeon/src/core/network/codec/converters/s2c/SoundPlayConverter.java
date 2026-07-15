@@ -5,25 +5,23 @@ import core.network.codec.CommonProtoConverters;
 import core.network.codec.MessageConverter;
 import core.network.messages.s2c.SoundPlayMessage;
 
-/**
- * Converter for server-to-client sound play messages.
- */
+/** Converter for server-to-client sound play messages. */
 public final class SoundPlayConverter
-  implements MessageConverter<SoundPlayMessage, core.network.proto.s2c.SoundPlayMessage> {
+    implements MessageConverter<SoundPlayMessage, core.network.proto.s2c.SoundPlayMessage> {
   private static final byte WIRE_TYPE_ID = 19;
 
   @Override
   public core.network.proto.s2c.SoundPlayMessage toProto(SoundPlayMessage message) {
     return core.network.proto.s2c.SoundPlayMessage.newBuilder()
-      .setEntityId(message.entityId())
-      .setSpec(CommonProtoConverters.toProto(message.soundSpec()))
-      .build();
+        .setEntityId(message.entityId())
+        .setSpec(CommonProtoConverters.toProto(message.soundSpec()))
+        .build();
   }
 
   @Override
   public SoundPlayMessage fromProto(core.network.proto.s2c.SoundPlayMessage proto) {
     return new SoundPlayMessage(
-      proto.getEntityId(), CommonProtoConverters.fromProto(proto.getSpec()));
+        proto.getEntityId(), CommonProtoConverters.fromProto(proto.getSpec()));
   }
 
   @Override

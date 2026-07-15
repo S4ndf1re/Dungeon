@@ -11,35 +11,29 @@ import contrib.hud.dialogs.DialogType;
 import contrib.utils.components.showImage.TransitionSpeed;
 import core.network.codec.converters.s2c.DialogShowConverter;
 import core.network.messages.s2c.DialogShowMessage;
-
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-
 import org.junit.jupiter.api.Test;
 
-/**
- * Tests for {@link DialogShowConverter}.
- */
+/** Tests for {@link DialogShowConverter}. */
 public class DialogShowConverterTest {
   private static final DialogShowConverter CONVERTER = new DialogShowConverter();
 
-  /**
-   * Verifies dialog context conversion roundtrip.
-   */
+  /** Verifies dialog context conversion roundtrip. */
   @Test
   public void testDialogContextRoundTrip() {
     DialogContext context =
-      DialogContext.builder()
-        .type(DialogType.DefaultTypes.TEXT)
-        .center(false)
-        .dialogId("dialog-42")
-        .put(DialogContextKeys.TITLE, "Hello")
-        .put(DialogContextKeys.MESSAGE, "World")
-        .put(DialogContextKeys.OWNER_ENTITY, 10)
-        .put(DialogContextKeys.ENTITY, 20)
-        .put(DialogContextKeys.ADDITIONAL_BUTTONS, new String[]{"Retry", "Quit"})
-        .put(DialogContextKeys.IMAGE_TRANSITION_SPEED, TransitionSpeed.SLOW)
-        .build();
+        DialogContext.builder()
+            .type(DialogType.DefaultTypes.TEXT)
+            .center(false)
+            .dialogId("dialog-42")
+            .put(DialogContextKeys.TITLE, "Hello")
+            .put(DialogContextKeys.MESSAGE, "World")
+            .put(DialogContextKeys.OWNER_ENTITY, 10)
+            .put(DialogContextKeys.ENTITY, 20)
+            .put(DialogContextKeys.ADDITIONAL_BUTTONS, new String[] {"Retry", "Quit"})
+            .put(DialogContextKeys.IMAGE_TRANSITION_SPEED, TransitionSpeed.SLOW)
+            .build();
 
     DialogShowMessage message = new DialogShowMessage(context, true);
     core.network.proto.s2c.DialogShowMessage proto = CONVERTER.toProto(message);
@@ -49,23 +43,23 @@ public class DialogShowConverterTest {
     assertTrue(proto.getCanBeClosed());
     assertFalse(proto.getCenter());
     assertTrue(
-      proto.getAttributesList().stream()
-        .anyMatch(
-          attr ->
-            DialogContextKeys.OWNER_ENTITY.equals(attr.getKey())
-              && attr.getIntValue() == 10));
+        proto.getAttributesList().stream()
+            .anyMatch(
+                attr ->
+                    DialogContextKeys.OWNER_ENTITY.equals(attr.getKey())
+                        && attr.getIntValue() == 10));
     assertTrue(
-      proto.getAttributesList().stream()
-        .anyMatch(
-          attr ->
-            DialogContextKeys.ENTITY.equals(attr.getKey()) && attr.getIntValue() == 20));
+        proto.getAttributesList().stream()
+            .anyMatch(
+                attr ->
+                    DialogContextKeys.ENTITY.equals(attr.getKey()) && attr.getIntValue() == 20));
     assertTrue(
-      proto.getAttributesList().stream()
-        .anyMatch(
-          attr ->
-            DialogContextKeys.IMAGE_TRANSITION_SPEED.equals(attr.getKey())
-              && attr.getValueCase()
-              == core.network.proto.s2c.DialogAttribute.ValueCase.CUSTOM_VALUE));
+        proto.getAttributesList().stream()
+            .anyMatch(
+                attr ->
+                    DialogContextKeys.IMAGE_TRANSITION_SPEED.equals(attr.getKey())
+                        && attr.getValueCase()
+                            == core.network.proto.s2c.DialogAttribute.ValueCase.CUSTOM_VALUE));
 
     DialogShowMessage roundTripMessage = CONVERTER.fromProto(proto);
     DialogContext roundTrip = roundTripMessage.context();
@@ -78,62 +72,60 @@ public class DialogShowConverterTest {
     assertEquals(10, roundTrip.require(DialogContextKeys.OWNER_ENTITY, Integer.class));
     assertEquals(20, roundTrip.require(DialogContextKeys.ENTITY, Integer.class));
     assertArrayEquals(
-      new String[]{"Retry", "Quit"},
-      roundTrip.require(DialogContextKeys.ADDITIONAL_BUTTONS, String[].class));
+        new String[] {"Retry", "Quit"},
+        roundTrip.require(DialogContextKeys.ADDITIONAL_BUTTONS, String[].class));
     assertEquals(
-      TransitionSpeed.SLOW,
-      roundTrip.require(DialogContextKeys.IMAGE_TRANSITION_SPEED, TransitionSpeed.class));
+        TransitionSpeed.SLOW,
+        roundTrip.require(DialogContextKeys.IMAGE_TRANSITION_SPEED, TransitionSpeed.class));
   }
 
-  /**
-   * Verifies custom codec roundtrip via CUSTOM_VALUE.
-   */
+  /** Verifies custom codec roundtrip via CUSTOM_VALUE. */
   @Test
   public void testCustomCodecRoundTrip() {
     DialogValueCodecRegistry registry = DialogValueCodecRegistry.global();
     if (registry.byTypeId("DialogShowConverterTestData").isEmpty()) {
       registry.register(
-        new DialogValueCodec<TestData>() {
-          @Override
-          public String typeId() {
-            return "DialogShowConverterTestData";
-          }
+          new DialogValueCodec<TestData>() {
+            @Override
+            public String typeId() {
+              return "DialogShowConverterTestData";
+            }
 
-          @Override
-          public Class<TestData> type() {
-            return TestData.class;
-          }
+            @Override
+            public Class<TestData> type() {
+              return TestData.class;
+            }
 
-          @Override
-          public byte[] encode(TestData value) {
-            return (value.label() + "|" + value.count()).getBytes(StandardCharsets.UTF_8);
-          }
+            @Override
+            public byte[] encode(TestData value) {
+              return (value.label() + "|" + value.count()).getBytes(StandardCharsets.UTF_8);
+            }
 
-          @Override
-          public TestData decode(byte[] data) {
-            String[] parts = new String(data, StandardCharsets.UTF_8).split("\\|");
-            return new TestData(parts[0], Integer.parseInt(parts[1]));
-          }
-        });
+            @Override
+            public TestData decode(byte[] data) {
+              String[] parts = new String(data, StandardCharsets.UTF_8).split("\\|");
+              return new TestData(parts[0], Integer.parseInt(parts[1]));
+            }
+          });
     }
 
     DialogContext context =
-      DialogContext.builder()
-        .type(DialogType.DefaultTypes.TEXT)
-        .center(false)
-        .dialogId("custom-test")
-        .put("custom_data", new TestData("hello", 42))
-        .build();
+        DialogContext.builder()
+            .type(DialogType.DefaultTypes.TEXT)
+            .center(false)
+            .dialogId("custom-test")
+            .put("custom_data", new TestData("hello", 42))
+            .build();
 
     DialogShowMessage message = new DialogShowMessage(context, true);
     core.network.proto.s2c.DialogShowMessage proto = CONVERTER.toProto(message);
     assertTrue(
-      proto.getAttributesList().stream()
-        .anyMatch(
-          attr ->
-            "custom_data".equals(attr.getKey())
-              && attr.getValueCase()
-              == core.network.proto.s2c.DialogAttribute.ValueCase.CUSTOM_VALUE));
+        proto.getAttributesList().stream()
+            .anyMatch(
+                attr ->
+                    "custom_data".equals(attr.getKey())
+                        && attr.getValueCase()
+                            == core.network.proto.s2c.DialogAttribute.ValueCase.CUSTOM_VALUE));
 
     DialogShowMessage roundTripMessage = CONVERTER.fromProto(proto);
     DialogContext roundTrip = roundTripMessage.context();
@@ -143,6 +135,5 @@ public class DialogShowConverterTest {
     assertEquals(42, result.count());
   }
 
-  private record TestData(String label, int count) implements Serializable {
-  }
+  private record TestData(String label, int count) implements Serializable {}
 }

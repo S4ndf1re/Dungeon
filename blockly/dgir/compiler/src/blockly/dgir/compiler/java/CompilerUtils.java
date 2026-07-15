@@ -20,11 +20,10 @@ import dgir.core.ir.Type;
 import dgir.dialect.builtin.BuiltinTypes;
 import dgir.dialect.mem.MemTypes;
 import dgir.dialect.str.StrTypes;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.IdentityHashMap;
 import java.util.Optional;
 import java.util.OptionalInt;
+import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class CompilerUtils {

@@ -3,12 +3,12 @@ package dgir.vm.dialect.arith;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.TypedAttribute;
-import dgir.vm.api.Action;
-import dgir.vm.api.OpRunner;
-import dgir.vm.api.State;
 import dgir.dialect.arith.ArithAttrs;
 import dgir.dialect.arith.ArithOps;
 import dgir.dialect.builtin.BuiltinTypes;
+import dgir.vm.api.Action;
+import dgir.vm.api.OpRunner;
+import dgir.vm.api.State;
 import org.jetbrains.annotations.NotNull;
 
 public sealed interface ArithRunners {

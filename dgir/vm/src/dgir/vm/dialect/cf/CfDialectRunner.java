@@ -4,9 +4,8 @@ import dgir.core.ir.Dialect;
 import dgir.dialect.cf.CfDialect;
 import dgir.vm.api.DialectRunner;
 import dgir.vm.api.OpRunner;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 public class CfDialectRunner extends DialectRunner {
   private static CfDialectRunner instance;

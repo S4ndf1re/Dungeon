@@ -1,13 +1,3 @@
-import dgir.core.ir.Dialect;
-import dgir.core.debug.Location;
-import dgir.core.serialization.Utils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-
 import static dgir.dialect.arith.ArithOps.ConstantOp;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import static dgir.dialect.builtin.BuiltinTypes.IntegerT;
@@ -18,6 +8,15 @@ import static dgir.dialect.io.IoOps.PrintOp;
 import static dgir.dialect.scf.ScfOps.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.Dialect;
+import dgir.core.serialization.Utils;
+import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * The test cases for the SCF dialect. These are mostly focused on testing the control flow and

@@ -72,6 +72,4 @@ public class Level011 extends BlocklyLevel {
       showText = false;
     }
   }
-
-
 }

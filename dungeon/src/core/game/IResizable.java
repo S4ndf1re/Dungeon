@@ -10,7 +10,7 @@ public interface IResizable {
   /**
    * Called when the game window is resized.
    *
-   * @param width  The new width of the game window
+   * @param width The new width of the game window
    * @param height The new height of the game window
    */
   void onResize(int width, int height);

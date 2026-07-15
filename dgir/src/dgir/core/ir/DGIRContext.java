@@ -1,11 +1,10 @@
 package dgir.core.ir;
 
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Global registry for all dialects, operations, types, and attributes known to the DGIR.

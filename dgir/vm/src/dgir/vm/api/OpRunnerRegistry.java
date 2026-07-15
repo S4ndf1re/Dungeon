@@ -4,9 +4,8 @@ import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.ir.OperationDetails;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.*;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This class is responsible for managing the registry of operation runners in the Blockly VM. It

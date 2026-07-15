@@ -9,15 +9,14 @@ import dgir.dialect.io.IoDialect;
 import dgir.dialect.mem.MemoryDialect;
 import dgir.dialect.scf.ScfDialect;
 import dgir.dialect.str.StrDialect;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Unmodifiable;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.logging.Logger;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 /**
  * Base class for all DGIR dialects.
@@ -28,6 +27,7 @@ import java.util.logging.Logger;
  * global {@link DGIRContext} registries.
  */
 public abstract class Dialect {
+
   Logger logger = Logger.getLogger(getClass().getName());
 
   /**

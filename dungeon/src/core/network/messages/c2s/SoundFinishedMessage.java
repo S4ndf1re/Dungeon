@@ -15,5 +15,4 @@ import core.network.messages.NetworkMessage;
  * @param soundInstanceId unique identifier for the sound instance that finished
  * @see core.sound.player.IPlayHandle#onFinished(Runnable)
  */
-public record SoundFinishedMessage(long soundInstanceId) implements NetworkMessage {
-}
+public record SoundFinishedMessage(long soundInstanceId) implements NetworkMessage {}

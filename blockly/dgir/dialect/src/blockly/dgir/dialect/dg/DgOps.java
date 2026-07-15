@@ -1,7 +1,7 @@
 package blockly.dgir.dialect.dg;
 
-import dgir.core.ir.Dialect;
 import dgir.core.debug.Location;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
@@ -10,10 +10,9 @@ import dgir.core.traits.INoOperands;
 import dgir.core.traits.INoResult;
 import dgir.core.traits.ISingleOperand;
 import dgir.dialect.builtin.BuiltinTypes;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import java.util.function.Function;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Sealed marker interface for all operations in the {@link DungeonDialect}.

@@ -4,12 +4,11 @@ import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.dialect.func.FuncOps;
 import dgir.dialect.scf.ScfOps;
+import java.util.List;
+import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Constrains an operation to be directly nested inside one of a specific set of parent op types.

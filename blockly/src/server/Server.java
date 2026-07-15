@@ -13,11 +13,6 @@ import core.level.elements.ILevel;
 import core.level.loader.DungeonLoader;
 import core.utils.Point;
 import core.utils.logging.DungeonLogger;
-import level.BlocklyLevel;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Unmodifiable;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -26,6 +21,10 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import level.BlocklyLevel;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 /**
  * Controls communication between the Blockly frontend and the dungeon game. Provides HTTP endpoints

@@ -426,41 +426,41 @@ public final class GameLoop extends ScreenAdapter {
         });
 
     dispatcher.registerHandler(
-      SoundPlayMessage.class,
-      (ctx, msg) -> {
-        LOGGER.debug(
-          "Received SoundPlayMessage: {} (instance={})",
-          msg.soundSpec().soundName(),
-          msg.soundSpec().instanceId());
+        SoundPlayMessage.class,
+        (ctx, msg) -> {
+          LOGGER.debug(
+              "Received SoundPlayMessage: {} (instance={})",
+              msg.soundSpec().soundName(),
+              msg.soundSpec().instanceId());
 
-        Optional<Entity> entity = Game.findEntityById(msg.entityId());
-        if (entity.isEmpty() && msg.soundSpec().maxDistance() > 0f) {
-          LOGGER.warn(
-            "Entity {} not found for positional sound {}",
-            msg.entityId(),
-            msg.soundSpec().soundName());
-          return;
-        }
+          Optional<Entity> entity = Game.findEntityById(msg.entityId());
+          if (entity.isEmpty() && msg.soundSpec().maxDistance() > 0f) {
+            LOGGER.warn(
+                "Entity {} not found for positional sound {}",
+                msg.entityId(),
+                msg.soundSpec().soundName());
+            return;
+          }
 
-        Entity targetEntity = entity.orElseGet(() -> Game.audio().ensureSoundHub());
-        SoundComponent sc =
-          targetEntity
-            .fetch(SoundComponent.class)
-            .orElseGet(
-              () -> {
-                SoundComponent newSc = new SoundComponent();
-                targetEntity.add(newSc);
-                return newSc;
-              });
-        sc.add(msg.soundSpec());
-      });
+          Entity targetEntity = entity.orElseGet(() -> Game.audio().ensureSoundHub());
+          SoundComponent sc =
+              targetEntity
+                  .fetch(SoundComponent.class)
+                  .orElseGet(
+                      () -> {
+                        SoundComponent newSc = new SoundComponent();
+                        targetEntity.add(newSc);
+                        return newSc;
+                      });
+          sc.add(msg.soundSpec());
+        });
 
     dispatcher.registerHandler(
-      SoundStopMessage.class,
-      (ctx, msg) -> {
-        LOGGER.debug("Received SoundStopMessage: {}", msg.soundInstanceId());
-        Game.audio().stopInstance(msg.soundInstanceId());
-      });
+        SoundStopMessage.class,
+        (ctx, msg) -> {
+          LOGGER.debug("Received SoundStopMessage: {}", msg.soundInstanceId());
+          Game.audio().stopInstance(msg.soundInstanceId());
+        });
 
     dispatcher.registerHandler(
         DialogShowMessage.class,
@@ -506,7 +506,7 @@ public final class GameLoop extends ScreenAdapter {
 
   private void fullscreenKey() {
     if (InputManager.isKeyJustPressed(
-      core.configuration.KeyboardConfig.TOGGLE_FULLSCREEN.value())) {
+        core.configuration.KeyboardConfig.TOGGLE_FULLSCREEN.value())) {
       if (!Gdx.graphics.isFullscreen()) {
         Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
       } else {

@@ -1,11 +1,3 @@
-import dgir.core.debug.Location;
-import dgir.core.ir.Block;
-import dgir.dialect.builtin.BuiltinTypes.IntegerT;
-import dgir.vm.api.VM;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode.EQ;
 import static dgir.dialect.arith.ArithOps.BinaryOp;
 import static dgir.dialect.arith.ArithOps.ConstantOp;
@@ -16,6 +8,13 @@ import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.io.IoOps.PrintOp;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.Block;
+import dgir.dialect.builtin.BuiltinTypes.IntegerT;
+import dgir.vm.api.VM;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 /** VM-level execution tests for CF dialect runners (branch and conditional branch). */
 public class CfTests extends VmTestBase {

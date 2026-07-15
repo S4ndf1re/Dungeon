@@ -49,19 +49,13 @@ public class DialogContextKeys {
   /** The key for the callback function to execute on cancellation. */
   public static final String ON_CANCEL = "onCancel";
 
-  /**
-   * The key for the callback function to execute on closure of the dialog.
-   */
+  /** The key for the callback function to execute on closure of the dialog. */
   public static final String ON_CLOSE = "onClose";
 
-  /**
-   * The key for the callback function to execute on a "Resume" response.
-   */
+  /** The key for the callback function to execute on a "Resume" response. */
   public static final String ON_RESUME = "onResume";
 
-  /**
-   * The key for the callback function to execute on a "Quit" response.
-   */
+  /** The key for the callback function to execute on a "Quit" response. */
   public static final String ON_QUIT = "onQuit";
 
   /** The key for the placeholder text in an input field. */

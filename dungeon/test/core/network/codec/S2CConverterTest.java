@@ -50,30 +50,26 @@ import core.utils.Direction;
 import core.utils.Point;
 import core.utils.Vector2;
 import core.utils.components.draw.DrawInfoData;
-
 import java.util.List;
 import java.util.Set;
-
 import org.junit.jupiter.api.Test;
 
-/**
- * Tests for s2c message converters.
- */
+/** Tests for s2c message converters. */
 public class S2CConverterTest {
 
   private static final float DELTA = 1e-6f;
 
   private static final ConnectAckConverter CONNECT_ACK_CONVERTER = new ConnectAckConverter();
   private static final ConnectRejectConverter CONNECT_REJECT_CONVERTER =
-    new ConnectRejectConverter();
+      new ConnectRejectConverter();
   private static final DialogShowConverter DIALOG_SHOW_CONVERTER = new DialogShowConverter();
   private static final DialogCloseConverter DIALOG_CLOSE_CONVERTER = new DialogCloseConverter();
   private static final EntitySpawnEventConverter ENTITY_SPAWN_EVENT_CONVERTER =
-    new EntitySpawnEventConverter();
+      new EntitySpawnEventConverter();
   private static final EntitySpawnBatchConverter ENTITY_SPAWN_BATCH_CONVERTER =
-    new EntitySpawnBatchConverter();
+      new EntitySpawnBatchConverter();
   private static final EntityDespawnConverter ENTITY_DESPAWN_CONVERTER =
-    new EntityDespawnConverter();
+      new EntityDespawnConverter();
   private static final EntityStateConverter ENTITY_STATE_CONVERTER = new EntityStateConverter();
   private static final SnapshotConverter SNAPSHOT_CONVERTER = new SnapshotConverter();
   private static final GameOverConverter GAME_OVER_CONVERTER = new GameOverConverter();
@@ -84,37 +80,35 @@ public class S2CConverterTest {
 
   private static DrawInfoData createDrawInfo() {
     DrawInfoData.AnimationConfigData animationConfig =
-      new DrawInfoData.AnimationConfigData(4, true, false, true);
+        new DrawInfoData.AnimationConfigData(4, true, false, true);
     DrawInfoData.SpritesheetConfigData spritesheetConfig =
-      new DrawInfoData.SpritesheetConfigData(16, 24, 2, 3, 4, 5);
+        new DrawInfoData.SpritesheetConfigData(16, 24, 2, 3, 4, 5);
     DrawInfoData.StateAnimationData idleAnimation =
-      new DrawInfoData.StateAnimationData(
-        "character/hero.png", 2.0f, 3.0f, animationConfig, spritesheetConfig);
+        new DrawInfoData.StateAnimationData(
+            "character/hero.png", 2.0f, 3.0f, animationConfig, spritesheetConfig);
     return new DrawInfoData(
-      "character/hero.png",
-      2.0f,
-      3.0f,
-      "idle",
-      20,
-      512,
-      animationConfig,
-      spritesheetConfig,
-      List.of(
-        new DrawInfoData.StateData(
-          "idle",
-          DrawInfoData.StateType.SIMPLE_DIRECTIONAL,
-          idleAnimation,
-          null,
-          null,
-          null)));
+        "character/hero.png",
+        2.0f,
+        3.0f,
+        "idle",
+        20,
+        512,
+        animationConfig,
+        spritesheetConfig,
+        List.of(
+            new DrawInfoData.StateData(
+                "idle",
+                DrawInfoData.StateType.SIMPLE_DIRECTIONAL,
+                idleAnimation,
+                null,
+                null,
+                null)));
   }
 
-  /**
-   * Verifies connect ack conversion roundtrip.
-   */
+  /** Verifies connect ack conversion roundtrip. */
   @Test
   public void testConnectAckRoundTrip() {
-    byte[] token = new byte[]{4, 5, 6};
+    byte[] token = new byte[] {4, 5, 6};
     ConnectAck message = new ConnectAck((short) 7, 42, token);
 
     core.network.proto.s2c.ConnectAck proto = CONNECT_ACK_CONVERTER.toProto(message);
@@ -128,34 +122,30 @@ public class S2CConverterTest {
     assertArrayEquals(message.sessionToken(), roundTrip.sessionToken());
   }
 
-  /**
-   * Verifies connect reject conversion roundtrip.
-   */
+  /** Verifies connect reject conversion roundtrip. */
   @Test
   public void testConnectRejectRoundTrip() {
     ConnectReject message = new ConnectReject(ConnectReject.Reason.INCOMPATIBLE_VERSION);
 
     core.network.proto.s2c.ConnectReject proto = CONNECT_REJECT_CONVERTER.toProto(message);
     assertEquals(
-      core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_INCOMPATIBLE_VERSION,
-      proto.getReason());
+        core.network.proto.s2c.ConnectReject.RejectReason.REJECT_REASON_INCOMPATIBLE_VERSION,
+        proto.getReason());
 
     ConnectReject roundTrip = CONNECT_REJECT_CONVERTER.fromProto(proto);
     assertEquals(message.reason(), roundTrip.reason());
   }
 
-  /**
-   * Verifies dialog show message conversion roundtrip.
-   */
+  /** Verifies dialog show message conversion roundtrip. */
   @Test
   public void testDialogShowRoundTrip() {
     DialogContext context =
-      DialogContext.builder()
-        .type(DialogType.DefaultTypes.OK)
-        .dialogId("dialog-100")
-        .put(DialogContextKeys.TITLE, "Title")
-        .put(DialogContextKeys.MESSAGE, "Message")
-        .build();
+        DialogContext.builder()
+            .type(DialogType.DefaultTypes.OK)
+            .dialogId("dialog-100")
+            .put(DialogContextKeys.TITLE, "Title")
+            .put(DialogContextKeys.MESSAGE, "Message")
+            .build();
     DialogShowMessage message = new DialogShowMessage(context, false);
 
     core.network.proto.s2c.DialogShowMessage proto = DIALOG_SHOW_CONVERTER.toProto(message);
@@ -168,9 +158,7 @@ public class S2CConverterTest {
     assertEquals("Title", roundTrip.context().require(DialogContextKeys.TITLE, String.class));
   }
 
-  /**
-   * Verifies dialog close message conversion roundtrip.
-   */
+  /** Verifies dialog close message conversion roundtrip. */
   @Test
   public void testDialogCloseRoundTrip() {
     DialogCloseMessage message = new DialogCloseMessage("dialog-200");
@@ -182,9 +170,7 @@ public class S2CConverterTest {
     assertEquals("dialog-200", roundTrip.dialogId());
   }
 
-  /**
-   * Verifies entity spawn event conversion roundtrip.
-   */
+  /** Verifies entity spawn event conversion roundtrip. */
   @Test
   public void testEntitySpawnRoundTrip() {
     PositionComponent position = new PositionComponent(new Point(4.0f, 5.0f), Direction.UP);
@@ -193,14 +179,14 @@ public class S2CConverterTest {
     DrawInfoData drawInfo = createDrawInfo();
     PlayerComponent playerComponent = new PlayerComponent(true, "Hero");
     EntitySpawnEvent message =
-      new EntitySpawnEvent(42, position, drawInfo, true, playerComponent, (byte) 1);
+        new EntitySpawnEvent(42, position, drawInfo, true, playerComponent, (byte) 1);
 
     core.network.proto.s2c.EntitySpawnEvent proto = ENTITY_SPAWN_EVENT_CONVERTER.toProto(message);
     assertEquals(42, proto.getEntityId());
     assertEquals(4.0f, proto.getPosition().getPosition().getX(), DELTA);
     assertEquals(5.0f, proto.getPosition().getPosition().getY(), DELTA);
     assertEquals(
-      core.network.proto.common.Direction.DIRECTION_UP, proto.getPosition().getViewDirection());
+        core.network.proto.common.Direction.DIRECTION_UP, proto.getPosition().getViewDirection());
     assertEquals(45.0f, proto.getPosition().getRotation(), DELTA);
     assertEquals(1.5f, proto.getPosition().getScale().getX(), DELTA);
     assertEquals(0.75f, proto.getPosition().getScale().getY(), DELTA);
@@ -243,27 +229,25 @@ public class S2CConverterTest {
     assertEquals(512, roundTrip.drawInfo().depth());
   }
 
-  /**
-   * Verifies entity spawn batch conversion roundtrip.
-   */
+  /** Verifies entity spawn batch conversion roundtrip. */
   @Test
   public void testEntitySpawnBatchRoundTrip() {
     EntitySpawnEvent first =
-      new EntitySpawnEvent(
-        1,
-        new PositionComponent(new Point(1.0f, 1.0f)),
-        createDrawInfo(),
-        false,
-        null,
-        (byte) 0);
+        new EntitySpawnEvent(
+            1,
+            new PositionComponent(new Point(1.0f, 1.0f)),
+            createDrawInfo(),
+            false,
+            null,
+            (byte) 0);
     EntitySpawnEvent second =
-      new EntitySpawnEvent(
-        2,
-        new PositionComponent(new Point(2.0f, 2.0f)),
-        createDrawInfo(),
-        true,
-        new PlayerComponent(false, "Other"),
-        (byte) 2);
+        new EntitySpawnEvent(
+            2,
+            new PositionComponent(new Point(2.0f, 2.0f)),
+            createDrawInfo(),
+            true,
+            new PlayerComponent(false, "Other"),
+            (byte) 2);
 
     EntitySpawnBatch message = new EntitySpawnBatch(List.of(first, second));
     core.network.proto.s2c.EntitySpawnBatch proto = ENTITY_SPAWN_BATCH_CONVERTER.toProto(message);
@@ -275,9 +259,7 @@ public class S2CConverterTest {
     assertEquals(2, roundTrip.entities().get(1).entityId());
   }
 
-  /**
-   * Verifies entity despawn event conversion roundtrip.
-   */
+  /** Verifies entity despawn event conversion roundtrip. */
   @Test
   public void testEntityDespawnRoundTrip() {
     EntityDespawnEvent message = new EntityDespawnEvent(99, "destroyed");
@@ -291,28 +273,26 @@ public class S2CConverterTest {
     assertEquals("destroyed", roundTrip.reason());
   }
 
-  /**
-   * Verifies entity state conversion roundtrip.
-   */
+  /** Verifies entity state conversion roundtrip. */
   @Test
   public void testEntityStateRoundTrip() {
     ItemPotionHealth item = new ItemPotionHealth(HealthPotionType.GREATER);
     EntityState message =
-      EntityState.builder()
-        .entityId(7)
-        .entityName("Goblin")
-        .position(new Point(1.5f, 2.5f))
-        .viewDirection(Direction.LEFT)
-        .rotation(90.0f)
-        .scale(Vector2.of(1.25f, 0.75f))
-        .currentHealth(5)
-        .maxHealth(10)
-        .currentMana(2.5f)
-        .maxMana(5.0f)
-        .stateName("idle")
-        .tintColor(0x11223344)
-        .inventory(new Item[]{null, item, null})
-        .build();
+        EntityState.builder()
+            .entityId(7)
+            .entityName("Goblin")
+            .position(new Point(1.5f, 2.5f))
+            .viewDirection(Direction.LEFT)
+            .rotation(90.0f)
+            .scale(Vector2.of(1.25f, 0.75f))
+            .currentHealth(5)
+            .maxHealth(10)
+            .currentMana(2.5f)
+            .maxMana(5.0f)
+            .stateName("idle")
+            .tintColor(0x11223344)
+            .inventory(new Item[] {null, item, null})
+            .build();
 
     core.network.proto.s2c.EntityState proto = ENTITY_STATE_CONVERTER.toProto(message);
     assertEquals(7, proto.getEntityId());
@@ -323,9 +303,9 @@ public class S2CConverterTest {
     assertEquals(1, slot.getSlotIndex());
     assertTrue(slot.hasItem());
     assertEquals(
-      HealthPotionType.GREATER.name(), slot.getItem().getItemDataMap().get("health_potion_type"));
+        HealthPotionType.GREATER.name(), slot.getItem().getItemDataMap().get("health_potion_type"));
     assertEquals(
-      Integer.toString(item.healAmount()), slot.getItem().getItemDataMap().get("heal_amount"));
+        Integer.toString(item.healAmount()), slot.getItem().getItemDataMap().get("heal_amount"));
 
     EntityState roundTrip = ENTITY_STATE_CONVERTER.fromProto(proto);
     assertEquals(7, roundTrip.entityId());
@@ -347,9 +327,7 @@ public class S2CConverterTest {
     assertEquals(item.healAmount(), roundTripItem.healAmount());
   }
 
-  /**
-   * Verifies snapshot message conversion roundtrip.
-   */
+  /** Verifies snapshot message conversion roundtrip. */
   @Test
   public void testSnapshotRoundTrip() {
     EntityState state = EntityState.builder().entityId(5).build();
@@ -374,9 +352,7 @@ public class S2CConverterTest {
     assertFalse(doorTileState.open());
   }
 
-  /**
-   * Verifies game over conversion roundtrip.
-   */
+  /** Verifies game over conversion roundtrip. */
   @Test
   public void testGameOverRoundTrip() {
     GameOverEvent message = new GameOverEvent("all_levels_completed");
@@ -388,9 +364,7 @@ public class S2CConverterTest {
     assertEquals("all_levels_completed", roundTrip.reason());
   }
 
-  /**
-   * Verifies level change conversion roundtrip.
-   */
+  /** Verifies level change conversion roundtrip. */
   @Test
   public void testLevelChangeRoundTrip() {
     LevelChangeEvent message = new LevelChangeEvent("level-1", "data");
@@ -404,9 +378,7 @@ public class S2CConverterTest {
     assertEquals("data", roundTrip.levelData());
   }
 
-  /**
-   * Verifies register ack conversion roundtrip.
-   */
+  /** Verifies register ack conversion roundtrip. */
   @Test
   public void testRegisterAckRoundTrip() {
     RegisterAck message = new RegisterAck(true);
@@ -418,21 +390,19 @@ public class S2CConverterTest {
     assertTrue(roundTrip.ok());
   }
 
-  /**
-   * Verifies sound play conversion roundtrip.
-   */
+  /** Verifies sound play conversion roundtrip. */
   @Test
   public void testSoundPlayRoundTrip() {
     SoundSpec soundSpec =
-      SoundSpec.builder("torch")
-        .instanceId(11L)
-        .volume(0.5f)
-        .pitch(1.1f)
-        .pan(-0.2f)
-        .looping(true)
-        .maxDistance(10.0f)
-        .attenuation(0.9f)
-        .build();
+        SoundSpec.builder("torch")
+            .instanceId(11L)
+            .volume(0.5f)
+            .pitch(1.1f)
+            .pan(-0.2f)
+            .looping(true)
+            .maxDistance(10.0f)
+            .attenuation(0.9f)
+            .build();
     SoundPlayMessage message = new SoundPlayMessage(2, soundSpec);
 
     core.network.proto.s2c.SoundPlayMessage proto = SOUND_PLAY_CONVERTER.toProto(message);
@@ -447,9 +417,7 @@ public class S2CConverterTest {
     assertEquals(0.5f, roundTrip.soundSpec().baseVolume(), DELTA);
   }
 
-  /**
-   * Verifies sound stop conversion roundtrip.
-   */
+  /** Verifies sound stop conversion roundtrip. */
   @Test
   public void testSoundStopRoundTrip() {
     SoundStopMessage message = new SoundStopMessage(55L);

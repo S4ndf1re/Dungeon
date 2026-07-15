@@ -1,7 +1,6 @@
 package core.utils.settings;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
-
 import java.util.function.Consumer;
 
 /**
@@ -20,7 +19,7 @@ public abstract class SettingValue<T> {
   /**
    * Creates a new SettingValue with the specified name and default value.
    *
-   * @param name         the name of the setting
+   * @param name the name of the setting
    * @param defaultValue the default value of the setting
    */
   public SettingValue(String name, T defaultValue) {
@@ -31,10 +30,10 @@ public abstract class SettingValue<T> {
   /**
    * Creates a new SettingValue with the specified name, default value, and change listener.
    *
-   * @param name         the name of the setting
+   * @param name the name of the setting
    * @param defaultValue the default value of the setting
-   * @param onChange     a Consumer that will be called whenever the setting's value changes, receiving
-   *                     the new value as an argument
+   * @param onChange a Consumer that will be called whenever the setting's value changes, receiving
+   *     the new value as an argument
    */
   public SettingValue(String name, T defaultValue, Consumer<T> onChange) {
     this(name, defaultValue);
@@ -84,7 +83,7 @@ public abstract class SettingValue<T> {
    * Sets the onChange listener for this setting.
    *
    * @param listener a Consumer that will be called whenever the setting's value changes, receiving
-   *                 the new value as an argument
+   *     the new value as an argument
    */
   public void onChange(Consumer<T> listener) {
     this.onChange = listener;

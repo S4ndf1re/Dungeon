@@ -5,9 +5,8 @@ import dgir.dialect.str.StrOps;
 import dgir.vm.api.Action;
 import dgir.vm.api.OpRunner;
 import dgir.vm.api.State;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Locale;
+import org.jetbrains.annotations.NotNull;
 
 public sealed interface StrRunners {
   final class CharAtRunner extends OpRunner implements StrRunners {

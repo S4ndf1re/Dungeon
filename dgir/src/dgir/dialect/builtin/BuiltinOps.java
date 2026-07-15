@@ -1,19 +1,18 @@
 package dgir.dialect.builtin;
 
-import dgir.core.ir.Dialect;
+import static dgir.dialect.func.FuncOps.FuncOp;
+
 import dgir.core.debug.Location;
 import dgir.core.ir.Block;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.traits.*;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import java.util.function.Function;
-
-import static dgir.dialect.func.FuncOps.FuncOp;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Sealed marker interface for all operations in the {@link BuiltinDialect}.

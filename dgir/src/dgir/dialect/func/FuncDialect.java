@@ -1,17 +1,16 @@
 package dgir.dialect.func;
 
-import dgir.core.ir.Dialect;
+import static dgir.dialect.func.FuncOps.*;
+import static dgir.dialect.func.FuncTypes.FuncType;
+
 import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.TypeDescriptor;
+import java.util.List;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-
-import static dgir.dialect.func.FuncOps.*;
-import static dgir.dialect.func.FuncTypes.FuncType;
 
 /**
  * The {@code func} dialect provides function-definition and call operations.

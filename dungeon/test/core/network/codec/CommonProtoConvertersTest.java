@@ -11,21 +11,15 @@ import core.utils.Direction;
 import core.utils.Point;
 import core.utils.Vector2;
 import core.utils.components.draw.DrawInfoData;
-
 import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
-/**
- * Tests for {@link CommonProtoConverters}.
- */
+/** Tests for {@link CommonProtoConverters}. */
 public class CommonProtoConvertersTest {
 
   private static final float DELTA = 1e-6f;
 
-  /**
-   * Verifies point conversion roundtrip.
-   */
+  /** Verifies point conversion roundtrip. */
   @Test
   public void testPointRoundTrip() {
     Point point = new Point(1.25f, -2.5f);
@@ -38,9 +32,7 @@ public class CommonProtoConvertersTest {
     assertEquals(point.y(), roundTrip.y(), DELTA);
   }
 
-  /**
-   * Verifies vector conversion roundtrip.
-   */
+  /** Verifies vector conversion roundtrip. */
   @Test
   public void testVector2RoundTrip() {
     Vector2 vector = Vector2.of(3.5f, -4.75f);
@@ -53,14 +45,12 @@ public class CommonProtoConvertersTest {
     assertEquals(vector.y(), roundTrip.y(), DELTA);
   }
 
-  /**
-   * Verifies coordinate conversion roundtrip.
-   */
+  /** Verifies coordinate conversion roundtrip. */
   @Test
   public void testCoordinateRoundTrip() {
     Coordinate coordinate = new Coordinate(7, -3);
     core.network.proto.common.Coordinate protoCoordinate =
-      CommonProtoConverters.toProto(coordinate);
+        CommonProtoConverters.toProto(coordinate);
     Coordinate roundTrip = CommonProtoConverters.fromProto(protoCoordinate);
 
     assertEquals(coordinate.x(), protoCoordinate.getX());
@@ -68,59 +58,53 @@ public class CommonProtoConvertersTest {
     assertEquals(coordinate, roundTrip);
   }
 
-  /**
-   * Verifies direction conversion to protobuf.
-   */
+  /** Verifies direction conversion to protobuf. */
   @Test
   public void testDirectionToProto() {
     assertEquals(
-      core.network.proto.common.Direction.DIRECTION_UP,
-      CommonProtoConverters.toProto(Direction.UP));
+        core.network.proto.common.Direction.DIRECTION_UP,
+        CommonProtoConverters.toProto(Direction.UP));
     assertEquals(
-      core.network.proto.common.Direction.DIRECTION_DOWN,
-      CommonProtoConverters.toProto(Direction.DOWN));
+        core.network.proto.common.Direction.DIRECTION_DOWN,
+        CommonProtoConverters.toProto(Direction.DOWN));
     assertEquals(
-      core.network.proto.common.Direction.DIRECTION_LEFT,
-      CommonProtoConverters.toProto(Direction.LEFT));
+        core.network.proto.common.Direction.DIRECTION_LEFT,
+        CommonProtoConverters.toProto(Direction.LEFT));
     assertEquals(
-      core.network.proto.common.Direction.DIRECTION_RIGHT,
-      CommonProtoConverters.toProto(Direction.RIGHT));
+        core.network.proto.common.Direction.DIRECTION_RIGHT,
+        CommonProtoConverters.toProto(Direction.RIGHT));
     assertEquals(
-      core.network.proto.common.Direction.DIRECTION_NONE,
-      CommonProtoConverters.toProto(Direction.NONE));
+        core.network.proto.common.Direction.DIRECTION_NONE,
+        CommonProtoConverters.toProto(Direction.NONE));
   }
 
-  /**
-   * Verifies direction conversion from protobuf.
-   */
+  /** Verifies direction conversion from protobuf. */
   @Test
   public void testDirectionFromProto() {
     assertEquals(
-      Direction.UP,
-      CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_UP));
+        Direction.UP,
+        CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_UP));
     assertEquals(
-      Direction.DOWN,
-      CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_DOWN));
+        Direction.DOWN,
+        CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_DOWN));
     assertEquals(
-      Direction.LEFT,
-      CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_LEFT));
+        Direction.LEFT,
+        CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_LEFT));
     assertEquals(
-      Direction.RIGHT,
-      CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_RIGHT));
+        Direction.RIGHT,
+        CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_RIGHT));
     assertEquals(
-      Direction.NONE,
-      CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_NONE));
+        Direction.NONE,
+        CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_NONE));
     assertEquals(
-      Direction.NONE,
-      CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_UNSPECIFIED));
+        Direction.NONE,
+        CommonProtoConverters.fromProto(core.network.proto.common.Direction.DIRECTION_UNSPECIFIED));
     assertEquals(
-      Direction.NONE,
-      CommonProtoConverters.fromProto(core.network.proto.common.Direction.UNRECOGNIZED));
+        Direction.NONE,
+        CommonProtoConverters.fromProto(core.network.proto.common.Direction.UNRECOGNIZED));
   }
 
-  /**
-   * Verifies position component conversion roundtrip.
-   */
+  /** Verifies position component conversion roundtrip. */
   @Test
   public void testPositionComponentRoundTrip() {
     PositionComponent component = new PositionComponent(new Point(1.5f, -2.0f), Direction.RIGHT);
@@ -144,22 +128,20 @@ public class CommonProtoConvertersTest {
     assertEquals(0.75f, roundTrip.scale().y(), DELTA);
   }
 
-  /**
-   * Verifies sound specification conversion roundtrip.
-   */
+  /** Verifies sound specification conversion roundtrip. */
   @Test
   public void testSoundSpecRoundTrip() {
     SoundSpec spec =
-      SoundSpec.builder("torch")
-        .instanceId(42L)
-        .volume(0.75f)
-        .looping(true)
-        .pitch(1.2f)
-        .pan(-0.3f)
-        .maxDistance(12.5f)
-        .attenuation(0.8f)
-        .targets(1, 2, 3)
-        .build();
+        SoundSpec.builder("torch")
+            .instanceId(42L)
+            .volume(0.75f)
+            .looping(true)
+            .pitch(1.2f)
+            .pan(-0.3f)
+            .maxDistance(12.5f)
+            .attenuation(0.8f)
+            .targets(1, 2, 3)
+            .build();
 
     core.network.proto.common.SoundSpec protoSpec = CommonProtoConverters.toProto(spec);
     SoundSpec roundTrip = CommonProtoConverters.fromProto(protoSpec);
@@ -184,31 +166,29 @@ public class CommonProtoConvertersTest {
     assertArrayEquals(new int[0], roundTrip.targetEntityIds());
   }
 
-  /**
-   * Verifies draw info conversion roundtrip for spritesheet-backed entities.
-   */
+  /** Verifies draw info conversion roundtrip for spritesheet-backed entities. */
   @Test
   public void testDrawInfoRoundTrip_withSpritesheetConfig() {
     DrawInfoData.StateAnimationData closedAnimation =
-      new DrawInfoData.StateAnimationData(
-        "animation/missing_texture.png",
-        1.25f,
-        2.5f,
-        new DrawInfoData.AnimationConfigData(6, false, true, true),
-        new DrawInfoData.SpritesheetConfigData(32, 48, 4, 8, 3, 5));
+        new DrawInfoData.StateAnimationData(
+            "animation/missing_texture.png",
+            1.25f,
+            2.5f,
+            new DrawInfoData.AnimationConfigData(6, false, true, true),
+            new DrawInfoData.SpritesheetConfigData(32, 48, 4, 8, 3, 5));
     DrawInfoData drawInfo =
-      new DrawInfoData(
-        "animation/missing_texture.png",
-        1.25f,
-        2.5f,
-        "idle",
-        7,
-        15,
-        new DrawInfoData.AnimationConfigData(6, false, true, true),
-        new DrawInfoData.SpritesheetConfigData(32, 48, 4, 8, 3, 5),
-        List.of(
-          new DrawInfoData.StateData(
-            "closed", DrawInfoData.StateType.BASIC, closedAnimation, null, null, null)));
+        new DrawInfoData(
+            "animation/missing_texture.png",
+            1.25f,
+            2.5f,
+            "idle",
+            7,
+            15,
+            new DrawInfoData.AnimationConfigData(6, false, true, true),
+            new DrawInfoData.SpritesheetConfigData(32, 48, 4, 8, 3, 5),
+            List.of(
+                new DrawInfoData.StateData(
+                    "closed", DrawInfoData.StateType.BASIC, closedAnimation, null, null, null)));
 
     core.network.proto.s2c.DrawInfo proto = CommonProtoConverters.toProto(drawInfo);
     DrawInfoData roundTrip = CommonProtoConverters.fromProto(proto);
@@ -220,15 +200,15 @@ public class CommonProtoConvertersTest {
     assertEquals(drawInfo.currentFrame(), roundTrip.currentFrame());
     assertEquals(drawInfo.depth(), roundTrip.depth());
     assertEquals(
-      drawInfo.animationConfig().framesPerSprite(),
-      roundTrip.animationConfig().framesPerSprite());
+        drawInfo.animationConfig().framesPerSprite(),
+        roundTrip.animationConfig().framesPerSprite());
     assertEquals(drawInfo.animationConfig().looping(), roundTrip.animationConfig().looping());
     assertEquals(drawInfo.animationConfig().centered(), roundTrip.animationConfig().centered());
     assertEquals(drawInfo.animationConfig().mirrored(), roundTrip.animationConfig().mirrored());
     assertEquals(
-      drawInfo.spritesheetConfig().spriteWidth(), roundTrip.spritesheetConfig().spriteWidth());
+        drawInfo.spritesheetConfig().spriteWidth(), roundTrip.spritesheetConfig().spriteWidth());
     assertEquals(
-      drawInfo.spritesheetConfig().spriteHeight(), roundTrip.spritesheetConfig().spriteHeight());
+        drawInfo.spritesheetConfig().spriteHeight(), roundTrip.spritesheetConfig().spriteHeight());
     assertEquals(drawInfo.spritesheetConfig().offsetX(), roundTrip.spritesheetConfig().offsetX());
     assertEquals(drawInfo.spritesheetConfig().offsetY(), roundTrip.spritesheetConfig().offsetY());
     assertEquals(drawInfo.spritesheetConfig().rows(), roundTrip.spritesheetConfig().rows());
@@ -238,22 +218,20 @@ public class CommonProtoConvertersTest {
     assertEquals(DrawInfoData.StateType.BASIC, roundTrip.states().getFirst().stateType());
   }
 
-  /**
-   * Verifies draw info conversion roundtrip for plain textures without spritesheet geometry.
-   */
+  /** Verifies draw info conversion roundtrip for plain textures without spritesheet geometry. */
   @Test
   public void testDrawInfoRoundTrip_plainTexture() {
     DrawInfoData drawInfo =
-      new DrawInfoData(
-        "animation/missing_texture.png",
-        null,
-        null,
-        null,
-        null,
-        0,
-        new DrawInfoData.AnimationConfigData(10, true, false, false),
-        null,
-        null);
+        new DrawInfoData(
+            "animation/missing_texture.png",
+            null,
+            null,
+            null,
+            null,
+            0,
+            new DrawInfoData.AnimationConfigData(10, true, false, false),
+            null,
+            null);
 
     core.network.proto.s2c.DrawInfo proto = CommonProtoConverters.toProto(drawInfo);
     DrawInfoData roundTrip = CommonProtoConverters.fromProto(proto);
@@ -265,8 +243,8 @@ public class CommonProtoConvertersTest {
     assertEquals(drawInfo.currentFrame(), roundTrip.currentFrame());
     assertEquals(drawInfo.depth(), roundTrip.depth());
     assertEquals(
-      drawInfo.animationConfig().framesPerSprite(),
-      roundTrip.animationConfig().framesPerSprite());
+        drawInfo.animationConfig().framesPerSprite(),
+        roundTrip.animationConfig().framesPerSprite());
     assertEquals(drawInfo.animationConfig().looping(), roundTrip.animationConfig().looping());
     assertEquals(drawInfo.animationConfig().centered(), roundTrip.animationConfig().centered());
     assertEquals(drawInfo.animationConfig().mirrored(), roundTrip.animationConfig().mirrored());

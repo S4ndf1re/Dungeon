@@ -14,16 +14,15 @@ public final class ItemRegistry {
   private static final Map<String, Class<? extends Item>> ITEMS = new HashMap<>();
   private static final Map<String, ItemFactory> FACTORIES = new HashMap<>();
 
-  private ItemRegistry() {
-  }
+  private ItemRegistry() {}
 
   /**
    * Registers an item class under a stable ID.
    *
-   * @param id    the registry ID
+   * @param id the registry ID
    * @param clazz the item class
    * @throws IllegalArgumentException if the ID is null or blank
-   * @throws IllegalStateException    if the ID is already registered with a different class
+   * @throws IllegalStateException if the ID is already registered with a different class
    */
   public static void register(String id, Class<? extends Item> clazz) {
     String normalized = normalizeId(id);
@@ -31,7 +30,7 @@ public final class ItemRegistry {
     Class<? extends Item> existing = ITEMS.get(normalized);
     if (existing != null && !existing.equals(clazz)) {
       throw new IllegalStateException(
-        "Item ID '" + normalized + "' already registered for " + existing.getName());
+          "Item ID '" + normalized + "' already registered for " + existing.getName());
     }
     ITEMS.put(normalized, clazz);
   }
@@ -39,11 +38,11 @@ public final class ItemRegistry {
   /**
    * Registers an item class and its factory under a stable ID.
    *
-   * @param id      the registry ID
-   * @param clazz   the item class
+   * @param id the registry ID
+   * @param clazz the item class
    * @param factory the item factory
    * @throws IllegalArgumentException if the ID is null or blank
-   * @throws IllegalStateException    if the ID is already registered with a different class or factory
+   * @throws IllegalStateException if the ID is already registered with a different class or factory
    */
   public static void register(String id, Class<? extends Item> clazz, ItemFactory factory) {
     register(id, clazz);
@@ -63,7 +62,7 @@ public final class ItemRegistry {
   /**
    * Registers an item class and factory using the simple class name as the ID.
    *
-   * @param clazz   the item class
+   * @param clazz the item class
    * @param factory the item factory
    */
   public static void register(Class<? extends Item> clazz, ItemFactory factory) {
@@ -74,10 +73,10 @@ public final class ItemRegistry {
   /**
    * Registers a factory for an existing item ID.
    *
-   * @param id      the registry ID
+   * @param id the registry ID
    * @param factory the item factory
    * @throws IllegalArgumentException if the ID is null or blank
-   * @throws IllegalStateException    if a different factory is already registered for the ID
+   * @throws IllegalStateException if a different factory is already registered for the ID
    */
   public static void registerFactory(String id, ItemFactory factory) {
     String normalized = normalizeId(id);
@@ -85,7 +84,7 @@ public final class ItemRegistry {
     ItemFactory existing = FACTORIES.get(normalized);
     if (existing != null && !existing.equals(factory)) {
       throw new IllegalStateException(
-        "Item factory already registered for ID '" + normalized + "'");
+          "Item factory already registered for ID '" + normalized + "'");
     }
     FACTORIES.put(normalized, factory);
   }
@@ -119,7 +118,7 @@ public final class ItemRegistry {
    * @param clazz the item class
    * @return the registered ID if found
    * @throws IllegalArgumentException if the class is null
-   * @throws IllegalStateException    if multiple IDs are registered for the class
+   * @throws IllegalStateException if multiple IDs are registered for the class
    */
   public static Optional<String> idFor(Class<? extends Item> clazz) {
     Objects.requireNonNull(clazz, "clazz");
@@ -131,7 +130,7 @@ public final class ItemRegistry {
       }
       if (found != null) {
         throw new IllegalStateException(
-          "Multiple IDs registered for item class: " + clazz.getName());
+            "Multiple IDs registered for item class: " + clazz.getName());
       }
       found = entry.getKey();
     }
@@ -144,25 +143,25 @@ public final class ItemRegistry {
    * @param item the item instance
    * @return the registered ID
    * @throws IllegalArgumentException if the item is null or unregistered
-   * @throws IllegalStateException    if multiple IDs are registered for the class
+   * @throws IllegalStateException if multiple IDs are registered for the class
    */
   public static String idFor(Item item) {
     Objects.requireNonNull(item, "item");
     return idFor(item.getClass())
-      .orElseThrow(
-        () ->
-          new IllegalArgumentException(
-            "Item class not registered: " + item.getClass().getName()));
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Item class not registered: " + item.getClass().getName()));
   }
 
   /**
    * Creates an item via the registered factory.
    *
-   * @param id   the registry ID
+   * @param id the registry ID
    * @param data the item data payload
    * @return the created item if a factory is registered
    * @throws IllegalArgumentException if the ID is null or blank
-   * @throws IllegalStateException    if the factory returns null
+   * @throws IllegalStateException if the factory returns null
    */
   public static Optional<Item> create(String id, Map<String, String> data) {
     String normalized = normalizeId(id);
@@ -179,9 +178,7 @@ public final class ItemRegistry {
     return Optional.of(item);
   }
 
-  /**
-   * Factory for creating items from serialized item data.
-   */
+  /** Factory for creating items from serialized item data. */
   @FunctionalInterface
   public interface ItemFactory {
     /**

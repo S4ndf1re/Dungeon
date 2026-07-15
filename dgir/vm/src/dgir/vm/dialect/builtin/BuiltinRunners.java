@@ -1,10 +1,10 @@
 package dgir.vm.dialect.builtin;
 
 import dgir.core.ir.Operation;
+import dgir.dialect.builtin.BuiltinOps;
 import dgir.vm.api.Action;
 import dgir.vm.api.OpRunner;
 import dgir.vm.api.State;
-import dgir.dialect.builtin.BuiltinOps;
 import org.jetbrains.annotations.NotNull;
 
 public sealed interface BuiltinRunners {

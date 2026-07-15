@@ -2,12 +2,9 @@ package core.network.codec.codecs;
 
 import contrib.utils.components.showImage.TransitionSpeed;
 import core.network.codec.DialogValueCodec;
-
 import java.nio.charset.StandardCharsets;
 
-/**
- * Built-in codec for {@link TransitionSpeed}.
- */
+/** Built-in codec for {@link TransitionSpeed}. */
 public final class TransitionSpeedCodec implements DialogValueCodec<TransitionSpeed> {
 
   @Override

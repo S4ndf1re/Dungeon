@@ -4,9 +4,7 @@ import core.Entity;
 import core.System;
 import core.components.PositionComponent;
 import core.utils.components.MissingComponentException;
-
 import java.util.Optional;
-
 import portal.portals.components.PortalComponent;
 import portal.portals.components.PortalExtendComponent;
 import portal.riddles.utils.PortalUtils;
@@ -20,9 +18,7 @@ import portal.riddles.utils.PortalUtils;
  */
 public class PortalExtendSystem extends System {
 
-  /**
-   * Constructs a new PortalExtendSystem.
-   */
+  /** Constructs a new PortalExtendSystem. */
   public PortalExtendSystem() {
     super(PortalExtendComponent.class);
   }
@@ -34,9 +30,9 @@ public class PortalExtendSystem extends System {
   @Override
   public void execute() {
     filteredEntityStream()
-      .map(this::buildDataObject)
-      .filter(pec -> !pec.isExtended())
-      .forEach(this::applyPortalExtendLogic);
+        .map(this::buildDataObject)
+        .filter(pec -> !pec.isExtended())
+        .forEach(this::applyPortalExtendLogic);
   }
 
   /**
@@ -48,27 +44,27 @@ public class PortalExtendSystem extends System {
   private PortalExtendComponent buildDataObject(Entity entity) {
 
     return entity
-      .fetch(PortalExtendComponent.class)
-      .orElseThrow(() -> MissingComponentException.build(entity, PortalExtendComponent.class));
+        .fetch(PortalExtendComponent.class)
+        .orElseThrow(() -> MissingComponentException.build(entity, PortalExtendComponent.class));
   }
 
   /**
    * Calls the onExtend method which should be overwritten in the specific classes.
    *
    * @param pec Data which holds the {@link PortalExtendComponent} from which the extent will be
-   *            called.
+   *     called.
    */
   private void applyPortalExtendLogic(PortalExtendComponent pec) {
     if (pec.isThroughBlue()) {
       PortalUtils.getGreenPortal()
-        .ifPresent(
-          exit ->
-            PortalUtils.getBluePortal().ifPresent(entry -> applyExtend(exit, entry, pec)));
+          .ifPresent(
+              exit ->
+                  PortalUtils.getBluePortal().ifPresent(entry -> applyExtend(exit, entry, pec)));
     } else if (pec.isThroughGreen()) {
       PortalUtils.getBluePortal()
-        .ifPresent(
-          exit ->
-            PortalUtils.getGreenPortal().ifPresent(entry -> applyExtend(exit, entry, pec)));
+          .ifPresent(
+              exit ->
+                  PortalUtils.getGreenPortal().ifPresent(entry -> applyExtend(exit, entry, pec)));
     }
   }
 
@@ -81,11 +77,11 @@ public class PortalExtendSystem extends System {
     portalComponent.ifPresent(pc -> other.ifPresent(pc::setExtendedEntityThrough));
 
     exitPortal
-      .fetch(PositionComponent.class)
-      .ifPresent(
-        position -> {
-          pec.onExtend.accept(position.viewDirection(), position.position(), pec);
-          pec.setExtended(true);
-        });
+        .fetch(PositionComponent.class)
+        .ifPresent(
+            position -> {
+              pec.onExtend.accept(position.viewDirection(), position.position(), pec);
+              pec.setExtended(true);
+            });
   }
 }

@@ -8,17 +8,13 @@ import core.level.utils.LevelElement;
 import core.utils.Direction;
 import core.utils.Point;
 import core.utils.Vector2;
-
 import java.util.Map;
-
 import portal.laserGrid.LaserGrid;
 import portal.portals.PortalColor;
 import portal.portals.PortalFactory;
 import portal.util.AdvancedLevel;
 
-/**
- * Level in the portal dungeon.
- */
+/** Level in the portal dungeon. */
 public class ObjectsPortalLevel_1 extends AdvancedLevel {
   private static boolean showMsg = true;
   private static final String NAME = "Portal Level";
@@ -30,12 +26,12 @@ public class ObjectsPortalLevel_1 extends AdvancedLevel {
    * Call the parent constructor of a tile level with the given layout and design label. Set the
    * start tile of the player to the given heroPos.
    *
-   * @param layout      2D array containing the tile layout.
+   * @param layout 2D array containing the tile layout.
    * @param designLabel The design label for the level.
    * @param namedPoints The custom points of the level.
    */
   public ObjectsPortalLevel_1(
-    LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
+      LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
     super(layout, designLabel, namedPoints, NAME);
   }
 
@@ -55,16 +51,16 @@ public class ObjectsPortalLevel_1 extends AdvancedLevel {
     Game.add(laser4);
     Game.add(laser5);
     Game.add(
-      LevelCreatorTools.laserCubePlate(
-        getPoint("plate"), 2, laser, laser2, laser3, laser4, laser5));
+        LevelCreatorTools.laserCubePlate(
+            getPoint("plate"), 2, laser, laser2, laser3, laser4, laser5));
 
     if (showMsg)
       DialogUtils.showTextPopup(
-        msg,
-        title,
-        () -> {
-          showMsg = false;
-          DialogUtils.showTextPopup(task, title);
-        });
+          msg,
+          title,
+          () -> {
+            showMsg = false;
+            DialogUtils.showTextPopup(task, title);
+          });
   }
 }

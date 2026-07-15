@@ -3,9 +3,7 @@ package core.utils;
 import com.badlogic.gdx.Gdx;
 import core.Game;
 
-/**
- * Utility class for handling input with consideration for UI focus.
- */
+/** Utility class for handling input with consideration for UI focus. */
 public class InputHandler {
 
   private static boolean hasKeyboardFocus() {

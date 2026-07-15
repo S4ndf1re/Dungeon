@@ -4,11 +4,9 @@ import com.google.protobuf.Parser;
 import core.network.codec.MessageConverter;
 import core.network.messages.s2c.RegisterAck;
 
-/**
- * Converter for server-to-client UDP registration ack messages.
- */
+/** Converter for server-to-client UDP registration ack messages. */
 public final class RegisterAckConverter
-  implements MessageConverter<RegisterAck, core.network.proto.s2c.RegisterAck> {
+    implements MessageConverter<RegisterAck, core.network.proto.s2c.RegisterAck> {
   private static final byte WIRE_TYPE_ID = 17;
 
   @Override

@@ -1,8 +1,6 @@
 package core.sound;
 
-/**
- * Interface for sound effects, providing necessary information for playback.
- */
+/** Interface for sound effects, providing necessary information for playback. */
 public interface ISound {
 
   /**

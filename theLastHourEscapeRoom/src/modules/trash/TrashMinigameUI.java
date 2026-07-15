@@ -14,7 +14,6 @@ import contrib.hud.dialogs.HeadlessDialogGroup;
 import core.Game;
 import core.utils.components.draw.TextureMap;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.Optional;
 
 /**
@@ -25,9 +24,7 @@ public class TrashMinigameUI extends Group {
 
   private static final String CRUMBLED_TEXTURE = "images/crumbled-paper.png";
 
-  /**
-   * Key for the note path for the Dialog API.
-   */
+  /** Key for the note path for the Dialog API. */
   public static final String KEY_NOTE_PATH = "note_path";
 
   /** Key for the paper count for the Dialog API. */
@@ -91,11 +88,11 @@ public class TrashMinigameUI extends Group {
   private void placePapers() {
     if (this.importantNotePath != null) {
       TrashItemActor note =
-        new TrashItemActor(
-          TextureMap.instance().textureAt(new SimpleIPath(importantNotePath)), true);
+          new TrashItemActor(
+              TextureMap.instance().textureAt(new SimpleIPath(importantNotePath)), true);
       note.setPosition(
-        (playfield.getWidth() - note.getWidth()) / 2,
-        (playfield.getHeight() - note.getHeight()) / 2);
+          (playfield.getWidth() - note.getWidth()) / 2,
+          (playfield.getHeight() - note.getHeight()) / 2);
       playfield.addActor(note);
     }
 
@@ -121,7 +118,7 @@ public class TrashMinigameUI extends Group {
   /**
    * Resize the UI to fill the screen.
    *
-   * @param width  the new width of the window
+   * @param width the new width of the window
    * @param height the new height of the window
    */
   public void resize(int width, int height) {
@@ -135,9 +132,9 @@ public class TrashMinigameUI extends Group {
     /**
      * Creates a new TrashItemActor with the given texture.
      *
-     * @param texture   the texture to use for this item
+     * @param texture the texture to use for this item
      * @param isSpecial whether this item is the important note (true) or a regular crumbled paper
-     *                  (false).
+     *     (false).
      */
     public TrashItemActor(Texture texture, boolean isSpecial) {
       image = new Image(texture);
@@ -156,37 +153,37 @@ public class TrashMinigameUI extends Group {
       }
 
       addListener(
-        new InputListener() {
-          @Override
-          public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-            Vector2 stagePos = localToStageCoordinates(new com.badlogic.gdx.math.Vector2(x, y));
-            dragOffsetStage.set(stagePos.x - getX(), stagePos.y - getY());
-            return true;
-          }
-
-          @Override
-          public void touchDragged(InputEvent event, float x, float y, int pointer) {
-            Vector2 stagePos = localToStageCoordinates(new Vector2(x, y));
-
-            float newX = stagePos.x - dragOffsetStage.x;
-            float newY = stagePos.y - dragOffsetStage.y;
-
-            if (!isSpecial) {
-              // Check bounds to keep within playfield
-              float ownScaledWidth = getWidth() * getScaleX();
-              float ownScaledHeight = getHeight() * getScaleY();
-              float areaWidth = playfield.getWidth() - ownScaledWidth;
-              float areaHeight = playfield.getHeight() - ownScaledHeight;
-              float xOffset = 0.5f * ownScaledWidth - getWidth() * 0.5f;
-              float yOffset = 0.5f * ownScaledHeight - getHeight() * 0.5f;
-
-              newX = MathUtils.clamp(newX, xOffset, xOffset + areaWidth);
-              newY = MathUtils.clamp(newY, yOffset, yOffset + areaHeight);
+          new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+              Vector2 stagePos = localToStageCoordinates(new com.badlogic.gdx.math.Vector2(x, y));
+              dragOffsetStage.set(stagePos.x - getX(), stagePos.y - getY());
+              return true;
             }
 
-            setPosition(newX, newY);
-          }
-        });
+            @Override
+            public void touchDragged(InputEvent event, float x, float y, int pointer) {
+              Vector2 stagePos = localToStageCoordinates(new Vector2(x, y));
+
+              float newX = stagePos.x - dragOffsetStage.x;
+              float newY = stagePos.y - dragOffsetStage.y;
+
+              if (!isSpecial) {
+                // Check bounds to keep within playfield
+                float ownScaledWidth = getWidth() * getScaleX();
+                float ownScaledHeight = getHeight() * getScaleY();
+                float areaWidth = playfield.getWidth() - ownScaledWidth;
+                float areaHeight = playfield.getHeight() - ownScaledHeight;
+                float xOffset = 0.5f * ownScaledWidth - getWidth() * 0.5f;
+                float yOffset = 0.5f * ownScaledHeight - getHeight() * 0.5f;
+
+                newX = MathUtils.clamp(newX, xOffset, xOffset + areaWidth);
+                newY = MathUtils.clamp(newY, yOffset, yOffset + areaHeight);
+              }
+
+              setPosition(newX, newY);
+            }
+          });
     }
   }
 }

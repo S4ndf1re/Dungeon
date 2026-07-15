@@ -4,9 +4,8 @@ import dgir.core.ir.Dialect;
 import dgir.dialect.arith.ArithDialect;
 import dgir.vm.api.DialectRunner;
 import dgir.vm.api.OpRunner;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 public class ArithDialectRunner extends DialectRunner {
   private static ArithDialectRunner instance;

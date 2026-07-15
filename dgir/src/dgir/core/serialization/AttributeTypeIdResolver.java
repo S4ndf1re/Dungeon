@@ -1,8 +1,8 @@
 package dgir.core.serialization;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import dgir.core.ir.AttributeDetails;
 import dgir.core.ir.Attribute;
+import dgir.core.ir.AttributeDetails;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DatabindContext;
 import tools.jackson.databind.JavaType;

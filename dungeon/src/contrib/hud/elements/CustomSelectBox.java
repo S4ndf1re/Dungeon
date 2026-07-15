@@ -2,7 +2,6 @@ package contrib.hud.elements;
 
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-
 import java.util.function.Function;
 
 /**
@@ -27,7 +26,7 @@ public class CustomSelectBox<T> extends SelectBox<T> {
   /**
    * Creates a new CustomSelectBox with the specified skin and style name.
    *
-   * @param skin      the skin to use for this SelectBox
+   * @param skin the skin to use for this SelectBox
    * @param styleName the name of the style to use from the skin
    */
   public CustomSelectBox(Skin skin, String styleName) {

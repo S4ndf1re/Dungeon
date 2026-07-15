@@ -133,13 +133,13 @@ public final class DefaultSnapshotTranslator implements SnapshotTranslator {
 
   private LevelState currentLevelState() {
     Set<DoorTileState> doorStates =
-      Game.currentLevel()
-        .map(
-          level ->
-            level.doorTiles().stream()
-              .map(door -> new DoorTileState(door.coordinate(), door.isOpen()))
-              .collect(Collectors.toSet()))
-        .orElseGet(Set::of);
+        Game.currentLevel()
+            .map(
+                level ->
+                    level.doorTiles().stream()
+                        .map(door -> new DoorTileState(door.coordinate(), door.isOpen()))
+                        .collect(Collectors.toSet()))
+            .orElseGet(Set::of);
     return new LevelState(doorStates);
   }
 
@@ -194,9 +194,9 @@ public final class DefaultSnapshotTranslator implements SnapshotTranslator {
                                       pc.viewDirection(Direction.valueOf(viewDir));
                                     } catch (IllegalArgumentException e) {
                                       LOGGER.warn(
-                                        "Invalid view direction '{}' for entity id: {}. Skipping view direction update.",
-                                        viewDir,
-                                        snap.entityId());
+                                          "Invalid view direction '{}' for entity id: {}. Skipping view direction update.",
+                                          viewDir,
+                                          snap.entityId());
                                     }
                                   });
                           snap.rotation().ifPresent(pc::rotation);
@@ -210,26 +210,26 @@ public final class DefaultSnapshotTranslator implements SnapshotTranslator {
                         dc -> {
                           snap.stateName()
                               .ifPresent(
-                                stateName -> {
-                                  if (!dc.hasState(stateName)) {
-                                    LOGGER.debug(
-                                      "Ignoring unknown snapshot state '{}' for entity id {}.",
-                                      stateName,
-                                      entityId);
-                                    return;
-                                  }
-                                  Direction direction = Direction.DOWN;
-                                  try {
-                                    direction =
-                                      Direction.valueOf(snap.viewDirection().orElse("DOWN"));
-                                  } catch (IllegalArgumentException e) {
-                                    LOGGER.warn(
-                                      "Invalid state name '{}' for entity id: {}. Skipping state update.",
-                                      stateName,
-                                      snap.entityId());
-                                  }
-                                  dc.stateMachine().setState(stateName, direction);
-                                });
+                                  stateName -> {
+                                    if (!dc.hasState(stateName)) {
+                                      LOGGER.debug(
+                                          "Ignoring unknown snapshot state '{}' for entity id {}.",
+                                          stateName,
+                                          entityId);
+                                      return;
+                                    }
+                                    Direction direction = Direction.DOWN;
+                                    try {
+                                      direction =
+                                          Direction.valueOf(snap.viewDirection().orElse("DOWN"));
+                                    } catch (IllegalArgumentException e) {
+                                      LOGGER.warn(
+                                          "Invalid state name '{}' for entity id: {}. Skipping state update.",
+                                          stateName,
+                                          snap.entityId());
+                                    }
+                                    dc.stateMachine().setState(stateName, direction);
+                                  });
                           snap.tintColor().ifPresent(dc::tintColor);
                         });
 
@@ -296,27 +296,27 @@ public final class DefaultSnapshotTranslator implements SnapshotTranslator {
 
   private void applyLevelState(LevelState levelState) {
     levelState
-      .doorStates()
-      .forEach(
-        doorState ->
-          Game.tileAt(doorState.coordinate())
-            .ifPresentOrElse(
-              tile -> {
-                if (tile instanceof DoorTile doorTile) {
-                  if (doorState.open()) {
-                    doorTile.open();
-                  } else {
-                    doorTile.close();
-                  }
-                  return;
-                }
-                LOGGER.debug(
-                  "Ignoring door state for non-door tile at coordinate: {}",
-                  doorState.coordinate());
-              },
-              () ->
-                LOGGER.debug(
-                  "Ignoring door state for missing tile at coordinate: {}",
-                  doorState.coordinate())));
+        .doorStates()
+        .forEach(
+            doorState ->
+                Game.tileAt(doorState.coordinate())
+                    .ifPresentOrElse(
+                        tile -> {
+                          if (tile instanceof DoorTile doorTile) {
+                            if (doorState.open()) {
+                              doorTile.open();
+                            } else {
+                              doorTile.close();
+                            }
+                            return;
+                          }
+                          LOGGER.debug(
+                              "Ignoring door state for non-door tile at coordinate: {}",
+                              doorState.coordinate());
+                        },
+                        () ->
+                            LOGGER.debug(
+                                "Ignoring door state for missing tile at coordinate: {}",
+                                doorState.coordinate())));
   }
 }

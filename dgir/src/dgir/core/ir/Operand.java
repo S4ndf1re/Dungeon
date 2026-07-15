@@ -1,13 +1,12 @@
 package dgir.core.ir;
 
 import dgir.core.serialization.OperandSerializer;
+import java.util.Objects;
+import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tools.jackson.databind.annotation.JsonSerialize;
-
-import java.util.Objects;
-import java.util.Optional;
 
 /**
  * A reference to a value used as an operand to an {@link Operation}. Manages its own entry in the

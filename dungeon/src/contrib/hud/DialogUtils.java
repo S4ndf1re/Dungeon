@@ -57,7 +57,7 @@ public class DialogUtils {
    * @see ShowImageUI
    */
   public static void showImagePopUp(
-    String imagePath, TransitionSpeed speed, IVoidFunction onClose, int... targetIds) {
+      String imagePath, TransitionSpeed speed, IVoidFunction onClose, int... targetIds) {
     Entity dialogEntity = new Entity();
     DialogContext context =
         DialogContext.builder()
@@ -94,7 +94,6 @@ public class DialogUtils {
    * @see ShowImageUI
    */
   public static void showImagePopUp(String imagePath, int... targetIds) {
-    showImagePopUp(imagePath, TransitionSpeed.MEDIUM, () -> {
-    }, targetIds);
+    showImagePopUp(imagePath, TransitionSpeed.MEDIUM, () -> {}, targetIds);
   }
 }

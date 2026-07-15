@@ -60,13 +60,13 @@ public class MyCalculations extends Calculations {
    *   <li>Stoppe, sobald ein verbotenes Feld erreicht wird
    * </ul>
    *
-   * @param from          Der Startpunkt der Lichtwand
+   * @param from Der Startpunkt der Lichtwand
    * @param beamDirection Die Richtung, in die sich die Lichtwand ausbreitet
    * @param stoppingTiles Felder, an denen die Lichtwand stoppen muss
    * @return Der letzte Punkt, den die Lichtwand noch erreichen darf
    */
   public Point calculateLightWallAndBridgeEnd(
-    Point from, Direction beamDirection, LevelElement[] stoppingTiles) {
+      Point from, Direction beamDirection, LevelElement[] stoppingTiles) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 

@@ -2,9 +2,7 @@ package portal.portals.abstraction;
 
 import core.utils.Point;
 import core.utils.Vector2;
-
 import java.util.function.Supplier;
-
 import portal.controlls.Hero;
 
 /**
@@ -18,14 +16,10 @@ import portal.controlls.Hero;
  */
 public abstract class PortalConfig {
 
-  /**
-   * Size of the portal projectile hit box.
-   */
+  /** Size of the portal projectile hit box. */
   private static final Vector2 HIT_BOX_SIZE = Vector2.of(0.5, 0.5);
 
-  /**
-   * Offset applied to the hit box relative to the projectile position.
-   */
+  /** Offset applied to the hit box relative to the projectile position. */
   private static final Vector2 HIT_BOX_OFFSET = Vector2.of(0.25, 0.25);
 
   /**
@@ -33,8 +27,7 @@ public abstract class PortalConfig {
    *
    * @param hero the {@link Hero} this portal configuration belongs to
    */
-  public PortalConfig(Hero hero) {
-  }
+  public PortalConfig(Hero hero) {}
 
   /**
    * Returns the cooldown of the portal shot.

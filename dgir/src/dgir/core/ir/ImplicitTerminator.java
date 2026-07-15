@@ -2,9 +2,8 @@ package dgir.core.ir;
 
 import dgir.core.debug.Location;
 import dgir.core.traits.ITerminator;
-import org.jetbrains.annotations.NotNull;
-
 import java.lang.reflect.Constructor;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility interface that allows creating default terminators for every block that currently has

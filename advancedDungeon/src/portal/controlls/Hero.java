@@ -17,7 +17,6 @@ import core.level.Tile;
 import core.utils.Point;
 import core.utils.Vector2;
 import java.util.Objects;
-
 import starter.PortalStarter;
 
 /**
@@ -127,34 +126,26 @@ public record Hero(Entity hero) {
     return SkillTools.cursorPositionAsPoint();
   }
 
-  /**
-   * Feuert den main Skill ab.
-   */
+  /** Feuert den main Skill ab. */
   public void shootMainSkill() {
     hero.fetch(SkillComponent.class)
-      .flatMap(SkillComponent::activeMainSkill)
-      .ifPresent(fs -> fs.execute(hero));
+        .flatMap(SkillComponent::activeMainSkill)
+        .ifPresent(fs -> fs.execute(hero));
   }
 
-  /**
-   * Schalte auf den nächsten main Skill.
-   */
+  /** Schalte auf den nächsten main Skill. */
   public void nextMainSkill() {
     hero.fetch(SkillComponent.class).ifPresent(sc -> sc.nextMainSkill());
   }
 
-  /**
-   * Feuert den second Skill ab.
-   */
+  /** Feuert den second Skill ab. */
   public void shootSecondSkill() {
     hero.fetch(SkillComponent.class)
-      .flatMap(SkillComponent::activeSecondSkill)
-      .ifPresent(fs -> fs.execute(hero));
+        .flatMap(SkillComponent::activeSecondSkill)
+        .ifPresent(fs -> fs.execute(hero));
   }
 
-  /**
-   * Schalte auf den nächsten second Skill.
-   */
+  /** Schalte auf den nächsten second Skill. */
   public void nextSecondSkill() {
     hero.fetch(SkillComponent.class).ifPresent(sc -> sc.nextSecondSkill());
   }
@@ -171,8 +162,8 @@ public record Hero(Entity hero) {
     if (cooldownEvent != null && EventScheduler.isScheduled(cooldownEvent)) return;
     hero.fetch(UIComponent.class)
         .ifPresentOrElse(
-          uiComponent -> {
-            if (HeroController.isInventoryOpen(hero)) HeroController.closeInventory(hero);
+            uiComponent -> {
+              if (HeroController.isInventoryOpen(hero)) HeroController.closeInventory(hero);
             },
             () -> {
               HeroController.interact(hero, point);

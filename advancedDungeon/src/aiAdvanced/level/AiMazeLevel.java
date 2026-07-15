@@ -9,7 +9,6 @@ import core.level.utils.LevelElement;
 import core.systems.CameraSystem;
 import core.utils.Point;
 import java.util.Map;
-
 import portal.util.AdvancedLevel;
 
 /**
@@ -17,6 +16,7 @@ import portal.util.AdvancedLevel;
  * labyrinth.
  */
 public class AiMazeLevel extends AdvancedLevel {
+
   /**
    * The zoom level of the overview camera. This is used to adjust the camera view to properly
    * display the labyrinth. (default: 0.55f)

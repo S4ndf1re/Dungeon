@@ -1,9 +1,3 @@
-import dgir.core.debug.Location;
-import dgir.dialect.func.FuncOps;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static dgir.dialect.arith.ArithAttrs.BinModeAttr;
 import static dgir.dialect.arith.ArithOps.BinaryOp;
 import static dgir.dialect.arith.ArithOps.ConstantOp;
@@ -14,6 +8,11 @@ import static dgir.dialect.func.FuncOps.FuncOp;
 import static dgir.dialect.func.FuncOps.ReturnOp;
 import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.io.IoOps.PrintOp;
+
+import dgir.core.debug.Location;
+import dgir.dialect.func.FuncOps;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 /**
  * VM-level execution tests for the {@code func} dialect.

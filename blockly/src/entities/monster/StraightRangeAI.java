@@ -6,7 +6,6 @@ import contrib.utils.components.skill.Skill;
 import core.Entity;
 import core.Game;
 import core.components.PositionComponent;
-import core.utils.Vector2;
 import entities.EntityUtils;
 import java.util.function.Consumer;
 
@@ -58,7 +57,7 @@ public class StraightRangeAI implements Consumer<Entity>, ISkillUser {
     boolean playerInRange =
         Game.player()
             .flatMap(hero -> hero.fetch(PositionComponent.class))
-          .map(PositionComponent::position)
+            .map(PositionComponent::position)
             .map(
                 pos -> {
                   Entity dummy = new Entity("dummy");

@@ -1,16 +1,15 @@
 package dgir.vm.dialect.func;
 
-import dgir.core.ir.SymbolTable;
 import dgir.core.ir.Operation;
+import dgir.core.ir.SymbolTable;
 import dgir.dialect.builtin.BuiltinAttrs;
 import dgir.dialect.func.FuncOps;
 import dgir.vm.api.Action;
 import dgir.vm.api.OpRunner;
 import dgir.vm.api.State;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 
 public sealed interface FuncRunners {
   Map<String, Operation> calleeCache = new HashMap<>();

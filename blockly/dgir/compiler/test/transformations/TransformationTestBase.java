@@ -1,5 +1,7 @@
 package transformations;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import blockly.dgir.compiler.java.EmitContext;
 import blockly.dgir.compiler.java.transformations.*;
 import com.github.javaparser.ParserConfiguration;
@@ -9,11 +11,8 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import dgir.core.utility.DgirCoreUtils;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.function.Consumer;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.jetbrains.annotations.Nullable;
 
 public class TransformationTestBase {
   static {
@@ -21,7 +20,8 @@ public class TransformationTestBase {
     typeSolver.add(new ReflectionTypeSolver());
 
     StaticJavaParser.getParserConfiguration().setSymbolResolver(new JavaSymbolSolver(typeSolver));
-    StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
+    StaticJavaParser.getParserConfiguration()
+        .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
   }
 
   public static void assertCode(String expected, String source) {

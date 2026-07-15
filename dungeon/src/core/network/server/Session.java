@@ -31,7 +31,7 @@ public final class Session {
 
   private final BiFunction<InetSocketAddress, NetworkMessage, CompletableFuture<Boolean>> udpSender;
   private final BiFunction<ChannelHandlerContext, NetworkMessage, CompletableFuture<Boolean>>
-    tcpSender;
+      tcpSender;
 
   /**
    * Creates a Session with TCP context and senders.

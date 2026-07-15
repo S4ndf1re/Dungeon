@@ -1,7 +1,7 @@
 package dgir.core.traits;
 
-import dgir.core.ir.Operation;
 import dgir.core.ir.Op;
+import dgir.core.ir.Operation;
 import dgir.core.ir.OperationDetails;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -29,5 +29,6 @@ public interface IOpTrait {
    * @return the operation, never {@code null}.
    */
   @Contract(pure = true)
-  @NotNull Operation getOperation();
+  @NotNull
+  Operation getOperation();
 }

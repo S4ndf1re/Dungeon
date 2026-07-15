@@ -2,7 +2,6 @@ package server;
 
 import com.sun.net.httpserver.HttpServer;
 import core.utils.logging.DungeonLogger;
-
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;

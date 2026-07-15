@@ -24,7 +24,7 @@ public class Timer {
   /**
    * Startet (oder überschreibt) einen Timer.
    *
-   * @param name     Der eindeutige Name des Timers
+   * @param name Der eindeutige Name des Timers
    * @param timeInMs Die Laufzeit des Timers in Millisekunden
    */
   public static void startTimer(String name, int timeInMs) {
@@ -43,7 +43,7 @@ public class Timer {
    *
    * @param name Der Name des Timers
    * @return true, wenn der Timer abgelaufen ist oder nicht existiert, false, wenn der Timer noch
-   * läuft
+   *     läuft
    */
   public static boolean isTimerEnd(String name) {
     // Prüfen, ob es den Timer überhaupt gibt

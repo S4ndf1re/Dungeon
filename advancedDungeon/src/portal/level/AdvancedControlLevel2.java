@@ -5,7 +5,6 @@ import core.level.utils.DesignLabel;
 import core.level.utils.LevelElement;
 import core.utils.Point;
 import java.util.Map;
-
 import portal.riddles.MyPlayerController;
 import portal.util.AdvancedLevel;
 

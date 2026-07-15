@@ -40,7 +40,7 @@ final class OkDialog {
 
   private static Group create(Skin skin, String title, String text, String dialogId) {
     Dialog dialog =
-      new HandledDialog(
+        new HandledDialog(
             title,
             skin,
             (d, id) -> {
@@ -55,13 +55,13 @@ final class OkDialog {
     Table content = dialog.getContentTable();
 
     content
-      .add(Scene2dElementFactory.createLabel(text, DialogDesign.DIALOG_FONT_SPEC_NORMAL))
-      .padBottom(10)
-      .row();
+        .add(Scene2dElementFactory.createLabel(text, DialogDesign.DIALOG_FONT_SPEC_NORMAL))
+        .padBottom(10)
+        .row();
     dialog.button(
-      DEFAULT_OK_BUTTON,
-      DEFAULT_OK_BUTTON,
-      skin.get("clean-green", TextButton.TextButtonStyle.class));
+        DEFAULT_OK_BUTTON,
+        DEFAULT_OK_BUTTON,
+        skin.get("clean-green", TextButton.TextButtonStyle.class));
 
     dialog.pack();
 

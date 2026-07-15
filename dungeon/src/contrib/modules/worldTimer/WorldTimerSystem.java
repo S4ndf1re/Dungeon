@@ -32,15 +32,13 @@ public class WorldTimerSystem extends System {
   private static int PADDING_X = 15;
   private static int PADDING_Y = 5;
   private static FontSpec TIMER_FONT =
-    new FontSpec("fonts/Doto_Rounded-ExtraBold.ttf", HEIGHT, Color.RED, 0, Color.WHITE);
+      new FontSpec("fonts/Doto_Rounded-ExtraBold.ttf", HEIGHT, Color.RED, 0, Color.WHITE);
   private static BitmapFont FONT;
   private static SpriteBatch BATCH = new SpriteBatch();
 
   private int currentUnixTime;
 
-  /**
-   * Create a new WorldTimerSystem.
-   */
+  /** Create a new WorldTimerSystem. */
   public WorldTimerSystem() {
     super(AuthoritativeSide.CLIENT, 5, WorldTimerComponent.class, PositionComponent.class);
     FONT = FontHelper.getFont(TIMER_FONT);
@@ -81,8 +79,8 @@ public class WorldTimerSystem extends System {
     IPath ipath = new SimpleIPath(path);
     TextureMap.instance().putPixmap(ipath, pixmap, true);
     TextureMap.instance()
-      .textureAt(ipath)
-      .setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        .textureAt(ipath)
+        .setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
     data.e.remove(DrawComponent.class);
     data.e.add(new DrawComponent(new Animation(ipath, new AnimationConfig().scaleX(0.5f))));
@@ -96,9 +94,9 @@ public class WorldTimerSystem extends System {
   private record Data(Entity e, WorldTimerComponent tc, PositionComponent pc) {
     private static Data of(Entity e) {
       return new Data(
-        e,
-        e.fetch(WorldTimerComponent.class).orElseThrow(),
-        e.fetch(PositionComponent.class).orElseThrow());
+          e,
+          e.fetch(WorldTimerComponent.class).orElseThrow(),
+          e.fetch(PositionComponent.class).orElseThrow());
     }
   }
 }

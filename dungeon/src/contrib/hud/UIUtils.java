@@ -200,17 +200,17 @@ public final class UIUtils {
    */
   public static Optional<InventoryGUI> getPlayerInventoryGUI(Entity player) {
     Optional<UIComponent> uiComponentOpt =
-      player.fetch(UIComponent.class).filter(ui -> ui.dialog() instanceof GUICombination);
+        player.fetch(UIComponent.class).filter(ui -> ui.dialog() instanceof GUICombination);
     if (uiComponentOpt.isEmpty()) {
       return Optional.empty();
     }
 
     Optional<InventoryComponent> playerInventory = player.fetch(InventoryComponent.class);
     return playerInventory.flatMap(
-      inventoryComponent ->
-        findAllTypesInGroup(uiComponentOpt.get().dialog(), InventoryGUI.class)
-          .filter(inventoryGUI -> inventoryGUI.inventoryComponent() == inventoryComponent)
-          .findFirst());
+        inventoryComponent ->
+            findAllTypesInGroup(uiComponentOpt.get().dialog(), InventoryGUI.class)
+                .filter(inventoryGUI -> inventoryGUI.inventoryComponent() == inventoryComponent)
+                .findFirst());
   }
 
   /**
@@ -241,8 +241,8 @@ public final class UIUtils {
    * subgroups.
    *
    * @param dialog the Group to search within
-   * @param type   the Class type of the Actors to find
-   * @param <T>    the type of the Actors
+   * @param type the Class type of the Actors to find
+   * @param <T> the type of the Actors
    * @return a stream of all found Actors of the specified type
    */
   public static <T> Stream<T> findAllTypesInGroup(Group dialog, Class<T> type) {
@@ -270,8 +270,8 @@ public final class UIUtils {
   public static void closeDialog(UIComponent uiComponent) {
     if (!uiComponent.canBeClosed()) {
       LOGGER.debug(
-        "Tried to close a non-closable dialog on entity {}",
-        uiComponent.dialogContext().ownerEntity().id());
+          "Tried to close a non-closable dialog on entity {}",
+          uiComponent.dialogContext().ownerEntity().id());
       return;
     }
 

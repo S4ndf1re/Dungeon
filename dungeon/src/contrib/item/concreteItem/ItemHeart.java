@@ -14,7 +14,6 @@ import core.utils.TriConsumer;
 import core.utils.components.draw.animation.Animation;
 import core.utils.components.path.IPath;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.Map;
 import java.util.Optional;
 

@@ -12,12 +12,10 @@ import core.level.utils.LevelElement;
 import core.utils.Direction;
 import core.utils.Point;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import portal.lightWall.LightWallFactory;
 import portal.util.AdvancedLevel;
 
@@ -45,12 +43,12 @@ public class LightWallLevel_1 extends AdvancedLevel {
    * Call the parent constructor of a tile level with the given layout and design label. Set the
    * start tile of the player to the given heroPos.
    *
-   * @param layout      2D array containing the tile layout.
+   * @param layout 2D array containing the tile layout.
    * @param designLabel The design label for the level.
    * @param namedPoints The custom points of the level.
    */
   public LightWallLevel_1(
-    LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
+      LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
     super(layout, designLabel, namedPoints, "Portal Demo Level");
   }
 
@@ -58,20 +56,20 @@ public class LightWallLevel_1 extends AdvancedLevel {
   protected void onFirstTick() {
 
     spawnChortFireballShooter(
-      namedPoints.get("monster1").x(), namedPoints.get("monster1").y(), Direction.DOWN);
+        namedPoints.get("monster1").x(), namedPoints.get("monster1").y(), Direction.DOWN);
     spawnChortFireballShooter(
-      namedPoints.get("monster2").x(), namedPoints.get("monster2").y(), Direction.DOWN);
+        namedPoints.get("monster2").x(), namedPoints.get("monster2").y(), Direction.DOWN);
     spawnChortFireballShooter(
-      namedPoints.get("monster3").x(), namedPoints.get("monster3").y(), Direction.DOWN);
+        namedPoints.get("monster3").x(), namedPoints.get("monster3").y(), Direction.DOWN);
     spawnChortFireballShooter(
-      namedPoints.get("monster4").x(), namedPoints.get("monster4").y(), Direction.RIGHT);
+        namedPoints.get("monster4").x(), namedPoints.get("monster4").y(), Direction.RIGHT);
     spawnChortFireballShooter(
-      namedPoints.get("monster5").x(), namedPoints.get("monster5").y(), Direction.RIGHT);
+        namedPoints.get("monster5").x(), namedPoints.get("monster5").y(), Direction.RIGHT);
     spawnChortFireballShooter(
-      namedPoints.get("monster6").x(), namedPoints.get("monster6").y(), Direction.RIGHT);
+        namedPoints.get("monster6").x(), namedPoints.get("monster6").y(), Direction.RIGHT);
 
     Entity emitter =
-      LightWallFactory.createEmitter(namedPoints.get("emitter"), Direction.DOWN, false);
+        LightWallFactory.createEmitter(namedPoints.get("emitter"), Direction.DOWN, false);
     Game.add(LevelCreatorTools.wallLever(emitter, getPoint("switch")));
     Game.add(emitter);
   }
@@ -83,9 +81,9 @@ public class LightWallLevel_1 extends AdvancedLevel {
       long last = shooterLastShot.getOrDefault(shooter, 0L);
       if (now - last >= CHORT_SHOOT_INTERVAL_MS) {
         shooter
-          .fetch(SkillComponent.class)
-          .flatMap(sc -> sc.activeMainSkill())
-          .ifPresent(skill -> skill.execute(shooter));
+            .fetch(SkillComponent.class)
+            .flatMap(sc -> sc.activeMainSkill())
+            .ifPresent(skill -> skill.execute(shooter));
         shooterLastShot.put(shooter, now);
       }
     }
@@ -101,30 +99,30 @@ public class LightWallLevel_1 extends AdvancedLevel {
     // Größere Reichweite (z.B. 25 Felder) damit Projektil bis x=1 kommt
     final Direction dir = direction;
     FireballSkill fireball =
-      new FireballSkill(
-        () ->
-          shooter
-            .fetch(PositionComponent.class)
-            .map(
-              pc -> {
-                // Ziel weit in die gegebene Richtung setzen (Reichweite 25 Felder)
-                switch (dir) {
-                  case DOWN:
-                    // Inverted: in diesem Projekt wächst y offenbar nach oben
-                    return new Point(pc.position().x(), pc.position().y() - 25f);
-                  case UP:
-                    return new Point(pc.position().x(), pc.position().y() + 25f);
-                  case RIGHT:
-                    return new Point(pc.position().x() + 25f, pc.position().y());
-                  case LEFT:
-                  default:
-                    return new Point(pc.position().x() - 25f, pc.position().y());
-                }
-              })
-            .orElse(new Point(x, y)),
-        0L,
-        25f,
-        true); // overload: (target, cooldown, range, ignoreFirstWall)
+        new FireballSkill(
+            () ->
+                shooter
+                    .fetch(PositionComponent.class)
+                    .map(
+                        pc -> {
+                          // Ziel weit in die gegebene Richtung setzen (Reichweite 25 Felder)
+                          switch (dir) {
+                            case DOWN:
+                              // Inverted: in diesem Projekt wächst y offenbar nach oben
+                              return new Point(pc.position().x(), pc.position().y() - 25f);
+                            case UP:
+                              return new Point(pc.position().x(), pc.position().y() + 25f);
+                            case RIGHT:
+                              return new Point(pc.position().x() + 25f, pc.position().y());
+                            case LEFT:
+                            default:
+                              return new Point(pc.position().x() - 25f, pc.position().y());
+                          }
+                        })
+                    .orElse(new Point(x, y)),
+            0L,
+            25f,
+            true); // overload: (target, cooldown, range, ignoreFirstWall)
     shooter.fetch(SkillComponent.class).ifPresent(sc -> sc.addSkill(fireball));
     Game.add(shooter);
     shooters.add(shooter);

@@ -3,7 +3,6 @@ package core.systems.input;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.utils.TimeUtils;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -46,8 +45,7 @@ public final class InputManager {
   private static final Map<Integer, Long> keyDownTimesMs = new HashMap<>();
   private static final Map<Integer, Long> buttonDownTimesMs = new HashMap<>();
 
-  private InputManager() {
-  } // static utility class
+  private InputManager() {} // static utility class
 
   /**
    * Initializes the input state tracking by wrapping the current input processor.
@@ -59,75 +57,75 @@ public final class InputManager {
   public static void init() {
     InputProcessor oldProcessor = Gdx.input.getInputProcessor();
     Gdx.input.setInputProcessor(
-      new InputProcessor() {
-        @Override
-        public boolean keyDown(int keycode) {
-          registerPress(
-            keycode,
-            justPressedKeys,
-            pressedKeys,
-            justReleasedKeys,
-            lastKeyTapTimesMs,
-            previousKeyTapTimesMs,
-            keyDownTimesMs,
-            TimeUtils.millis());
-          return oldProcessor != null && oldProcessor.keyDown(keycode);
-        }
+        new InputProcessor() {
+          @Override
+          public boolean keyDown(int keycode) {
+            registerPress(
+                keycode,
+                justPressedKeys,
+                pressedKeys,
+                justReleasedKeys,
+                lastKeyTapTimesMs,
+                previousKeyTapTimesMs,
+                keyDownTimesMs,
+                TimeUtils.millis());
+            return oldProcessor != null && oldProcessor.keyDown(keycode);
+          }
 
-        @Override
-        public boolean keyUp(int keycode) {
-          registerRelease(keycode, pressedKeys, justReleasedKeys, keyDownTimesMs);
-          return oldProcessor != null && oldProcessor.keyUp(keycode);
-        }
+          @Override
+          public boolean keyUp(int keycode) {
+            registerRelease(keycode, pressedKeys, justReleasedKeys, keyDownTimesMs);
+            return oldProcessor != null && oldProcessor.keyUp(keycode);
+          }
 
-        @Override
-        public boolean keyTyped(char character) {
-          return oldProcessor != null && oldProcessor.keyTyped(character);
-        }
+          @Override
+          public boolean keyTyped(char character) {
+            return oldProcessor != null && oldProcessor.keyTyped(character);
+          }
 
-        @Override
-        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-          registerPress(
-            button,
-            justPressedButtons,
-            pressedButtons,
-            justReleasedButtons,
-            lastButtonTapTimesMs,
-            previousButtonTapTimesMs,
-            buttonDownTimesMs,
-            TimeUtils.millis());
-          return oldProcessor != null
-            && oldProcessor.touchDown(screenX, screenY, pointer, button);
-        }
+          @Override
+          public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            registerPress(
+                button,
+                justPressedButtons,
+                pressedButtons,
+                justReleasedButtons,
+                lastButtonTapTimesMs,
+                previousButtonTapTimesMs,
+                buttonDownTimesMs,
+                TimeUtils.millis());
+            return oldProcessor != null
+                && oldProcessor.touchDown(screenX, screenY, pointer, button);
+          }
 
-        @Override
-        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-          registerRelease(button, pressedButtons, justReleasedButtons, buttonDownTimesMs);
-          return oldProcessor != null && oldProcessor.touchUp(screenX, screenY, pointer, button);
-        }
+          @Override
+          public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+            registerRelease(button, pressedButtons, justReleasedButtons, buttonDownTimesMs);
+            return oldProcessor != null && oldProcessor.touchUp(screenX, screenY, pointer, button);
+          }
 
-        @Override
-        public boolean touchCancelled(int screenX, int screenY, int pointer, int button) {
-          registerRelease(button, pressedButtons, justReleasedButtons, buttonDownTimesMs);
-          return oldProcessor != null
-            && oldProcessor.touchCancelled(screenX, screenY, pointer, button);
-        }
+          @Override
+          public boolean touchCancelled(int screenX, int screenY, int pointer, int button) {
+            registerRelease(button, pressedButtons, justReleasedButtons, buttonDownTimesMs);
+            return oldProcessor != null
+                && oldProcessor.touchCancelled(screenX, screenY, pointer, button);
+          }
 
-        @Override
-        public boolean touchDragged(int screenX, int screenY, int pointer) {
-          return oldProcessor != null && oldProcessor.touchDragged(screenX, screenY, pointer);
-        }
+          @Override
+          public boolean touchDragged(int screenX, int screenY, int pointer) {
+            return oldProcessor != null && oldProcessor.touchDragged(screenX, screenY, pointer);
+          }
 
-        @Override
-        public boolean mouseMoved(int screenX, int screenY) {
-          return oldProcessor != null && oldProcessor.mouseMoved(screenX, screenY);
-        }
+          @Override
+          public boolean mouseMoved(int screenX, int screenY) {
+            return oldProcessor != null && oldProcessor.mouseMoved(screenX, screenY);
+          }
 
-        @Override
-        public boolean scrolled(float amountX, float amountY) {
-          return oldProcessor != null && oldProcessor.scrolled(amountX, amountY);
-        }
-      });
+          @Override
+          public boolean scrolled(float amountX, float amountY) {
+            return oldProcessor != null && oldProcessor.scrolled(amountX, amountY);
+          }
+        });
   }
 
   /**
@@ -165,7 +163,7 @@ public final class InputManager {
    *
    * @param keycode The key to check.
    * @return true only on the second tap's press frame if the previous tap was within the default
-   * interval, false otherwise.
+   *     interval, false otherwise.
    */
   public static boolean isKeyDoubleTapped(int keycode) {
     return isKeyDoubleTapped(keycode, DEFAULT_DOUBLE_TAP_INTERVAL_MS);
@@ -174,14 +172,14 @@ public final class InputManager {
   /**
    * Checks if a key was double-tapped in the current frame.
    *
-   * @param keycode       The key to check.
+   * @param keycode The key to check.
    * @param maxIntervalMs Maximum time in milliseconds between taps.
    * @return true only on the second tap's press frame if the previous tap was within the given
-   * interval, false otherwise.
+   *     interval, false otherwise.
    */
   public static boolean isKeyDoubleTapped(int keycode, long maxIntervalMs) {
     return isDoubleTapped(
-      keycode, justPressedKeys, lastKeyTapTimesMs, previousKeyTapTimesMs, maxIntervalMs);
+        keycode, justPressedKeys, lastKeyTapTimesMs, previousKeyTapTimesMs, maxIntervalMs);
   }
 
   /**
@@ -199,7 +197,7 @@ public final class InputManager {
    *
    * @param button The button to check.
    * @return true if the button is pressed (including the frame it was just pressed), false
-   * otherwise.
+   *     otherwise.
    */
   public static boolean isButtonPressed(int button) {
     return pressedButtons.contains(button) || justPressedButtons.contains(button);
@@ -220,7 +218,7 @@ public final class InputManager {
    *
    * @param button The button to check.
    * @return true only on the second tap's press frame if the previous tap was within the default
-   * interval, false otherwise.
+   *     interval, false otherwise.
    */
   public static boolean isButtonDoubleTapped(int button) {
     return isButtonDoubleTapped(button, DEFAULT_DOUBLE_TAP_INTERVAL_MS);
@@ -229,22 +227,22 @@ public final class InputManager {
   /**
    * Checks if a mouse button was double-tapped in the current frame.
    *
-   * @param button        The button to check.
+   * @param button The button to check.
    * @param maxIntervalMs Maximum time in milliseconds between taps.
    * @return true only on the second tap's press frame if the previous tap was within the given
-   * interval, false otherwise.
+   *     interval, false otherwise.
    */
   public static boolean isButtonDoubleTapped(int button, long maxIntervalMs) {
     return isDoubleTapped(
-      button, justPressedButtons, lastButtonTapTimesMs, previousButtonTapTimesMs, maxIntervalMs);
+        button, justPressedButtons, lastButtonTapTimesMs, previousButtonTapTimesMs, maxIntervalMs);
   }
 
   /**
    * Checks if a key has been held for at least the given duration.
    *
-   * @param keycode        The key to check.
+   * @param keycode The key to check.
    * @param holdDurationMs Duration in milliseconds the key must be held. If {@code <= 0}, behaves
-   *                       like {@link #isKeyPressed(int)}.
+   *     like {@link #isKeyPressed(int)}.
    * @return true if the key has been held long enough, false otherwise.
    */
   public static boolean isKeyHeld(int keycode, long holdDurationMs) {
@@ -254,9 +252,9 @@ public final class InputManager {
   /**
    * Checks if a mouse button has been held for at least the given duration.
    *
-   * @param button         The button to check.
+   * @param button The button to check.
    * @param holdDurationMs Duration in milliseconds the button must be held. If {@code <= 0},
-   *                       behaves like {@link #isButtonPressed(int)}.
+   *     behaves like {@link #isButtonPressed(int)}.
    * @return true if the button has been held long enough, false otherwise.
    */
   public static boolean isButtonHeld(int button, long holdDurationMs) {
@@ -296,16 +294,16 @@ public final class InputManager {
   }
 
   private static void registerPress(
-    int code,
-    Set<Integer> justPressed,
-    Set<Integer> pressed,
-    Set<Integer> justReleased,
-    Map<Integer, Long> lastTapTimesMs,
-    Map<Integer, Long> previousTapTimesMs,
-    Map<Integer, Long> downTimesMs,
-    long nowMs) {
+      int code,
+      Set<Integer> justPressed,
+      Set<Integer> pressed,
+      Set<Integer> justReleased,
+      Map<Integer, Long> lastTapTimesMs,
+      Map<Integer, Long> previousTapTimesMs,
+      Map<Integer, Long> downTimesMs,
+      long nowMs) {
     boolean isNewPress =
-      !pressed.contains(code) && (!justPressed.contains(code) || justReleased.contains(code));
+        !pressed.contains(code) && (!justPressed.contains(code) || justReleased.contains(code));
     if (isNewPress) {
       justReleased.remove(code);
       Long lastTap = lastTapTimesMs.get(code);
@@ -321,18 +319,18 @@ public final class InputManager {
   }
 
   private static void registerRelease(
-    int code, Set<Integer> pressed, Set<Integer> justReleased, Map<Integer, Long> downTimesMs) {
+      int code, Set<Integer> pressed, Set<Integer> justReleased, Map<Integer, Long> downTimesMs) {
     pressed.remove(code);
     justReleased.add(code);
     downTimesMs.remove(code);
   }
 
   private static boolean isDoubleTapped(
-    int code,
-    Set<Integer> justPressed,
-    Map<Integer, Long> lastTapTimesMs,
-    Map<Integer, Long> previousTapTimesMs,
-    long maxIntervalMs) {
+      int code,
+      Set<Integer> justPressed,
+      Map<Integer, Long> lastTapTimesMs,
+      Map<Integer, Long> previousTapTimesMs,
+      long maxIntervalMs) {
     if (!justPressed.contains(code) || maxIntervalMs < 0) {
       return false;
     }
@@ -342,10 +340,10 @@ public final class InputManager {
   }
 
   private static boolean isHeld(
-    int code,
-    long holdDurationMs,
-    Map<Integer, Long> downTimesMs,
-    java.util.function.IntPredicate isPressed) {
+      int code,
+      long holdDurationMs,
+      Map<Integer, Long> downTimesMs,
+      java.util.function.IntPredicate isPressed) {
     if (holdDurationMs <= 0) {
       return isPressed.test(code);
     }
@@ -357,7 +355,7 @@ public final class InputManager {
   }
 
   private static void updateFrame(
-    Set<Integer> justPressed, Set<Integer> pressed, Set<Integer> justReleased) {
+      Set<Integer> justPressed, Set<Integer> pressed, Set<Integer> justReleased) {
     if (!justReleased.isEmpty()) {
       justPressed.removeAll(justReleased);
     }

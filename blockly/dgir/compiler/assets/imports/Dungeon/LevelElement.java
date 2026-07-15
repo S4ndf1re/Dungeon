@@ -1,9 +1,6 @@
 package Dungeon;
 
-/**
- * This enum represents the different types of level elements that can be found
- * in the dungeon.
- */
+/** This enum represents the different types of level elements that can be found in the dungeon. */
 @Intrinsic("Dungeon.LevelElement")
 public enum LevelElement {
   /** This field is a blank. */

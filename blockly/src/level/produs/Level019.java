@@ -74,6 +74,4 @@ public class Level019 extends BlocklyLevel {
               hedgehogBuilder.build(point);
             });
   }
-
-
 }

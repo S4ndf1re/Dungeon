@@ -21,13 +21,10 @@ import core.network.codec.converters.s2c.SnapshotConverter;
 import core.network.codec.converters.s2c.SoundPlayConverter;
 import core.network.codec.converters.s2c.SoundStopConverter;
 
-/**
- * Registers all built-in dungeon network message converters.
- */
+/** Registers all built-in dungeon network message converters. */
 public final class CoreConverters {
 
-  private CoreConverters() {
-  }
+  private CoreConverters() {}
 
   /**
    * Registers all core dungeon converters in the provided registry.

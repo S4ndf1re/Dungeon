@@ -8,5 +8,4 @@ import core.network.messages.NetworkMessage;
  * @param soundInstanceId the sound instance to stop
  * @see SoundPlayMessage
  */
-public record SoundStopMessage(long soundInstanceId) implements NetworkMessage {
-}
+public record SoundStopMessage(long soundInstanceId) implements NetworkMessage {}

@@ -5,10 +5,9 @@ import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.resolution.declarations.*;
 import com.github.javaparser.resolution.model.typesystem.NullType;
 import com.github.javaparser.resolution.types.*;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Objects;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class Access {

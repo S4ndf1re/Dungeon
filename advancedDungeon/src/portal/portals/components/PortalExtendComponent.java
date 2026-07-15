@@ -5,28 +5,19 @@ import core.Entity;
 import core.utils.Direction;
 import core.utils.Point;
 import core.utils.TriConsumer;
-
 import java.util.function.Consumer;
 
-/**
- * Helper component for the PortalExtendSystem.
- */
+/** Helper component for the PortalExtendSystem. */
 public class PortalExtendComponent implements Component {
   private boolean throughBlue = false;
   private boolean throughGreen = false;
   private boolean isExtended = false;
 
-  /**
-   * Default extend method.
-   */
-  public TriConsumer<Direction, Point, PortalExtendComponent> onExtend = (d, p, pec) -> {
-  };
+  /** Default extend method. */
+  public TriConsumer<Direction, Point, PortalExtendComponent> onExtend = (d, p, pec) -> {};
 
-  /**
-   * Default trim method.
-   */
-  public Consumer<Entity> onTrim = (e) -> {
-  };
+  /** Default trim method. */
+  public Consumer<Entity> onTrim = (e) -> {};
 
   /**
    * Returns the state of throughGreen.

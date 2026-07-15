@@ -4,19 +4,17 @@ import com.google.protobuf.Parser;
 import core.network.codec.MessageConverter;
 import core.network.messages.s2c.EntityDespawnEvent;
 
-/**
- * Converter for server-to-client entity despawn messages.
- */
+/** Converter for server-to-client entity despawn messages. */
 public final class EntityDespawnConverter
-  implements MessageConverter<EntityDespawnEvent, core.network.proto.s2c.EntityDespawnEvent> {
+    implements MessageConverter<EntityDespawnEvent, core.network.proto.s2c.EntityDespawnEvent> {
   private static final byte WIRE_TYPE_ID = 13;
 
   @Override
   public core.network.proto.s2c.EntityDespawnEvent toProto(EntityDespawnEvent message) {
     return core.network.proto.s2c.EntityDespawnEvent.newBuilder()
-      .setEntityId(message.entityId())
-      .setReason(message.reason())
-      .build();
+        .setEntityId(message.entityId())
+        .setReason(message.reason())
+        .build();
   }
 
   @Override

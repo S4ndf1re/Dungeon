@@ -1,17 +1,16 @@
 package dgir.dialect.cf;
 
-import dgir.core.ir.Dialect;
+import static dgir.dialect.cf.CfOps.BranchCondOp;
+import static dgir.dialect.cf.CfOps.BranchOp;
+
 import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.TypeDescriptor;
+import java.util.List;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-
-import static dgir.dialect.cf.CfOps.BranchCondOp;
-import static dgir.dialect.cf.CfOps.BranchOp;
 
 /**
  * The {@code cf} dialect provides low-level control-flow operations.

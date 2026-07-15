@@ -1,10 +1,8 @@
 package dgir.vm.dap;
 
+import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
+
 import dgir.vm.api.VM;
-import org.eclipse.lsp4j.debug.launch.DSPLauncher;
-import org.eclipse.lsp4j.debug.services.IDebugProtocolClient;
-import org.eclipse.lsp4j.jsonrpc.Launcher;
-import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -13,8 +11,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
-
-import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
+import org.eclipse.lsp4j.debug.launch.DSPLauncher;
+import org.eclipse.lsp4j.debug.services.IDebugProtocolClient;
+import org.eclipse.lsp4j.jsonrpc.Launcher;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * TCP server that accepts DAP client connections and wires each one to a single, shared {@link VM}

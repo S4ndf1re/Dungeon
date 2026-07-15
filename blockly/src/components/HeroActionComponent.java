@@ -16,11 +16,10 @@ import core.utils.Point;
 import core.utils.Vector2;
 import core.utils.components.MissingComponentException;
 import entities.monster.BlocklyMonster;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.List;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** Base component for all hero actions, such as moving, interaction, etc. */
 public sealed interface HeroActionComponent extends VmManagedComponent {

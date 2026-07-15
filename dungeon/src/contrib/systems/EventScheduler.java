@@ -2,7 +2,6 @@ package contrib.systems;
 
 import com.badlogic.gdx.utils.TimeUtils;
 import core.System;
-
 import java.util.PriorityQueue;
 
 /**

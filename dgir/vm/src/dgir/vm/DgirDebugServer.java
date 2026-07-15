@@ -1,20 +1,19 @@
 package dgir.vm;
 
+import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
+
 import dgir.core.ir.Dialect;
 import dgir.core.serialization.Utils;
 import dgir.vm.api.DialectRunner;
 import dgir.vm.api.VM;
 import dgir.vm.dap.DapServer;
-import org.jetbrains.annotations.NotNull;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
-
-import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
+import org.jetbrains.annotations.NotNull;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Entry-point for the DGIR VM DAP debug server.

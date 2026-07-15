@@ -1,7 +1,7 @@
 package dgir.core.serialization;
 
-import dgir.core.ir.TypeDetails;
 import dgir.core.ir.Type;
+import dgir.core.ir.TypeDetails;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;

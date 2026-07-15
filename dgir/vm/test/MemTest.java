@@ -1,3 +1,5 @@
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import dgir.core.debug.Location;
 import dgir.dialect.arith.ArithOps.ConstantOp;
 import dgir.dialect.builtin.BuiltinOps.ProgramOp;
@@ -7,11 +9,8 @@ import dgir.dialect.func.FuncOps.ReturnOp;
 import dgir.dialect.io.IoOps.PrintOp;
 import dgir.dialect.mem.MemOps.*;
 import dgir.dialect.mem.MemTypes;
-import org.junit.jupiter.api.Test;
-
 import java.util.OptionalInt;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 /**
  * VM-level execution tests for mem ops (AllocGcOp, ReallocGcOp, CastOp, SizeofOp, GetElementOp,

@@ -7,7 +7,6 @@ import core.Entity;
 import core.Game;
 import core.utils.Direction;
 import core.utils.Point;
-
 import java.util.function.Consumer;
 
 /**
@@ -28,28 +27,28 @@ public class PelletLauncherBehaviour implements Consumer<Entity>, ISkillUser {
    * Creates a new {@code PelletLauncherBehaviour}.
    *
    * @param uniqueSkillName the name of the skill used by the entity.
-   * @param spawnPoint      the spawn position of the entity.
-   * @param attackRange     maximum shooting (projectile travel) range.
-   * @param shootDirection  the fixed direction in which the energyPelletLauncher will launch the
-   *                        energyPellet.
-   * @param skill           the {@link DamageProjectileSkill} used to shoot the projectile (energyPellet).
+   * @param spawnPoint the spawn position of the entity.
+   * @param attackRange maximum shooting (projectile travel) range.
+   * @param shootDirection the fixed direction in which the energyPelletLauncher will launch the
+   *     energyPellet.
+   * @param skill the {@link DamageProjectileSkill} used to shoot the projectile (energyPellet).
    */
   public PelletLauncherBehaviour(
-    String uniqueSkillName,
-    Point spawnPoint,
-    float attackRange,
-    Direction shootDirection,
-    Skill skill) {
+      String uniqueSkillName,
+      Point spawnPoint,
+      float attackRange,
+      Direction shootDirection,
+      Skill skill) {
     this.uniqueSkillName = uniqueSkillName;
 
     if (skill instanceof DamageProjectileSkill dps) {
       this.projectileSkill = dps;
       Game.allEntities()
-        .filter(e -> "antiMaterialBarrier".equals(e.name()))
-        .forEach(e -> projectileSkill.ignoreEntity(e));
+          .filter(e -> "antiMaterialBarrier".equals(e.name()))
+          .forEach(e -> projectileSkill.ignoreEntity(e));
     } else {
       throw new IllegalArgumentException(
-        "Skill for PelletLauncher must be a DamageProjectileSkill");
+          "Skill for PelletLauncher must be a DamageProjectileSkill");
     }
 
     Point targetEndPoint = spawnPoint.translate(shootDirection.scale(attackRange));
@@ -87,10 +86,10 @@ public class PelletLauncherBehaviour implements Consumer<Entity>, ISkillUser {
 
     String projectileEntityName = uniqueSkillName + "_projectile";
     Entity projectileEntity =
-      Game.allEntities()
-        .filter(e -> e.name().equals(projectileEntityName))
-        .findFirst()
-        .orElse(null);
+        Game.allEntities()
+            .filter(e -> e.name().equals(projectileEntityName))
+            .findFirst()
+            .orElse(null);
     // only one projectile at the same time
     if (projectileEntity != null) return;
 

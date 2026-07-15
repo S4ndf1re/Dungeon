@@ -1,13 +1,12 @@
 package blockly.dgir.dialect.dg;
 
-import dgir.core.ir.Dialect;
 import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.TypeDescriptor;
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
 
 public class DungeonDialect extends Dialect {
   private static DungeonDialect instance;

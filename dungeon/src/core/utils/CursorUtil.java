@@ -8,9 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable;
 
-/**
- * Utility class for managing custom mouse cursors in LibGDX.
- */
+/** Utility class for managing custom mouse cursors in LibGDX. */
 public class CursorUtil {
 
   private static Cursors currentCursor;
@@ -27,9 +25,7 @@ public class CursorUtil {
     currentCursor = cursor;
   }
 
-  /**
-   * Reset the mouse cursor to the default type.
-   */
+  /** Reset the mouse cursor to the default type. */
   public static void resetCursor() {
     setCursor(Cursors.DEFAULT);
   }
@@ -51,30 +47,30 @@ public class CursorUtil {
   public static void initListener(Stage stage) {
     resetCursor();
     stage.addListener(
-      new InputListener() {
-        @Override
-        public boolean mouseMoved(InputEvent event, float x, float y) {
-          Actor hit = stage.hit(x, y, true);
-          Cursors current = getCurrentCursor();
-          Cursors target = Cursors.DEFAULT;
+        new InputListener() {
+          @Override
+          public boolean mouseMoved(InputEvent event, float x, float y) {
+            Actor hit = stage.hit(x, y, true);
+            Cursors current = getCurrentCursor();
+            Cursors target = Cursors.DEFAULT;
 
-          while (hit != null) {
-            if (hit.getUserObject() instanceof Cursors c) {
-              if (hit instanceof Disableable d && d.isDisabled()) {
-                target = Cursors.DISABLED;
+            while (hit != null) {
+              if (hit.getUserObject() instanceof Cursors c) {
+                if (hit instanceof Disableable d && d.isDisabled()) {
+                  target = Cursors.DISABLED;
+                  break;
+                }
+                target = c;
                 break;
               }
-              target = c;
-              break;
+              hit = hit.getParent();
             }
-            hit = hit.getParent();
-          }
 
-          if (current != target) {
-            setCursor(target);
+            if (current != target) {
+              setCursor(target);
+            }
+            return false;
           }
-          return false;
-        }
-      });
+        });
   }
 }

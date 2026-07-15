@@ -1,14 +1,15 @@
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import blockly.dgir.compiler.java.CompilationResult;
 import blockly.dgir.compiler.java.JavaCompiler;
 import blockly.dgir.vm.dialect.dg.DungeonDialectRunner;
+import dgir.core.serialization.Utils;
 import dgir.core.utility.DgirCoreUtils;
 import dgir.core.utility.IrToText;
-import dgir.core.serialization.Utils;
 import dgir.dialect.builtin.BuiltinOps;
 import dgir.vm.api.DialectRunner;
 import dgir.vm.api.VM;
-import org.junit.jupiter.api.BeforeAll;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -16,9 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeAll;
 
 public class CompilerTestBase {
   public static boolean printSource = false;

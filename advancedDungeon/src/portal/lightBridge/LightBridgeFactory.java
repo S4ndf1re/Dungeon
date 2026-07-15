@@ -21,10 +21,8 @@ import core.utils.components.draw.animation.AnimationConfig;
 import core.utils.components.draw.state.State;
 import core.utils.components.draw.state.StateMachine;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
 import portal.portals.abstraction.Calculations;
 import portal.portals.components.PortalExtendComponent;
 import portal.portals.components.PortalIgnoreComponent;
@@ -41,19 +39,17 @@ import starter.PortalStarter;
 public class LightBridgeFactory {
 
   private static final SimpleIPath SEGMENT_SPRITESHEET_PATH =
-    new SimpleIPath("portal/light_bridge");
+      new SimpleIPath("portal/light_bridge");
   private static final SimpleIPath EMITTER_TEXTURE_ACTIVE =
-    new SimpleIPath("portal/light_bridge_emitter/light_bridge_emitter_active.png");
+      new SimpleIPath("portal/light_bridge_emitter/light_bridge_emitter_active.png");
   private static final SimpleIPath EMITTER_TEXTURE_INACTIVE =
-    new SimpleIPath("portal/light_bridge_emitter/light_bridge_emitter_inactive.png");
+      new SimpleIPath("portal/light_bridge_emitter/light_bridge_emitter_inactive.png");
 
   private static final SimpleIPath PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MyCalculations.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MyCalculations.java");
   private static final String CLASSNAME = "portal.riddles.MyCalculations";
 
-  /**
-   * Number of tiles by which the extended start point is offset in front of the emitter.
-   */
+  /** Number of tiles by which the extended start point is offset in front of the emitter. */
   public static int spawnOffset = 1;
 
   private static final LevelElement[] stoppingTiles = {
@@ -64,9 +60,9 @@ public class LightBridgeFactory {
    * Creates a new light bridge emitter at the given position and direction. Can be spawned active
    * or inactive.
    *
-   * @param position  Position of the emitter
+   * @param position Position of the emitter
    * @param direction Direction of the light bridge
-   * @param active    true if the emitter should be initially active
+   * @param active true if the emitter should be initially active
    * @return The created emitter entity
    */
   public static Entity createEmitter(Point position, Direction direction, boolean active) {
@@ -110,9 +106,7 @@ public class LightBridgeFactory {
 
   /* --------------------- Components --------------------- */
 
-  /**
-   * Component representing a light bridge emitter and managing its beams.
-   */
+  /** Component representing a light bridge emitter and managing its beams. */
   private static class EmitterComponent implements Component {
 
     private final Entity emitter;
@@ -121,9 +115,9 @@ public class LightBridgeFactory {
     /**
      * Creates a new emitter for light bridges.
      *
-     * @param start     Start position of the emitter
+     * @param start Start position of the emitter
      * @param direction The Direction in which the light bridge is generated
-     * @param active    Whether the emitter is initially active
+     * @param active Whether the emitter is initially active
      */
     public EmitterComponent(Point start, Direction direction, boolean active) {
       this.emitter = new Entity("wallEmitter");
@@ -133,12 +127,11 @@ public class LightBridgeFactory {
       emitter.add(pc);
       updateEmitterVisual(false);
       emitter.add(
-        new CollideComponent(
-          Vector2.of(0f, 0f),
-          Vector2.of(1f, 1f),
-          CollideComponent.DEFAULT_COLLIDER,
-          (a, b, c) -> {
-          }));
+          new CollideComponent(
+              Vector2.of(0f, 0f),
+              Vector2.of(1f, 1f),
+              CollideComponent.DEFAULT_COLLIDER,
+              (a, b, c) -> {}));
       beams.add(new BeamComponent(emitter, start, direction, true));
       emitter.add(new PortalIgnoreComponent());
       if (active) activate();
@@ -173,11 +166,11 @@ public class LightBridgeFactory {
     public void activate() {
       trim();
       beams.forEach(
-        beam -> {
-          if (beam instanceof BeamComponent b) {
-            b.activate();
-          }
-        });
+          beam -> {
+            if (beam instanceof BeamComponent b) {
+              b.activate();
+            }
+          });
       updateEmitterVisual(true);
     }
 
@@ -188,11 +181,11 @@ public class LightBridgeFactory {
      */
     public void deactivate() {
       beams.forEach(
-        beam -> {
-          if (beam instanceof BeamComponent b) {
-            b.deactivate();
-          }
-        });
+          beam -> {
+            if (beam instanceof BeamComponent b) {
+              b.deactivate();
+            }
+          });
       updateEmitterVisual(false);
     }
 
@@ -206,18 +199,16 @@ public class LightBridgeFactory {
       beam.activate();
     }
 
-    /**
-     * Removes non-extendable beams.
-     */
+    /** Removes non-extendable beams. */
     public void trim() {
       beams.removeIf(
-        beam -> {
-          if (beam instanceof BeamComponent b && !b.extendable) {
-            b.deactivate();
-            return true;
-          }
-          return false;
-        });
+          beam -> {
+            if (beam instanceof BeamComponent b && !b.extendable) {
+              b.deactivate();
+              return true;
+            }
+            return false;
+          });
     }
   }
 
@@ -245,15 +236,15 @@ public class LightBridgeFactory {
     private boolean active = false;
 
     private static final ConcurrentHashMap<PitTile, Object[]> GLOBAL_PIT_STATE =
-      new ConcurrentHashMap<>();
+        new ConcurrentHashMap<>();
     private final Set<PitTile> myCoveredPits = new java.util.HashSet<>();
 
     /**
      * Creates a new BeamComponent.
      *
-     * @param owner      Emitter entity
-     * @param start      Start point of the beam
-     * @param direction  Direction of the beam
+     * @param owner Emitter entity
+     * @param start Start point of the beam
+     * @param direction Direction of the beam
      * @param extendable true if extendable
      */
     public BeamComponent(Entity owner, Point start, Direction direction, Boolean extendable) {
@@ -265,12 +256,12 @@ public class LightBridgeFactory {
       if (extendable) {
         PortalExtendComponent pec = new PortalExtendComponent();
         pec.onExtend =
-          (d, e, portalExtendComponent) -> {
-            Point startPoint = e.translate(d.scale(spawnOffset));
-            emitter
-              .fetch(EmitterComponent.class)
-              .ifPresent(ec -> ec.extend(new BeamComponent(emitter, startPoint, d, false)));
-          };
+            (d, e, portalExtendComponent) -> {
+              Point startPoint = e.translate(d.scale(spawnOffset));
+              emitter
+                  .fetch(EmitterComponent.class)
+                  .ifPresent(ec -> ec.extend(new BeamComponent(emitter, startPoint, d, false)));
+            };
         pec.onTrim = e -> emitter.fetch(EmitterComponent.class).ifPresent(EmitterComponent::trim);
         collider.add(pec);
       }
@@ -312,15 +303,15 @@ public class LightBridgeFactory {
     /**
      * Creates the segments of the light bridge between two points.
      *
-     * @param from      Start point
-     * @param to        End point
+     * @param from Start point
+     * @param to End point
      * @param direction Direction The count is based on the maximum delta in x or y. Each segment
-     *                  gets its position and rotation. Performance note: simple linear interpolation; for very
-     *                  long bridges consider streaming/tiling.
+     *     gets its position and rotation. Performance note: simple linear interpolation; for very
+     *     long bridges consider streaming/tiling.
      */
     private void createSegments(Point from, Point to, Direction direction) {
       int totalPoints =
-        (int) Math.max(Math.abs(to.x() - from.x()), Math.abs(to.y() - from.y())) + 1;
+          (int) Math.max(Math.abs(to.x() - from.x()), Math.abs(to.y() - from.y())) + 1;
       float x;
       float y;
       for (int i = 0; i < totalPoints; i++) {
@@ -350,7 +341,7 @@ public class LightBridgeFactory {
     public void coverPit() {
       for (Entity segment : segments) {
         Point pos =
-          segment.fetch(PositionComponent.class).map(PositionComponent::position).orElse(null);
+            segment.fetch(PositionComponent.class).map(PositionComponent::position).orElse(null);
         if (pos == null) continue;
         Tile tile = Game.tileAt(pos).orElse(null);
         if (!(tile instanceof PitTile pit)) continue;
@@ -361,7 +352,7 @@ public class LightBridgeFactory {
           long prevT = pit.timeToOpen();
           pit.timeToOpen(60 * 60 * 1000L);
           pit.close();
-          GLOBAL_PIT_STATE.put(pit, new Object[]{1, wasOpen, prevT});
+          GLOBAL_PIT_STATE.put(pit, new Object[] {1, wasOpen, prevT});
         } else {
           int count = (Integer) state[0];
           state[0] = count + 1;
@@ -397,8 +388,8 @@ public class LightBridgeFactory {
      * Creates the non-solid collider over the bridge. Width/height depend on the span along the
      * direction.
      *
-     * @param start     Start point
-     * @param end       End point
+     * @param start Start point
+     * @param end End point
      * @param direction The Direction in which the collider extends
      */
     private void createCollider(Point start, Point end, Direction direction) {
@@ -417,13 +408,12 @@ public class LightBridgeFactory {
       collider.add(pc);
       collider.remove(CollideComponent.class);
       CollideComponent cc =
-        new CollideComponent(
-          Vector2.of(offsetX, offsetY),
-          Vector2.of(width, height),
-          CollideComponent.DEFAULT_COLLIDER,
-          (a, b, c) -> {
-          })
-          .isSolid(false);
+          new CollideComponent(
+                  Vector2.of(offsetX, offsetY),
+                  Vector2.of(width, height),
+                  CollideComponent.DEFAULT_COLLIDER,
+                  (a, b, c) -> {})
+              .isSolid(false);
       collider.add(cc);
     }
 
@@ -432,18 +422,18 @@ public class LightBridgeFactory {
      * PortalTile, or Glass Wand Tile is reached or no tile exists. Returns the last traversable
      * point.
      *
-     * @param from          Starting point
+     * @param from Starting point
      * @param beamDirection Direction of the beam
      * @param stoppingTiles List of tiles that should block the lightwall.
      * @return Returns the calculated end point of the beam.
      */
     private Point calculateEndPoint(
-      Point from, Direction beamDirection, LevelElement[] stoppingTiles) {
+        Point from, Direction beamDirection, LevelElement[] stoppingTiles) {
       Object o = null;
       try {
         o = DynamicCompiler.loadUserInstance(PATH, CLASSNAME);
         Point endPoint =
-          ((Calculations) (o)).calculateLightWallAndBridgeEnd(from, beamDirection, stoppingTiles);
+            ((Calculations) (o)).calculateLightWallAndBridgeEnd(from, beamDirection, stoppingTiles);
         return endPoint;
       } catch (Exception e) {
         if (PortalStarter.DEBUG_MODE) e.printStackTrace();

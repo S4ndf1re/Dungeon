@@ -3,7 +3,6 @@ package core.components;
 import static org.junit.jupiter.api.Assertions.*;
 
 import core.sound.SoundSpec;
-
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 

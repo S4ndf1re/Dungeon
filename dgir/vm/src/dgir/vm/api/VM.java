@@ -1,21 +1,20 @@
 package dgir.vm.api;
 
+import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
+
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.traits.INoTerminator;
 import dgir.vm.dap.DebugUtils;
-import org.eclipse.lsp4j.debug.Breakpoint;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Unmodifiable;
-
 import java.util.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
-
-import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
+import org.eclipse.lsp4j.debug.Breakpoint;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 public class VM {
   private static final Logger LOGGER = Logger.getLogger(VM.class.getName());

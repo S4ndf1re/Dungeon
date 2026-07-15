@@ -6,7 +6,6 @@ import core.network.messages.NetworkMessage;
 import core.utils.Point;
 import core.utils.Vector2;
 import core.utils.logging.DungeonLogger;
-
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -28,23 +27,23 @@ public record InputMessage(
     // PAYLOAD
     Action action,
     Payload payload)
-  implements NetworkMessage {
+    implements NetworkMessage {
   private static final DungeonLogger LOGGER = DungeonLogger.getLogger(InputMessage.class);
   private static final int DEFAULT_CUSTOM_SCHEMA_VERSION = 1;
   private static final int MAX_CUSTOM_PAYLOAD_BYTES = 8_192;
   private static final Pattern ROUTE_KEY_PATTERN =
-    Pattern.compile("^[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+$");
+      Pattern.compile("^[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+$");
 
   private static short currentSequence = 0;
 
   /**
    * Creates a new input message and validates the payload for the action.
    *
-   * @param sessionId  the session ID of the client sending the input
+   * @param sessionId the session ID of the client sending the input
    * @param clientTick the client tick when the input was generated
-   * @param sequence   the sequence number of this input message (monotonically increasing per client)
-   * @param action     the action to execute
-   * @param payload    the typed payload for the action
+   * @param sequence the sequence number of this input message (monotonically increasing per client)
+   * @param action the action to execute
+   * @param payload the typed payload for the action
    */
   public InputMessage {
     Objects.requireNonNull(action, "action");
@@ -69,8 +68,8 @@ public record InputMessage(
         Game.network().session().sessionId(),
         Game.currentTick(),
         incrementAndGetSequence(),
-      action,
-      payload);
+        action,
+        payload);
   }
 
   /**
@@ -86,7 +85,7 @@ public record InputMessage(
   /**
    * Creates a cast skill input message.
    *
-   * @param target    the target point
+   * @param target the target point
    * @param mainSkill whether to cast the main skill (true) or second skill (false)
    * @return the created input message
    */
@@ -138,7 +137,7 @@ public record InputMessage(
    * Creates an inventory move input message.
    *
    * @param fromSlot the source slot index
-   * @param toSlot   the target slot index
+   * @param toSlot the target slot index
    * @return the created input message
    */
   public static InputMessage invMove(int fromSlot, int toSlot) {
@@ -178,7 +177,7 @@ public record InputMessage(
    * Creates a custom command input message with default payload metadata.
    *
    * @param commandId namespaced command identifier
-   * @param payload   opaque payload bytes
+   * @param payload opaque payload bytes
    * @return the created input message
    */
   public static InputMessage custom(String commandId, byte[] payload) {
@@ -188,8 +187,8 @@ public record InputMessage(
   /**
    * Creates a custom command input message.
    *
-   * @param commandId     namespaced command identifier
-   * @param payload       opaque payload bytes
+   * @param commandId namespaced command identifier
+   * @param payload opaque payload bytes
    * @param schemaVersion payload schema version
    * @return the created input message
    */
@@ -224,19 +223,19 @@ public record InputMessage(
    * Returns the payload casted to the requested type.
    *
    * @param type the payload type
-   * @param <T>  the payload type
+   * @param <T> the payload type
    * @return the payload as the requested type
    */
   public <T extends Payload> T payloadAs(Class<T> type) {
     Objects.requireNonNull(type, "type");
     if (!type.isInstance(payload)) {
       throw new IllegalArgumentException(
-        "Expected payload of type "
-          + type.getSimpleName()
-          + " for action "
-          + action
-          + " but got "
-          + payload.getClass().getSimpleName());
+          "Expected payload of type "
+              + type.getSimpleName()
+              + " for action "
+              + action
+              + " but got "
+              + payload.getClass().getSimpleName());
     }
     return type.cast(payload);
   }
@@ -277,28 +276,25 @@ public record InputMessage(
   }
 
   private static <T extends Payload> T requirePayload(
-    Action action, Payload payload, Class<T> expectedType) {
+      Action action, Payload payload, Class<T> expectedType) {
     if (!expectedType.isInstance(payload)) {
       throw new IllegalArgumentException(
-        "Action " + action + " requires payload " + expectedType.getSimpleName());
+          "Action " + action + " requires payload " + expectedType.getSimpleName());
     }
     return expectedType.cast(payload);
   }
 
-  /**
-   * Marker interface for input payloads.
-   */
+  /** Marker interface for input payloads. */
   public sealed interface Payload
-    permits Move,
-    CastSkill,
-    Interact,
-    SkillChange,
-    InventoryDrop,
-    InventoryMove,
-    InventoryUse,
-    ToggleInventory,
-    Custom {
-  }
+      permits Move,
+          CastSkill,
+          Interact,
+          SkillChange,
+          InventoryDrop,
+          InventoryMove,
+          InventoryUse,
+          ToggleInventory,
+          Custom {}
 
   /**
    * Payload for movement input.
@@ -319,7 +315,7 @@ public record InputMessage(
   /**
    * Payload for casting a skill.
    *
-   * @param target    the target point for the cast
+   * @param target the target point for the cast
    * @param mainSkill whether to cast the main skill (true) or second skill (false)
    */
   public record CastSkill(Point target, boolean mainSkill) implements Payload {
@@ -355,45 +351,38 @@ public record InputMessage(
    * @param nextSkill true for next skill, false for previous skill
    * @param mainSkill whether to switch the main skill (true) or second skill (false)
    */
-  public record SkillChange(boolean nextSkill, boolean mainSkill) implements Payload {
-  }
+  public record SkillChange(boolean nextSkill, boolean mainSkill) implements Payload {}
 
   /**
    * Payload for dropping an inventory item.
    *
    * @param slotIndex the inventory slot index to drop
    */
-  public record InventoryDrop(int slotIndex) implements Payload {
-  }
+  public record InventoryDrop(int slotIndex) implements Payload {}
 
   /**
    * Payload for moving items between inventory slots.
    *
    * @param fromSlot the source inventory slot index
-   * @param toSlot   the target inventory slot index
+   * @param toSlot the target inventory slot index
    */
-  public record InventoryMove(int fromSlot, int toSlot) implements Payload {
-  }
+  public record InventoryMove(int fromSlot, int toSlot) implements Payload {}
 
   /**
    * Payload for using an inventory item.
    *
    * @param slotIndex the inventory slot index to use
    */
-  public record InventoryUse(int slotIndex) implements Payload {
-  }
+  public record InventoryUse(int slotIndex) implements Payload {}
 
-  /**
-   * Payload for toggling inventory visibility.
-   */
-  public record ToggleInventory() implements Payload {
-  }
+  /** Payload for toggling inventory visibility. */
+  public record ToggleInventory() implements Payload {}
 
   /**
    * Payload for executing a custom command.
    *
-   * @param commandId     namespaced command identifier (for example: {@code escapeRoom:hint_log.open})
-   * @param payload       opaque payload bytes
+   * @param commandId namespaced command identifier (for example: {@code escapeRoom:hint_log.open})
+   * @param payload opaque payload bytes
    * @param schemaVersion payload schema version (must be positive)
    */
   public record Custom(String commandId, byte[] payload, int schemaVersion) implements Payload {
@@ -409,11 +398,11 @@ public record InputMessage(
       Objects.requireNonNull(payload, "payload");
       if (!isValidRouteKey(commandId)) {
         throw new IllegalArgumentException(
-          "Invalid commandId '" + commandId + "'. Expected format <namespace>:<action>.");
+            "Invalid commandId '" + commandId + "'. Expected format <namespace>:<action>.");
       }
       if (payload.length > MAX_CUSTOM_PAYLOAD_BYTES) {
         throw new IllegalArgumentException(
-          "Custom payload exceeds max size of " + MAX_CUSTOM_PAYLOAD_BYTES + " bytes.");
+            "Custom payload exceeds max size of " + MAX_CUSTOM_PAYLOAD_BYTES + " bytes.");
       }
       if (schemaVersion <= 0) {
         throw new IllegalArgumentException("schemaVersion must be > 0.");
@@ -446,17 +435,11 @@ public record InputMessage(
     PREV_SKILL(4),
     /** Drop a specified item from the inventory. */
     INV_DROP(5),
-    /**
-     * Move an item within the inventory.
-     */
+    /** Move an item within the inventory. */
     INV_MOVE(6),
-    /**
-     * Use the item in the specified inventory slot.
-     */
+    /** Use the item in the specified inventory slot. */
     INV_USE(7),
-    /**
-     * Toggle the visibility of the inventory UI.
-     */
+    /** Toggle the visibility of the inventory UI. */
     TOGGLE_INVENTORY(8),
     /** Execute a namespaced custom command. */
     CUSTOM(9);

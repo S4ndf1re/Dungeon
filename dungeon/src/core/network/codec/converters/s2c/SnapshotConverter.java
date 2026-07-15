@@ -7,24 +7,21 @@ import core.network.messages.s2c.DoorTileState;
 import core.network.messages.s2c.EntityState;
 import core.network.messages.s2c.LevelState;
 import core.network.messages.s2c.SnapshotMessage;
-
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Converter for server-to-client snapshot messages.
- */
+/** Converter for server-to-client snapshot messages. */
 public final class SnapshotConverter
-  implements MessageConverter<SnapshotMessage, core.network.proto.s2c.SnapshotMessage> {
+    implements MessageConverter<SnapshotMessage, core.network.proto.s2c.SnapshotMessage> {
   private static final byte WIRE_TYPE_ID = 18;
   private static final EntityStateConverter ENTITY_STATE_CONVERTER = new EntityStateConverter();
 
   @Override
   public core.network.proto.s2c.SnapshotMessage toProto(SnapshotMessage message) {
     core.network.proto.s2c.SnapshotMessage.Builder builder =
-      core.network.proto.s2c.SnapshotMessage.newBuilder().setServerTick(message.serverTick());
+        core.network.proto.s2c.SnapshotMessage.newBuilder().setServerTick(message.serverTick());
     for (EntityState state : message.entities()) {
       builder.addEntities(ENTITY_STATE_CONVERTER.toProto(state));
     }
@@ -43,13 +40,13 @@ public final class SnapshotConverter
 
   private static core.network.proto.s2c.LevelState toProto(LevelState message) {
     core.network.proto.s2c.LevelState.Builder builder =
-      core.network.proto.s2c.LevelState.newBuilder();
+        core.network.proto.s2c.LevelState.newBuilder();
     for (DoorTileState doorState : message.doorStates()) {
       builder.addDoorStates(
-        core.network.proto.s2c.DoorState.newBuilder()
-          .setCoordinate(CommonProtoConverters.toProto(doorState.coordinate()))
-          .setOpen(doorState.open())
-          .build());
+          core.network.proto.s2c.DoorState.newBuilder()
+              .setCoordinate(CommonProtoConverters.toProto(doorState.coordinate()))
+              .setOpen(doorState.open())
+              .build());
     }
     return builder.build();
   }
@@ -61,8 +58,8 @@ public final class SnapshotConverter
         throw new IllegalArgumentException("DoorState.coordinate is required.");
       }
       doorStates.add(
-        new DoorTileState(
-          CommonProtoConverters.fromProto(doorState.getCoordinate()), doorState.getOpen()));
+          new DoorTileState(
+              CommonProtoConverters.fromProto(doorState.getCoordinate()), doorState.getOpen()));
     }
     return new LevelState(doorStates);
   }

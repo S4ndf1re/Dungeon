@@ -75,14 +75,14 @@ final class FreeInputDialog {
         context.find(DialogContextKeys.CANCEL_LABEL, String.class).orElse(CANCEL_BUTTON);
 
     Dialog dialog =
-      new Dialog(title, skin, title.isBlank() ? "default" : "no-title") {
+        new Dialog(title, skin, title.isBlank() ? "default" : "no-title") {
           @Override
           protected void result(Object obj) {
             if (obj.equals(okLabel)) {
               String userInput = input.getText();
               DialogCallbackResolver.createButtonCallback(
-                  context.dialogId(), DialogContextKeys.ON_CONFIRM)
-                .accept(new DialogResponseMessage.StringValue(userInput));
+                      context.dialogId(), DialogContextKeys.ON_CONFIRM)
+                  .accept(new DialogResponseMessage.StringValue(userInput));
             } else {
               DialogCallbackResolver.createButtonCallback(
                       context.dialogId(), DialogContextKeys.ON_CANCEL)
@@ -97,16 +97,16 @@ final class FreeInputDialog {
 
     if (!question.isBlank()) {
       content
-        .add(Scene2dElementFactory.createLabel(question, DialogDesign.DIALOG_FONT_SPEC_NORMAL))
-        .padBottom(10)
-        .row();
+          .add(Scene2dElementFactory.createLabel(question, DialogDesign.DIALOG_FONT_SPEC_NORMAL))
+          .padBottom(10)
+          .row();
     }
 
     content.add(input).width(400).padBottom(10).row();
 
     dialog.button(okLabel, okLabel, skin.get("clean-green", TextButton.TextButtonStyle.class));
     dialog.button(
-      cancelLabel, cancelLabel, skin.get("clean-red-outline", TextButton.TextButtonStyle.class));
+        cancelLabel, cancelLabel, skin.get("clean-red-outline", TextButton.TextButtonStyle.class));
 
     dialog.pack();
 

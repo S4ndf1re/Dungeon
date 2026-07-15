@@ -17,10 +17,9 @@ import core.utils.MissingPlayerException;
 import core.utils.Point;
 import core.utils.components.MissingComponentException;
 import entities.monster.BlocklyMonster;
+import java.util.Map;
 import level.BlocklyLevel;
 import level.LevelManagementUtils;
-
-import java.util.Map;
 
 /**
  * This is the first level of the 3-stage boss fight. It features a Red-Light Green-Light mechanic:

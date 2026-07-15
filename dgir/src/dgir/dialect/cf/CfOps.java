@@ -1,8 +1,8 @@
 package dgir.dialect.cf;
 
-import dgir.core.ir.Dialect;
 import dgir.core.debug.Location;
 import dgir.core.ir.Block;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
@@ -11,13 +11,12 @@ import dgir.core.traits.INoResult;
 import dgir.core.traits.ITerminator;
 import dgir.dialect.builtin.BuiltinTypes;
 import dgir.dialect.str.StrTypes;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
 import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Sealed marker interface for all operations in the {@link CfDialect}.

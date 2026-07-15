@@ -11,7 +11,6 @@ import core.Entity;
 import core.utils.components.draw.animation.Animation;
 import core.utils.components.path.IPath;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.Map;
 import java.util.Objects;
 
@@ -26,9 +25,7 @@ public class ItemPotionHealth extends Item {
   /** The default texture for all health potions. */
   public static final IPath DEFAULT_TEXTURE = new SimpleIPath("items/potion/health_potion.png");
 
-  /**
-   * The type metadata used to configure this potion.
-   */
+  /** The type metadata used to configure this potion. */
   private final HealthPotionType type;
 
   /** The amount of health that this potion restores when used. */
@@ -117,8 +114,8 @@ public class ItemPotionHealth extends Item {
   @Override
   public Map<String, String> itemData() {
     return Map.of(
-      DATA_KEY_POTION_TYPE, type.name(),
-      DATA_KEY_HEAL_AMOUNT, Integer.toString(healAmount));
+        DATA_KEY_POTION_TYPE, type.name(),
+        DATA_KEY_HEAL_AMOUNT, Integer.toString(healAmount));
   }
 
   @Override

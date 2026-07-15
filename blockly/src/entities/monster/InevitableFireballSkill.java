@@ -6,9 +6,7 @@ import core.Game;
 import core.components.PositionComponent;
 import core.utils.Point;
 import core.utils.Vector2;
-
 import java.util.function.Supplier;
-
 import level.LevelManagementUtils;
 
 /**
@@ -24,20 +22,18 @@ public class InevitableFireballSkill extends FireballSkill {
   private static final Vector2 CENTER_FIREBALL = Vector2.of(0.5f, 0.5f);
 
   private static final Supplier<Point> TARGET_PLAYER =
-    () -> {
-      LevelManagementUtils.centerHero();
-      return Game.player()
-        .flatMap(hero -> hero.fetch(PositionComponent.class))
-        .map(PositionComponent::position)
-        // translate the fireball to the center of the monster
-        // by default it is throwing the fireball to the lower left corner
-        .map(point -> point.translate(CENTER_FIREBALL))
-        .orElse(null);
-    };
+      () -> {
+        LevelManagementUtils.centerHero();
+        return Game.player()
+            .flatMap(hero -> hero.fetch(PositionComponent.class))
+            .map(PositionComponent::position)
+            // translate the fireball to the center of the monster
+            // by default it is throwing the fireball to the lower left corner
+            .map(point -> point.translate(CENTER_FIREBALL))
+            .orElse(null);
+      };
 
-  /**
-   * Create a Fireball that will stop blockly-code execution on spawn.
-   */
+  /** Create a Fireball that will stop blockly-code execution on spawn. */
   public InevitableFireballSkill() {
     super(TARGET_PLAYER, 500);
     this.damageAmount = 9999;

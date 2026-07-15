@@ -1,15 +1,17 @@
-import dgir.core.utility.DgirCoreUtils;
+import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
+import static dgir.dialect.func.FuncOps.FuncOp;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import dgir.core.analysis.DotCFG;
 import dgir.core.debug.Location;
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.serialization.Utils;
+import dgir.core.utility.DgirCoreUtils;
 import guru.nidi.graphviz.engine.Engine;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
-import org.apache.commons.lang3.tuple.Pair;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -21,11 +23,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
-import static dgir.dialect.func.FuncOps.FuncOp;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.apache.commons.lang3.tuple.Pair;
+import tools.jackson.databind.ObjectMapper;
 
 public class DgirTestUtils {
   public static ObjectMapper mapper = Utils.getMapper(true);

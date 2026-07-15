@@ -1,13 +1,13 @@
 package blockly.dgir.compiler.java.transformations;
 
+import static blockly.dgir.compiler.java.CompilerUtils.*;
+
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.type.PrimitiveType;
 import com.github.javaparser.ast.visitor.GenericVisitorAdapter;
-
-import static blockly.dgir.compiler.java.CompilerUtils.*;
 
 /**
  * Lowers loop control flow into explicit boolean data flow.

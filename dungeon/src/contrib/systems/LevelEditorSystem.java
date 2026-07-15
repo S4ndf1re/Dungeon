@@ -73,9 +73,7 @@ public class LevelEditorSystem extends System {
     LevelEditorSystem.pathToLevels = pathToLevels;
   }
 
-  /**
-   * Creates a new LevelEditorSystem.
-   */
+  /** Creates a new LevelEditorSystem. */
   public LevelEditorSystem() {
     super();
   }

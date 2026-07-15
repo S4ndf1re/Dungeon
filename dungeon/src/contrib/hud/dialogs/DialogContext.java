@@ -43,16 +43,16 @@ public final class DialogContext {
    * Constructs a new DialogContext with the specified parameters and dialog ID.
    *
    * @param dialogType The type of dialog to create
-   * @param center     Whether the dialog should be centered on screen
+   * @param center Whether the dialog should be centered on screen
    * @param attributes Map of serializable attributes for dialog configuration (if null, an empty
-   *                   map is used)
-   * @param dialogId   The dialog ID to use (if null, a new ID is generated)
+   *     map is used)
+   * @param dialogId The dialog ID to use (if null, a new ID is generated)
    */
   public DialogContext(
-    DialogType dialogType,
-    boolean center,
-    Map<String, Serializable> attributes,
-    String dialogId) {
+      DialogType dialogType,
+      boolean center,
+      Map<String, Serializable> attributes,
+      String dialogId) {
     attributes = attributes == null ? new HashMap<>() : new HashMap<>(attributes);
     this.dialogType = dialogType;
     this.center = center;

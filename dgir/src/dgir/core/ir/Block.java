@@ -9,13 +9,12 @@ import dgir.core.serialization.BlockIdGenerator;
 import dgir.core.traits.IIsolatedFromAbove;
 import dgir.core.traits.ITerminator;
 import dgir.core.utility.DgirCoreUtils;
-import org.jetbrains.annotations.*;
-
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.*;
 
 /**
  * A block containing an ordered list of {@link Operation}s. Blocks are always attached to a {@link

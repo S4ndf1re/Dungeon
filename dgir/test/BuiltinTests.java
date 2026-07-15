@@ -1,13 +1,3 @@
-import dgir.core.ir.Dialect;
-import dgir.core.debug.Location;
-import dgir.core.ir.Attribute;
-import dgir.dialect.builtin.BuiltinAttrs;
-import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static dgir.dialect.arith.ArithOps.ConstantOp;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import static dgir.dialect.builtin.BuiltinTypes.IntegerT;
@@ -16,6 +6,15 @@ import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.io.IoOps.PrintOp;
 import static dgir.dialect.str.StrTypes.StringT;
 import static org.junit.jupiter.api.Assertions.*;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.Attribute;
+import dgir.core.ir.Dialect;
+import dgir.dialect.builtin.BuiltinAttrs;
+import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class BuiltinTests {
   private static final Location LOC = Location.UNKNOWN;

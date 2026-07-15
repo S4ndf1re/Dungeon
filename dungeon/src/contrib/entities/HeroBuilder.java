@@ -321,67 +321,67 @@ public final class HeroBuilder {
     // WASD
     inputComp.registerCallback(
         core.configuration.KeyboardConfig.MOVEMENT_UP.value(),
-      (caller) -> Game.network().sendInput(InputMessage.move(Direction.UP)));
+        (caller) -> Game.network().sendInput(InputMessage.move(Direction.UP)));
     inputComp.registerCallback(
         core.configuration.KeyboardConfig.MOVEMENT_DOWN.value(),
-      (caller) -> Game.network().sendInput(InputMessage.move(Direction.DOWN)));
+        (caller) -> Game.network().sendInput(InputMessage.move(Direction.DOWN)));
     inputComp.registerCallback(
         core.configuration.KeyboardConfig.MOVEMENT_RIGHT.value(),
-      (caller) -> Game.network().sendInput(InputMessage.move(Direction.RIGHT)));
+        (caller) -> Game.network().sendInput(InputMessage.move(Direction.RIGHT)));
     inputComp.registerCallback(
         core.configuration.KeyboardConfig.MOVEMENT_LEFT.value(),
-      (caller) -> Game.network().sendInput(InputMessage.move(Direction.LEFT)));
+        (caller) -> Game.network().sendInput(InputMessage.move(Direction.LEFT)));
 
     // Skills
     inputComp.registerCallback(
-      KeyboardConfig.USE_MAIN_SKILL.value(),
+        KeyboardConfig.USE_MAIN_SKILL.value(),
         (caller) ->
             Game.network()
-              .sendInput(InputMessage.castSkill(SkillTools.cursorPositionAsPoint(), true)));
+                .sendInput(InputMessage.castSkill(SkillTools.cursorPositionAsPoint(), true)));
     inputComp.registerCallback(
-      KeyboardConfig.MOUSE_USE_MAIN_SKILL.value(),
+        KeyboardConfig.MOUSE_USE_MAIN_SKILL.value(),
         (caller) ->
             Game.network()
-              .sendInput(InputMessage.castSkill(SkillTools.cursorPositionAsPoint(), true)));
+                .sendInput(InputMessage.castSkill(SkillTools.cursorPositionAsPoint(), true)));
     inputComp.registerCallback(
-      KeyboardConfig.NEXT_MAIN_SKILL.value(),
-      caller -> Game.network().sendInput(InputMessage.nextSkill(true)),
-      false);
-    inputComp.registerCallback(
-      KeyboardConfig.PREV_MAIN_SKILL.value(),
-      caller -> Game.network().sendInput(InputMessage.prevSkill(true)),
+        KeyboardConfig.NEXT_MAIN_SKILL.value(),
+        caller -> Game.network().sendInput(InputMessage.nextSkill(true)),
         false);
     inputComp.registerCallback(
-      KeyboardConfig.MOUSE_USE_SECOND_SKILL.value(),
-      (caller) ->
+        KeyboardConfig.PREV_MAIN_SKILL.value(),
+        caller -> Game.network().sendInput(InputMessage.prevSkill(true)),
+        false);
+    inputComp.registerCallback(
+        KeyboardConfig.MOUSE_USE_SECOND_SKILL.value(),
+        (caller) ->
             Game.network()
-              .sendInput(InputMessage.castSkill(SkillTools.cursorPositionAsPoint(), false)));
+                .sendInput(InputMessage.castSkill(SkillTools.cursorPositionAsPoint(), false)));
     inputComp.registerCallback(
-      KeyboardConfig.NEXT_SECOND_SKILL.value(),
-      caller -> Game.network().sendInput(InputMessage.nextSkill(false)),
-      false);
+        KeyboardConfig.NEXT_SECOND_SKILL.value(),
+        caller -> Game.network().sendInput(InputMessage.nextSkill(false)),
+        false);
     inputComp.registerCallback(
-      KeyboardConfig.PREV_SECOND_SKILL.value(),
-      caller -> Game.network().sendInput(InputMessage.prevSkill(false)),
+        KeyboardConfig.PREV_SECOND_SKILL.value(),
+        caller -> Game.network().sendInput(InputMessage.prevSkill(false)),
         false);
 
     // Interact
     inputComp.registerCallback(
         KeyboardConfig.MOUSE_INTERACT_WORLD.value(),
         (caller) ->
-          Game.network().sendInput(InputMessage.interact(SkillTools.cursorPositionAsPoint())),
+            Game.network().sendInput(InputMessage.interact(SkillTools.cursorPositionAsPoint())),
         false);
     inputComp.registerCallback(
         KeyboardConfig.INTERACT_WORLD.value(),
         (caller) ->
-          Game.network().sendInput(InputMessage.interact(SkillTools.cursorPositionAsPoint())),
+            Game.network().sendInput(InputMessage.interact(SkillTools.cursorPositionAsPoint())),
         false);
 
     // UI controls
     inputComp.registerCallback(
-      KeyboardConfig.INVENTORY_OPEN.value(),
-      (caller) -> Game.network().sendInput(InputMessage.toggleInventory()),
-      false);
+        KeyboardConfig.INVENTORY_OPEN.value(),
+        (caller) -> Game.network().sendInput(InputMessage.toggleInventory()),
+        false);
     inputComp.registerCallback(
         KeyboardConfig.CLOSE_UI.value(),
         (caller) ->
@@ -396,8 +396,8 @@ public final class HeroBuilder {
 
                               String dialogId = uiComp.dialogContext().dialogId();
                               DialogCallbackResolver.createButtonCallback(
-                                  dialogId, DialogContextKeys.ON_CLOSE)
-                                .accept(null);
+                                      dialogId, DialogContextKeys.ON_CLOSE)
+                                  .accept(null);
 
                               // UI is not networked, just close locally
                               Entity uiEntity = firstUI.a();

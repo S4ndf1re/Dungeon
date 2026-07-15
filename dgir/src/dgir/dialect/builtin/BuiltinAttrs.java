@@ -1,19 +1,18 @@
 package dgir.dialect.builtin;
 
-import dgir.core.ir.*;
-import dgir.core.serialization.IntegerAttributeDeserializer;
-import dgir.core.serialization.IntegerAttributeSerializer;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import tools.jackson.databind.annotation.JsonDeserialize;
-import tools.jackson.databind.annotation.JsonSerialize;
-
-import java.util.Optional;
-
 import static dgir.dialect.builtin.BuiltinTypes.FloatT;
 import static dgir.dialect.builtin.BuiltinTypes.IntegerT;
 import static dgir.dialect.func.FuncOps.CallOp;
 import static dgir.dialect.func.FuncOps.FuncOp;
+
+import dgir.core.ir.*;
+import dgir.core.serialization.IntegerAttributeDeserializer;
+import dgir.core.serialization.IntegerAttributeSerializer;
+import java.util.Optional;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 /** Marker interface for builtin attributes shared across dialects. */
 public sealed interface BuiltinAttrs {

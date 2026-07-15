@@ -1,8 +1,8 @@
+import static org.junit.jupiter.api.Assertions.*;
+
 import blockly.dgir.compiler.java.CompilationResult;
 import blockly.dgir.compiler.java.JavaCompiler;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class DiagnosticFormattingTests {
   @Test

@@ -29,7 +29,7 @@ public class MyEnergyPelletCatcherBehavior extends EnergyPelletCatcherBehavior {
    * Pellet.
    *
    * @param catcher Der Catcher, der getroffen wurde
-   * @param pellet  Das Energy Pellet, das den Catcher trifft
+   * @param pellet Das Energy Pellet, das den Catcher trifft
    */
   @Override
   public void catchPellet(Entity catcher, Entity pellet) {

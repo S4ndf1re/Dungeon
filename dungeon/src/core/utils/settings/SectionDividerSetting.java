@@ -9,9 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
 import core.utils.Scene2dElementFactory;
 
-/**
- * A non-interactive setting used to visually separate sections of the settings menu.
- */
+/** A non-interactive setting used to visually separate sections of the settings menu. */
 public class SectionDividerSetting extends SettingValue<Boolean> {
 
   /**

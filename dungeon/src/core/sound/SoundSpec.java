@@ -47,21 +47,21 @@ public record SoundSpec(
    * Constructs a SoundSpec with the specified parameters. The targetEntityIds array is defensively
    * copied to ensure immutability.
    *
-   * @param instanceId        Globally unique instance identifier.
-   * @param soundName         The name of the sound asset to play (file name without extension).
-   * @param baseVolume        The base volume level before distance attenuation. Range: [0.0, 1.0].
-   * @param looping           Whether the sound should loop indefinitely until explicitly stopped.
-   * @param pitch             The playback pitch multiplier. 1.0 is normal speed, 2.0 is double speed, 0.5 is
-   *                          half speed.
-   * @param pan               The stereo pan position. -1.0 is left, 0.0 is center, 1.0 is right.
-   * @param maxDistance       Maximum distance for sound audibility. -1 means infinite range (no distance
-   *                          attenuation).
+   * @param instanceId Globally unique instance identifier.
+   * @param soundName The name of the sound asset to play (file name without extension).
+   * @param baseVolume The base volume level before distance attenuation. Range: [0.0, 1.0].
+   * @param looping Whether the sound should loop indefinitely until explicitly stopped.
+   * @param pitch The playback pitch multiplier. 1.0 is normal speed, 2.0 is double speed, 0.5 is
+   *     half speed.
+   * @param pan The stereo pan position. -1.0 is left, 0.0 is center, 1.0 is right.
+   * @param maxDistance Maximum distance for sound audibility. -1 means infinite range (no distance
+   *     attenuation).
    * @param attenuationFactor Factor for distance-based volume attenuation. 1.0 is default linear
-   *                          attenuation, higher values increase attenuation rate.
-   * @param targetEntityIds   Optional target entity IDs for multiplayer clients. Empty array targets
-   *                          all clients.
+   *     attenuation, higher values increase attenuation rate.
+   * @param targetEntityIds Optional target entity IDs for multiplayer clients. Empty array targets
+   *     all clients.
    * @throws IllegalArgumentException if soundName is null or blank, or if baseVolume is out of
-   *                                  range
+   *     range
    */
   public SoundSpec {
     if (soundName == null || soundName.isBlank())
@@ -81,9 +81,7 @@ public record SoundSpec(
   /** Default stereo pan. -1.0=left, 0.0=center, 1.0=right. Default: 0.0 */
   public static final float DEFAULT_PAN = 0.0f;
 
-  /**
-   * Default attenuation factor for distance-based volume reduction. Default: 1.0
-   */
+  /** Default attenuation factor for distance-based volume reduction. Default: 1.0 */
   public static final float DEFAULT_ATTENUATION = 1.0f;
 
   /**
@@ -246,15 +244,15 @@ public record SoundSpec(
      */
     public SoundSpec build() {
       return new SoundSpec(
-        this.instanceId,
-        this.soundName,
-        this.baseVolume,
-        this.looping,
-        this.pitch,
-        this.pan,
-        this.maxDistance,
-        this.attenuationFactor,
-        this.targetEntityIds);
+          this.instanceId,
+          this.soundName,
+          this.baseVolume,
+          this.looping,
+          this.pitch,
+          this.pan,
+          this.maxDistance,
+          this.attenuationFactor,
+          this.targetEntityIds);
     }
   }
 

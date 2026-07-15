@@ -16,13 +16,13 @@ import java.util.Objects;
  * @see EntityState
  */
 public record SnapshotMessage(int serverTick, List<EntityState> entities, LevelState levelState)
-  implements NetworkMessage {
+    implements NetworkMessage {
 
   /**
    * Creates an immutable snapshot message.
    *
    * @param serverTick optional monotonic tick number assigned by server
-   * @param entities   list of entity states
+   * @param entities list of entity states
    * @param levelState optional level state snapshot
    */
   public SnapshotMessage {

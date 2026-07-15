@@ -10,7 +10,6 @@ import core.utils.Rectangle;
 import core.utils.TriConsumer;
 import core.utils.Vector2;
 import core.utils.logging.DungeonLogger;
-
 import java.util.function.Function;
 
 /**
@@ -109,11 +108,9 @@ public final class CollideComponent implements Component {
    */
   private TriConsumer<Entity, Entity, Direction> collideHold;
 
-  /**
-   * Callback to check, if the entity is static.
-   */
+  /** Callback to check, if the entity is static. */
   private Function<Entity, Boolean> staticCallback =
-    entity -> entity.fetch(VelocityComponent.class).map(vc -> vc.maxSpeed() == 0f).orElse(true);
+      entity -> entity.fetch(VelocityComponent.class).map(vc -> vc.maxSpeed() == 0f).orElse(true);
 
   /**
    * Creates a new {@code CollideComponent}.

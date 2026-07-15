@@ -1,12 +1,12 @@
 package dgir.core.traits;
 
+import static dgir.dialect.builtin.BuiltinAttrs.SymbolRefAttribute;
+
 import dgir.core.ir.Operation;
 import dgir.core.ir.SymbolTable;
 import dgir.dialect.func.FuncOps;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-
-import static dgir.dialect.builtin.BuiltinAttrs.SymbolRefAttribute;
 
 /**
  * Marks an operation that references a symbol by name and must be verifiable against that symbol.

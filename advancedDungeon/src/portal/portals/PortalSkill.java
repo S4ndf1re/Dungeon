@@ -15,11 +15,9 @@ import core.level.utils.Coordinate;
 import core.level.utils.LevelElement;
 import core.utils.*;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
-
 import portal.portals.abstraction.PortalConfig;
 import portal.portals.components.PortalComponent;
 
@@ -36,28 +34,28 @@ public class PortalSkill extends ProjectileSkill {
    * Creates a new portal skill.
    *
    * @param portalColor Color of the portal.
-   * @param config      The Configuration for the portal
+   * @param config The Configuration for the portal
    */
   public PortalSkill(PortalColor portalColor, PortalConfig config) {
     super(
-      portalColor.equals(PortalColor.BLUE) ? "BLUE_PORTAL" : "GREEN_PORTAL",
-      config.cooldown(),
-      portalColor.equals(PortalColor.BLUE)
-        ? new SimpleIPath("skills/blue_projectile")
-        : new SimpleIPath("skills/green_projectile"),
-      config.speed(),
-      config.range(),
-      config.hitBoxSize(),
-      config.hitBoxOffset(),
-      false,
-      config.target());
+        portalColor.equals(PortalColor.BLUE) ? "BLUE_PORTAL" : "GREEN_PORTAL",
+        config.cooldown(),
+        portalColor.equals(PortalColor.BLUE)
+            ? new SimpleIPath("skills/blue_projectile")
+            : new SimpleIPath("skills/green_projectile"),
+        config.speed(),
+        config.range(),
+        config.hitBoxSize(),
+        config.hitBoxOffset(),
+        false,
+        config.target());
     this.portalColor = portalColor;
   }
 
   /**
    * When a portal wall is hit, creates a portal on the wall position.
    *
-   * @param caster     Entity that cast the portal
+   * @param caster Entity that cast the portal
    * @param projectile The portal entity
    */
   @Override
@@ -68,10 +66,10 @@ public class PortalSkill extends ProjectileSkill {
     Vector2 velocity = vc.currentVelocity().normalize();
     Point movedPos = pc.position().translate(velocity);
     Coordinate portalPosition =
-      new Point(Math.round(movedPos.x()), Math.round(movedPos.y())).toCoordinate();
+        new Point(Math.round(movedPos.x()), Math.round(movedPos.y())).toCoordinate();
 
     if (Game.tileAt(portalPosition).isPresent()
-      && Game.tileAt(portalPosition).get().levelElement() == LevelElement.PORTAL) {
+        && Game.tileAt(portalPosition).get().levelElement() == LevelElement.PORTAL) {
       Direction direction = setPortalDirection(portalPosition.toPoint(), pc.position());
       PortalFactory.createPortal(portalPosition.toPoint(), direction, portalColor);
     }
@@ -81,8 +79,8 @@ public class PortalSkill extends ProjectileSkill {
   /**
    * Creates the projectile with all relevant Components.
    *
-   * @param caster  Entity that shoots the portal
-   * @param start   Position from where the portal shoots
+   * @param caster Entity that shoots the portal
+   * @param start Position from where the portal shoots
    * @param aimedOn Position where the portal is aimed on
    */
   @Override
@@ -116,8 +114,8 @@ public class PortalSkill extends ProjectileSkill {
     projectile.add(new ProjectileComponent(start, targetPoint, forceToApply, onEndReached(caster)));
 
     CollideComponent cc =
-      new CollideComponent(
-        hitBoxOffset, hitBoxSize, onCollideEnter(caster), onCollideLeave(caster));
+        new CollideComponent(
+            hitBoxOffset, hitBoxSize, onCollideEnter(caster), onCollideLeave(caster));
     cc.onHold(onCollideHold(caster));
     cc.isSolid(false);
     projectile.add(cc);
@@ -132,7 +130,7 @@ public class PortalSkill extends ProjectileSkill {
    * <p>The closest floor tile to the portal is used to decide its orientation. The calculated
    * direction is also stored for teleportation logic.
    *
-   * @param wallPos       the position of the portal
+   * @param wallPos the position of the portal
    * @param projectilePos original position of the projectile, needed for direction
    * @return the direction the portal should face
    */
@@ -150,7 +148,7 @@ public class PortalSkill extends ProjectileSkill {
     Point nearestTile = list.removeFirst().a();
     /* If nearest is a wall, happens if the angle of the impact at the wall is too steep, take the next best option which is the desired direction. */
     if (Game.tileAt(nearestTile).get().levelElement() == LevelElement.WALL
-      || Game.tileAt(nearestTile).get().levelElement() == LevelElement.PORTAL) {
+        || Game.tileAt(nearestTile).get().levelElement() == LevelElement.PORTAL) {
       nearestTile = list.removeFirst().a();
     }
     Point pointDirection = new Point(wallPos.x() - nearestTile.x(), wallPos.y() - nearestTile.y());

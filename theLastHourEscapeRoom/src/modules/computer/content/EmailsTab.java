@@ -12,19 +12,15 @@ import contrib.hud.dialogs.DialogCallbackResolver;
 import core.sound.Sounds;
 import core.utils.Cursors;
 import core.utils.Scene2dElementFactory;
-
 import java.util.Arrays;
 import java.util.List;
-
 import modules.computer.ComputerDialog;
 import modules.computer.ComputerFactory;
 import modules.computer.ComputerStateComponent;
 import util.LastHourSounds;
 import util.Lore;
 
-/**
- * Tab for displaying the list of emails and their details in the computer UI.
- */
+/** Tab for displaying the list of emails and their details in the computer UI. */
 public class EmailsTab extends ComputerTab {
 
   private static final String PARAGRAPH_SPLIT = "\\\\p";
@@ -66,16 +62,16 @@ public class EmailsTab extends ComputerTab {
     container.add(inboxLabel).left().padBottom(10).row();
 
     Label userLabel =
-      Scene2dElementFactory.createLabel(
-        Lore.ScientistName + " <" + Lore.ScientistEmail + ">", 20, Color.DARK_GRAY);
+        Scene2dElementFactory.createLabel(
+            Lore.ScientistName + " <" + Lore.ScientistEmail + ">", 20, Color.DARK_GRAY);
     container.add(userLabel).left().padBottom(20).row();
 
     Table subArea = new Table();
     container.add(subArea).grow().padLeft(15).row();
 
     Label emailsLabel =
-      Scene2dElementFactory.createLabel(
-        "E-Mails: (" + Lore.EmailList.size() + ")", 24, Color.BLACK);
+        Scene2dElementFactory.createLabel(
+            "E-Mails: (" + Lore.EmailList.size() + ")", 24, Color.BLACK);
     subArea.add(emailsLabel).expandX().left().padBottom(10).row();
 
     Table emailList = new Table();
@@ -85,8 +81,8 @@ public class EmailsTab extends ComputerTab {
     // Action to constantly save scroll position, since we want to restore it when reopening the
     // computer UI / this tab
     scrollPane.addAction(
-      Actions.forever(
-        Actions.run(() -> localState().emailListScrollY(scrollPane.getVisualScrollY()))));
+        Actions.forever(
+            Actions.run(() -> localState().emailListScrollY(scrollPane.getVisualScrollY()))));
     for (Email email : Lore.EmailList) {
       Table emailEntry = createEmailHeader(email);
       emailList.add(emailEntry).left().pad(5, 0, 5, 16 + 5).growX().row();
@@ -105,35 +101,35 @@ public class EmailsTab extends ComputerTab {
     container.pad(10, 20, 10, 10);
 
     Label subjectLabel =
-      Scene2dElementFactory.createLabel(
-        email.subject(), 18, isSelected ? Color.WHITE : Color.BLACK);
+        Scene2dElementFactory.createLabel(
+            email.subject(), 18, isSelected ? Color.WHITE : Color.BLACK);
     subjectLabel.setWrap(true);
     container.add(subjectLabel).width(330);
 
     container
-      .add(Scene2dElementFactory.createVerticalDivider())
-      .width(4)
-      .pad(0, 10, 0, 10)
-      .height(50);
+        .add(Scene2dElementFactory.createVerticalDivider())
+        .width(4)
+        .pad(0, 10, 0, 10)
+        .height(50);
 
     Label senderLabel =
-      Scene2dElementFactory.createLabel(
-        email.sender() + " <" + email.senderMail() + ">",
-        16,
-        isSelected ? Color.WHITE : Color.DARK_GRAY);
+        Scene2dElementFactory.createLabel(
+            email.sender() + " <" + email.senderMail() + ">",
+            16,
+            isSelected ? Color.WHITE : Color.DARK_GRAY);
     senderLabel.setWrap(true);
     container.add(senderLabel).width(400);
 
     container.setTouchable(Touchable.enabled);
     container.setUserObject(Cursors.INTERACT);
     container.addListener(
-      new ClickListener(Input.Buttons.LEFT) {
-        @Override
-        public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-          showEmail(email);
-          return super.touchDown(event, x, y, pointer, button);
-        }
-      });
+        new ClickListener(Input.Buttons.LEFT) {
+          @Override
+          public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+            showEmail(email);
+            return super.touchDown(event, x, y, pointer, button);
+          }
+        });
 
     return container;
   }
@@ -144,7 +140,7 @@ public class EmailsTab extends ComputerTab {
     if (selectedEmail == null) {
       // Placeholder
       Label placeholder =
-        Scene2dElementFactory.createLabel("Select an email to view its details.", 24, Color.GRAY);
+          Scene2dElementFactory.createLabel("Select an email to view its details.", 24, Color.GRAY);
       placeholder.setAlignment(Align.center);
       container.add(placeholder).minSize(400, 500).center();
       return container;
@@ -153,15 +149,15 @@ public class EmailsTab extends ComputerTab {
     container.top().left();
 
     Label senderLabel =
-      Scene2dElementFactory.createLabel("From: " + selectedEmail.sender(), 22, Color.BLACK);
+        Scene2dElementFactory.createLabel("From: " + selectedEmail.sender(), 22, Color.BLACK);
     container.add(senderLabel).left().row();
     Label senderMailLabel =
-      Scene2dElementFactory.createLabel(
-        "Email: " + selectedEmail.senderMail(), 18, Color.DARK_GRAY);
+        Scene2dElementFactory.createLabel(
+            "Email: " + selectedEmail.senderMail(), 18, Color.DARK_GRAY);
     container.add(senderMailLabel).left().padBottom(20).row();
 
     Label subjectLabel =
-      Scene2dElementFactory.createLabel("Subject: " + selectedEmail.subject(), 22, Color.BLACK);
+        Scene2dElementFactory.createLabel("Subject: " + selectedEmail.subject(), 22, Color.BLACK);
     container.add(subjectLabel).left().padBottom(10).row();
 
     VerticalGroup contentTable = new VerticalGroup();
@@ -179,32 +175,32 @@ public class EmailsTab extends ComputerTab {
         Link link = Link.parse(line);
         lineLabel = createLinkLabel(link.text, link.url);
         lineLabel.addListener(
-          new InputListener() {
-            @Override
-            public boolean touchDown(
-              InputEvent event, float x, float y, int pointer, int button) {
-              BrowserTab.getInstance()
-                .ifPresent(
-                  bt -> ComputerDialog.getInstance().orElseThrow().clickedTab(bt.key()));
-              return super.touchDown(event, x, y, pointer, button);
-            }
-
-            @Override
-            public boolean mouseMoved(InputEvent event, float x, float y) {
-              if (emailLinkFull != null) {
-                emailLinkFull.setText(String.format(LINK_SOME, link.url));
+            new InputListener() {
+              @Override
+              public boolean touchDown(
+                  InputEvent event, float x, float y, int pointer, int button) {
+                BrowserTab.getInstance()
+                    .ifPresent(
+                        bt -> ComputerDialog.getInstance().orElseThrow().clickedTab(bt.key()));
+                return super.touchDown(event, x, y, pointer, button);
               }
-              return super.mouseMoved(event, x, y);
-            }
 
-            @Override
-            public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
-              if (emailLinkFull != null) {
-                emailLinkFull.setText(LINK_NONE);
+              @Override
+              public boolean mouseMoved(InputEvent event, float x, float y) {
+                if (emailLinkFull != null) {
+                  emailLinkFull.setText(String.format(LINK_SOME, link.url));
+                }
+                return super.mouseMoved(event, x, y);
               }
-              super.exit(event, x, y, pointer, toActor);
-            }
-          });
+
+              @Override
+              public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
+                if (emailLinkFull != null) {
+                  emailLinkFull.setText(LINK_NONE);
+                }
+                super.exit(event, x, y, pointer, toActor);
+              }
+            });
       } else {
         lineLabel = Scene2dElementFactory.createLabel(line, 18, Color.DARK_GRAY);
       }
@@ -221,7 +217,7 @@ public class EmailsTab extends ComputerTab {
 
     if (!selectedEmail.attachments().isEmpty()) {
       Label attachmentsHeaderLabel =
-        Scene2dElementFactory.createLabel("Attachments:", 20, Color.BLACK);
+          Scene2dElementFactory.createLabel("Attachments:", 20, Color.BLACK);
       container.add(attachmentsHeaderLabel).left().padTop(20).padBottom(10).row();
 
       Table attachmentsTable = new Table();
@@ -230,12 +226,12 @@ public class EmailsTab extends ComputerTab {
         tb.padLeft(tb.getPadLeft() + 10);
         tb.padRight(tb.getPadRight() + 10);
         tb.addListener(
-          new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-              clickedAttachment(attachment);
-            }
-          });
+            new ChangeListener() {
+              @Override
+              public void changed(ChangeEvent event, Actor actor) {
+                clickedAttachment(attachment);
+              }
+            });
         attachmentsTable.add(tb).left().padRight(15);
       }
       container.add(attachmentsTable).left().row();
@@ -267,28 +263,27 @@ public class EmailsTab extends ComputerTab {
       return;
     }
     ComputerDialog.getInstance()
-      .ifPresent(
-        c -> {
-          c.addTab(new FileTab(sharedState(), attachmentName));
-        });
+        .ifPresent(
+            c -> {
+              c.addTab(new FileTab(sharedState(), attachmentName));
+            });
   }
 
   @Override
-  protected void updateState(ComputerStateComponent newStateComp) {
-  }
+  protected void updateState(ComputerStateComponent newStateComp) {}
 
   /**
    * Data class representing an email.
    *
-   * @param sender      the name of the email sender
-   * @param senderMail  the email address of the sender
-   * @param subject     the subject line of the email
-   * @param content     the body content of the email, with paragraphs split by \p and links starting
-   *                    with \a
+   * @param sender the name of the email sender
+   * @param senderMail the email address of the sender
+   * @param subject the subject line of the email
+   * @param content the body content of the email, with paragraphs split by \p and links starting
+   *     with \a
    * @param attachments a list of attachment names included with the email
    */
   public record Email(
-    String sender, String senderMail, String subject, String content, List<String> attachments) {
+      String sender, String senderMail, String subject, String content, List<String> attachments) {
 
     /**
      * Parses the content string into individual lines, splitting by the defined paragraph split
@@ -320,24 +315,24 @@ public class EmailsTab extends ComputerTab {
    * Creates a Label styled as a hyperlink, which opens the given URL in the browser when clicked.
    *
    * @param text the display text for the link
-   * @param url  the URL to navigate to when the link is clicked
+   * @param url the URL to navigate to when the link is clicked
    * @return a Label instance representing the hyperlink
    */
   public static Label createLinkLabel(String text, String url) {
     Label label = Scene2dElementFactory.createLabel(text, 18, Color.BLUE);
     label.setUserObject(Cursors.EXTERNAL);
     label.addListener(
-      new InputListener() {
-        @Override
-        public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-          BrowserTab.getInstance()
-            .ifPresent(
-              bt -> {
-                bt.navigate(url);
-              });
-          return super.touchDown(event, x, y, pointer, button);
-        }
-      });
+        new InputListener() {
+          @Override
+          public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+            BrowserTab.getInstance()
+                .ifPresent(
+                    bt -> {
+                      bt.navigate(url);
+                    });
+            return super.touchDown(event, x, y, pointer, button);
+          }
+        });
     return label;
   }
 }

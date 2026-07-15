@@ -1,20 +1,3 @@
-import dgir.core.debug.Location;
-import dgir.core.debug.ValueDebugInfo;
-import dgir.core.ir.Operation;
-import dgir.vm.api.DebugControl;
-import dgir.vm.api.VM;
-import dgir.vm.dap.DapAdapter;
-import dgir.vm.dialect.io.IoRunners;
-import org.eclipse.lsp4j.debug.*;
-import org.eclipse.lsp4j.debug.services.IDebugProtocolClient;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Map;
-import java.util.concurrent.Callable;
-
 import static dgir.dialect.arith.ArithOps.ConstantOp;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import static dgir.dialect.func.FuncOps.FuncOp;
@@ -24,6 +7,22 @@ import static dgir.dialect.scf.ScfOps.ContinueOp;
 import static dgir.dialect.scf.ScfOps.ForOp;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import dgir.core.debug.Location;
+import dgir.core.debug.ValueDebugInfo;
+import dgir.core.ir.Operation;
+import dgir.vm.api.DebugControl;
+import dgir.vm.api.VM;
+import dgir.vm.dap.DapAdapter;
+import dgir.vm.dialect.io.IoRunners;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import org.eclipse.lsp4j.debug.*;
+import org.eclipse.lsp4j.debug.services.IDebugProtocolClient;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for {@link DapAdapter}.

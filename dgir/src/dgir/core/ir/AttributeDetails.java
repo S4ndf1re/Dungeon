@@ -1,9 +1,8 @@
 package dgir.core.ir;
 
+import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
 
 /**
  * Holds all basic information about an attribute kind and exposes it through a stable interface.

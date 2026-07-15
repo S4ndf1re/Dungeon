@@ -439,8 +439,8 @@ public final class ClientNetwork {
                     inboundQueue.offer(Tuple.of(session, msg));
                   } else {
                     LOGGER.debug(
-                      "Dropping UDP inbound before session init: {}",
-                      msg.getClass().getSimpleName());
+                        "Dropping UDP inbound before session init: {}",
+                        msg.getClass().getSimpleName());
                   }
                 } catch (Exception e) {
                   LOGGER.warn("UDP client decode error", e);

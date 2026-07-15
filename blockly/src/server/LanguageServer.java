@@ -8,7 +8,6 @@ import components.HeroActionComponent;
 import core.level.utils.LevelElement;
 import core.utils.Direction;
 import core.utils.logging.DungeonLogger;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;

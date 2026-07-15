@@ -1,5 +1,8 @@
 package transformations;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import blockly.dgir.compiler.java.CompilerUtils;
 import blockly.dgir.compiler.java.EmitContext;
 import blockly.dgir.compiler.java.transformations.LogicalBinaryToConditional;
@@ -9,9 +12,6 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LogicalBinaryToConditionalTests extends TransformationTestBase {
   @Test
@@ -193,11 +193,13 @@ public class RangeClass {
 
     CompilationUnit cu = StaticJavaParser.parse(code);
     BinaryExpr originalAnd =
-        cu.findFirst(BinaryExpr.class, binaryExpr -> binaryExpr.getOperator() == BinaryExpr.Operator.AND)
+        cu.findFirst(
+                BinaryExpr.class, binaryExpr -> binaryExpr.getOperator() == BinaryExpr.Operator.AND)
             .orElseThrow();
     int andLine = beginLine(originalAnd.getTokenRange().orElseThrow());
 
-    new LogicalBinaryToConditional().visit(cu, new EmitContext("generatedConditionalKeepsOriginalAndLineRange"));
+    new LogicalBinaryToConditional()
+        .visit(cu, new EmitContext("generatedConditionalKeepsOriginalAndLineRange"));
 
     ConditionalExpr lowered = cu.findFirst(ConditionalExpr.class).orElseThrow();
     assertEquals(andLine, beginLine(lowered.getTokenRange().orElseThrow()));
@@ -223,7 +225,8 @@ public class RangeOrderClass {
             .orElseThrow();
     int outerLine = beginLine(outerAnd.getTokenRange().orElseThrow());
 
-    new LogicalBinaryToConditional().visit(cu, new EmitContext("nestedConditionalsPreserveTopToBottomSourceOrder"));
+    new LogicalBinaryToConditional()
+        .visit(cu, new EmitContext("nestedConditionalsPreserveTopToBottomSourceOrder"));
 
     ConditionalExpr outer = cu.findFirst(ConditionalExpr.class).orElseThrow();
     ConditionalExpr inner = outer.getCondition().asEnclosedExpr().getInner().asConditionalExpr();

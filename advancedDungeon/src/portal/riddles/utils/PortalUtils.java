@@ -6,9 +6,7 @@ import core.Entity;
 import core.Game;
 import core.utils.Point;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.Optional;
-
 import portal.portals.abstraction.Calculations;
 import starter.PortalStarter;
 
@@ -22,49 +20,41 @@ import starter.PortalStarter;
  */
 public class PortalUtils {
 
-  /**
-   * Path to the user-defined calculations source file.
-   */
+  /** Path to the user-defined calculations source file. */
   private static final SimpleIPath CALCULATIONS_PATH =
-    new SimpleIPath("advancedDungeon/src/portal/riddles/MyCalculations.java");
+      new SimpleIPath("advancedDungeon/src/portal/riddles/MyCalculations.java");
 
-  /**
-   * Fully qualified class name of the user-defined calculations implementation.
-   */
+  /** Fully qualified class name of the user-defined calculations implementation. */
   private static final String CALCULATIONS_CLASSNAME = "portal.riddles.MyCalculations";
 
-  /**
-   * Name of the blue portal entity.
-   */
+  /** Name of the blue portal entity. */
   public static final String BLUE_PORTAL_NAME = "BLUE_PORTAL";
 
-  /**
-   * Name of the green portal entity.
-   */
+  /** Name of the green portal entity. */
   public static final String GREEN_PORTAL_NAME = "GREEN_PORTAL";
 
   /**
    * Returns the blue portal entity, if present in the current level.
    *
    * @return an {@link Optional} containing the blue portal entity, or {@link Optional#empty()} if
-   * none exists
+   *     none exists
    */
   public static Optional<Entity> getBluePortal() {
     return Game.levelEntities()
-      .filter(entity -> entity.name().equals(BLUE_PORTAL_NAME))
-      .findFirst();
+        .filter(entity -> entity.name().equals(BLUE_PORTAL_NAME))
+        .findFirst();
   }
 
   /**
    * Returns the green portal entity, if present in the current level.
    *
    * @return an {@link Optional} containing the green portal entity, or {@link Optional#empty()} if
-   * none exists
+   *     none exists
    */
   public static Optional<Entity> getGreenPortal() {
     return Game.levelEntities()
-      .filter(entity -> entity.name().equals(GREEN_PORTAL_NAME))
-      .findFirst();
+        .filter(entity -> entity.name().equals(GREEN_PORTAL_NAME))
+        .findFirst();
   }
 
   /**
@@ -96,7 +86,7 @@ public class PortalUtils {
 
     // Fallback: place exit point in front of the portal based on its view direction
     return Tools.getPositionComponent(portal)
-      .position()
-      .translate(Tools.getPositionComponent(portal).viewDirection());
+        .position()
+        .translate(Tools.getPositionComponent(portal).viewDirection());
   }
 }

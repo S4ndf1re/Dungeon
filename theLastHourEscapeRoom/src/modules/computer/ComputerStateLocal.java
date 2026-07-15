@@ -2,12 +2,9 @@ package modules.computer;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import modules.computer.content.EmailsTab;
 
-/**
- * Local state for the computer UI.
- */
+/** Local state for the computer UI. */
 public class ComputerStateLocal {
 
   private static ComputerStateLocal Instance;

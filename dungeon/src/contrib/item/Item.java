@@ -13,7 +13,6 @@ import core.level.elements.tile.FloorTile;
 import core.utils.Point;
 import core.utils.components.draw.animation.Animation;
 import core.utils.logging.DungeonLogger;
-
 import java.util.*;
 
 /**
@@ -101,7 +100,7 @@ public class Item implements CraftingIngredient, CraftingResult {
     this.worldAnimation = worldAnimation;
     if (stackSize > MAX_STACK_SIZE || maxStackSize > MAX_STACK_SIZE) {
       throw new IllegalArgumentException(
-        "Stack size and max stack size cannot be higher than " + MAX_STACK_SIZE);
+          "Stack size and max stack size cannot be higher than " + MAX_STACK_SIZE);
     }
     this.stackSize = (byte) stackSize;
     this.maxStackSize = (byte) maxStackSize;
@@ -211,7 +210,7 @@ public class Item implements CraftingIngredient, CraftingResult {
     Optional<HealthPotionType> type = resolveHealthPotionType(data);
     if (type.isEmpty()) {
       throw new IllegalArgumentException(
-        "Missing or invalid item data for " + ItemPotionHealth.class.getSimpleName());
+          "Missing or invalid item data for " + ItemPotionHealth.class.getSimpleName());
     }
     return new ItemPotionHealth(type.get());
   }
@@ -220,7 +219,7 @@ public class Item implements CraftingIngredient, CraftingResult {
     OptionalInt healAmount = parseInt(data.get(DATA_KEY_HEAL_AMOUNT));
     if (healAmount.isEmpty()) {
       throw new IllegalArgumentException(
-        "Missing or invalid item data for " + ItemHeart.class.getSimpleName());
+          "Missing or invalid item data for " + ItemHeart.class.getSimpleName());
     }
     return new ItemHeart(healAmount.getAsInt());
   }
@@ -371,7 +370,7 @@ public class Item implements CraftingIngredient, CraftingResult {
   public void stackSize(int stackSize) {
     if (stackSize > MAX_STACK_SIZE || stackSize < 0) {
       throw new IllegalArgumentException(
-        "Stack size cannot be higher than " + MAX_STACK_SIZE + " or lower than 0");
+          "Stack size cannot be higher than " + MAX_STACK_SIZE + " or lower than 0");
     }
 
     this.stackSize = (byte) stackSize;
@@ -394,7 +393,7 @@ public class Item implements CraftingIngredient, CraftingResult {
   public void maxStackSize(int maxStackSize) {
     if (maxStackSize > MAX_STACK_SIZE || maxStackSize < 1) {
       throw new IllegalArgumentException(
-        "Max stack size cannot be higher than " + MAX_STACK_SIZE + " or lower than 1");
+          "Max stack size cannot be higher than " + MAX_STACK_SIZE + " or lower than 1");
     }
     this.maxStackSize = (byte) maxStackSize;
   }
@@ -482,8 +481,8 @@ public class Item implements CraftingIngredient, CraftingResult {
     Item other = (Item) obj;
 
     return displayName.equals(other.displayName)
-      && description.equals(other.description)
-      && stackSize == other.stackSize
-      && maxStackSize == other.maxStackSize;
+        && description.equals(other.description)
+        && stackSize == other.stackSize
+        && maxStackSize == other.maxStackSize;
   }
 }

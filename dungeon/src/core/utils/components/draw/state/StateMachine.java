@@ -5,7 +5,6 @@ import core.utils.components.draw.animation.Animation;
 import core.utils.components.draw.animation.AnimationConfig;
 import core.utils.components.draw.animation.SpritesheetConfig;
 import core.utils.components.path.IPath;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

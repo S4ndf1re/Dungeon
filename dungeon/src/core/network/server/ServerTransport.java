@@ -430,21 +430,21 @@ public final class ServerTransport {
 
     if (!tracker.isTracked(msg.soundInstanceId())) {
       LOGGER.debug(
-        "Ignoring SoundFinishedMessage for unknown sound {} from client {}",
-        msg.soundInstanceId(),
-        clientId);
+          "Ignoring SoundFinishedMessage for unknown sound {} from client {}",
+          msg.soundInstanceId(),
+          clientId);
       return;
     }
 
     if (!tracker.canReport(clientId, msg.soundInstanceId())) {
       LOGGER.warn(
-        "Client {} not authorized to report sound {} finished", clientId, msg.soundInstanceId());
+          "Client {} not authorized to report sound {} finished", clientId, msg.soundInstanceId());
       return;
     }
 
     LOGGER.debug(
         "Received SoundFinishedMessage from client {}: instanceId={}",
-      clientId,
+        clientId,
         msg.soundInstanceId());
     Game.audio().notifySoundFinished(msg.soundInstanceId());
   }
@@ -685,14 +685,14 @@ public final class ServerTransport {
     }
     Entity entity = optEntity.get();
     NetworkConfig.ENTITY_SPAWN_STRATEGY
-      .buildSpawnEvent(entity)
-      .ifPresentOrElse(
-        event -> session.sendMessage(event, true),
-        () ->
-          LOGGER.warn(
-            "Entity id='{}' not eligible for spawn (entity was: '{}')",
-            entityId,
-            entity.name()));
+        .buildSpawnEvent(entity)
+        .ifPresentOrElse(
+            event -> session.sendMessage(event, true),
+            () ->
+                LOGGER.warn(
+                    "Entity id='{}' not eligible for spawn (entity was: '{}')",
+                    entityId,
+                    entity.name()));
   }
 
   private void onInputMessage(Session session, InputMessage msg) {

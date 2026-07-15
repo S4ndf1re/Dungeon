@@ -17,11 +17,11 @@ class SoundSpecTest {
     SoundSpec spec = SoundSpec.builder("ping").targets(ids).build();
 
     ids[0] = 99;
-    assertArrayEquals(new int[]{1, 2}, spec.targetEntityIds());
+    assertArrayEquals(new int[] {1, 2}, spec.targetEntityIds());
 
     int[] returned = spec.targetEntityIds();
     returned[1] = 77;
-    assertArrayEquals(new int[]{1, 2}, spec.targetEntityIds());
+    assertArrayEquals(new int[] {1, 2}, spec.targetEntityIds());
   }
 
   @Test

@@ -2,14 +2,6 @@ package dgir.vm.api;
 
 import dgir.dialect.builtin.BuiltinOps;
 import dgir.vm.dap.DapServer;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.lsp4j.debug.*;
-import org.eclipse.lsp4j.debug.launch.DSPLauncher;
-import org.eclipse.lsp4j.debug.services.IDebugProtocolClient;
-import org.eclipse.lsp4j.debug.services.IDebugProtocolServer;
-import org.eclipse.lsp4j.jsonrpc.Launcher;
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -18,6 +10,13 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.lsp4j.debug.*;
+import org.eclipse.lsp4j.debug.launch.DSPLauncher;
+import org.eclipse.lsp4j.debug.services.IDebugProtocolClient;
+import org.eclipse.lsp4j.debug.services.IDebugProtocolServer;
+import org.eclipse.lsp4j.jsonrpc.Launcher;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility façade for creating and connecting to a {@link DapServer}.

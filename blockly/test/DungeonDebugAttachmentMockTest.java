@@ -1,4 +1,12 @@
+import static org.junit.jupiter.api.Assertions.*;
+
 import dgir.vm.api.DapServerUtils.CollectingClient;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.eclipse.lsp4j.debug.ConfigurationDoneArguments;
 import org.eclipse.lsp4j.debug.ContinueArguments;
 import org.eclipse.lsp4j.debug.InitializeRequestArguments;
@@ -7,15 +15,6 @@ import org.eclipse.lsp4j.debug.launch.DSPLauncher;
 import org.eclipse.lsp4j.debug.services.IDebugProtocolServer;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.junit.jupiter.api.Test;
-
-import java.net.InetAddress;
-import java.net.Socket;
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /** Mock-DAP integration test for visually inspecting debugger attach and pause overlay behavior. */
 public class DungeonDebugAttachmentMockTest extends DungeonCompilerTestBase {

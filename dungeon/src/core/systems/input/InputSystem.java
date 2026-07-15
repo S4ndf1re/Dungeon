@@ -79,9 +79,9 @@ public final class InputSystem extends System {
     boolean isMouseButton =
         key == Input.Buttons.LEFT || key == Input.Buttons.RIGHT || key == Input.Buttons.MIDDLE;
     boolean isPressed =
-      isMouseButton ? InputManager.isButtonPressed(key) : InputManager.isKeyPressed(key);
+        isMouseButton ? InputManager.isButtonPressed(key) : InputManager.isKeyPressed(key);
     boolean isJustPressed =
-      isMouseButton ? InputManager.isButtonJustPressed(key) : InputManager.isKeyJustPressed(key);
+        isMouseButton ? InputManager.isButtonJustPressed(key) : InputManager.isKeyJustPressed(key);
 
     if ((isJustPressed && !data.repeat()) || (isPressed && data.repeat())) {
       data.callback().accept(entity);

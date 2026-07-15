@@ -8,35 +8,29 @@ import core.components.DrawComponent;
 import core.utils.components.draw.animation.Animation;
 import core.utils.components.draw.animation.AnimationConfig;
 import core.utils.components.draw.animation.SpritesheetConfig;
-
 import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
-/**
- * Tests for {@link DrawComponentFactory}.
- */
+/** Tests for {@link DrawComponentFactory}. */
 public class DrawComponentFactoryTest {
 
   private static final float DELTA = 1e-6f;
   private static final String TEXTURE_PATH = "animation/missing_texture.png";
 
-  /**
-   * Verifies reconstruction with plain texture payloads.
-   */
+  /** Verifies reconstruction with plain texture payloads. */
   @Test
   public void testFromDrawInfo_singleTexture() {
     DrawInfoData info =
-      new DrawInfoData(
-        TEXTURE_PATH,
-        1.5f,
-        2.0f,
-        "idle",
-        3,
-        123,
-        new DrawInfoData.AnimationConfigData(5, true, false, false),
-        null,
-        null);
+        new DrawInfoData(
+            TEXTURE_PATH,
+            1.5f,
+            2.0f,
+            "idle",
+            3,
+            123,
+            new DrawInfoData.AnimationConfigData(5, true, false, false),
+            null,
+            null);
 
     DrawComponent drawComponent = DrawComponentFactory.fromDrawInfo(info);
     Animation animation = drawComponent.currentAnimation();
@@ -53,22 +47,20 @@ public class DrawComponentFactoryTest {
     assertEquals(123, drawComponent.depth());
   }
 
-  /**
-   * Verifies reconstruction with explicit spritesheet payloads.
-   */
+  /** Verifies reconstruction with explicit spritesheet payloads. */
   @Test
   public void testFromDrawInfo_spritesheet() {
     DrawInfoData info =
-      new DrawInfoData(
-        TEXTURE_PATH,
-        null,
-        null,
-        "idle",
-        1,
-        -8,
-        new DrawInfoData.AnimationConfigData(2, false, true, true),
-        new DrawInfoData.SpritesheetConfigData(8, 12, 1, 2, 3, 4),
-        null);
+        new DrawInfoData(
+            TEXTURE_PATH,
+            null,
+            null,
+            "idle",
+            1,
+            -8,
+            new DrawInfoData.AnimationConfigData(2, false, true, true),
+            new DrawInfoData.SpritesheetConfigData(8, 12, 1, 2, 3, 4),
+            null);
 
     DrawComponent drawComponent = DrawComponentFactory.fromDrawInfo(info);
     Animation animation = drawComponent.currentAnimation();
@@ -90,22 +82,20 @@ public class DrawComponentFactoryTest {
     assertEquals(-8, drawComponent.depth());
   }
 
-  /**
-   * Verifies frames-per-sprite values below 1 are clamped during reconstruction.
-   */
+  /** Verifies frames-per-sprite values below 1 are clamped during reconstruction. */
   @Test
   public void testFromDrawInfo_framesPerSpriteGuard() {
     DrawInfoData info =
-      new DrawInfoData(
-        TEXTURE_PATH,
-        null,
-        null,
-        "idle",
-        4,
-        77,
-        new DrawInfoData.AnimationConfigData(0, true, false, false),
-        null,
-        null);
+        new DrawInfoData(
+            TEXTURE_PATH,
+            null,
+            null,
+            "idle",
+            4,
+            77,
+            new DrawInfoData.AnimationConfigData(0, true, false, false),
+            null,
+            null);
 
     DrawComponent drawComponent = DrawComponentFactory.fromDrawInfo(info);
     Animation animation = drawComponent.currentAnimation();
@@ -115,40 +105,38 @@ public class DrawComponentFactoryTest {
     assertEquals(77, drawComponent.depth());
   }
 
-  /**
-   * Verifies custom state definitions are reconstructed for spawn synchronization.
-   */
+  /** Verifies custom state definitions are reconstructed for spawn synchronization. */
   @Test
   public void testFromDrawInfo_customStateDefinitions() {
     DrawInfoData.StateAnimationData closedAnimation =
-      new DrawInfoData.StateAnimationData(
-        TEXTURE_PATH,
-        null,
-        null,
-        new DrawInfoData.AnimationConfigData(1, true, false, false),
-        null);
+        new DrawInfoData.StateAnimationData(
+            TEXTURE_PATH,
+            null,
+            null,
+            new DrawInfoData.AnimationConfigData(1, true, false, false),
+            null);
     DrawInfoData.StateAnimationData openAnimation =
-      new DrawInfoData.StateAnimationData(
-        TEXTURE_PATH,
-        null,
-        null,
-        new DrawInfoData.AnimationConfigData(1, true, false, false),
-        null);
+        new DrawInfoData.StateAnimationData(
+            TEXTURE_PATH,
+            null,
+            null,
+            new DrawInfoData.AnimationConfigData(1, true, false, false),
+            null);
     DrawInfoData info =
-      new DrawInfoData(
-        TEXTURE_PATH,
-        null,
-        null,
-        "closed",
-        0,
-        2048,
-        new DrawInfoData.AnimationConfigData(1, true, false, false),
-        null,
-        List.of(
-          new DrawInfoData.StateData(
-            "closed", DrawInfoData.StateType.BASIC, closedAnimation, null, null, null),
-          new DrawInfoData.StateData(
-            "open", DrawInfoData.StateType.BASIC, openAnimation, null, null, null)));
+        new DrawInfoData(
+            TEXTURE_PATH,
+            null,
+            null,
+            "closed",
+            0,
+            2048,
+            new DrawInfoData.AnimationConfigData(1, true, false, false),
+            null,
+            List.of(
+                new DrawInfoData.StateData(
+                    "closed", DrawInfoData.StateType.BASIC, closedAnimation, null, null, null),
+                new DrawInfoData.StateData(
+                    "open", DrawInfoData.StateType.BASIC, openAnimation, null, null, null)));
 
     DrawComponent drawComponent = DrawComponentFactory.fromDrawInfo(info);
 

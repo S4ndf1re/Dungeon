@@ -1,17 +1,16 @@
 package dgir.dialect.io;
 
-import dgir.core.ir.Dialect;
+import static dgir.dialect.io.IoOps.ConsoleInOp;
+import static dgir.dialect.io.IoOps.PrintOp;
+
 import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Op;
 import dgir.core.ir.TypeDescriptor;
+import java.util.List;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-
-import static dgir.dialect.io.IoOps.ConsoleInOp;
-import static dgir.dialect.io.IoOps.PrintOp;
 
 /**
  * The {@code io} dialect provides basic console input/output operations.

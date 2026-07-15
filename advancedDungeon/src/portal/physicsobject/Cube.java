@@ -15,31 +15,28 @@ import core.utils.Vector2;
 import core.utils.components.draw.animation.Animation;
 import core.utils.components.path.SimpleIPath;
 
-/**
- * A Cube can be picked up and used to trigger {@link PressurePlates}.
- */
+/** A Cube can be picked up and used to trigger {@link PressurePlates}. */
 public class Cube {
   private static final SimpleIPath PORTAL_CUBE =
-    new SimpleIPath("portal/portal_cube/portal_cube.png");
+      new SimpleIPath("portal/portal_cube/portal_cube.png");
   private static final float cube_mass = 3f;
   private static final float cube_maxSpeed = 10f;
 
   /**
    * Creates a portal cube entity at the given position.
    *
-   * @param position     The initial position of the portal cube.
-   * @param mass         The mass of the cube
+   * @param position The initial position of the portal cube.
+   * @param mass The mass of the cube
    * @param isPickupable should this entity be pickupable.
-   * @param texture      Path to the texture
+   * @param texture Path to the texture
    * @return A new portal cube entity.
    */
   public static Entity portalCube(
-    Point position, float mass, boolean isPickupable, String texture) {
+      Point position, float mass, boolean isPickupable, String texture) {
     Entity portalCube = new Entity("attachablePortalCube");
     portalCube.add(new PortalCubeComponent());
     portalCube.add(new PositionComponent(position));
-    portalCube.add(new VelocityComponent(cube_maxSpeed, mass, entity -> {
-    }, false));
+    portalCube.add(new VelocityComponent(cube_maxSpeed, mass, entity -> {}, false));
     portalCube.add(new DrawComponent(new Animation(new SimpleIPath(texture))));
 
     final boolean[] attached = {false};
@@ -64,24 +61,24 @@ public class Cube {
   }
 
   private static Interaction pickupInteraction(
-    boolean[] attached, Entity portalCube, CollideComponent cc) {
+      boolean[] attached, Entity portalCube, CollideComponent cc) {
     return new Interaction(
-      (cube, hero) -> {
-        handlePickup(hero, cube, portalCube, cc, attached);
-      },
-      2f);
+        (cube, hero) -> {
+          handlePickup(hero, cube, portalCube, cc, attached);
+        },
+        2f);
   }
 
   private static void handlePickup(
-    Entity hero, Entity cube, Entity portalCube, CollideComponent cc, boolean[] attached) {
+      Entity hero, Entity cube, Entity portalCube, CollideComponent cc, boolean[] attached) {
     PositionComponent interactorPositioncomponent =
-      hero.fetch(PositionComponent.class).orElseThrow();
+        hero.fetch(PositionComponent.class).orElseThrow();
     PositionComponent interactedPositioncomponent =
-      cube.fetch(PositionComponent.class).orElseThrow();
+        cube.fetch(PositionComponent.class).orElseThrow();
     if (!attached[0]) {
       AttachmentComponent attachmentComponent =
-        new AttachmentComponent(
-          Vector2.ZERO, interactedPositioncomponent, interactorPositioncomponent);
+          new AttachmentComponent(
+              Vector2.ZERO, interactedPositioncomponent, interactorPositioncomponent);
       portalCube.add(attachmentComponent);
       cc.isSolid(false);
       attached[0] = true;
@@ -91,32 +88,32 @@ public class Cube {
   }
 
   private static void detachCube(
-    Entity portalCube,
-    PositionComponent interactorPositioncomponent,
-    PositionComponent interactedPositioncomponent,
-    boolean[] attached) {
+      Entity portalCube,
+      PositionComponent interactorPositioncomponent,
+      PositionComponent interactedPositioncomponent,
+      boolean[] attached) {
     portalCube.remove(AttachmentComponent.class);
     Game.tileAt(interactedPositioncomponent.coordinate())
-      .ifPresent(
-        tile -> {
-          if (tile.levelElement() == LevelElement.WALL
-            || tile.levelElement() == LevelElement.GITTER
-            || tile.levelElement() == LevelElement.GLASSWALL
-            || tile.levelElement() == LevelElement.PORTAL) {
-            interactedPositioncomponent.position(interactorPositioncomponent.position());
-          }
-        });
+        .ifPresent(
+            tile -> {
+              if (tile.levelElement() == LevelElement.WALL
+                  || tile.levelElement() == LevelElement.GITTER
+                  || tile.levelElement() == LevelElement.GLASSWALL
+                  || tile.levelElement() == LevelElement.PORTAL) {
+                interactedPositioncomponent.position(interactorPositioncomponent.position());
+              }
+            });
     attached[0] = false;
   }
 
   private static CollideComponent createCollideComponent(boolean[] attached) {
     CollideComponent cc = new CollideComponent();
     cc.collideLeave(
-      (self, other, dir) -> {
-        if (!cc.isSolid() && !attached[0]) {
-          cc.isSolid(true);
-        }
-      });
+        (self, other, dir) -> {
+          if (!cc.isSolid() && !attached[0]) {
+            cc.isSolid(true);
+          }
+        });
     return cc;
   }
 }

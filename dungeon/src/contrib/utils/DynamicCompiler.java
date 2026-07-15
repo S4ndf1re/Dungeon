@@ -62,7 +62,7 @@ public class DynamicCompiler {
 
   private static JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
   private static StandardJavaFileManager fileManager =
-    compiler.getStandardFileManager(null, null, null);
+      compiler.getStandardFileManager(null, null, null);
   private static final Map<String, String> hashCache = new HashMap<>();
   private static final Map<String, Class<?>> classCache = new HashMap<>();
 

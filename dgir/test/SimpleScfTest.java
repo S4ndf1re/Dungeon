@@ -1,10 +1,10 @@
-import dgir.core.ir.Dialect;
-import dgir.core.debug.Location;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import static dgir.dialect.arith.ArithOps.ConstantOp;
 import static dgir.dialect.scf.ScfOps.*;
+
+import dgir.core.debug.Location;
+import dgir.core.ir.Dialect;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /** Simple test to debug SCF operations */
 public class SimpleScfTest {

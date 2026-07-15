@@ -6,28 +6,26 @@ import core.network.codec.CommonProtoConverters;
 import core.network.codec.MessageConverter;
 import core.network.messages.c2s.RegisterUdp;
 
-/**
- * Converter for client-to-server UDP registration messages.
- */
+/** Converter for client-to-server UDP registration messages. */
 public final class RegisterUdpConverter
-  implements MessageConverter<RegisterUdp, core.network.proto.c2s.RegisterUdp> {
+    implements MessageConverter<RegisterUdp, core.network.proto.c2s.RegisterUdp> {
   private static final byte WIRE_TYPE_ID = 4;
 
   @Override
   public core.network.proto.c2s.RegisterUdp toProto(RegisterUdp message) {
     return core.network.proto.c2s.RegisterUdp.newBuilder()
-      .setSessionId(message.sessionId())
-      .setSessionToken(ByteString.copyFrom(message.sessionToken()))
-      .setClientId(message.clientId())
-      .build();
+        .setSessionId(message.sessionId())
+        .setSessionToken(ByteString.copyFrom(message.sessionToken()))
+        .setClientId(message.clientId())
+        .build();
   }
 
   @Override
   public RegisterUdp fromProto(core.network.proto.c2s.RegisterUdp proto) {
     return new RegisterUdp(
-      proto.getSessionId(),
-      proto.getSessionToken().toByteArray(),
-      CommonProtoConverters.toShortExact(proto.getClientId(), "client_id"));
+        proto.getSessionId(),
+        proto.getSessionToken().toByteArray(),
+        CommonProtoConverters.toShortExact(proto.getClientId(), "client_id"));
   }
 
   @Override

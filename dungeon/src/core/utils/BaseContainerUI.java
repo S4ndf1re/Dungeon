@@ -39,7 +39,7 @@ public class BaseContainerUI extends Table implements IResizable {
    * Creates a new BaseContainerUI with the specified content actor and alignment.
    *
    * @param content The actor to display.
-   * @param align   The alignment/anchor point.
+   * @param align The alignment/anchor point.
    */
   public BaseContainerUI(Actor content, int align) {
     this(content, align, 0, 0, false, true);
@@ -48,8 +48,8 @@ public class BaseContainerUI extends Table implements IResizable {
   /**
    * Creates a new BaseContainerUI with the specified content actor, alignment, and offsets.
    *
-   * @param content   The actor to display.
-   * @param grow      Whether the content should grow to fill available space in its cell.
+   * @param content The actor to display.
+   * @param grow Whether the content should grow to fill available space in its cell.
    * @param playSound Whether to play the dialog open sound effect when this UI is created.
    */
   public BaseContainerUI(Actor content, boolean grow, boolean playSound) {
@@ -59,15 +59,15 @@ public class BaseContainerUI extends Table implements IResizable {
   /**
    * Creates a new BaseContainerUI with the specified content actor, alignment, and offsets.
    *
-   * @param content   The actor to display.
-   * @param align     The alignment/anchor point.
-   * @param offsetX   The X offset from the anchor point.
-   * @param offsetY   The Y offset from the anchor point.
-   * @param grow      Whether the content should grow to fill available space in its cell.
+   * @param content The actor to display.
+   * @param align The alignment/anchor point.
+   * @param offsetX The X offset from the anchor point.
+   * @param offsetY The Y offset from the anchor point.
+   * @param grow Whether the content should grow to fill available space in its cell.
    * @param playSound Whether to play the dialog open sound effect when this UI is created
    */
   public BaseContainerUI(
-    Actor content, int align, float offsetX, float offsetY, boolean grow, boolean playSound) {
+      Actor content, int align, float offsetX, float offsetY, boolean grow, boolean playSound) {
     this.align = align;
     this.offsetX = offsetX;
     this.offsetY = offsetY;
@@ -96,7 +96,7 @@ public class BaseContainerUI extends Table implements IResizable {
   /**
    * Called when the viewport is resized.
    *
-   * @param width  The new width of the viewport.
+   * @param width The new width of the viewport.
    * @param height The new height of the viewport.
    */
   @Override
@@ -154,7 +154,7 @@ public class BaseContainerUI extends Table implements IResizable {
   /**
    * Sets the alignment and offset.
    *
-   * @param align   The alignment (use {@link Align} constants).
+   * @param align The alignment (use {@link Align} constants).
    * @param offsetX The X offset.
    * @param offsetY The Y offset.
    */

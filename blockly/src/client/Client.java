@@ -23,17 +23,16 @@ import core.utils.components.path.SimpleIPath;
 import core.utils.logging.DungeonLogger;
 import dgir.vm.api.DialectRunner;
 import entities.HeroTankControlledFactory;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import level.produs.*;
 import level.sandbox.SandboxLevel;
 import server.FrontendServer;
 import server.Server;
 import systems.HeroActionTickSystem;
 import systems.TintTilesSystem;
-
-import java.io.IOException;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * This Class must be run to start the dungeon application. Otherwise, the blockly frontend won't

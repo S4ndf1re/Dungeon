@@ -14,9 +14,7 @@ import core.utils.components.draw.animation.Animation;
 import core.utils.components.draw.state.State;
 import core.utils.components.draw.state.StateMachine;
 import core.utils.components.path.SimpleIPath;
-
 import java.util.*;
-
 import portal.portals.components.PortalComponent;
 import portal.riddles.utils.PortalUtils;
 
@@ -45,32 +43,32 @@ public class PortalFactory {
    * <p>If a portal of the same color already exists, it will be replaced. If the new portal
    * overlaps with the other portal, the other portal will be removed.
    *
-   * @param point     the position where the portal will be placed.
+   * @param point the position where the portal will be placed.
    * @param direction The output direction of the portal.
-   * @param color     the portal color, see {@link PortalColor}f
+   * @param color the portal color, see {@link PortalColor}f
    */
   public static void createPortal(Point point, Direction direction, PortalColor color) {
     Optional<Entity> portalToCreate =
-      color == PortalColor.BLUE ? PortalUtils.getBluePortal() : PortalUtils.getGreenPortal();
+        color == PortalColor.BLUE ? PortalUtils.getBluePortal() : PortalUtils.getGreenPortal();
     Optional<Entity> otherPortal =
-      color == PortalColor.BLUE ? PortalUtils.getGreenPortal() : PortalUtils.getBluePortal();
+        color == PortalColor.BLUE ? PortalUtils.getGreenPortal() : PortalUtils.getBluePortal();
     String portalName =
-      color == PortalColor.BLUE ? PortalUtils.BLUE_PORTAL_NAME : PortalUtils.GREEN_PORTAL_NAME;
+        color == PortalColor.BLUE ? PortalUtils.BLUE_PORTAL_NAME : PortalUtils.GREEN_PORTAL_NAME;
     SimpleIPath texturePath =
-      color == PortalColor.BLUE ? BLUE_PORTAL_TEXTURE : GREEN_PORTAL_TEXTURE;
+        color == PortalColor.BLUE ? BLUE_PORTAL_TEXTURE : GREEN_PORTAL_TEXTURE;
 
     checkIfOtherPortalIsPresent(otherPortal, point);
     portalToCreate.ifPresentOrElse(
-      portal -> updateExistingPortal(portal, point, direction, color),
-      () -> spawnNewPortal(portalName, texturePath, point, direction, color));
+        portal -> updateExistingPortal(portal, point, direction, color),
+        () -> spawnNewPortal(portalName, texturePath, point, direction, color));
   }
 
   private static void spawnNewPortal(
-    String portalName,
-    SimpleIPath texturePath,
-    Point point,
-    Direction direction,
-    PortalColor color) {
+      String portalName,
+      SimpleIPath texturePath,
+      Point point,
+      Direction direction,
+      PortalColor color) {
     Entity portal = new Entity(portalName);
     // To allow collision with the stationary Portal elements like lightwalls.
     portal.add(new VelocityComponent(0.0000000001f));
@@ -91,8 +89,8 @@ public class PortalFactory {
     portal.add(pc);
 
     CollideComponent cc =
-      PortalCollisionHandler.setCollideComponent(
-        direction, PortalCollisionHandler.createOnCollideHandler(color));
+        PortalCollisionHandler.setCollideComponent(
+            direction, PortalCollisionHandler.createOnCollideHandler(color));
     cc.onHold(PortalCollisionHandler.createOnHoldHandler(color));
 
     cc.isSolid(false);
@@ -104,7 +102,7 @@ public class PortalFactory {
   }
 
   private static void updateExistingPortal(
-    Entity portal, Point point, Direction direction, PortalColor color) {
+      Entity portal, Point point, Direction direction, PortalColor color) {
     Point oldPosition = portal.fetch(PositionComponent.class).get().position();
     // wenn das Portal an die gleiche stelle geschossen wird, passiert nichts
     if (oldPosition.equals(point)) {
@@ -124,59 +122,59 @@ public class PortalFactory {
 
   private static void checkIfOtherPortalIsPresent(Optional<Entity> otherPortal, Point point) {
     otherPortal.ifPresent(
-      portal -> {
-        if (portal.fetch(PositionComponent.class).get().position().equals(point)) {
-          Entity other = portal.fetch(PortalComponent.class).get().getExtendedEntityThrough();
-          if (other != null) {
-            PortalExtendHandler.clearExtendedEntity(portal, other);
+        portal -> {
+          if (portal.fetch(PositionComponent.class).get().position().equals(point)) {
+            Entity other = portal.fetch(PortalComponent.class).get().getExtendedEntityThrough();
+            if (other != null) {
+              PortalExtendHandler.clearExtendedEntity(portal, other);
+            }
+            otherPortal.ifPresent(PortalFactory::clearPortal);
           }
-          otherPortal.ifPresent(PortalFactory::clearPortal);
-        }
-      });
+        });
   }
 
   /**
    * Updates the visual of a portal according to its direction.
    *
-   * @param color     the color of the portal.
+   * @param color the color of the portal.
    * @param direction the new direction of the portal.
    */
   private static void updateVisual(PortalColor color, Direction direction) {
     if (color == PortalColor.GREEN) {
       PortalUtils.getGreenPortal()
-        .flatMap(portal -> portal.fetch(DrawComponent.class))
-        .ifPresent(dc -> dc.stateMachine().setState(direction.name(), null));
+          .flatMap(portal -> portal.fetch(DrawComponent.class))
+          .ifPresent(dc -> dc.stateMachine().setState(direction.name(), null));
     } else {
       PortalUtils.getBluePortal()
-        .flatMap(portal -> portal.fetch(DrawComponent.class))
-        .ifPresent(dc -> dc.stateMachine().setState(direction.name(), null));
+          .flatMap(portal -> portal.fetch(DrawComponent.class))
+          .ifPresent(dc -> dc.stateMachine().setState(direction.name(), null));
     }
   }
 
   /**
    * Moves a portal to a new position, updates the direction and collision component.
    *
-   * @param portal    The portal that gets moved and updated.
+   * @param portal The portal that gets moved and updated.
    * @param direction The output direction of the portal.
-   * @param point     The position of the new portal.
-   * @param color     The color of the portal.
+   * @param point The position of the new portal.
+   * @param color The color of the portal.
    */
   private static void moveExistingPortal(
-    Entity portal, Direction direction, Point point, PortalColor color) {
+      Entity portal, Direction direction, Point point, PortalColor color) {
     portal.fetch(PositionComponent.class).get().position(point);
     portal.fetch(PositionComponent.class).get().viewDirection(direction);
 
     CollideComponent cc =
-      PortalCollisionHandler.setCollideComponent(
-        direction,
-        color == PortalColor.BLUE
-          ? PortalCollisionHandler.createOnCollideHandler(PortalColor.BLUE)
-          : PortalCollisionHandler.createOnCollideHandler(PortalColor.GREEN));
+        PortalCollisionHandler.setCollideComponent(
+            direction,
+            color == PortalColor.BLUE
+                ? PortalCollisionHandler.createOnCollideHandler(PortalColor.BLUE)
+                : PortalCollisionHandler.createOnCollideHandler(PortalColor.GREEN));
     cc.isSolid(false);
     cc.onHold(
-      color == PortalColor.BLUE
-        ? PortalCollisionHandler.createOnHoldHandler(PortalColor.BLUE)
-        : PortalCollisionHandler.createOnHoldHandler(PortalColor.GREEN));
+        color == PortalColor.BLUE
+            ? PortalCollisionHandler.createOnHoldHandler(PortalColor.BLUE)
+            : PortalCollisionHandler.createOnHoldHandler(PortalColor.GREEN));
     portal.remove(CollideComponent.class);
     portal.add(cc);
   }
@@ -189,16 +187,16 @@ public class PortalFactory {
    */
   private static void ignorePortalInProjectiles(Entity portal) {
     Game.allEntities()
-      .filter(entity -> entity.isPresent(SkillComponent.class))
-      .forEach(
-        entity -> {
-          SkillComponent skillComponent = entity.fetch(SkillComponent.class).get();
-          for (Skill skill : skillComponent.getSkills()) {
-            if (skill instanceof ProjectileSkill projectileSkill) {
-              projectileSkill.ignoreEntity(portal);
-            }
-          }
-        });
+        .filter(entity -> entity.isPresent(SkillComponent.class))
+        .forEach(
+            entity -> {
+              SkillComponent skillComponent = entity.fetch(SkillComponent.class).get();
+              for (Skill skill : skillComponent.getSkills()) {
+                if (skill instanceof ProjectileSkill projectileSkill) {
+                  projectileSkill.ignoreEntity(portal);
+                }
+              }
+            });
   }
 
   /**

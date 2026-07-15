@@ -5,9 +5,9 @@ import com.badlogic.gdx.graphics.Color;
 /**
  * Internal record used to cache fonts based on their unique configuration.
  *
- * @param path        the font file path
- * @param size        the font size
- * @param color       the font color
+ * @param path the font file path
+ * @param size the font size
+ * @param color the font color
  * @param borderWidth the border width
  * @param borderColor the border color
  */
@@ -47,23 +47,23 @@ public record FontSpec(String path, int size, Color color, float borderWidth, Co
   /**
    * Factory method to create a FontSpec with full customization options.
    *
-   * @param path        the internal path to the TrueType font file
-   * @param size        the size of the font
-   * @param color       the font color
+   * @param path the internal path to the TrueType font file
+   * @param size the size of the font
+   * @param color the font color
    * @param borderWidth the border width in pixels
    * @param borderColor the color of the border
    * @return a new FontSpec instance with the specified parameters
    */
   public static FontSpec of(
-    String path, int size, Color color, float borderWidth, Color borderColor) {
+      String path, int size, Color color, float borderWidth, Color borderColor) {
     return new FontSpec(path, size, color, borderWidth, borderColor);
   }
 
   /**
    * Factory method to create a FontSpec with a specific path, size, and color.
    *
-   * @param path  the internal path to the TrueType font file
-   * @param size  the size of the font
+   * @param path the internal path to the TrueType font file
+   * @param size the size of the font
    * @param color the font color
    * @return a new FontSpec instance with no border
    */
@@ -95,7 +95,7 @@ public record FontSpec(String path, int size, Color color, float borderWidth, Co
   /**
    * Factory method to create a FontSpec with a specific size and color using the default font path.
    *
-   * @param size  the size of the font
+   * @param size the size of the font
    * @param color the font color
    * @return a new FontSpec instance with default path and no border
    */
@@ -107,8 +107,8 @@ public record FontSpec(String path, int size, Color color, float borderWidth, Co
    * Factory method to create a FontSpec with size, color, and border settings using the default
    * font path.
    *
-   * @param size        the size of the font
-   * @param color       the font color
+   * @param size the size of the font
+   * @param color the font color
    * @param borderWidth the border width in pixels
    * @param borderColor the color of the border
    * @return a new FontSpec instance with the default path and specified styling

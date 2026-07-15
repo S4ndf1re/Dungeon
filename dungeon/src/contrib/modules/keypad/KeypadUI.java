@@ -86,7 +86,7 @@ public class KeypadUI extends Group {
             @Override
             public void clicked(InputEvent e, float x, float y) {
               DialogCallbackResolver.createButtonCallback(dialogId, DialogContextKeys.ON_CONFIRM)
-                .accept(new DialogResponseMessage.StringValue(action));
+                  .accept(new DialogResponseMessage.StringValue(action));
             }
           });
       Cell<TextButton> c = tableButtons.add(btn).height(100).width(100).pad(10);

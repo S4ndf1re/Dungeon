@@ -1,13 +1,13 @@
 package blockly.dgir.compiler.java.transformations;
 
+import static blockly.dgir.compiler.java.CompilerUtils.markDebugSkip;
+import static blockly.dgir.compiler.java.CompilerUtils.setTokenRangeFrom;
+
 import blockly.dgir.compiler.java.EmitContext;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import org.jetbrains.annotations.NotNull;
-
-import static blockly.dgir.compiler.java.CompilerUtils.markDebugSkip;
-import static blockly.dgir.compiler.java.CompilerUtils.setTokenRangeFrom;
 
 public class LogicalBinaryToConditional extends ModifierVisitor<EmitContext> {
   @Override

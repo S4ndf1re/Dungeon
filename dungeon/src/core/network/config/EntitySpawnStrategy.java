@@ -2,7 +2,6 @@ package core.network.config;
 
 import core.Entity;
 import core.network.messages.s2c.EntitySpawnEvent;
-
 import java.util.Optional;
 
 /**

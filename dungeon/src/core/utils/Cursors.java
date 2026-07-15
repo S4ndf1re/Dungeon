@@ -1,38 +1,24 @@
 package core.utils;
 
-/**
- * Enum representing different cursor types and their associated image resources.
- */
+/** Enum representing different cursor types and their associated image resources. */
 public enum Cursors {
 
-  /**
-   * The default cursor.
-   */
+  /** The default cursor. */
   DEFAULT("cursors/pointer_a.png", 9, 6),
 
-  /**
-   * A cursor indicating a link or external resource.
-   */
+  /** A cursor indicating a link or external resource. */
   EXTERNAL("cursors/cursor_alias.png", 1, 1),
 
-  /**
-   * A cursor indicating an action or interaction is possible.
-   */
+  /** A cursor indicating an action or interaction is possible. */
   INTERACT("cursors/pointer_l.png", 8, 7),
 
-  /**
-   * A cursor indicating an action to close something.
-   */
+  /** A cursor indicating an action to close something. */
   CROSS("cursors/cross_small.png", 16, 16),
 
-  /**
-   * A cursor indicating a text input field.
-   */
+  /** A cursor indicating a text input field. */
   TEXT("cursors/bracket_a_vertical.png", 16, 16),
 
-  /**
-   * A cursor indicating a forbidden action or unavailable option.
-   */
+  /** A cursor indicating a forbidden action or unavailable option. */
   DISABLED("cursors/cursor_disabled.png", 1, 1),
   ;
 

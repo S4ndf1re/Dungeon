@@ -28,7 +28,6 @@ import core.utils.components.MissingComponentException;
 import core.utils.components.draw.BlendUtils;
 import core.utils.components.draw.ColorUtils;
 import core.utils.components.draw.animation.Animation;
-
 import java.util.*;
 
 /**
@@ -384,7 +383,7 @@ public class DebugDrawSystem extends System {
 
     // If holding Shift, show all components; otherwise hint how to show them
     if (InputManager.isKeyPressed(Input.Keys.SHIFT_LEFT)
-      || InputManager.isKeyPressed(Input.Keys.SHIFT_RIGHT)) {
+        || InputManager.isKeyPressed(Input.Keys.SHIFT_RIGHT)) {
       info.append(componentNames.size())
           .append(" component")
           .append(componentNames.size() == 1 ? "" : "s")

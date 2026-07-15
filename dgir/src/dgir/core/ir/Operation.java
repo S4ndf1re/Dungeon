@@ -1,24 +1,23 @@
 package dgir.core.ir;
 
-import dgir.core.utility.DgirCoreUtils;
 import dgir.core.analysis.OperationVerifier;
 import dgir.core.debug.Location;
 import dgir.core.debug.ValueDebugInfo;
 import dgir.core.serialization.OperationDeserializer;
 import dgir.core.serialization.OperationSerializer;
 import dgir.core.traits.IOpTrait;
+import dgir.core.utility.DgirCoreUtils;
+import java.io.Serializable;
+import java.text.MessageFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import tools.jackson.databind.annotation.JsonDeserialize;
 import tools.jackson.databind.annotation.JsonSerialize;
-
-import java.io.Serializable;
-import java.text.MessageFormat;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Carries the runtime state associated with a concrete operation instance.
@@ -127,20 +126,19 @@ public final class Operation implements Serializable {
   }
 
   public static @NotNull Operation Create(
-    @NotNull Location location,
-    @NotNull OperationDetails operationDetails,
-    @Nullable List<Value> operands,
-    @Nullable List<Block> successors,
-    @Nullable Type outputType,
-    @NotNull List<List<Value>> regionsValues
-  ){
+      @NotNull Location location,
+      @NotNull OperationDetails operationDetails,
+      @Nullable List<Value> operands,
+      @Nullable List<Block> successors,
+      @Nullable Type outputType,
+      @NotNull List<List<Value>> regionsValues) {
     return new Operation(
-      location,
-      operationDetails,
-      operands != null ? operands : List.of(),
-      successors != null ? successors : List.of(),
-      outputType,
-      regionsValues);
+        location,
+        operationDetails,
+        operands != null ? operands : List.of(),
+        successors != null ? successors : List.of(),
+        outputType,
+        regionsValues);
   }
 
   // =========================================================================

@@ -13,17 +13,14 @@ import core.network.proto.common.CustomValue;
 import core.network.proto.common.IntList;
 import core.network.proto.common.StringList;
 import core.network.proto.s2c.DialogAttribute;
-
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Converter for server-to-client dialog show messages.
- */
+/** Converter for server-to-client dialog show messages. */
 public final class DialogShowConverter
-  implements MessageConverter<DialogShowMessage, core.network.proto.s2c.DialogShowMessage> {
+    implements MessageConverter<DialogShowMessage, core.network.proto.s2c.DialogShowMessage> {
   private static final byte WIRE_TYPE_ID = 9;
 
   @Override
@@ -57,14 +54,14 @@ public final class DialogShowConverter
   }
 
   private static core.network.proto.s2c.DialogShowMessage toProto(
-    DialogContext context, boolean canBeClosed) {
+      DialogContext context, boolean canBeClosed) {
     Objects.requireNonNull(context, "context");
     core.network.proto.s2c.DialogShowMessage.Builder builder =
-      core.network.proto.s2c.DialogShowMessage.newBuilder()
-        .setDialogId(context.dialogId())
-        .setDialogType(context.dialogType().type())
-        .setCenter(context.center())
-        .setCanBeClosed(canBeClosed);
+        core.network.proto.s2c.DialogShowMessage.newBuilder()
+            .setDialogId(context.dialogId())
+            .setDialogType(context.dialogType().type())
+            .setCenter(context.center())
+            .setCanBeClosed(canBeClosed);
 
     for (Map.Entry<String, Serializable> entry : context.attributes().entrySet()) {
       DialogAttribute attribute = toAttribute(entry.getKey(), entry.getValue());
@@ -79,9 +76,9 @@ public final class DialogShowConverter
   private static DialogContext fromDialogProto(core.network.proto.s2c.DialogShowMessage proto) {
     Objects.requireNonNull(proto, "proto");
     DialogContext.Builder builder =
-      DialogContext.builder()
-        .type(resolveDialogType(proto.getDialogType()))
-        .center(proto.getCenter());
+        DialogContext.builder()
+            .type(resolveDialogType(proto.getDialogType()))
+            .center(proto.getCenter());
 
     if (!proto.getDialogId().isEmpty()) {
       builder.dialogId(proto.getDialogId());
@@ -111,7 +108,7 @@ public final class DialogShowConverter
       case Double doubleValue -> builder.setDoubleValue(doubleValue);
       case Boolean boolValue -> builder.setBoolValue(boolValue);
       case String[] stringArray ->
-        builder.setStringList(StringList.newBuilder().addAllValues(Arrays.asList(stringArray)));
+          builder.setStringList(StringList.newBuilder().addAllValues(Arrays.asList(stringArray)));
       case int[] intArray -> {
         IntList.Builder intList = IntList.newBuilder();
         for (int item : intArray) {
@@ -122,21 +119,21 @@ public final class DialogShowConverter
       default -> {
         @SuppressWarnings("unchecked")
         DialogValueCodec<Serializable> codec =
-          (DialogValueCodec<Serializable>)
-            DialogValueCodecRegistry.global()
-              .byType(value.getClass())
-              .orElseThrow(
-                () ->
-                  new IllegalArgumentException(
-                    "Unsupported dialog attribute type for key '"
-                      + key
-                      + "': "
-                      + value.getClass().getName()
-                      + ". Register a DialogValueCodec for this type."));
+            (DialogValueCodec<Serializable>)
+                DialogValueCodecRegistry.global()
+                    .byType(value.getClass())
+                    .orElseThrow(
+                        () ->
+                            new IllegalArgumentException(
+                                "Unsupported dialog attribute type for key '"
+                                    + key
+                                    + "': "
+                                    + value.getClass().getName()
+                                    + ". Register a DialogValueCodec for this type."));
         builder.setCustomValue(
-          CustomValue.newBuilder()
-            .setTypeId(codec.typeId())
-            .setData(ByteString.copyFrom(codec.encode(value))));
+            CustomValue.newBuilder()
+                .setTypeId(codec.typeId())
+                .setData(ByteString.copyFrom(codec.encode(value))));
       }
     }
 
@@ -156,16 +153,16 @@ public final class DialogShowConverter
       case CUSTOM_VALUE -> {
         CustomValue custom = attribute.getCustomValue();
         DialogValueCodec<?> codec =
-          DialogValueCodecRegistry.global()
-            .byTypeId(custom.getTypeId())
-            .orElseThrow(
-              () ->
-                new IllegalArgumentException(
-                  "No DialogValueCodec registered for typeId '"
-                    + custom.getTypeId()
-                    + "' (attribute key: '"
-                    + key
-                    + "')"));
+            DialogValueCodecRegistry.global()
+                .byTypeId(custom.getTypeId())
+                .orElseThrow(
+                    () ->
+                        new IllegalArgumentException(
+                            "No DialogValueCodec registered for typeId '"
+                                + custom.getTypeId()
+                                + "' (attribute key: '"
+                                + key
+                                + "')"));
         yield codec.decode(custom.getData().toByteArray());
       }
       case VALUE_NOT_SET -> null;

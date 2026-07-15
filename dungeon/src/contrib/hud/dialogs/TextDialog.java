@@ -42,28 +42,28 @@ public class TextDialog {
   /**
    * A simple Text Dialog that shows only the provided string.
    *
-   * @param ctx           The dialog context
-   * @param message       The text which should be shown in the middle of the dialog.
+   * @param ctx The dialog context
+   * @param message The text which should be shown in the middle of the dialog.
    * @param confirmButton Text that the button should have; also the ID for the result handler.
-   * @param title         Title for the dialog.
+   * @param title Title for the dialog.
    * @return The fully configured Dialog, which can then be added where it is needed.
    */
   private static Group create(
-    DialogContext ctx, String message, String confirmButton, String title) {
+      DialogContext ctx, String message, String confirmButton, String title) {
     Skin skin = UIUtils.defaultSkin();
 
     Dialog dialog =
-      new HandledDialog(
+        new HandledDialog(
             title,
             skin,
-        (d, id) -> {
-          if (id.equals(confirmButton)) {
+            (d, id) -> {
+              if (id.equals(confirmButton)) {
                 DialogCallbackResolver.createButtonCallback(
                         ctx.dialogId(), DialogContextKeys.ON_CONFIRM)
                     .accept(null);
               }
               return true;
-        });
+            });
 
     DialogDesign.setDialogDefaults(dialog, title);
     Table content = dialog.getContentTable();
@@ -80,7 +80,7 @@ public class TextDialog {
     content.add(pane).width(450).maxHeight(350).padBottom(10).row();
 
     dialog.button(
-      confirmButton, confirmButton, skin.get("clean-green", TextButton.TextButtonStyle.class));
+        confirmButton, confirmButton, skin.get("clean-green", TextButton.TextButtonStyle.class));
 
     dialog.pack();
     return new BaseContainerUI(dialog);

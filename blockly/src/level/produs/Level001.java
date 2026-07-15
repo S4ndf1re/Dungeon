@@ -4,10 +4,9 @@ import core.level.utils.DesignLabel;
 import core.level.utils.LevelElement;
 import core.utils.Direction;
 import core.utils.Point;
+import java.util.Map;
 import level.BlocklyLevel;
 import level.LevelManagementUtils;
-
-import java.util.Map;
 
 /**
  * This is the start of the game. It is designed to help players get comfortable with the Blockly

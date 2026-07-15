@@ -11,17 +11,13 @@ import core.level.utils.DesignLabel;
 import core.level.utils.LevelElement;
 import core.utils.Direction;
 import core.utils.Point;
-
 import java.util.Map;
-
 import portal.lightBridge.LightBridgeFactory;
 import portal.physicsobject.PressurePlates;
 import portal.tractorBeam.TractorBeamFactory;
 import portal.util.AdvancedLevel;
 
-/**
- * Level in the portal dungeon.
- */
+/** Level in the portal dungeon. */
 public class TractorBeamLevel_1 extends AdvancedLevel {
 
   private LeverComponent exitPlateLever, spherePlateLever;
@@ -30,35 +26,35 @@ public class TractorBeamLevel_1 extends AdvancedLevel {
    * Call the parent constructor of a tile level with the given layout and design label. Set the
    * start tile of the player to the given heroPos.
    *
-   * @param layout      2D array containing the tile layout.
+   * @param layout 2D array containing the tile layout.
    * @param designLabel The design label for the level.
    * @param namedPoints The custom points of the level.
    */
   public TractorBeamLevel_1(
-    LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
+      LevelElement[][] layout, DesignLabel designLabel, Map<String, Point> namedPoints) {
     super(layout, designLabel, namedPoints, "Portal Demo Level");
   }
 
   @Override
   protected void onFirstTick() {
     Entity tractorBeam =
-      TractorBeamFactory.createTractorBeam(namedPoints.get("tractorbeam"), Direction.DOWN);
+        TractorBeamFactory.createTractorBeam(namedPoints.get("tractorbeam"), Direction.DOWN);
     Game.add(tractorBeam);
     closeDoor(getPoint("door3"));
     Entity exitLever =
-      LeverFactory.createLever(
-        namedPoints.get("catapult"),
-        new ICommand() {
-          @Override
-          public void execute() {
-            openDoor(getPoint("door3"));
-          }
+        LeverFactory.createLever(
+            namedPoints.get("catapult"),
+            new ICommand() {
+              @Override
+              public void execute() {
+                openDoor(getPoint("door3"));
+              }
 
-          @Override
-          public void undo() {
-            closeDoor(getPoint("door3"));
-          }
-        });
+              @Override
+              public void undo() {
+                closeDoor(getPoint("door3"));
+              }
+            });
 
     Game.add(exitLever);
     Game.add(LevelCreatorTools.tractorLever(tractorBeam, getPoint("tractorbeamLever1")));
@@ -75,7 +71,7 @@ public class TractorBeamLevel_1 extends AdvancedLevel {
     Game.add(LevelCreatorTools.cubeSpawner(getPoint("cubeSpawner"), getPoint("cube")));
 
     Entity emitter =
-      LightBridgeFactory.createEmitter(namedPoints.get("bridge"), Direction.LEFT, false);
+        LightBridgeFactory.createEmitter(namedPoints.get("bridge"), Direction.LEFT, false);
     Game.add(emitter);
     Game.add(LevelCreatorTools.bridgeLever(emitter, getPoint("bridgeSwitch")));
 
@@ -86,9 +82,9 @@ public class TractorBeamLevel_1 extends AdvancedLevel {
   protected void onTick() {
 
     if (exitPlateLever != null
-      && exitPlateLever.isOn()
-      && spherePlateLever != null
-      && spherePlateLever.isOn()) {
+        && exitPlateLever.isOn()
+        && spherePlateLever != null
+        && spherePlateLever.isOn()) {
       openDoor(namedPoints.get("door1"));
       openDoor(namedPoints.get("door2"));
     } else {

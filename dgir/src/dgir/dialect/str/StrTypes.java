@@ -4,15 +4,14 @@ import dgir.core.ir.Dialect;
 import dgir.core.ir.Type;
 import dgir.core.ir.TypeDescriptor;
 import dgir.core.ir.TypeDetails;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
 
 /** Sealed marker interface for all types contributed by the {@link StrDialect}. */
 public sealed interface StrTypes {

@@ -64,6 +64,4 @@ public class Level014 extends BlocklyLevel {
       showPopups();
     }
   }
-
-
 }

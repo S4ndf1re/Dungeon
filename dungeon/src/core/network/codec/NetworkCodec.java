@@ -4,7 +4,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import core.network.messages.NetworkMessage;
 import io.netty.buffer.ByteBuf;
-
 import java.io.IOException;
 import java.util.Objects;
 

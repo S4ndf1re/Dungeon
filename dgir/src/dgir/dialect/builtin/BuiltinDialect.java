@@ -1,20 +1,19 @@
 package dgir.dialect.builtin;
 
-import dgir.core.ir.Dialect;
-import dgir.core.ir.AttributeDescriptor;
-import dgir.core.ir.Op;
-import dgir.core.ir.Type;
-import dgir.core.ir.TypeDescriptor;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-
 import static dgir.dialect.builtin.BuiltinAttrs.*;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import static dgir.dialect.builtin.BuiltinTypes.FloatT;
 import static dgir.dialect.builtin.BuiltinTypes.IntegerT;
+
+import dgir.core.ir.AttributeDescriptor;
+import dgir.core.ir.Dialect;
+import dgir.core.ir.Op;
+import dgir.core.ir.Type;
+import dgir.core.ir.TypeDescriptor;
+import java.util.List;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 /**
  * The {@code builtin} dialect provides the fundamental building blocks shared by all other

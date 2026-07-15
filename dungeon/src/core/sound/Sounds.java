@@ -3,9 +3,7 @@ package core.sound;
 import core.Game;
 import core.utils.settings.ClientSettings;
 
-/**
- * Utility class for playing sounds with various options.
- */
+/** Utility class for playing sounds with various options. */
 public class Sounds {
 
   private static float getEffectsVolume() {
@@ -27,7 +25,7 @@ public class Sounds {
   /**
    * Play a random sound from the provided list with a pitch.
    *
-   * @param pitch  the playback pitch to apply
+   * @param pitch the playback pitch to apply
    * @param sounds the candidate sounds to choose from
    * @return the id of the sound instance if playback started, or -1 if it failed to play
    */
@@ -60,14 +58,14 @@ public class Sounds {
   /**
    * Play this sound with a custom pitch and volume.
    *
-   * @param sound          the sound to play
-   * @param pitch          the playback pitch to apply
+   * @param sound the sound to play
+   * @param pitch the playback pitch to apply
    * @param volumeModifier the playback volume modifier to apply
    * @return the id of the sound instance if playback started, or -1 if it failed to play
    */
   public static long play(ISound sound, float pitch, float volumeModifier) {
     float volume = getEffectsVolume() * sound.volume() * volumeModifier;
     return Game.audio()
-      .playGlobal(new SoundSpec.Builder(sound.soundName()).volume(volume).pitch(pitch));
+        .playGlobal(new SoundSpec.Builder(sound.soundName()).volume(volume).pitch(pitch));
   }
 }

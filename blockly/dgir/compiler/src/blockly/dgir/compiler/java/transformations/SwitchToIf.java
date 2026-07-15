@@ -1,5 +1,7 @@
 package blockly.dgir.compiler.java.transformations;
 
+import static blockly.dgir.compiler.java.CompilerUtils.*;
+
 import blockly.dgir.compiler.java.EmitContext;
 import com.github.javaparser.TokenRange;
 import com.github.javaparser.ast.NodeList;
@@ -7,13 +9,10 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static blockly.dgir.compiler.java.CompilerUtils.*;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A JavaParser {@link ModifierVisitor} that rewrites:

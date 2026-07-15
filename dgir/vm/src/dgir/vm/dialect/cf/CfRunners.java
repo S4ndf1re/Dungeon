@@ -1,13 +1,12 @@
 package dgir.vm.dialect.cf;
 
 import dgir.core.ir.Operation;
+import dgir.dialect.cf.CfOps;
 import dgir.vm.api.Action;
 import dgir.vm.api.OpRunner;
 import dgir.vm.api.State;
-import dgir.dialect.cf.CfOps;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 public sealed interface CfRunners {
   final class BranchCondRunner extends OpRunner implements CfRunners {

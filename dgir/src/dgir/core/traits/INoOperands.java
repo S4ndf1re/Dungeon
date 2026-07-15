@@ -3,9 +3,7 @@ package dgir.core.traits;
 import dgir.core.ir.Operation;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Marks an operation that must have no operands.
- */
+/** Marks an operation that must have no operands. */
 public interface INoOperands extends IOpTrait {
   /**
    * Verifies that the operation has no operands.
