@@ -12,8 +12,31 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public sealed interface SystemFInference {
-  public abstract sealed class SystemFType {
+public final class SystemFInference extends TypeDialect {
+
+  private static Optional<TypeInference> solver = Optional.empty();
+
+  @Override
+  public List<Class<? extends Type>> getAllowedTypes() {
+    return TypeDialect.extractTypesFromAbstract(SystemFType.class);
+  }
+
+  @Override
+  public List<Class<? extends Expression>> getAllowedExpressions() {
+    return TypeDialect.extractExpressionsFromAbstract(Expr.class);
+  }
+
+  @Override
+  public TypeInferenceSolver getSolverInstance() {
+    if (solver.isPresent()) {
+      return solver.get();
+    } else {
+      solver = Optional.of(new TypeInference());
+      return solver.get();
+    }
+  }
+
+  public abstract static sealed class SystemFType extends Type {
 
     public abstract boolean isMono();
 
@@ -236,47 +259,98 @@ public sealed interface SystemFInference {
     }
   }
 
-  public sealed interface Expr {
-    public final record Var(String name) implements Expr {
+  public abstract static sealed class Expr extends Expression {
+
+    public static final class Var extends Expr {
+
+      public final String name;
+
+      public Var(String name) {
+        this.name = name;
+      }
+
       @Override
       public final String toString() {
         return name;
       }
     }
 
-    public final record App(Expr fun, Expr arg) implements Expr {
+    public static final class App extends Expr {
+
+      public final Expr fun;
+      public final Expr arg;
+
+      public App(Expr fun, Expr arg) {
+        this.fun = fun;
+        this.arg = arg;
+      }
+
       @Override
       public final String toString() {
         return fun + " " + arg;
       }
     }
 
-    public final record Abs(
-      String name,
-      SystemFType type,
-      Expr body
-    ) implements Expr {
+    public static final class Abs extends Expr {
+
+      public final String name;
+      public final SystemFType type;
+      public final Expr body;
+
+      public Abs(String name, SystemFType type, Expr body) {
+        this.name = name;
+        this.type = type;
+        this.body = body;
+      }
+
       @Override
       public final String toString() {
         return "λ" + name + ": " + type + ". " + body;
       }
     }
 
-    public final record TApp(Expr func, SystemFType type) implements Expr {
+    public static final class TApp extends Expr {
+
+      public final Expr func;
+      public final SystemFType type;
+
+      public TApp(Expr func, SystemFType type) {
+        this.func = func;
+        this.type = type;
+      }
+
       @Override
       public final String toString() {
         return func + " " + type;
       }
     }
 
-    public final record Ann(Expr expr, SystemFType type) implements Expr {
+    public static final class Ann extends Expr {
+
+      public final Expr expr;
+      public final SystemFType type;
+
+      public Ann(Expr expr, SystemFType type) {
+        this.expr = expr;
+        this.type = type;
+      }
+
       @Override
       public final String toString() {
         return expr + " : " + type;
       }
     }
 
-    public final record TAbs(String variable, Expr body) implements Expr {
+    public static final class TAbs extends Expr {
+
+      public final String variable;
+      public final Expr body;
+
+      public TAbs(String variable, Expr body) {
+        this.variable = variable;
+        this.body = body;
+      }
+
       @Override
       public final String toString() {
         return "∀" + variable + ". " + body;
@@ -300,40 +374,73 @@ public sealed interface SystemFInference {
       }
     }
 
-    public final record LitExpr(Lit lit) implements Expr {
+    public static final class LitExpr extends Expr {
+
+      public final Lit lit;
+
+      public LitExpr(Lit lit) {
+        this.lit = lit;
+      }
+
       @Override
       public final String toString() {
         return lit.toString();
       }
     }
 
-    public final record Let(
-      String name,
-      Expr value,
-      Expr body
-    ) implements Expr {
+    public static final class Let extends Expr {
+
+      public final String name;
+      public final Expr value;
+      public final Expr body;
+
+      public Let(String name, Expr value, Expr body) {
+        this.name = name;
+        this.value = value;
+        this.body = body;
+      }
+
       @Override
       public final String toString() {
         return "let " + name + " = " + value + " in " + body;
       }
     }
 
-    public final record IfThenElse(
-      Expr cond,
-      Expr then,
-      Expr else_
-    ) implements Expr {
+    public static final class IfThenElse extends Expr {
+
+      public final Expr cond;
+      public final Expr then;
+      public final Expr else_;
+
+      public IfThenElse(Expr cond, Expr then, Expr else_) {
+        this.cond = cond;
+        this.then = then;
+        this.else_ = else_;
+      }
+
       @Override
       public final String toString() {
         return "if " + cond + " then " + then + " else " + else_;
       }
     }
 
-    public final record BinOp(
-      BinOpKind kind,
-      Expr left,
-      Expr right
-    ) implements Expr {
+    public static final class BinOp extends Expr {
+
+      public final BinOpKind kind;
+      public final Expr left;
+      public final Expr right;
+
+      public BinOp(BinOpKind kind, Expr left, Expr right) {
+        this.kind = kind;
+        this.left = left;
+        this.right = right;
+      }
+
+      @Override
+      public final String toString() {
+        return left + " " + kind + " " + right;
+      }
+
       public enum BinOpKind {
         ADD,
         SUB,
@@ -353,11 +460,6 @@ public sealed interface SystemFInference {
             case NEQ -> "!=";
           };
         }
-      }
-
-      @Override
-      public final String toString() {
-        return left + " " + kind + " " + right;
       }
     }
   }
@@ -406,7 +508,7 @@ public sealed interface SystemFInference {
     }
   }
 
-  class Context {
+  static class Context {
 
     private List<Entry> entries;
 
@@ -567,7 +669,9 @@ public sealed interface SystemFInference {
     }
   }
 
-  public final class TypeInference implements SystemFInference {
+  public static final class TypeInference
+    extends TypeDialect.TypeInferenceSolver
+  {
 
     private int counter;
 
@@ -579,9 +683,19 @@ public sealed interface SystemFInference {
       return "t" + this.counter++;
     }
 
-    public SystemFType inferType(Expr expr) {
+    @Override
+    public Type solve(Expression expr) {
+      if (expr instanceof Expr exp) {
+        return (Type) this.inferType(exp);
+      } else {
+        throw new IllegalArgumentException(
+          "Only SystemF Expressions are supported"
+        );
+      }
+    }
+
+    SystemFType inferType(Expr expr) {
       var res = this.infer(new Context(), expr);
-      System.out.println(res.tree);
       return res.ctx.apply(res.type);
     }
 
@@ -1286,7 +1400,9 @@ public sealed interface SystemFInference {
           new InferenceTree("InstLSolve", input, "" + newCtx, List.of())
         );
       } else {
-        throw new RuntimeException("InstL Instantiation error " + ctx + " |- " + ty);
+        throw new RuntimeException(
+          "InstL Instantiation error " + ctx + " |- " + ty
+        );
       }
     }
 
@@ -1383,7 +1499,9 @@ public sealed interface SystemFInference {
           new InferenceTree("InstRSolve", input, "" + ctx, List.of())
         );
       } else {
-        throw new RuntimeException("InstR Instantiation error " + ctx + " |- " + ty);
+        throw new RuntimeException(
+          "InstR Instantiation error " + ctx + " |- " + ty
+        );
       }
     }
   }

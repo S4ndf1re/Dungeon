@@ -9,14 +9,17 @@ public class SystemFTest {
 
   @Test
   public void systemFTest() {
-    var inference = new SystemFInference.TypeInference();
+    var inference = new SystemFInference();
+    var solver = inference.getSolverInstance();
+
     var expr = new Expr.Abs(
       "x",
       new SystemFType.Int(),
       new Expr.BinOp(BinOpKind.ADD, new Expr.Var("x"), new Expr.Var("x"))
     );
 
-    var resType = inference.inferType(expr);
+    var resType = solver.solve(expr);
+    assert resType instanceof SystemFType;
 
     assert resType.equals(
       new SystemFType.Arrow(new SystemFType.Int(), new SystemFType.Int())
@@ -26,7 +29,9 @@ public class SystemFTest {
   @Test
   public void systemFTest2() {
     // let add = \x -> \y -> x + y in add 1 2
-    var inference = new SystemFInference.TypeInference();
+    var inference = new SystemFInference();
+    var solver = inference.getSolverInstance();
+
     var expr = new Expr.Let(
       "add",
       new Expr.Abs(
@@ -44,7 +49,9 @@ public class SystemFTest {
       )
     );
 
-    var resType = inference.inferType(expr);
+    var resType = solver.solve(expr);
+    assert resType instanceof SystemFType;
+
     assert resType.equals(new SystemFType.Int());
   }
 }
