@@ -13,22 +13,46 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public sealed interface AlgorithmWInference {
-  public abstract class AlgorithmWExpr {}
+public final class AlgorithmWInference extends TypeDialect {
 
-  public sealed interface Expr {
-    public record InferResult(
+  private static Optional<TypeInference> instance = Optional.empty();
+
+  @Override
+  public TypeInferenceSolver getSolverInstance() {
+    if (AlgorithmWInference.instance.isPresent()) {
+      return AlgorithmWInference.instance.get();
+    } else {
+      TypeInference solver = new TypeInference();
+      AlgorithmWInference.instance = Optional.of(solver);
+      return solver;
+    }
+  }
+
+  @Override
+  public List<Class<? extends Type>> getAllowedTypes() {
+    return TypeDialect.extractTypesFromAbstract(AlgorithmWType.class);
+  }
+
+  @Override
+  public List<Class<? extends Expression>> getAllowedExpressions() {
+    return TypeDialect.extractExpressionsFromAbstract(Expr.class);
+  }
+
+  public abstract static class Expr extends Expression {
+
+    public static record InferResult(
       Subst subst,
       AlgorithmWType type,
       InferenceTree tree
     ) {}
 
-    public InferResult infer(TypeInference engine, Env env);
+    public abstract InferResult infer(TypeInference engine, Env env);
 
-    public sealed interface Lit {
+    public static sealed interface Lit {
       public final record LitInt(int value) implements Lit {
         @Override
         public final String toString() {
@@ -44,7 +68,14 @@ public sealed interface AlgorithmWInference {
       }
     }
 
-    public final record ExprLit(Lit value) implements Expr {
+    public static final class ExprLit extends Expr {
+
+      public Lit value;
+
+      public ExprLit(Lit value) {
+        this.value = value;
+      }
+
       @Override
       public final String toString() {
         return value.toString();
@@ -70,7 +101,14 @@ public sealed interface AlgorithmWInference {
       }
     }
 
-    public final record ExprTuple(List<Expr> elements) implements Expr {
+    public static final class ExprTuple extends Expr {
+
+      public List<Expr> elements;
+
+      public ExprTuple(List<Expr> elements) {
+        this.elements = elements;
+      }
+
       @Override
       public final String toString() {
         return (
@@ -114,7 +152,14 @@ public sealed interface AlgorithmWInference {
       }
     }
 
-    public final record ExprVar(String name) implements Expr {
+    public static final class ExprVar extends Expr {
+
+      public final String name;
+
+      public ExprVar(String name) {
+        this.name = name;
+      }
+
       @Override
       public final String toString() {
         return name;
@@ -144,7 +189,16 @@ public sealed interface AlgorithmWInference {
       }
     }
 
-    public final record ExprApp(Expr func, Expr arg) implements Expr {
+    public static final class ExprApp extends Expr {
+
+      public final Expr func;
+      public final Expr arg;
+
+      public ExprApp(Expr func, Expr arg) {
+        this.func = func;
+        this.arg = arg;
+      }
+
       @Override
       public final String toString() {
         return func + " " + arg;
@@ -183,7 +237,16 @@ public sealed interface AlgorithmWInference {
       }
     }
 
-    public final record ExprAbs(String param, Expr body) implements Expr {
+    public static final class ExprAbs extends Expr {
+
+      public final String param;
+      public final Expr body;
+
+      public ExprAbs(String param, Expr body) {
+        this.param = param;
+        this.body = body;
+      }
+
       @Override
       public final String toString() {
         return "λ" + param + "." + body + "";
@@ -219,11 +282,18 @@ public sealed interface AlgorithmWInference {
       }
     }
 
-    public final record ExprLet(
-      String param,
-      Expr value,
-      Expr body
-    ) implements Expr {
+    public static final class ExprLet extends Expr {
+
+      public final String param;
+      public final Expr value;
+      public final Expr body;
+
+      public ExprLet(String param, Expr value, Expr body) {
+        this.param = param;
+        this.value = value;
+        this.body = body;
+      }
+
       @Override
       public final String toString() {
         return "let " + param + " = " + value + " in " + body;
@@ -257,7 +327,9 @@ public sealed interface AlgorithmWInference {
     }
   }
 
-  public final class TypeInference implements AlgorithmWInference {
+  public static final class TypeInference
+    extends TypeDialect.TypeInferenceSolver
+  {
 
     private int counter;
 
@@ -269,12 +341,20 @@ public sealed interface AlgorithmWInference {
       return "t" + counter++;
     }
 
-    public AlgorithmWType inferType(Expr expr) {
-      Env env = new Env(new HashMap<>());
-      InferResult res = expr.infer(this, env);
-      AlgorithmWType finalType = res.subst.apply(res.type);
-      System.out.println(res.tree + "");
-      return finalType;
+    @Override
+    public Type solve(Expression expr) {
+      if (expr instanceof Expr) {
+        return (Type) this.inferType((Expr) expr);
+      } else {
+        throw new RuntimeException(
+          "the parameter expr is not type compatible with the Algorithm W Inference"
+        );
+      }
+    }
+
+    private AlgorithmWType inferType(Expr expr) {
+      InferResult res = expr.infer(this, new Env(new HashMap<>()));
+      return res.subst.apply(res.type);
     }
   }
 
@@ -450,7 +530,7 @@ public sealed interface AlgorithmWInference {
     }
   }
 
-  public abstract sealed class AlgorithmWType {
+  public abstract static sealed class AlgorithmWType extends Type {
 
     public record UnifyResult(Subst subst, InferenceTree tree) {
       public AlgorithmWType applySubst(AlgorithmWType type) {
@@ -712,7 +792,9 @@ public sealed interface AlgorithmWInference {
 
       @Override
       public boolean equals(Object obj) {
-        return obj instanceof Tuple other && this.elements.equals(other.elements);
+        return (
+          obj instanceof Tuple other && this.elements.equals(other.elements)
+        );
       }
 
       @Override

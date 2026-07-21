@@ -1,15 +1,47 @@
+import dgir.core.ir.types.AlgorithmWInference;
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType;
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Integer;
 import dgir.core.ir.types.AlgorithmWInference.Expr;
 import dgir.core.ir.types.AlgorithmWInference.Expr.Lit;
-import dgir.core.ir.types.AlgorithmWInference.TypeInference;
-import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Integer;
-
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 public class AlgorithmWTest {
 
   @Test
+  public void algorithmWDialectTest() {
+    AlgorithmWInference inference = new AlgorithmWInference();
+    List<Class<? extends dgir.core.ir.types.Type>> allowedTypes =
+      inference.getAllowedTypes();
+    assert allowedTypes.contains(
+      AlgorithmWInference.AlgorithmWType.Integer.class
+    );
+    assert allowedTypes.contains(
+      AlgorithmWInference.AlgorithmWType.Boolean.class
+    );
+    assert allowedTypes.contains(
+      AlgorithmWInference.AlgorithmWType.Arrow.class
+    );
+    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.Var.class);
+
+    List<Class<? extends dgir.core.ir.types.Expression>> allowedExpression =
+      inference.getAllowedExpressions();
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprLit.class);
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprAbs.class);
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprApp.class);
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprTuple.class);
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprLet.class);
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprVar.class);
+
+    var solver = inference.getSolverInstance();
+    assert solver != null;
+    assert solver.getClass().equals(AlgorithmWInference.TypeInference.class);
+  }
+
+  @Test
   public void algorithmWTest() {
-    var inference = new TypeInference();
+    var inference = new AlgorithmWInference();
+    var solver = inference.getSolverInstance();
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprLet(
@@ -24,8 +56,8 @@ public class AlgorithmWTest {
       )
     );
 
-    var result = inference.inferType(expr);
-    System.out.println(result + "");
+    var result = solver.solve(expr);
+    assert result instanceof AlgorithmWType;
     assert result instanceof Integer;
   }
 }
