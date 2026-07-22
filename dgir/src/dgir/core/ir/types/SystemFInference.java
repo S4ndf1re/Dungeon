@@ -313,14 +313,16 @@ public final class SystemFInference extends TypeDialect {
     }
   }
 
-  public abstract static sealed class Expr extends Expression {
-
+  /**
+   * Expressions that are valid for the SytemF Type System. All needed methods for inference and type checking are implemented here
+   */
+  public static interface Expr extends Expression {
     public abstract TypeInference.TypeResult infer(
       TypeInference engine,
       Context ctx
     );
 
-    public TypeInference.CheckResult check(
+    public default TypeInference.CheckResult check(
       TypeInference engine,
       Context ctx,
       SystemFType ty
@@ -362,9 +364,9 @@ public final class SystemFInference extends TypeDialect {
       );
     }
 
-    public static final class Var extends Expr {
+    public static final class Var implements Expr {
 
-      public final String name;
+      private final String name;
 
       public Var(String name) {
         this.name = name;
@@ -401,10 +403,10 @@ public final class SystemFInference extends TypeDialect {
       }
     }
 
-    public static final class App extends Expr {
+    public static final class App implements Expr {
 
-      public final Expr fun;
-      public final Expr arg;
+      private final Expr fun;
+      private final Expr arg;
 
       public App(Expr fun, Expr arg) {
         this.fun = fun;
@@ -493,11 +495,11 @@ public final class SystemFInference extends TypeDialect {
       }
     }
 
-    public static final class Abs extends Expr {
+    public static final class Abs implements Expr {
 
-      public final String name;
-      public final SystemFType type;
-      public final Expr body;
+      private final String name;
+      private final SystemFType type;
+      private final Expr body;
 
       public Abs(String name, SystemFType type, Expr body) {
         this.name = name;
@@ -578,15 +580,15 @@ public final class SystemFInference extends TypeDialect {
             )
           );
         } else {
-          return super.check(engine, ctx, ty);
+          return Expr.super.check(engine, ctx, ty);
         }
       }
     }
 
-    public static final class TApp extends Expr {
+    public static final class TApp implements Expr {
 
-      public final Expr func;
-      public final SystemFType type;
+      private final Expr func;
+      private final SystemFType type;
 
       public TApp(Expr func, SystemFType type) {
         this.func = func;
@@ -625,10 +627,10 @@ public final class SystemFInference extends TypeDialect {
       }
     }
 
-    public static final class Ann extends Expr {
+    public static final class Ann implements Expr {
 
-      public final Expr expr;
-      public final SystemFType type;
+      private final Expr expr;
+      private final SystemFType type;
 
       public Ann(Expr expr, SystemFType type) {
         this.expr = expr;
@@ -658,10 +660,10 @@ public final class SystemFInference extends TypeDialect {
       }
     }
 
-    public static final class TAbs extends Expr {
+    public static final class TAbs implements Expr {
 
-      public final String variable;
-      public final Expr body;
+      private final String variable;
+      private final Expr body;
 
       public TAbs(String variable, Expr body) {
         this.variable = variable;
@@ -729,9 +731,9 @@ public final class SystemFInference extends TypeDialect {
       }
     }
 
-    public static final class LitExpr extends Expr {
+    public static final class LitExpr implements Expr {
 
-      public final Lit lit;
+      private final Lit lit;
 
       public LitExpr(Lit lit) {
         this.lit = lit;
@@ -792,16 +794,16 @@ public final class SystemFInference extends TypeDialect {
             new InferenceTree("ChkLitBool", input, "" + ctx, List.of())
           );
         } else {
-          return super.check(engine, ctx, ty);
+          return Expr.super.check(engine, ctx, ty);
         }
       }
     }
 
-    public static final class Let extends Expr {
+    public static final class Let implements Expr {
 
-      public final String name;
-      public final Expr value;
-      public final Expr body;
+      private final String name;
+      private final Expr value;
+      private final Expr body;
 
       public Let(String name, Expr value, Expr body) {
         this.name = name;
@@ -850,11 +852,11 @@ public final class SystemFInference extends TypeDialect {
       }
     }
 
-    public static final class IfThenElse extends Expr {
+    public static final class IfThenElse implements Expr {
 
-      public final Expr cond;
-      public final Expr then;
-      public final Expr else_;
+      private final Expr cond;
+      private final Expr then;
+      private final Expr else_;
 
       public IfThenElse(Expr cond, Expr then, Expr else_) {
         this.cond = cond;
@@ -900,11 +902,11 @@ public final class SystemFInference extends TypeDialect {
       }
     }
 
-    public static final class BinOp extends Expr {
+    public static final class BinOp implements Expr {
 
-      public final BinOpKind kind;
-      public final Expr left;
-      public final Expr right;
+      private final BinOpKind kind;
+      private final Expr left;
+      private final Expr right;
 
       public BinOp(BinOpKind kind, Expr left, Expr right) {
         this.kind = kind;

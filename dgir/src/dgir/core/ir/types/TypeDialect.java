@@ -27,18 +27,21 @@ public abstract class TypeDialect {
   @SuppressWarnings("unchecked")
   public static List<
     Class<? extends Expression>
-  > extractExpressionsFromAbstract(Class<? extends Expression> abstractClass) {
-    if (!abstractClass.getSuperclass().equals(Expression.class)) {
+  > extractExpressionsFromAbstract(Class<? extends Expression> abstractInterface) {
+    if (
+      !Arrays.asList(abstractInterface.getInterfaces()).contains(Expression.class)
+    ) {
       throw new IllegalStateException(
         "Expr must extend dgir.core.ir.types.Expression"
       );
     }
 
-    var possibleTypes = Arrays.asList(abstractClass.getDeclaredClasses());
+    var possibleTypes = Arrays.asList(abstractInterface.getDeclaredClasses());
 
     Predicate<Class<?>> classInheritsExpression = obj -> {
       return (
-        obj.getSuperclass() != null && obj.getSuperclass().equals(abstractClass)
+        obj.getSuperclass() != null &&
+        Arrays.asList(obj.getInterfaces()).contains(abstractInterface)
       );
     };
 
@@ -51,9 +54,9 @@ public abstract class TypeDialect {
   }
 
   @SuppressWarnings("unchecked")
-  public static List<
-    Class<? extends Type>
-  > extractTypesFromAbstract(Class<? extends Type> abstractClass) {
+  public static List<Class<? extends Type>> extractTypesFromAbstract(
+    Class<? extends Type> abstractClass
+  ) {
     if (!abstractClass.getSuperclass().equals(Type.class)) {
       throw new IllegalStateException(
         "Expr must extend dgir.core.ir.types.Expression"

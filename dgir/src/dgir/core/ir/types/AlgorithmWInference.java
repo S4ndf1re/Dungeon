@@ -17,6 +17,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+// Some funny notes:
+// Wouldn't it be nice, if the solver (Algorithm W, System F, etc. ) receives just a list of constraints?
+// Then, an operator must only generate those constraints. These constraints don't even need to be expressions (i think)
+// A constraint could be a unification (equality), subtyping, or any other thing. Then the only thing to figure out would be to generate constraints
+// and apply them to the correct solver.
+//
+// The current problem is, that both constraint generation and solver application are done in the same place and same time.
+// Nothing must be done at the same time. Traditionally, bidirectional solvers "simplify" this process, by actually doing everything at the same time.
+// But this must not be true, as presented by the chalk language.
+//
+// The only constraint then is the list of allowed types per system. While algorithm W does not have a lot of types,
+
 public final class AlgorithmWInference extends TypeDialect {
 
   private static Optional<TypeInference> instance = Optional.empty();
@@ -42,8 +54,7 @@ public final class AlgorithmWInference extends TypeDialect {
     return TypeDialect.extractExpressionsFromAbstract(Expr.class);
   }
 
-  public abstract static class Expr extends Expression {
-
+  public static interface Expr extends Expression {
     public static record InferResult(
       Subst subst,
       AlgorithmWType type,
@@ -68,9 +79,9 @@ public final class AlgorithmWInference extends TypeDialect {
       }
     }
 
-    public static final class ExprLit extends Expr {
+    public static final class ExprLit implements Expr {
 
-      public Lit value;
+      private Lit value;
 
       public ExprLit(Lit value) {
         this.value = value;
@@ -101,9 +112,9 @@ public final class AlgorithmWInference extends TypeDialect {
       }
     }
 
-    public static final class ExprTuple extends Expr {
+    public static final class ExprTuple implements Expr {
 
-      public List<Expr> elements;
+      private List<Expr> elements;
 
       public ExprTuple(List<Expr> elements) {
         this.elements = elements;
@@ -152,9 +163,9 @@ public final class AlgorithmWInference extends TypeDialect {
       }
     }
 
-    public static final class ExprVar extends Expr {
+    public static final class ExprVar implements Expr {
 
-      public final String name;
+      private final String name;
 
       public ExprVar(String name) {
         this.name = name;
@@ -188,10 +199,10 @@ public final class AlgorithmWInference extends TypeDialect {
       }
     }
 
-    public static final class ExprApp extends Expr {
+    public static final class ExprApp implements Expr {
 
-      public final Expr func;
-      public final Expr arg;
+      private final Expr func;
+      private final Expr arg;
 
       public ExprApp(Expr func, Expr arg) {
         this.func = func;
@@ -236,10 +247,10 @@ public final class AlgorithmWInference extends TypeDialect {
       }
     }
 
-    public static final class ExprAbs extends Expr {
+    public static final class ExprAbs implements Expr {
 
-      public final String param;
-      public final Expr body;
+      private final String param;
+      private final Expr body;
 
       public ExprAbs(String param, Expr body) {
         this.param = param;
@@ -281,11 +292,11 @@ public final class AlgorithmWInference extends TypeDialect {
       }
     }
 
-    public static final class ExprLet extends Expr {
+    public static final class ExprLet implements Expr {
 
-      public final String param;
-      public final Expr value;
-      public final Expr body;
+      private final String param;
+      private final Expr value;
+      private final Expr body;
 
       public ExprLet(String param, Expr value, Expr body) {
         this.param = param;
