@@ -1,6 +1,6 @@
 package dgir.core.ir.types;
 
-import dgir.core.ir.types.SystemFInference.Expr.Lit;
+import dgir.core.ir.types.SystemFInference.Context.Break3Result;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -46,6 +45,12 @@ public final class SystemFInference extends TypeDialect {
       return this.freeVariables().contains(varName);
     }
 
+    public abstract TypeInference.SubtypeResult subtype(
+      TypeInference engine,
+      Context ctx,
+      SystemFType other
+    );
+
     public static final class Var extends SystemFType {
 
       public final String name;
@@ -77,6 +82,22 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public Set<String> freeVariables() {
         return Set.of(this.name);
+      }
+
+      @Override
+      public TypeInference.SubtypeResult subtype(
+        TypeInference engine,
+        Context ctx,
+        SystemFType other
+      ) {
+        var input = ctx + " |- " + this + " <: " + other;
+        if (other instanceof SystemFType.Var otherVar && this.name.equals(otherVar.name)) {
+          return new TypeInference.SubtypeResult(
+            ctx.copy(),
+            new InferenceTree("SubReflTVar", input, "" + ctx, List.of())
+          );
+        }
+        throw new TypingException.SubtypingCheckFailed();
       }
     }
 
@@ -111,6 +132,28 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public Set<String> freeVariables() {
         return Set.of(this.name);
+      }
+
+      @Override
+      public TypeInference.SubtypeResult subtype(
+        TypeInference engine,
+        Context ctx,
+        SystemFType other
+      ) {
+        var input = ctx + " |- " + this + " <: " + other;
+        if (other instanceof SystemFType.EtVar otherEtVar && this.name.equals(otherEtVar.name)) {
+          return new TypeInference.SubtypeResult(
+            ctx.copy(),
+            new InferenceTree("SubReflETVar", input, "" + ctx, List.of())
+          );
+        } else if (!other.occursCheck(this.name)) {
+          var res = engine.instL(ctx, this.name, other);
+          return new TypeInference.SubtypeResult(
+            res.ctx,
+            new InferenceTree("SubInstL", input, "" + res.ctx, List.of(res.tree))
+          );
+        }
+        throw new TypingException.SubtypingCheckFailed();
       }
     }
 
@@ -157,6 +200,30 @@ public final class SystemFInference extends TypeDialect {
         set.addAll(toVars);
         return Set.copyOf(set);
       }
+
+      @Override
+      public TypeInference.SubtypeResult subtype(
+        TypeInference engine,
+        Context ctx,
+        SystemFType other
+      ) {
+        var input = ctx + " |- " + this + " <: " + other;
+        if (other instanceof SystemFType.Arrow otherArrow) {
+          var covArg = this.from.subtype(engine, ctx, otherArrow.from);
+          var covRes = this.to.subtype(engine, covArg.ctx, otherArrow.to);
+
+          return new TypeInference.SubtypeResult(
+            covRes.ctx,
+            new InferenceTree(
+              "SubArr",
+              input,
+              "" + covRes.ctx,
+              List.of(covArg.tree, covRes.tree)
+            )
+          );
+        }
+        throw new TypingException.SubtypingCheckFailed();
+      }
     }
 
     public static final class ForAll extends SystemFType {
@@ -200,6 +267,61 @@ public final class SystemFInference extends TypeDialect {
         set.remove(this.boundVar);
         return Set.copyOf(set);
       }
+
+      @Override
+      public TypeInference.SubtypeResult subtype(
+        TypeInference engine,
+        Context ctx,
+        SystemFType other
+      ) {
+        var input = ctx + " |- " + this + " <: " + other;
+        if (other instanceof SystemFType.ForAll otherForAll) {
+          var newCtx = ctx.copy();
+          newCtx.push(new Entry.TVarBnd(otherForAll.boundVar));
+          var bodySubtype = this.body.subtype(engine, newCtx, otherForAll.body);
+          var breakRes = bodySubtype.ctx.break3(
+            entry ->
+              entry instanceof Entry.TVarBnd bnd &&
+              bnd.tyVar.equals(otherForAll.boundVar)
+          );
+          var finalCtx = new Context(breakRes.right);
+          return new TypeInference.SubtypeResult(
+            finalCtx,
+            new InferenceTree(
+              "SubAllR",
+              input,
+              "" + finalCtx,
+              List.of(bodySubtype.tree)
+            )
+          );
+        } else {
+          var substTy1 = engine.substType(
+            this.boundVar,
+            new SystemFType.EtVar(this.boundVar),
+            this.body
+          );
+          var newCtx = ctx.copy();
+          newCtx.push(new Entry.ETVarBnd(this.boundVar));
+          newCtx.push(new Entry.Mark(this.boundVar));
+
+          var bodySubtype = substTy1.subtype(engine, newCtx, other);
+          var breakRes = bodySubtype.ctx.break3(
+            entry ->
+              entry instanceof Entry.Mark m && m.tyVar.equals(this.boundVar)
+          );
+
+          var finalCtx = new Context(breakRes.right);
+          return new TypeInference.SubtypeResult(
+            finalCtx,
+            new InferenceTree(
+              "SubAllL",
+              input,
+              "" + finalCtx,
+              List.of(bodySubtype.tree)
+            )
+          );
+        }
+      }
     }
 
     public static final class Int extends SystemFType {
@@ -227,6 +349,22 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public Set<String> freeVariables() {
         return Set.of();
+      }
+
+      @Override
+      public TypeInference.SubtypeResult subtype(
+        TypeInference engine,
+        Context ctx,
+        SystemFType other
+      ) {
+        var input = ctx + " |- " + this + " <: " + other;
+        if (other instanceof SystemFType.Int) {
+          return new TypeInference.SubtypeResult(
+            ctx.copy(),
+            new InferenceTree("SubRefl", input, "" + ctx, List.of())
+          );
+        }
+        throw new TypingException.SubtypingCheckFailed();
       }
     }
 
@@ -256,10 +394,44 @@ public final class SystemFInference extends TypeDialect {
       public Set<String> freeVariables() {
         return Set.of();
       }
+
+      @Override
+      public TypeInference.SubtypeResult subtype(
+        TypeInference engine,
+        Context ctx,
+        SystemFType other
+      ) {
+        var input = ctx + " |- " + this + " <: " + other;
+        if (other instanceof SystemFType.Bool) {
+          return new TypeInference.SubtypeResult(
+            ctx.copy(),
+            new InferenceTree("SubRefl", input, "" + ctx, List.of())
+          );
+        }
+        throw new TypingException.SubtypingCheckFailed();
+      }
     }
   }
 
   public abstract static sealed class Expr extends Expression {
+
+    public abstract TypeInference.TypeResult infer(
+      TypeInference engine,
+      Context ctx
+    );
+
+    public TypeInference.CheckResult check(
+      TypeInference engine,
+      Context ctx,
+      SystemFType ty
+    ) {
+      return engine.checkBySubtyping(
+        ctx,
+        this,
+        ty,
+        ctx + " |- " + this + " <=" + ty
+      );
+    }
 
     public static final class Var extends Expr {
 
@@ -272,6 +444,31 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public final String toString() {
         return name;
+      }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var boundVariable = ctx.find(
+          entry ->
+            entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name)
+        );
+
+        if (boundVariable.isPresent()) {
+          var varBnd = (Entry.VarBnd) boundVariable.get();
+          return new TypeInference.TypeResult(
+            varBnd.type,
+            ctx.copy(),
+            new InferenceTree(
+              "InfVar",
+              ctx + " |- " + this,
+              input + " => " + varBnd.type + " -| " + ctx,
+              List.of()
+            )
+          );
+        }
+
+        throw new TypingException.UnboundVariable(this.name);
       }
     }
 
@@ -288,6 +485,82 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public final String toString() {
         return fun + " " + arg;
+      }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var funcInferred = engine.infer(ctx, this.fun);
+        var funcTypeApplied = funcInferred.ctx.apply(funcInferred.type);
+
+        TypeInference.TypeResult result;
+        if (funcTypeApplied instanceof SystemFType.Arrow arrow) {
+          var paramTy = arrow.from;
+          var resultTy = arrow.to;
+
+          var paramCheck = engine.check(funcInferred.ctx, this.arg, paramTy);
+          result = new TypeInference.TypeResult(
+            resultTy,
+            paramCheck.ctx,
+            new InferenceTree(
+              "InfAppArr",
+              input,
+              input + " =>=> " + resultTy + paramCheck.ctx,
+              List.of(paramCheck.tree)
+            )
+          );
+        } else if (funcTypeApplied instanceof SystemFType.EtVar etvar) {
+          var a = etvar.name;
+
+          var a1 = engine.freshTypeVar();
+          var a2 = engine.freshTypeVar();
+
+          var breakRes = funcInferred.ctx.break3(
+            entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(a)
+          );
+          var arrowType = new SystemFType.Arrow(
+            new SystemFType.EtVar(a1),
+            new SystemFType.EtVar(a2)
+          );
+
+          var newCtx = new Context(breakRes.left);
+          newCtx.push(new Entry.SETVarBnd(a, arrowType));
+          newCtx.push(new Entry.ETVarBnd(a1));
+          newCtx.push(new Entry.ETVarBnd(a2));
+          newCtx.extend(breakRes.right);
+
+          var checkRes = engine.check(
+            newCtx,
+            this.arg,
+            new SystemFType.EtVar(a1)
+          );
+
+          var output = input + " =>=> ^" + a2 + " -| " + checkRes.ctx;
+          result = new TypeInference.TypeResult(
+            new SystemFType.EtVar(a2),
+            checkRes.ctx,
+            new InferenceTree(
+              "InfAppETVar",
+              input,
+              output,
+              List.of(checkRes.tree)
+            )
+          );
+        } else {
+          throw new TypingException.ApplicationTypeError();
+        }
+
+        var output = input + " => " + result.type() + " -| " + result.ctx();
+        return new TypeInference.TypeResult(
+          result.type(),
+          result.ctx(),
+          new InferenceTree(
+            "InfApp",
+            input,
+            output,
+            List.of(funcInferred.tree, result.tree())
+          )
+        );
       }
     }
 
@@ -307,6 +580,83 @@ public final class SystemFInference extends TypeDialect {
       public final String toString() {
         return "λ" + name + ": " + type + ". " + body;
       }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var b = engine.freshTypeVar();
+        var newCtx = ctx.copy();
+
+        newCtx.push(new Entry.VarBnd(this.name, this.type));
+        newCtx.push(new Entry.ETVarBnd(b));
+
+        var c1 = engine.check(newCtx, this.body, new SystemFType.EtVar(b));
+        var breakRes = c1.ctx.break3(
+          entry ->
+            entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name)
+        );
+
+        var solvedFinalCtxEntries = breakRes.left
+          .stream()
+          .filter(entry -> entry instanceof Entry.SETVarBnd)
+          .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
+
+        solvedFinalCtxEntries.addAll(breakRes.right);
+        var finalCtx = new Context(solvedFinalCtxEntries);
+        var resType = new SystemFType.Arrow(
+          this.type,
+          new SystemFType.EtVar(b)
+        );
+
+        return new TypeInference.TypeResult(
+          resType,
+          finalCtx,
+          new InferenceTree(
+            "InfLam",
+            input,
+            input + " => " + resType + " -| " + finalCtx,
+            List.of(c1.tree)
+          )
+        );
+      }
+
+      @Override
+      public TypeInference.CheckResult check(
+        TypeInference engine,
+        Context ctx,
+        SystemFType ty
+      ) {
+        var input = ctx + " |- " + this + " <=" + ty;
+        if (ty instanceof SystemFType.Arrow arrow) {
+          var newCtx = ctx.copy();
+          newCtx.push(new Entry.VarBnd(this.name, arrow.from));
+
+          var bodyCheck = engine.check(newCtx, this.body, arrow.to);
+          var break3Result = bodyCheck.ctx.break3(
+            entry ->
+              entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name)
+          );
+
+          var finalCtx = new Context(break3Result.right);
+
+          return new TypeInference.CheckResult(
+            finalCtx,
+            new InferenceTree(
+              "ChkLam",
+              input,
+              "" + finalCtx,
+              List.of(bodyCheck.tree)
+            )
+          );
+        } else {
+          return engine.checkBySubtyping(
+            ctx,
+            this,
+            ty,
+            ctx + " |- " + this + " <=" + ty
+          );
+        }
+      }
     }
 
     public static final class TApp extends Expr {
@@ -322,6 +672,32 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public final String toString() {
         return func + " " + type;
+      }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var funcInferred = engine.infer(ctx, this.func);
+        if (funcInferred.type instanceof SystemFType.ForAll forall) {
+          var resultType = engine.substType(
+            forall.boundVar,
+            this.type,
+            forall.body
+          );
+          var output = input + " => " + resultType + " -| " + funcInferred.ctx;
+          return new TypeInference.TypeResult(
+            resultType,
+            funcInferred.ctx,
+            new InferenceTree(
+              "InfTApp",
+              input,
+              output,
+              List.of(funcInferred.tree)
+            )
+          );
+        } else {
+          throw new TypingException.ExpectedForAllType();
+        }
       }
     }
 
@@ -339,6 +715,23 @@ public final class SystemFInference extends TypeDialect {
       public final String toString() {
         return expr + " : " + type;
       }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var checked = engine.check(ctx, this.expr, this.type);
+
+        return new TypeInference.TypeResult(
+          this.type,
+          checked.ctx,
+          new InferenceTree(
+            "InfAnn",
+            input,
+            input + " => " + this.type + " -| " + checked.ctx,
+            List.of(checked.tree)
+          )
+        );
+      }
     }
 
     public static final class TAbs extends Expr {
@@ -354,6 +747,44 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public final String toString() {
         return "∀" + variable + ". " + body;
+      }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var newCtx = ctx.copy();
+        newCtx.push(new Entry.TVarBnd(this.variable));
+        var bodyInferred = engine.infer(newCtx, this.body);
+
+        var resolvedBodyType = bodyInferred.ctx.apply(bodyInferred.type);
+
+        var break3Result = bodyInferred.ctx.break3(
+          entry ->
+            entry instanceof Entry.TVarBnd bnd &&
+            bnd.tyVar.equals(this.variable)
+        );
+
+        var solvedFinalCtxEntries = break3Result.left
+          .stream()
+          .filter(entry -> entry instanceof Entry.SETVarBnd)
+          .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
+
+        solvedFinalCtxEntries.addAll(break3Result.right);
+        var finalCtx = new Context(solvedFinalCtxEntries);
+        var resType = new SystemFType.ForAll(this.variable, resolvedBodyType);
+
+        var output = input + " => " + resType + " -| " + finalCtx;
+
+        return new TypeInference.TypeResult(
+          resType,
+          finalCtx,
+          new InferenceTree(
+            "InfTAbs",
+            input,
+            output,
+            List.of(bodyInferred.tree)
+          )
+        );
       }
     }
 
@@ -386,6 +817,65 @@ public final class SystemFInference extends TypeDialect {
       public final String toString() {
         return lit.toString();
       }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        if (this.lit instanceof Lit.Bool) {
+          return new TypeInference.TypeResult(
+            new SystemFType.Bool(),
+            ctx.copy(),
+            new InferenceTree(
+              "InfLitBool",
+              input,
+              input + " => Bool -| " + ctx,
+              List.of()
+            )
+          );
+        } else if (this.lit instanceof Lit.Int) {
+          return new TypeInference.TypeResult(
+            new SystemFType.Int(),
+            ctx.copy(),
+            new InferenceTree(
+              "InfLitInt",
+              input,
+              input + " => Int-| " + ctx,
+              List.of()
+            )
+          );
+        } else {
+          throw new TypingException.InvalidLiteral(this.lit);
+        }
+      }
+
+      @Override
+      public TypeInference.CheckResult check(
+        TypeInference engine,
+        Context ctx,
+        SystemFType ty
+      ) {
+        var input = ctx + " |- " + this + " <=" + ty;
+        if (this.lit instanceof Lit.Int && ty instanceof SystemFType.Int) {
+          return new TypeInference.CheckResult(
+            ctx.copy(),
+            new InferenceTree("ChkLitInt", input, "" + ctx, List.of())
+          );
+        } else if (
+          this.lit instanceof Lit.Bool && ty instanceof SystemFType.Bool
+        ) {
+          return new TypeInference.CheckResult(
+            ctx.copy(),
+            new InferenceTree("ChkLitBool", input, "" + ctx, List.of())
+          );
+        } else {
+          return engine.checkBySubtyping(
+            ctx,
+            this,
+            ty,
+            ctx + " |- " + this + " <=" + ty
+          );
+        }
+      }
     }
 
     public static final class Let extends Expr {
@@ -403,6 +893,41 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public final String toString() {
         return "let " + name + " = " + value + " in " + body;
+      }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var valueInferred = engine.infer(ctx, this.value);
+        var newCtx = valueInferred.ctx.copy();
+
+        newCtx.push(new Entry.VarBnd(this.name, valueInferred.type));
+
+        var bodyInferred = engine.infer(newCtx, this.body);
+
+        var break3Result = bodyInferred.ctx.break3(
+          entry ->
+            entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name)
+        );
+
+        var solvedFinalCtxEntries = break3Result.left
+          .stream()
+          .filter(entry -> entry instanceof Entry.SETVarBnd)
+          .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
+
+        solvedFinalCtxEntries.addAll(break3Result.right);
+        var finalCtx = new Context(solvedFinalCtxEntries);
+
+        return new TypeInference.TypeResult(
+          bodyInferred.type,
+          finalCtx,
+          new InferenceTree(
+            "InfLet",
+            input,
+            input + " => " + bodyInferred.type + " -| " + finalCtx,
+            List.of(valueInferred.tree, bodyInferred.tree)
+          )
+        );
       }
     }
 
@@ -422,6 +947,38 @@ public final class SystemFInference extends TypeDialect {
       public final String toString() {
         return "if " + cond + " then " + then + " else " + else_;
       }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var condCheck = engine.check(ctx, this.cond, new SystemFType.Bool());
+        var thenInferred = engine.infer(condCheck.ctx, this.then);
+        var elseInferred = engine.infer(thenInferred.ctx, this.else_);
+
+        var unified = engine.subtype(
+          elseInferred.ctx,
+          thenInferred.type,
+          elseInferred.type
+        );
+
+        var output = input + " => " + thenInferred.type + " -| " + unified.ctx;
+
+        return new TypeInference.TypeResult(
+          thenInferred.type,
+          unified.ctx,
+          new InferenceTree(
+            "InfIf",
+            input,
+            output,
+            List.of(
+              condCheck.tree,
+              thenInferred.tree,
+              elseInferred.tree,
+              unified.tree
+            )
+          )
+        );
+      }
     }
 
     public static final class BinOp extends Expr {
@@ -439,6 +996,48 @@ public final class SystemFInference extends TypeDialect {
       @Override
       public final String toString() {
         return left + " " + kind + " " + right;
+      }
+
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        if (
+          this.kind == BinOpKind.ADD ||
+          this.kind == BinOpKind.SUB ||
+          this.kind == BinOpKind.MUL ||
+          this.kind == BinOpKind.DIV
+        ) {
+          var res1 = engine.check(ctx, this.left, new SystemFType.Int());
+          var res2 = engine.check(res1.ctx, this.right, new SystemFType.Int());
+          var output = input + " => Int -| " + res2.ctx;
+          return new TypeInference.TypeResult(
+            new SystemFType.Int(),
+            res2.ctx,
+            new InferenceTree(
+              "InfArith",
+              input,
+              output,
+              List.of(res1.tree, res2.tree)
+            )
+          );
+        } else if (this.kind == BinOpKind.EQ || this.kind == BinOpKind.NEQ) {
+          var infRes = engine.infer(ctx, this.left);
+          var checkRes = engine.check(infRes.ctx, this.right, infRes.type);
+
+          var output = input + " => Bool -| " + checkRes.ctx;
+          return new TypeInference.TypeResult(
+            new SystemFType.Bool(),
+            checkRes.ctx,
+            new InferenceTree(
+              "InfEq",
+              input,
+              output,
+              List.of(infRes.tree, checkRes.tree)
+            )
+          );
+        }
+
+        return null;
       }
 
       public enum BinOpKind {
@@ -688,8 +1287,9 @@ public final class SystemFInference extends TypeDialect {
       if (expr instanceof Expr exp) {
         return (Type) this.inferType(exp);
       } else {
-        throw new IllegalArgumentException(
-          "Only SystemF Expressions are supported"
+        throw new TypingException.UnsupportedExpression(
+          TypingException.UnsupportedExpression.AlgorithmType.SystemF,
+          expr
         );
       }
     }
@@ -736,7 +1336,7 @@ public final class SystemFInference extends TypeDialect {
           );
         }
       } else {
-        throw new IllegalArgumentException("Unexpected Type Parameter");
+        throw new TypingException.UnknownType(target);
       }
     }
 
@@ -747,368 +1347,7 @@ public final class SystemFInference extends TypeDialect {
     ) {}
 
     TypeResult infer(Context ctx, Expr expr) {
-      var input = ctx + " |- " + expr;
-      if (expr instanceof Expr.Var var) {
-        return this.inferVar(ctx, var, input);
-      } else if (expr instanceof Expr.Ann ann) {
-        return this.inferAnn(ctx, ann, input);
-      } else if (expr instanceof Expr.LitExpr lit) {
-        return this.inferLit(ctx, lit, input);
-      } else if (expr instanceof Expr.Abs abs) {
-        return this.inferAbs(ctx, abs, input);
-      } else if (expr instanceof Expr.App app) {
-        return this.inferApp(ctx, app, input);
-      } else if (expr instanceof Expr.TAbs tabs) {
-        return this.inferTAbs(ctx, tabs, input);
-      } else if (expr instanceof Expr.TApp tapp) {
-        return this.inferTApp(ctx, tapp, input);
-      } else if (expr instanceof Expr.Let let) {
-        return this.inferLet(ctx, let, input);
-      } else if (expr instanceof Expr.IfThenElse ifthenelse) {
-        return this.inferIfThenElse(ctx, ifthenelse, input);
-      } else if (expr instanceof Expr.BinOp binop) {
-        return this.inferBinOp(ctx, binop, input);
-      } else {
-        throw new IllegalArgumentException("Unexpected Expression");
-      }
-    }
-
-    TypeResult inferVar(Context ctx, Expr.Var var, String input) {
-      var boundVariable = ctx.find(
-        entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(var.name)
-      );
-
-      if (boundVariable.isPresent()) {
-        var varBnd = (Entry.VarBnd) boundVariable.get();
-        return new TypeResult(
-          varBnd.type,
-          ctx.copy(),
-          new InferenceTree(
-            "InfVar",
-            ctx + " |- " + var,
-            input + " => " + varBnd.type + " -| " + ctx,
-            List.of()
-          )
-        );
-      }
-
-      return null;
-    }
-
-    TypeResult inferAnn(Context ctx, Expr.Ann ann, String input) {
-      var checked = this.check(ctx, ann.expr, ann.type);
-
-      return new TypeResult(
-        ann.type,
-        checked.ctx,
-        new InferenceTree(
-          "InfAnn",
-          input,
-          input + " => " + ann.type + " -| " + checked.ctx,
-          List.of(checked.tree)
-        )
-      );
-    }
-
-    TypeResult inferLit(Context ctx, Expr.LitExpr lit, String input) {
-      if (lit.lit instanceof Lit.Bool) {
-        return new TypeResult(
-          new SystemFType.Bool(),
-          ctx.copy(),
-          new InferenceTree(
-            "InfLitBool",
-            input,
-            input + " => Bool -| " + ctx,
-            List.of()
-          )
-        );
-      } else if (lit.lit instanceof Lit.Int) {
-        return new TypeResult(
-          new SystemFType.Int(),
-          ctx.copy(),
-          new InferenceTree(
-            "InfLitInt",
-            input,
-            input + " => Int-| " + ctx,
-            List.of()
-          )
-        );
-      } else {
-        // TODO(jan): extend with all primitives unified for all type systems
-        throw new IllegalArgumentException(
-          "Only int and bool are supported for literals for now"
-        );
-      }
-    }
-
-    TypeResult inferApp(Context ctx, Expr.App app, String input) {
-      var funcInferred = this.infer(ctx, app.fun);
-      var funcTypeApplied = funcInferred.ctx.apply(funcInferred.type);
-
-      Supplier<TypeResult> application = () -> {
-        if (funcTypeApplied instanceof SystemFType.Arrow arrow) {
-          var paramTy = arrow.from;
-          var resultTy = arrow.to;
-
-          var paramCheck = this.check(funcInferred.ctx, app.arg, paramTy);
-          return new TypeResult(
-            resultTy,
-            paramCheck.ctx,
-            new InferenceTree(
-              "InfAppArr",
-              input,
-              input + " =>=> " + resultTy + paramCheck.ctx,
-              List.of(paramCheck.tree)
-            )
-          );
-        } else if (funcTypeApplied instanceof SystemFType.EtVar etvar) {
-          var a = etvar.name;
-
-          var a1 = this.freshTypeVar();
-          var a2 = this.freshTypeVar();
-
-          var breakRes = funcInferred.ctx.break3(
-            entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(a)
-          );
-          var arrowType = new SystemFType.Arrow(
-            new SystemFType.EtVar(a1),
-            new SystemFType.EtVar(a2)
-          );
-
-          var newCtx = new Context(breakRes.left);
-          newCtx.push(new Entry.SETVarBnd(a, arrowType));
-          newCtx.push(new Entry.ETVarBnd(a1));
-          newCtx.push(new Entry.ETVarBnd(a2));
-          newCtx.extend(breakRes.right);
-
-          var checkRes = this.check(newCtx, app.arg, new SystemFType.EtVar(a1));
-
-          var output = input + " =>=> ^" + a2 + " -| " + checkRes.ctx;
-          return new TypeResult(
-            new SystemFType.EtVar(a2),
-            checkRes.ctx,
-            new InferenceTree(
-              "InfAppETVar",
-              input,
-              output,
-              List.of(checkRes.tree)
-            )
-          );
-        } else {
-          throw new RuntimeException("Application Type Error");
-        }
-      };
-
-      var result = application.get();
-      var output = input + " => " + result.type + " -| " + result.ctx;
-      return new TypeResult(
-        result.type,
-        result.ctx,
-        new InferenceTree(
-          "InfApp",
-          input,
-          output,
-          List.of(funcInferred.tree, result.tree)
-        )
-      );
-    }
-
-    TypeResult inferAbs(Context ctx, Expr.Abs abs, String input) {
-      var b = this.freshTypeVar();
-      var newCtx = ctx.copy();
-
-      newCtx.push(new Entry.VarBnd(abs.name, abs.type));
-      newCtx.push(new Entry.ETVarBnd(b));
-
-      var c1 = this.check(newCtx, abs.body, new SystemFType.EtVar(b));
-      var breakRes = c1.ctx.break3(
-        entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(abs.name)
-      );
-
-      // Only preserve all solved existential variables from the left context
-      var solvedFinalCtxEntries = breakRes.left
-        .stream()
-        .filter(entry -> entry instanceof Entry.SETVarBnd)
-        .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
-
-      solvedFinalCtxEntries.addAll(breakRes.right);
-      var finalCtx = new Context(solvedFinalCtxEntries);
-      var resType = new SystemFType.Arrow(abs.type, new SystemFType.EtVar(b));
-
-      return new TypeResult(
-        resType,
-        finalCtx,
-        new InferenceTree(
-          "InfLam",
-          input,
-          input + " => " + resType + " -| " + finalCtx,
-          List.of(c1.tree)
-        )
-      );
-    }
-
-    TypeResult inferTAbs(Context ctx, Expr.TAbs tabs, String input) {
-      var newCtx = ctx.copy();
-      newCtx.push(new Entry.TVarBnd(tabs.variable));
-      var bodyInferred = this.infer(newCtx, tabs.body);
-
-      var resolvedBodyType = bodyInferred.ctx.apply(bodyInferred.type);
-
-      var break3Result = bodyInferred.ctx.break3(
-        entry ->
-          entry instanceof Entry.TVarBnd bnd && bnd.tyVar.equals(tabs.variable)
-      );
-      // Only preserve all solved existential variables from the left context
-      var solvedFinalCtxEntries = break3Result.left
-        .stream()
-        .filter(entry -> entry instanceof Entry.SETVarBnd)
-        .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
-
-      solvedFinalCtxEntries.addAll(break3Result.right);
-      var finalCtx = new Context(solvedFinalCtxEntries);
-      var resType = new SystemFType.ForAll(tabs.variable, resolvedBodyType);
-
-      var output = input + " => " + resType + " -| " + finalCtx;
-
-      return new TypeResult(
-        resType,
-        finalCtx,
-        new InferenceTree("InfTAbs", input, output, List.of(bodyInferred.tree))
-      );
-    }
-
-    TypeResult inferTApp(Context ctx, Expr.TApp tapp, String input) {
-      var funcInferred = this.infer(ctx, tapp.func);
-      if (funcInferred.type instanceof SystemFType.ForAll forall) {
-        var resultType = this.substType(
-          forall.boundVar,
-          tapp.type,
-          forall.body
-        );
-        var output = input + " => " + resultType + " -| " + funcInferred.ctx;
-        return new TypeResult(
-          resultType,
-          funcInferred.ctx,
-          new InferenceTree(
-            "InfTApp",
-            input,
-            output,
-            List.of(funcInferred.tree)
-          )
-        );
-      } else {
-        throw new RuntimeException("Not implemented for non ForAll types");
-      }
-    }
-
-    TypeResult inferLet(Context ctx, Expr.Let let, String input) {
-      var valueInferred = this.infer(ctx, let.value);
-      var newCtx = valueInferred.ctx.copy();
-
-      newCtx.push(new Entry.VarBnd(let.name, valueInferred.type));
-
-      var bodyInferred = this.infer(newCtx, let.body);
-
-      var break3Result = bodyInferred.ctx.break3(
-        entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(let.name)
-      );
-
-      // Only preserve all solved existential variables from the left context
-      var solvedFinalCtxEntries = break3Result.left
-        .stream()
-        .filter(entry -> entry instanceof Entry.SETVarBnd)
-        .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
-
-      solvedFinalCtxEntries.addAll(break3Result.right);
-      var finalCtx = new Context(solvedFinalCtxEntries);
-
-      return new TypeResult(
-        bodyInferred.type,
-        finalCtx,
-        new InferenceTree(
-          "InfLet",
-          input,
-          input + " => " + bodyInferred.type + " -| " + finalCtx,
-          List.of(valueInferred.tree, bodyInferred.tree)
-        )
-      );
-    }
-
-    TypeResult inferIfThenElse(
-      Context ctx,
-      Expr.IfThenElse ifthenelse,
-      String input
-    ) {
-      var condCheck = this.check(ctx, ifthenelse.cond, new SystemFType.Bool());
-      var thenInferred = this.infer(condCheck.ctx, ifthenelse.then);
-      var elseInferred = this.infer(thenInferred.ctx, ifthenelse.else_);
-
-      var unified = this.subtype(
-        elseInferred.ctx,
-        thenInferred.type,
-        elseInferred.type
-      );
-
-      var output = input + " => " + thenInferred.type + " -| " + unified.ctx;
-
-      return new TypeResult(
-        thenInferred.type,
-        unified.ctx,
-        new InferenceTree(
-          "InfIf",
-          input,
-          output,
-          List.of(
-            condCheck.tree,
-            thenInferred.tree,
-            elseInferred.tree,
-            unified.tree
-          )
-        )
-      );
-    }
-
-    TypeResult inferBinOp(Context ctx, Expr.BinOp binop, String input) {
-      if (
-        binop.kind == Expr.BinOp.BinOpKind.ADD ||
-        binop.kind == Expr.BinOp.BinOpKind.SUB ||
-        binop.kind == Expr.BinOp.BinOpKind.MUL ||
-        binop.kind == Expr.BinOp.BinOpKind.DIV
-      ) {
-        var res1 = this.check(ctx, binop.left, new SystemFType.Int());
-        var res2 = this.check(res1.ctx, binop.right, new SystemFType.Int());
-        var output = input + " => Int -| " + res2.ctx;
-        return new TypeResult(
-          new SystemFType.Int(),
-          res2.ctx,
-          new InferenceTree(
-            "InfArith",
-            input,
-            output,
-            List.of(res1.tree, res2.tree)
-          )
-        );
-      } else if (
-        binop.kind == Expr.BinOp.BinOpKind.EQ ||
-        binop.kind == Expr.BinOp.BinOpKind.NEQ
-      ) {
-        var infRes = this.infer(ctx, binop.left);
-        var checkRes = this.check(infRes.ctx, binop.right, infRes.type);
-
-        var output = input + " => Bool -| " + checkRes.ctx;
-        return new TypeResult(
-          new SystemFType.Bool(),
-          checkRes.ctx,
-          new InferenceTree(
-            "InfEq",
-            input,
-            output,
-            List.of(infRes.tree, checkRes.tree)
-          )
-        );
-      }
-
-      return null;
+      return expr.infer(this, ctx);
     }
 
     public final record CheckResult(Context ctx, InferenceTree tree) {}
@@ -1116,48 +1355,7 @@ public final class SystemFInference extends TypeDialect {
     public CheckResult check(Context ctx, Expr expr, SystemFType ty) {
       var input = ctx + " |- " + expr + " <=" + ty;
 
-      if (
-        expr instanceof Expr.LitExpr lit &&
-        lit.lit instanceof Lit.Int &&
-        ty instanceof SystemFType.Int
-      ) {
-        return new CheckResult(
-          ctx.copy(),
-          new InferenceTree("ChkLitInt", input, "" + ctx, List.of())
-        );
-      } else if (
-        expr instanceof Expr.LitExpr lit &&
-        lit.lit instanceof Lit.Bool &&
-        ty instanceof SystemFType.Bool
-      ) {
-        return new CheckResult(
-          ctx.copy(),
-          new InferenceTree("ChkLitBool", input, "" + ctx, List.of())
-        );
-      } else if (
-        expr instanceof Expr.Abs abs && ty instanceof SystemFType.Arrow arrow
-      ) {
-        var newCtx = ctx.copy();
-        newCtx.push(new Entry.VarBnd(abs.name, arrow.from));
-
-        var bodyCheck = this.check(newCtx, abs.body, arrow.to);
-        var break3Result = bodyCheck.ctx.break3(
-          entry ->
-            entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(abs.name)
-        );
-
-        var finalCtx = new Context(break3Result.right);
-
-        return new CheckResult(
-          finalCtx,
-          new InferenceTree(
-            "ChkLam",
-            input,
-            "" + finalCtx,
-            List.of(bodyCheck.tree)
-          )
-        );
-      } else if (ty instanceof SystemFType.ForAll forall) {
+      if (ty instanceof SystemFType.ForAll forall) {
         var newCtx = ctx.copy();
         newCtx.push(new Entry.TVarBnd(forall.boundVar));
         var bodyCheck = this.check(newCtx, expr, forall.body);
@@ -1180,20 +1378,50 @@ public final class SystemFInference extends TypeDialect {
           )
         );
       } else {
-        var inferred = this.infer(ctx, expr);
-        var inferredApplied = inferred.ctx.apply(inferred.type);
-        var typeApplied = inferred.ctx.apply(ty);
-        var subtyped = this.subtype(inferred.ctx, inferredApplied, typeApplied);
+        return expr.check(this, ctx, ty);
+      }
+    }
+
+    CheckResult checkBySubtyping(
+      Context ctx,
+      Expr expr,
+      SystemFType ty,
+      String input
+    ) {
+      if (ty instanceof SystemFType.ForAll forall) {
+        var newCtx = ctx.copy();
+        newCtx.push(new Entry.TVarBnd(forall.boundVar));
+        CheckResult checkRes = this.check(newCtx, expr, forall.body);
+        Break3Result breakRes = checkRes.ctx.break3(
+          entry ->
+            entry instanceof Entry.TVarBnd bnd &&
+            bnd.tyVar.equals(forall.boundVar)
+        );
+        Context finalCtx = new Context(breakRes.right);
         return new CheckResult(
-          subtyped.ctx,
+          finalCtx,
           new InferenceTree(
-            "ChkSub",
+            "ChkAll",
             input,
-            "" + inferred.ctx,
-            List.of(inferred.tree, subtyped.tree)
+            "" + finalCtx,
+            List.of(checkRes.tree)
           )
         );
       }
+
+      var inferred = this.infer(ctx, expr);
+      var inferredApplied = inferred.ctx.apply(inferred.type);
+      var typeApplied = inferred.ctx.apply(ty);
+      var subtyped = this.subtype(inferred.ctx, inferredApplied, typeApplied);
+      return new CheckResult(
+        subtyped.ctx,
+        new InferenceTree(
+          "ChkSub",
+          input,
+          "" + inferred.ctx,
+          List.of(inferred.tree, subtyped.tree)
+        )
+      );
     }
 
     public final record SubtypeResult(Context ctx, InferenceTree tree) {}
@@ -1205,111 +1433,17 @@ public final class SystemFInference extends TypeDialect {
     ) {
       var input = ctx + " |- " + ty1 + " <: " + ty2;
 
-      if (
-        (ty1 instanceof SystemFType.Int && ty2 instanceof SystemFType.Int) ||
-        (ty1 instanceof SystemFType.Bool && ty2 instanceof SystemFType.Bool)
-      ) {
-        return new SubtypeResult(
-          ctx.copy(),
-          new InferenceTree("SubRefl", input, "" + ctx, List.of())
-        );
-      } else if (
-        ty1 instanceof SystemFType.Var a &&
-        ty2 instanceof SystemFType.Var b &&
-        a.name.equals(b.name)
-      ) {
-        return new SubtypeResult(
-          ctx.copy(),
-          new InferenceTree("SubReflTVar", input, "" + ctx, List.of())
-        );
-      } else if (
-        ty1 instanceof SystemFType.EtVar a &&
-        ty2 instanceof SystemFType.EtVar b &&
-        a.name.equals(b.name)
-      ) {
-        return new SubtypeResult(
-          ctx.copy(),
-          new InferenceTree("SubReflETVar", input, "" + ctx, List.of())
-        );
-      } else if (
-        ty1 instanceof SystemFType.Arrow a && ty2 instanceof SystemFType.Arrow b
-      ) {
-        var covArg = this.subtype(ctx, a.from, b.from);
-        var covRes = this.subtype(covArg.ctx, a.to, b.to);
-
-        return new SubtypeResult(
-          covRes.ctx,
-          new InferenceTree(
-            "SubArr",
-            input,
-            "" + covRes.ctx,
-            List.of(covArg.tree, covRes.tree)
-          )
-        );
-      } else if (ty2 instanceof SystemFType.ForAll forall) {
-        var newCtx = ctx.copy();
-        newCtx.push(new Entry.TVarBnd(forall.boundVar));
-        var bodySubtype = this.subtype(newCtx, ty1, forall.body);
-        var breakRes = bodySubtype.ctx.break3(
-          entry ->
-            entry instanceof Entry.TVarBnd bnd &&
-            bnd.tyVar.equals(forall.boundVar)
-        );
-        var finalCtx = new Context(breakRes.right);
-        return new SubtypeResult(
-          finalCtx,
-          new InferenceTree(
-            "SubAllR",
-            input,
-            "" + finalCtx,
-            List.of(bodySubtype.tree)
-          )
-        );
-      } else if (ty1 instanceof SystemFType.ForAll forall) {
-        var substTy1 = this.substType(
-          forall.boundVar,
-          new SystemFType.EtVar(forall.boundVar),
-          forall.body
-        );
-        var newCtx = ctx.copy();
-        newCtx.push(new Entry.ETVarBnd(forall.boundVar));
-        newCtx.push(new Entry.Mark(forall.boundVar));
-
-        var bodySubtype = this.subtype(newCtx, substTy1, ty2);
-        var breakRes = bodySubtype.ctx.break3(
-          entry ->
-            entry instanceof Entry.Mark m && m.tyVar.equals(forall.boundVar)
-        );
-
-        var finalCtx = new Context(breakRes.right);
-        return new SubtypeResult(
-          finalCtx,
-          new InferenceTree(
-            "SubAllL",
-            input,
-            "" + finalCtx,
-            List.of(bodySubtype.tree)
-          )
-        );
-      } else if (
-        ty1 instanceof SystemFType.EtVar etvar && !ty2.occursCheck(etvar.name)
-      ) {
-        var res = this.instL(ctx, etvar.name, ty2);
-        return new SubtypeResult(
-          res.ctx,
-          new InferenceTree("SubInstL", input, "" + res.ctx, List.of(res.tree))
-        );
-      } else if (
-        ty2 instanceof SystemFType.EtVar etvar && !ty1.occursCheck(etvar.name)
-      ) {
+      // Handle the case where ty2 is an EtVar that doesn't occur in ty1 (instR case)
+      if (ty2 instanceof SystemFType.EtVar etvar && !ty1.occursCheck(etvar.name)) {
         var res = this.instR(ctx, ty1, etvar.name);
         return new SubtypeResult(
           res.ctx,
-          new InferenceTree("SubInstL", input, "" + res.ctx, List.of(res.tree))
+          new InferenceTree("SubInstR", input, "" + res.ctx, List.of(res.tree))
         );
-      } else {
-        throw new RuntimeException("Subtyping error, check failed");
       }
+
+      // Delegate to the type-specific subtype method
+      return ty1.subtype(this, ctx, ty2);
     }
 
     final record InstResult(Context ctx, InferenceTree tree) {}
@@ -1382,9 +1516,7 @@ public final class SystemFInference extends TypeDialect {
         );
       } else if (ty.isMono()) {
         if (ty.occursCheck(a)) {
-          throw new RuntimeException(
-            "Occur check failed, recursive type detected"
-          );
+          throw new TypingException.OccursCheckFailed(ty, a);
         }
 
         var breakRes = ctx.break3(
@@ -1400,7 +1532,7 @@ public final class SystemFInference extends TypeDialect {
           new InferenceTree("InstLSolve", input, "" + newCtx, List.of())
         );
       } else {
-        throw new RuntimeException(
+        throw new TypingException.InstantiationError(
           "InstL Instantiation error " + ctx + " |- " + ty
         );
       }
@@ -1481,9 +1613,7 @@ public final class SystemFInference extends TypeDialect {
         );
       } else if (ty.isMono()) {
         if (ty.occursCheck(a)) {
-          throw new RuntimeException(
-            "Occur check failed, recursive type detected"
-          );
+          throw new TypingException.OccursCheckFailed(ty, a);
         }
 
         var breakRes = ctx.break3(
@@ -1499,7 +1629,7 @@ public final class SystemFInference extends TypeDialect {
           new InferenceTree("InstRSolve", input, "" + ctx, List.of())
         );
       } else {
-        throw new RuntimeException(
+        throw new TypingException.InstantiationError(
           "InstR Instantiation error " + ctx + " |- " + ty
         );
       }

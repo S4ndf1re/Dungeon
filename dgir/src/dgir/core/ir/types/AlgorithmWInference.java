@@ -96,7 +96,7 @@ public final class AlgorithmWInference extends TypeDialect {
             new InferenceTree("T-Bool", env + " |- " + this, "Bool", List.of())
           );
         } else {
-          throw new RuntimeException("value is not of type Lit");
+          throw new TypingException.InvalidLiteral(value);
         }
       }
     }
@@ -130,7 +130,7 @@ public final class AlgorithmWInference extends TypeDialect {
         Env currentEnv = env.copy();
 
         for (var expr : elements) {
-          var res = expr.infer(engine, currentEnv);
+          var res = engine.infer(expr, currentEnv);
           subst = res.subst.compose(subst);
           currentEnv = currentEnv.apply(res.subst);
           types.add(res.type);
@@ -183,8 +183,7 @@ public final class AlgorithmWInference extends TypeDialect {
             )
           );
         } else {
-          // TODO: replace with exception class here
-          throw new RuntimeException("Unknown variable: " + name);
+          throw new TypingException.UnknownVariable(name);
         }
       }
     }
@@ -212,14 +211,14 @@ public final class AlgorithmWInference extends TypeDialect {
           engine.freshTypeVar()
         );
 
-        InferResult res1 = func.infer(engine, env);
+        InferResult res1 = engine.infer(func, env);
         Env envSubst = env.apply(res1.subst);
-        InferResult res2 = arg.infer(engine, envSubst);
+        InferResult res2 = engine.infer(arg, envSubst);
 
         AlgorithmWType funcTypeSubst = res2.subst.apply(res1.type);
         AlgorithmWType expectedFuncType = new Arrow(res2.type, resultType);
 
-        UnifyResult res3 = funcTypeSubst.unify(expectedFuncType);
+        UnifyResult res3 = engine.unify(funcTypeSubst, expectedFuncType);
 
         Subst finalSubst = res3.subst.compose(res2.subst.compose(res1.subst));
         AlgorithmWType finalType = res3.subst.apply(resultType);
@@ -263,7 +262,7 @@ public final class AlgorithmWInference extends TypeDialect {
         Scheme newScheme = new Scheme(List.of(), freshTypeVar);
         newEnv.env.put(param, newScheme);
 
-        InferResult res = body.infer(engine, newEnv);
+        InferResult res = engine.infer(body, newEnv);
         AlgorithmWType resultType = new Arrow(
           res.subst.apply(freshTypeVar),
           res.type
@@ -303,14 +302,14 @@ public final class AlgorithmWInference extends TypeDialect {
       public InferResult infer(TypeInference engine, Env env) {
         String input = env + " |- " + this;
 
-        InferResult res1 = value.infer(engine, env);
+        InferResult res1 = engine.infer(value, env);
         Env envSubst = env.apply(res1.subst);
         Scheme generalizedType = res1.type.generalize(envSubst);
 
         Env newEnv = envSubst.copy();
         newEnv.env.put(param, generalizedType);
 
-        InferResult res2 = body.infer(engine, newEnv);
+        InferResult res2 = engine.infer(body, newEnv);
         Subst finalSubst = res2.subst.compose(res1.subst);
 
         return new InferResult(
@@ -344,17 +343,25 @@ public final class AlgorithmWInference extends TypeDialect {
     @Override
     public Type solve(Expression expr) {
       if (expr instanceof Expr) {
-        return (Type) this.inferType((Expr) expr);
+        InferResult res = this.infer((Expr) expr, new Env(new HashMap<>()));
+        return (Type) res.subst.apply(res.type);
       } else {
-        throw new RuntimeException(
-          "the parameter expr is not type compatible with the Algorithm W Inference"
+        throw new TypingException.UnsupportedExpression(
+          TypingException.UnsupportedExpression.AlgorithmType.AlgorithmW,
+          expr
         );
       }
     }
 
-    private AlgorithmWType inferType(Expr expr) {
-      InferResult res = expr.infer(this, new Env(new HashMap<>()));
-      return res.subst.apply(res.type);
+    public InferResult infer(Expr expr, Env env) {
+      return expr.infer(this, env);
+    }
+
+    public UnifyResult unify(AlgorithmWType left, AlgorithmWType right) {
+      if (right instanceof AlgorithmWType.Var) {
+        return right.unify(this, left);
+      }
+      return left.unify(this, right);
     }
   }
 
@@ -502,7 +509,7 @@ public final class AlgorithmWInference extends TypeDialect {
       } else if (type instanceof Tuple tuple) {
         return new Tuple(tuple.elements.stream().map(this::apply).toList());
       } else {
-        throw new RuntimeException("Unknown type: " + type);
+        throw new TypingException.UnknownType(type);
       }
     }
 
@@ -557,7 +564,10 @@ public final class AlgorithmWInference extends TypeDialect {
      * @return The unification result consisting of a substitution and an inference tree.
      * @throws RuntimeException if unimplemented
      */
-    public abstract UnifyResult unify(AlgorithmWType other);
+    public abstract UnifyResult unify(
+      TypeInference engine,
+      AlgorithmWType other
+    );
 
     public boolean occursCheck(String ty) {
       var ftv = this.freeTypeVars();
@@ -590,7 +600,7 @@ public final class AlgorithmWInference extends TypeDialect {
       }
 
       @Override
-      public UnifyResult unify(AlgorithmWType other) {
+      public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
         // Maybe the two types (this and other) are actually the same type variable
         if (other instanceof Var b && this.name.equals(b.name)) {
           return new UnifyResult(
@@ -601,7 +611,7 @@ public final class AlgorithmWInference extends TypeDialect {
             )
           );
         } else if (other.occursCheck(this.name)) {
-          throw new RuntimeException("Occurs check failed");
+          throw new TypingException.OccursCheckFailed(other, this.name);
         } else {
           // In every other case, the type variable can be substituded with the concrete type that is other
           var subst = Subst.newSingleton(this.name, other);
@@ -652,10 +662,13 @@ public final class AlgorithmWInference extends TypeDialect {
       }
 
       @Override
-      public UnifyResult unify(AlgorithmWType other) {
+      public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
         if (other instanceof Arrow b) {
-          UnifyResult u1 = this.from.unify(b.from);
-          UnifyResult u2 = u1.applySubst(this.to).unify(u1.applySubst(b.to));
+          UnifyResult u1 = engine.unify(this.from, b.from);
+          UnifyResult u2 = engine.unify(
+            u1.applySubst(this.to),
+            u1.applySubst(b.to)
+          );
 
           Subst finalSubst = u2.subst().compose(u1.subst());
 
@@ -668,12 +681,8 @@ public final class AlgorithmWInference extends TypeDialect {
               List.of(u1.tree, u2.tree)
             )
           );
-        } else if (other instanceof Var) {
-          return other.unify(this);
         } else {
-          throw new RuntimeException(
-            "Unify-Arrow: " + this.toString() + " ~ " + other.toString()
-          );
+          throw new TypingException.UnificationFailed(this, other);
         }
       }
 
@@ -706,7 +715,7 @@ public final class AlgorithmWInference extends TypeDialect {
       }
 
       @Override
-      public UnifyResult unify(AlgorithmWType other) {
+      public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
         if (other instanceof Integer) {
           return new UnifyResult(
             Subst.newEmpty(),
@@ -715,10 +724,8 @@ public final class AlgorithmWInference extends TypeDialect {
               this.toString() + " ~ " + other.toString()
             )
           );
-        } else if (other instanceof Var) {
-          return other.unify(this);
         } else {
-          throw new RuntimeException("unify failed: " + this + " vs " + other);
+          throw new TypingException.UnificationFailed(this, other);
         }
       }
 
@@ -748,7 +755,7 @@ public final class AlgorithmWInference extends TypeDialect {
       }
 
       @Override
-      public UnifyResult unify(AlgorithmWType other) {
+      public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
         if (other instanceof Boolean) {
           return new UnifyResult(
             Subst.newEmpty(),
@@ -757,10 +764,8 @@ public final class AlgorithmWInference extends TypeDialect {
               this.toString() + " ~ " + other.toString()
             )
           );
-        } else if (other instanceof Var) {
-          return other.unify(this);
         } else {
-          throw new RuntimeException("unify failed: " + this + " vs " + other);
+          throw new TypingException.UnificationFailed(this, other);
         }
       }
 
@@ -812,23 +817,22 @@ public final class AlgorithmWInference extends TypeDialect {
       }
 
       @Override
-      public UnifyResult unify(AlgorithmWType other) {
+      public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
         if (other instanceof Tuple b) {
           if (this.elements.size() != b.elements.size()) {
-            throw new RuntimeException(
-              "Tuple size does not match: " +
-                this.elements.size() +
-                " != " +
-                b.elements.size()
+            throw new TypingException.TupleSizeMismatch(
+              this.elements.size(),
+              b.elements.size()
             );
           }
           Subst subst = Subst.newEmpty();
           ArrayList<InferenceTree> trees = new ArrayList<>();
 
           for (int i = 0; i < this.elements.size(); i++) {
-            UnifyResult result = subst
-              .apply(this.elements.get(i))
-              .unify(subst.apply(b.elements.get(i)));
+            UnifyResult result = engine.unify(
+              subst.apply(this.elements.get(i)),
+              subst.apply(b.elements.get(i))
+            );
             subst = result.subst().compose(subst);
             trees.add(result.tree);
           }
@@ -842,10 +846,8 @@ public final class AlgorithmWInference extends TypeDialect {
               List.copyOf(trees)
             )
           );
-        } else if (other instanceof Var) {
-          return other.unify(this);
         } else {
-          throw new RuntimeException("Unify failed: " + this + " vs " + other);
+          throw new TypingException.UnificationFailed(this, other);
         }
       }
     }
