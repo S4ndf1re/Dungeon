@@ -116,14 +116,20 @@ public abstract sealed class TypingException extends RuntimeException {
     }
   }
 
-  public static final class SubtypingCheckFailed extends TypingException {
+  public static final class SubtypingFailed extends TypingException {
 
-    public SubtypingCheckFailed() {
-      super("Subtyping error, check failed");
+    public final Type left;
+    public final Type right;
+
+    public SubtypingFailed(Type left, Type right) {
+      super("Subtyping error between " + left + " and " + right);
+      this.left = left;
+      this.right = right;
     }
   }
 
   public static final class UnboundVariable extends TypingException {
+
     public final String varName;
 
     public UnboundVariable(String varName) {
