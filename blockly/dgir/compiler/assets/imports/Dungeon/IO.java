@@ -1,4 +1,4 @@
-package Dungeon;
+package imports.Dungeon;
 
 /** This class provides methods for input and output operations in the dungeon game. */
 public class IO {

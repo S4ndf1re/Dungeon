@@ -1,14 +1,14 @@
 package dgir.core.ir.types;
 
 import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Arrow;
-import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Boolean;
-import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Integer;
+import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.LitType;
 import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Tuple;
 import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.UnifyResult;
 import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Var;
 import dgir.core.ir.types.AlgorithmWInference.Expr.InferResult;
-import dgir.core.ir.types.AlgorithmWInference.Expr.Lit.LitBool;
-import dgir.core.ir.types.AlgorithmWInference.Expr.Lit.LitInt;
+import dgir.core.ir.types.compatibility.AlgorithmWCompatibility;
+import dgir.core.ir.types.compatibility.InferOrTransformResult;
+import dgir.core.ir.types.compatibility.InferResultMarker;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,12 +29,20 @@ import java.util.stream.Collectors;
 //
 // The only constraint then is the list of allowed types per system. While algorithm W does not have a lot of types,
 
-public final class AlgorithmWInference extends TypeDialect {
+public final class AlgorithmWInference
+  extends TypeDialect<
+    InferOrTransformResult<
+      dgir.core.ir.types.AlgorithmWInference.Expr.InferResult,
+      dgir.core.ir.types.AlgorithmWInference.Expr
+    >,
+    AlgorithmWCompatibility
+  >
+{
 
   private static Optional<TypeInference> instance = Optional.empty();
 
   @Override
-  public TypeInferenceSolver getSolverInstance() {
+  public TypeInferenceSolver<AlgorithmWCompatibility> getSolverInstance() {
     if (AlgorithmWInference.instance.isPresent()) {
       return AlgorithmWInference.instance.get();
     } else {
@@ -54,20 +62,82 @@ public final class AlgorithmWInference extends TypeDialect {
     return TypeDialect.extractExpressionsFromAbstract(Expr.class);
   }
 
-  public static interface Expr extends Expression {
+  public static interface Expr extends Expression, AlgorithmWCompatibility {
+    private static InferResult convertInferOrTransformToInferResult(
+      InferOrTransformResult<InferResult, Expr> infOrTrans,
+      TypeInference engine,
+      Env env
+    ) {
+      if (infOrTrans.isInfer()) {
+        return infOrTrans.getInferResult();
+      } else {
+        return engine.infer(infOrTrans.getTransformExpr(), env);
+      }
+    }
+
     public static record InferResult(
       Subst subst,
       AlgorithmWType type,
       InferenceTree tree
-    ) {}
+    ) implements InferResultMarker<AlgorithmWType> {}
 
     public abstract InferResult infer(TypeInference engine, Env env);
 
+    public default @Override InferOrTransformResult<
+      Expr.InferResult,
+      Expr
+    > inferOrTransformAlgorithmW(TypeInference engine, Env env) {
+      return new InferOrTransformResult.Infer<Expr.InferResult, Expr>(
+        this.infer(engine, env)
+      );
+    }
+
+    public static final class ExprAnn implements Expr {
+
+      private final AlgorithmWCompatibility expr;
+      private final AlgorithmWType type;
+
+      public ExprAnn(AlgorithmWCompatibility expr, AlgorithmWType type) {
+        this.expr = expr;
+        this.type = type;
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        InferResult res = Expr.convertInferOrTransformToInferResult(
+          expr.inferOrTransformAlgorithmW(engine, env),
+          engine,
+          env
+        );
+
+        var unifyRes = engine.unify(res.type, type);
+        var subst = unifyRes.subst.compose(res.subst);
+
+        return new InferResult(
+          subst,
+          type,
+          new InferenceTree(
+            "T-Ann",
+            env + " |- " + this,
+            type.toString(),
+            List.of(res.tree)
+          )
+        );
+      }
+    }
+
     public static sealed interface Lit {
+      public AlgorithmWType getAlgorithmWType();
+
       public final record LitInt(int value) implements Lit {
         @Override
         public final String toString() {
           return "Int(" + value + ")";
+        }
+
+        @Override
+        public AlgorithmWType getAlgorithmWType() {
+          return new AlgorithmWType.LitType("Int");
         }
       }
 
@@ -75,6 +145,11 @@ public final class AlgorithmWInference extends TypeDialect {
         @Override
         public final String toString() {
           return "Bool(" + value + ")";
+        }
+
+        @Override
+        public AlgorithmWType getAlgorithmWType() {
+          return new AlgorithmWType.LitType("Bool");
         }
       }
     }
@@ -94,21 +169,16 @@ public final class AlgorithmWInference extends TypeDialect {
 
       @Override
       public InferResult infer(TypeInference engine, Env env) {
-        if (value instanceof LitInt) {
-          return new InferResult(
-            Subst.newEmpty(),
-            new AlgorithmWType.Integer(),
-            new InferenceTree("T-Int", env + " |- " + this, "Int", List.of())
-          );
-        } else if (value instanceof LitBool) {
-          return new InferResult(
-            Subst.newEmpty(),
-            new AlgorithmWType.Boolean(),
-            new InferenceTree("T-Bool", env + " |- " + this, "Bool", List.of())
-          );
-        } else {
-          throw new TypingException.InvalidLiteral(value);
-        }
+        return new InferResult(
+          Subst.newEmpty(),
+          value.getAlgorithmWType(),
+          new InferenceTree(
+            "T-" + value.getAlgorithmWType(),
+            env + " |- " + this,
+            value.getAlgorithmWType().toString(),
+            List.of()
+          )
+        );
       }
     }
 
@@ -201,10 +271,13 @@ public final class AlgorithmWInference extends TypeDialect {
 
     public static final class ExprApp implements Expr {
 
-      private final Expr func;
-      private final Expr arg;
+      private final AlgorithmWCompatibility func;
+      private final AlgorithmWCompatibility arg;
 
-      public ExprApp(Expr func, Expr arg) {
+      public ExprApp(
+        AlgorithmWCompatibility func,
+        AlgorithmWCompatibility arg
+      ) {
         this.func = func;
         this.arg = arg;
       }
@@ -222,9 +295,17 @@ public final class AlgorithmWInference extends TypeDialect {
           engine.freshTypeVar()
         );
 
-        InferResult res1 = engine.infer(func, env);
+        InferResult res1 = Expr.convertInferOrTransformToInferResult(
+          func.inferOrTransformAlgorithmW(engine, env),
+          engine,
+          env
+        );
         Env envSubst = env.apply(res1.subst);
-        InferResult res2 = engine.infer(arg, envSubst);
+        InferResult res2 = Expr.convertInferOrTransformToInferResult(
+          arg.inferOrTransformAlgorithmW(engine, envSubst),
+          engine,
+          envSubst
+        );
 
         AlgorithmWType funcTypeSubst = res2.subst.apply(res1.type);
         AlgorithmWType expectedFuncType = new Arrow(res2.type, resultType);
@@ -250,9 +331,9 @@ public final class AlgorithmWInference extends TypeDialect {
     public static final class ExprAbs implements Expr {
 
       private final String param;
-      private final Expr body;
+      private final AlgorithmWCompatibility body;
 
-      public ExprAbs(String param, Expr body) {
+      public ExprAbs(String param, AlgorithmWCompatibility body) {
         this.param = param;
         this.body = body;
       }
@@ -273,7 +354,11 @@ public final class AlgorithmWInference extends TypeDialect {
         Scheme newScheme = new Scheme(List.of(), freshTypeVar);
         newEnv.env.put(param, newScheme);
 
-        InferResult res = engine.infer(body, newEnv);
+        InferResult res = Expr.convertInferOrTransformToInferResult(
+          body.inferOrTransformAlgorithmW(engine, newEnv),
+          engine,
+          newEnv
+        );
         AlgorithmWType resultType = new Arrow(
           res.subst.apply(freshTypeVar),
           res.type
@@ -295,8 +380,8 @@ public final class AlgorithmWInference extends TypeDialect {
     public static final class ExprLet implements Expr {
 
       private final String param;
-      private final Expr value;
-      private final Expr body;
+      private final AlgorithmWCompatibility value;
+      private final AlgorithmWCompatibility body;
 
       public ExprLet(String param, Expr value, Expr body) {
         this.param = param;
@@ -313,14 +398,22 @@ public final class AlgorithmWInference extends TypeDialect {
       public InferResult infer(TypeInference engine, Env env) {
         String input = env + " |- " + this;
 
-        InferResult res1 = engine.infer(value, env);
+        InferResult res1 = Expr.convertInferOrTransformToInferResult(
+          value.inferOrTransformAlgorithmW(engine, env),
+          engine,
+          env
+        );
         Env envSubst = env.apply(res1.subst);
         Scheme generalizedType = res1.type.generalize(envSubst);
 
         Env newEnv = envSubst.copy();
         newEnv.env.put(param, generalizedType);
 
-        InferResult res2 = engine.infer(body, newEnv);
+        InferResult res2 = Expr.convertInferOrTransformToInferResult(
+          body.inferOrTransformAlgorithmW(engine, newEnv),
+          engine,
+          newEnv
+        );
         Subst finalSubst = res2.subst.compose(res1.subst);
 
         return new InferResult(
@@ -338,7 +431,7 @@ public final class AlgorithmWInference extends TypeDialect {
   }
 
   public static final class TypeInference
-    extends TypeDialect.TypeInferenceSolver
+    extends TypeDialect.TypeInferenceSolver<AlgorithmWCompatibility>
   {
 
     private int counter;
@@ -352,9 +445,14 @@ public final class AlgorithmWInference extends TypeDialect {
     }
 
     @Override
-    public Type solve(Expression expr) {
-      if (expr instanceof Expr) {
-        InferResult res = this.infer((Expr) expr, new Env(new HashMap<>()));
+    public Type solve(AlgorithmWCompatibility expr) {
+      if (expr instanceof AlgorithmWCompatibility) {
+        Env env = new Env(new HashMap<>());
+        InferResult res = Expr.convertInferOrTransformToInferResult(
+          expr.inferOrTransformAlgorithmW(this, env),
+          this,
+          env
+        );
         return (Type) res.subst.apply(res.type);
       } else {
         throw new TypingException.UnsupportedExpression(
@@ -406,6 +504,7 @@ public final class AlgorithmWInference extends TypeDialect {
 
     /**
      * Get the free type Variables that are unbound for the whole environment
+     *
      * @return
      */
     public Set<String> freeTypeVars() {
@@ -425,7 +524,8 @@ public final class AlgorithmWInference extends TypeDialect {
 
   public final record Scheme(List<String> vars, AlgorithmWType type) {
     /**
-     * Apply the subst to this scheme. First filter all bound variables from the subst, then apply
+     * Apply the subst to this scheme. First filter all bound variables from the
+     * subst, then apply
      * the filtered subst to the type.
      *
      * @param subst the subst to apply with
@@ -458,6 +558,7 @@ public final class AlgorithmWInference extends TypeDialect {
 
     /**
      * Find all non bound type variables
+     *
      * @return
      */
     public Set<String> freeTypeVars() {
@@ -513,9 +614,7 @@ public final class AlgorithmWInference extends TypeDialect {
         }
       } else if (type instanceof Arrow arrow) {
         return new AlgorithmWType.Arrow(apply(arrow.from), apply(arrow.to));
-      } else if (type instanceof Integer) {
-        return type;
-      } else if (type instanceof Boolean) {
+      } else if (type instanceof LitType) {
         return type;
       } else if (type instanceof Tuple tuple) {
         return new Tuple(tuple.elements.stream().map(this::apply).toList());
@@ -569,10 +668,12 @@ public final class AlgorithmWInference extends TypeDialect {
     }
 
     /**
-     * unify both this and other to a common substitution that can be used for inference
+     * unify both this and other to a common substitution that can be used for
+     * inference
      *
      * @param other The other type to unify with.
-     * @return The unification result consisting of a substitution and an inference tree.
+     * @return The unification result consisting of a substitution and an inference
+     *         tree.
      * @throws RuntimeException if unimplemented
      */
     public abstract UnifyResult unify(
@@ -624,7 +725,8 @@ public final class AlgorithmWInference extends TypeDialect {
         } else if (other.occursCheck(this.name)) {
           throw new TypingException.OccursCheckFailed(other, this.name);
         } else {
-          // In every other case, the type variable can be substituded with the concrete type that is other
+          // In every other case, the type variable can be substituded with the concrete
+          // type that is other
           var subst = Subst.newSingleton(this.name, other);
           return new UnifyResult(
             subst,
@@ -706,18 +808,24 @@ public final class AlgorithmWInference extends TypeDialect {
       }
     }
 
-    public static final class Integer extends AlgorithmWType {
+    public static final class LitType extends AlgorithmWType {
 
-      public Integer() {}
+      public final String tyName;
+
+      public LitType(String tyName) {
+        this.tyName = tyName;
+      }
 
       @Override
       public String toString() {
-        return "Int";
+        return tyName;
       }
 
       @Override
       public boolean equals(Object obj) {
-        return obj instanceof Integer;
+        return (
+          obj instanceof LitType && ((LitType) obj).tyName.equals(this.tyName)
+        );
       }
 
       @Override
@@ -727,7 +835,10 @@ public final class AlgorithmWInference extends TypeDialect {
 
       @Override
       public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
-        if (other instanceof Integer) {
+        if (
+          other instanceof LitType &&
+          ((LitType) other).tyName.equals(this.tyName)
+        ) {
           return new UnifyResult(
             Subst.newEmpty(),
             new InferenceTree(
@@ -736,47 +847,13 @@ public final class AlgorithmWInference extends TypeDialect {
             )
           );
         } else {
-          throw new TypingException.UnificationFailed(this, other);
-        }
-      }
-
-      @Override
-      public Set<String> freeTypeVars() {
-        return Set.of();
-      }
-    }
-
-    public static final class Boolean extends AlgorithmWType {
-
-      public Boolean() {}
-
-      @Override
-      public String toString() {
-        return "Bool";
-      }
-
-      @Override
-      public boolean equals(Object obj) {
-        return obj instanceof Boolean;
-      }
-
-      @Override
-      public int hashCode() {
-        return super.hashCode();
-      }
-
-      @Override
-      public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
-        if (other instanceof Boolean) {
-          return new UnifyResult(
-            Subst.newEmpty(),
-            new InferenceTree(
-              "Unify-Base",
-              this.toString() + " ~ " + other.toString()
-            )
-          );
-        } else {
-          throw new TypingException.UnificationFailed(this, other);
+          System.out.println(this + " <=> " + other);
+          try {
+            throw new TypingException.UnificationFailed(this, other);
+          } catch (TypingException.UnificationFailed e) {
+            e.printStackTrace();
+            throw e;
+          }
         }
       }
 
