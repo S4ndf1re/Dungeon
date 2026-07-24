@@ -1,4 +1,4 @@
-package Dungeon;
+package imports.Dungeon;
 
 /** This enum represents the different types of items that can be found in the dungeon. */
 @Intrinsic("Dungeon.ItemType")

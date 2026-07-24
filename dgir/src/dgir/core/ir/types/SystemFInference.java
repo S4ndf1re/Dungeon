@@ -2,6 +2,10 @@ package dgir.core.ir.types;
 
 import dgir.core.ir.types.SystemFInference.Context.Break3Result;
 import dgir.core.ir.types.SystemFInference.TypeInference.CheckResult;
+import dgir.core.ir.types.SystemFInference.TypeInference.TypeResult;
+import dgir.core.ir.types.compatibility.InferOrTransformResult;
+import dgir.core.ir.types.compatibility.InferResultMarker;
+import dgir.core.ir.types.compatibility.SystemFCompatibility;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -12,7 +16,15 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public final class SystemFInference extends TypeDialect {
+public final class SystemFInference
+  extends TypeDialect<
+    InferOrTransformResult<
+      dgir.core.ir.types.SystemFInference.TypeInference.TypeResult,
+      dgir.core.ir.types.SystemFInference.Expr
+    >,
+    SystemFCompatibility
+  >
+{
 
   private static Optional<TypeInference> solver = Optional.empty();
 
@@ -27,7 +39,7 @@ public final class SystemFInference extends TypeDialect {
   }
 
   @Override
-  public TypeInferenceSolver getSolverInstance() {
+  public TypeInferenceSolver<SystemFCompatibility> getSolverInstance() {
     if (solver.isPresent()) {
       return solver.get();
     } else {
@@ -316,11 +328,21 @@ public final class SystemFInference extends TypeDialect {
   /**
    * Expressions that are valid for the SytemF Type System. All needed methods for inference and type checking are implemented here
    */
-  public static interface Expr extends Expression {
+  public static interface Expr extends Expression, SystemFCompatibility {
     public abstract TypeInference.TypeResult infer(
       TypeInference engine,
       Context ctx
     );
+
+    @Override
+    default InferOrTransformResult<TypeResult, Expr> inferOrTransformSystemF(
+      TypeInference engine,
+      Context ctx
+    ) {
+      return new InferOrTransformResult.Infer<TypeInference.TypeResult, Expr>(
+        engine.infer(ctx, this)
+      );
+    }
 
     public default TypeInference.CheckResult check(
       TypeInference engine,
@@ -1028,7 +1050,7 @@ public final class SystemFInference extends TypeDialect {
     }
   }
 
-  static class Context {
+  public static class Context {
 
     private List<Entry> entries;
 
@@ -1190,7 +1212,7 @@ public final class SystemFInference extends TypeDialect {
   }
 
   public static final class TypeInference
-    extends TypeDialect.TypeInferenceSolver
+    extends TypeDialect.TypeInferenceSolver<SystemFCompatibility>
   {
 
     private int counter;
@@ -1204,7 +1226,7 @@ public final class SystemFInference extends TypeDialect {
     }
 
     @Override
-    public Type solve(Expression expr) {
+    public Type solve(SystemFCompatibility expr) {
       if (expr instanceof Expr exp) {
         return (Type) this.inferType(exp);
       } else {
@@ -1232,7 +1254,7 @@ public final class SystemFInference extends TypeDialect {
       SystemFType type,
       Context ctx,
       InferenceTree tree
-    ) {}
+    ) implements InferResultMarker<SystemFType> {}
 
     TypeResult infer(Context ctx, Expr expr) {
       return expr.infer(this, ctx);
