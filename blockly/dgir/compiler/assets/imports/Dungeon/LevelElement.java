@@ -1,4 +1,4 @@
-package Dungeon;
+package imports.Dungeon;
 
 /** This enum represents the different types of level elements that can be found in the dungeon. */
 @Intrinsic("Dungeon.LevelElement")

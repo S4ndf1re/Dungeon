@@ -1,4 +1,4 @@
-package Dungeon;
+package imports.Dungeon;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
