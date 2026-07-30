@@ -17,18 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// Some funny notes:
-// Wouldn't it be nice, if the solver (Algorithm W, System F, etc. ) receives just a list of constraints?
-// Then, an operator must only generate those constraints. These constraints don't even need to be expressions (i think)
-// A constraint could be a unification (equality), subtyping, or any other thing. Then the only thing to figure out would be to generate constraints
-// and apply them to the correct solver.
-//
-// The current problem is, that both constraint generation and solver application are done in the same place and same time.
-// Nothing must be done at the same time. Traditionally, bidirectional solvers "simplify" this process, by actually doing everything at the same time.
-// But this must not be true, as presented by the chalk language.
-//
-// The only constraint then is the list of allowed types per system. While algorithm W does not have a lot of types,
-
 public final class AlgorithmWInference
   extends TypeDialect<
     InferOrTransformResult<
@@ -434,14 +422,10 @@ public final class AlgorithmWInference
     extends TypeDialect.TypeInferenceSolver<AlgorithmWCompatibility>
   {
 
-    private int counter;
+    public TypeInference() {}
 
-    public TypeInference() {
-      this.counter = 0;
-    }
-
-    public String freshTypeVar() {
-      return "t" + counter++;
+    public TypeVar freshTypeVar() {
+      return new TypeVar();
     }
 
     @Override
@@ -507,8 +491,8 @@ public final class AlgorithmWInference
      *
      * @return
      */
-    public Set<String> freeTypeVars() {
-      var set = new HashSet<String>();
+    public Set<TypeVar> freeTypeVars() {
+      var set = new HashSet<TypeVar>();
 
       for (var entry : this.env.entrySet()) {
         set.addAll(entry.getValue().freeTypeVars());
@@ -522,7 +506,7 @@ public final class AlgorithmWInference
     }
   }
 
-  public final record Scheme(List<String> vars, AlgorithmWType type) {
+  public final record Scheme(List<TypeVar> vars, AlgorithmWType type) {
     /**
      * Apply the subst to this scheme. First filter all bound variables from the
      * subst, then apply
@@ -532,7 +516,7 @@ public final class AlgorithmWInference
      * @return the applied scheme where subst is applied to this
      */
     public Scheme apply(Subst subst) {
-      var filtered = new HashMap<String, AlgorithmWType>(subst.types);
+      var filtered = new HashMap<TypeVar, AlgorithmWType>(subst.types);
 
       for (var s : this.vars) {
         filtered.remove(s);
@@ -561,9 +545,9 @@ public final class AlgorithmWInference
      *
      * @return
      */
-    public Set<String> freeTypeVars() {
+    public Set<TypeVar> freeTypeVars() {
       var ftv = this.type.freeTypeVars();
-      var set = new HashSet<String>(ftv);
+      var set = new HashSet<TypeVar>(ftv);
       set.removeAll(this.vars);
       return Set.copyOf(set);
     }
@@ -580,13 +564,13 @@ public final class AlgorithmWInference
     }
   }
 
-  public final record Subst(HashMap<String, AlgorithmWType> types) {
+  public final record Subst(HashMap<TypeVar, AlgorithmWType> types) {
     public static Subst newEmpty() {
       return new Subst(new HashMap<>());
     }
 
-    public static Subst newSingleton(String key, AlgorithmWType type) {
-      var map = new HashMap<String, AlgorithmWType>();
+    public static Subst newSingleton(TypeVar key, AlgorithmWType type) {
+      var map = new HashMap<TypeVar, AlgorithmWType>();
       map.put(key, type);
       return new Subst(map);
     }
@@ -606,7 +590,7 @@ public final class AlgorithmWInference
 
     public AlgorithmWType apply(AlgorithmWType type) {
       if (type instanceof Var var) {
-        var t = types.get(var.name);
+        var t = types.get(var.tyVar);
         if (t != null) {
           return apply(t);
         } else {
@@ -630,7 +614,7 @@ public final class AlgorithmWInference
      * @return the composed subst
      */
     public Subst compose(Subst other) {
-      var otherTypes = new HashMap<String, AlgorithmWType>(other.types);
+      var otherTypes = new HashMap<TypeVar, AlgorithmWType>(other.types);
       otherTypes
         .entrySet()
         .stream()
@@ -656,10 +640,10 @@ public final class AlgorithmWInference
     }
 
     public Scheme generalize(Env env) {
-      Set<String> ftv = this.freeTypeVars();
-      Set<String> envFtv = env.freeTypeVars();
+      Set<TypeVar> ftv = this.freeTypeVars();
+      Set<TypeVar> envFtv = env.freeTypeVars();
 
-      List<String> unboundFtv = ftv
+      List<TypeVar> unboundFtv = ftv
         .stream()
         .filter(ty -> !envFtv.contains(ty))
         .collect(Collectors.toList());
@@ -681,29 +665,29 @@ public final class AlgorithmWInference
       AlgorithmWType other
     );
 
-    public boolean occursCheck(String ty) {
+    public boolean occursCheck(TypeVar ty) {
       var ftv = this.freeTypeVars();
       return ftv.contains(ty);
     }
 
-    public abstract Set<String> freeTypeVars();
+    public abstract Set<TypeVar> freeTypeVars();
 
     public static final class Var extends AlgorithmWType {
 
-      public final String name;
+      public final TypeVar tyVar;
 
-      public Var(String name) {
-        this.name = name;
+      public Var(TypeVar tyVar) {
+        this.tyVar = tyVar;
       }
 
       @Override
       public String toString() {
-        return name;
+        return tyVar.toString();
       }
 
       @Override
       public boolean equals(Object obj) {
-        return obj instanceof Var other && this.name.equals(other.name);
+        return obj instanceof Var other && this.tyVar == other.tyVar;
       }
 
       @Override
@@ -714,7 +698,7 @@ public final class AlgorithmWInference
       @Override
       public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
         // Maybe the two types (this and other) are actually the same type variable
-        if (other instanceof Var b && this.name.equals(b.name)) {
+        if (other instanceof Var b && this.tyVar == b.tyVar) {
           return new UnifyResult(
             Subst.newEmpty(),
             new InferenceTree(
@@ -722,12 +706,12 @@ public final class AlgorithmWInference
               this.toString() + " ~ " + b.toString()
             )
           );
-        } else if (other.occursCheck(this.name)) {
-          throw new TypingException.OccursCheckFailed(other, this.name);
+        } else if (other.occursCheck(this.tyVar)) {
+          throw new TypingException.OccursCheckFailed(other, this.tyVar);
         } else {
           // In every other case, the type variable can be substituded with the concrete
           // type that is other
-          var subst = Subst.newSingleton(this.name, other);
+          var subst = Subst.newSingleton(this.tyVar, other);
           return new UnifyResult(
             subst,
             new InferenceTree(
@@ -740,8 +724,8 @@ public final class AlgorithmWInference
       }
 
       @Override
-      public Set<String> freeTypeVars() {
-        return Set.of(this.name);
+      public Set<TypeVar> freeTypeVars() {
+        return Set.of(this.tyVar);
       }
     }
 
@@ -800,8 +784,8 @@ public final class AlgorithmWInference
       }
 
       @Override
-      public Set<String> freeTypeVars() {
-        var set = new HashSet<String>();
+      public Set<TypeVar> freeTypeVars() {
+        var set = new HashSet<TypeVar>();
         set.addAll(this.from.freeTypeVars());
         set.addAll(this.to.freeTypeVars());
         return Set.copyOf(set);
@@ -811,14 +795,29 @@ public final class AlgorithmWInference
     public static final class LitType extends AlgorithmWType {
 
       public final String tyName;
+      public final List<AlgorithmWType> parameters;
 
       public LitType(String tyName) {
         this.tyName = tyName;
+        this.parameters = List.of();
+      }
+
+      public LitType(String tyName, List<AlgorithmWType> parameters) {
+        this.tyName = tyName;
+        this.parameters = List.copyOf(parameters);
       }
 
       @Override
       public String toString() {
-        return tyName;
+        return (
+          tyName +
+          "<" +
+          parameters
+            .stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(",")) +
+          ">"
+        );
       }
 
       @Override
@@ -836,9 +835,30 @@ public final class AlgorithmWInference
       @Override
       public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
         if (
-          other instanceof LitType &&
-          ((LitType) other).tyName.equals(this.tyName)
+          other instanceof LitType otherLit &&
+          otherLit.tyName.equals(this.tyName)
         ) {
+          var subst = Subst.newEmpty();
+          var trees = new ArrayList<InferenceTree>();
+
+          if (this.parameters.size() != otherLit.parameters.size()) {
+            throw new RuntimeException(
+              "Parameter count mismatch: " +
+                this.parameters.size() +
+                " vs " +
+                otherLit.parameters.size()
+            );
+          }
+
+          for (int i = 0; i < this.parameters.size(); i++) {
+            var result = engine.unify(
+              this.parameters.get(i),
+              otherLit.parameters.get(i)
+            );
+            subst = result.subst.compose(subst);
+            trees.add(result.tree);
+          }
+
           return new UnifyResult(
             Subst.newEmpty(),
             new InferenceTree(
@@ -847,18 +867,12 @@ public final class AlgorithmWInference
             )
           );
         } else {
-          System.out.println(this + " <=> " + other);
-          try {
-            throw new TypingException.UnificationFailed(this, other);
-          } catch (TypingException.UnificationFailed e) {
-            e.printStackTrace();
-            throw e;
-          }
+          throw new TypingException.UnificationFailed(this, other);
         }
       }
 
       @Override
-      public Set<String> freeTypeVars() {
+      public Set<TypeVar> freeTypeVars() {
         return Set.of();
       }
     }
@@ -896,8 +910,8 @@ public final class AlgorithmWInference
       }
 
       @Override
-      public Set<String> freeTypeVars() {
-        var set = new HashSet<String>();
+      public Set<TypeVar> freeTypeVars() {
+        var set = new HashSet<TypeVar>();
 
         this.elements.stream().forEach(e -> set.addAll(e.freeTypeVars()));
 

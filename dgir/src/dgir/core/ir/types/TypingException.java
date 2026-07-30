@@ -69,9 +69,9 @@ public abstract sealed class TypingException extends RuntimeException {
   public static final class OccursCheckFailed extends TypingException {
 
     public final Type type;
-    public final String symbol;
+    public final TypeVar symbol;
 
-    public OccursCheckFailed(Type type, String symbol) {
+    public OccursCheckFailed(Type type, TypeVar symbol) {
       super("Occurs-Check failed: " + symbol + " occurs in " + type);
       this.symbol = symbol;
       this.type = type;
