@@ -5,12 +5,16 @@ import java.util.List;
 
 /**
  * Represent a general Type
- * The long goal is that only one instance may exist for a concrete general type.
- * This instance would be stored and managed within the {@link GeneralTypeStore} */
+ * The long goal is that only one instance may exist for a concrete general
+ * type.
+ * This instance would be stored and managed within the {@link GeneralTypeStore}
+ */
 public abstract class GeneralType {
 
   /**
-   * this is a collection of all direct supertypes. I.e. if we have the types int64 and int32 both implement int. Int could have the additional supertype Numeric
+   * this is a collection of all direct supertypes. I.e. if we have the types
+   * int64 and int32 both implement int. Int could have the additional supertype
+   * Numeric
    */
   private ArrayList<GeneralType> registeredSuperTypes;
 
@@ -26,6 +30,7 @@ public abstract class GeneralType {
 
   /**
    * Check if this is a subtype of other
+   *
    * @param other the possible supertype
    * @return true if this is a subtype of other
    */
@@ -64,25 +69,27 @@ public abstract class GeneralType {
 
   /**
    * Simple validation of the type hierarchy.
-   * Generally, this validation checks when entry is a supertype of this, this must be a subtype of entry.
-   * This check is then concluded vice versa, i.e. when this is a supertype of entry, entry must also be a subtype of this.
+   * Generally, this validation checks when entry is a supertype of this, this
+   * must be a subtype of entry.
+   * This check is then concluded vice versa, i.e. when this is a supertype of
+   * entry, entry must also be a subtype of this.
    *
-   * <p>This method is not called recursively. The full validation is covered by the {@link GeneralTypeStore#validateHierarchy()} method.
+   * <p>
+   * This method is not called recursively. The full validation is covered by the
+   * {@link GeneralTypeStore#validateHierarchy()} method.
    */
   public void validateHierarchy() {
     for (var entry : registeredSuperTypes) {
       if (!this.isSubtypeOf(entry)) {
         throw new IllegalStateException(
-          "Supertype " + entry + " is not a subtype of " + this
-        );
+            "Supertype " + entry + " is not a subtype of " + this);
       }
     }
 
     for (var entry : registeredSubTypes) {
       if (!entry.isSubtypeOf(this)) {
         throw new IllegalStateException(
-          "Subtype " + entry + " is not a subtype of " + this
-        );
+            "Subtype " + entry + " is not a subtype of " + this);
       }
     }
   }

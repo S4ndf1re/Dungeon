@@ -18,14 +18,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class AlgorithmWInference
-  extends TypeDialect<
-    InferOrTransformResult<
-      dgir.core.ir.types.AlgorithmWInference.Expr.InferResult,
-      dgir.core.ir.types.AlgorithmWInference.Expr
-    >,
-    AlgorithmWCompatibility
-  >
-{
+    extends
+    TypeDialect<InferOrTransformResult<dgir.core.ir.types.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.AlgorithmWInference.Expr>, AlgorithmWCompatibility> {
 
   private static Optional<TypeInference> instance = Optional.empty();
 
@@ -52,10 +46,9 @@ public final class AlgorithmWInference
 
   public static interface Expr extends Expression, AlgorithmWCompatibility {
     private static InferResult convertInferOrTransformToInferResult(
-      InferOrTransformResult<InferResult, Expr> infOrTrans,
-      TypeInference engine,
-      Env env
-    ) {
+        InferOrTransformResult<InferResult, Expr> infOrTrans,
+        TypeInference engine,
+        Env env) {
       if (infOrTrans.isInfer()) {
         return infOrTrans.getInferResult();
       } else {
@@ -64,20 +57,17 @@ public final class AlgorithmWInference
     }
 
     public static record InferResult(
-      Subst subst,
-      AlgorithmWType type,
-      InferenceTree tree
-    ) implements InferResultMarker<AlgorithmWType> {}
+        Subst subst,
+        AlgorithmWType type,
+        InferenceTree tree) implements InferResultMarker<AlgorithmWType> {
+    }
 
     public abstract InferResult infer(TypeInference engine, Env env);
 
-    public default @Override InferOrTransformResult<
-      Expr.InferResult,
-      Expr
-    > inferOrTransformAlgorithmW(TypeInference engine, Env env) {
+    public default @Override InferOrTransformResult<Expr.InferResult, Expr> inferOrTransformAlgorithmW(
+        TypeInference engine, Env env) {
       return new InferOrTransformResult.Infer<Expr.InferResult, Expr>(
-        this.infer(engine, env)
-      );
+          this.infer(engine, env));
     }
 
     public static final class ExprAnn implements Expr {
@@ -93,24 +83,21 @@ public final class AlgorithmWInference
       @Override
       public InferResult infer(TypeInference engine, Env env) {
         InferResult res = Expr.convertInferOrTransformToInferResult(
-          expr.inferOrTransformAlgorithmW(engine, env),
-          engine,
-          env
-        );
+            expr.inferOrTransformAlgorithmW(engine, env),
+            engine,
+            env);
 
         var unifyRes = engine.unify(res.type, type);
         var subst = unifyRes.subst.compose(res.subst);
 
         return new InferResult(
-          subst,
-          type,
-          new InferenceTree(
-            "T-Ann",
-            env + " |- " + this,
-            type.toString(),
-            List.of(res.tree)
-          )
-        );
+            subst,
+            type,
+            new InferenceTree(
+                "T-Ann",
+                env + " |- " + this,
+                type.toString(),
+                List.of(res.tree)));
       }
     }
 
@@ -158,15 +145,13 @@ public final class AlgorithmWInference
       @Override
       public InferResult infer(TypeInference engine, Env env) {
         return new InferResult(
-          Subst.newEmpty(),
-          value.getAlgorithmWType(),
-          new InferenceTree(
-            "T-" + value.getAlgorithmWType(),
-            env + " |- " + this,
-            value.getAlgorithmWType().toString(),
-            List.of()
-          )
-        );
+            Subst.newEmpty(),
+            value.getAlgorithmWType(),
+            new InferenceTree(
+                "T-" + value.getAlgorithmWType(),
+                env + " |- " + this,
+                value.getAlgorithmWType().toString(),
+                List.of()));
       }
     }
 
@@ -180,14 +165,13 @@ public final class AlgorithmWInference
 
       @Override
       public final String toString() {
-        return (
-          "(" +
-          elements
-            .stream()
-            .map(Object::toString)
-            .collect(Collectors.joining(", ")) +
-          ")"
-        );
+        return ("(" +
+            elements
+                .stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(", "))
+            +
+            ")");
       }
 
       @Override
@@ -209,15 +193,13 @@ public final class AlgorithmWInference
         var resultType = new AlgorithmWType.Tuple(List.copyOf(types));
 
         return new InferResult(
-          subst,
-          resultType,
-          new InferenceTree(
-            "T-Tuple",
-            input,
-            "" + resultType,
-            List.copyOf(trees)
-          )
-        );
+            subst,
+            resultType,
+            new InferenceTree(
+                "T-Tuple",
+                input,
+                "" + resultType,
+                List.copyOf(trees)));
       }
     }
 
@@ -242,15 +224,13 @@ public final class AlgorithmWInference
         if (scheme != null) {
           AlgorithmWType instantiated = scheme.instantiate(engine);
           return new InferResult(
-            Subst.newEmpty(),
-            instantiated,
-            new InferenceTree(
-              "T-Var",
-              input,
-              instantiated.toString(),
-              List.of()
-            )
-          );
+              Subst.newEmpty(),
+              instantiated,
+              new InferenceTree(
+                  "T-Var",
+                  input,
+                  instantiated.toString(),
+                  List.of()));
         } else {
           throw new TypingException.UnknownVariable(name);
         }
@@ -263,9 +243,8 @@ public final class AlgorithmWInference
       private final AlgorithmWCompatibility arg;
 
       public ExprApp(
-        AlgorithmWCompatibility func,
-        AlgorithmWCompatibility arg
-      ) {
+          AlgorithmWCompatibility func,
+          AlgorithmWCompatibility arg) {
         this.func = func;
         this.arg = arg;
       }
@@ -280,20 +259,17 @@ public final class AlgorithmWInference
         String input = env + " |- " + this;
 
         AlgorithmWType resultType = new AlgorithmWType.Var(
-          engine.freshTypeVar()
-        );
+            engine.freshTypeVar());
 
         InferResult res1 = Expr.convertInferOrTransformToInferResult(
-          func.inferOrTransformAlgorithmW(engine, env),
-          engine,
-          env
-        );
+            func.inferOrTransformAlgorithmW(engine, env),
+            engine,
+            env);
         Env envSubst = env.apply(res1.subst);
         InferResult res2 = Expr.convertInferOrTransformToInferResult(
-          arg.inferOrTransformAlgorithmW(engine, envSubst),
-          engine,
-          envSubst
-        );
+            arg.inferOrTransformAlgorithmW(engine, envSubst),
+            engine,
+            envSubst);
 
         AlgorithmWType funcTypeSubst = res2.subst.apply(res1.type);
         AlgorithmWType expectedFuncType = new Arrow(res2.type, resultType);
@@ -304,15 +280,13 @@ public final class AlgorithmWInference
         AlgorithmWType finalType = res3.subst.apply(resultType);
 
         return new InferResult(
-          finalSubst,
-          finalType,
-          new InferenceTree(
-            "T-App",
-            input,
-            "" + finalType,
-            List.of(res1.tree, res2.tree, res3.tree)
-          )
-        );
+            finalSubst,
+            finalType,
+            new InferenceTree(
+                "T-App",
+                input,
+                "" + finalType,
+                List.of(res1.tree, res2.tree, res3.tree)));
       }
     }
 
@@ -336,32 +310,27 @@ public final class AlgorithmWInference
         String input = env + " |- " + this;
 
         AlgorithmWType freshTypeVar = new AlgorithmWType.Var(
-          engine.freshTypeVar()
-        );
+            engine.freshTypeVar());
         Env newEnv = env.copy();
         Scheme newScheme = new Scheme(List.of(), freshTypeVar);
         newEnv.env.put(param, newScheme);
 
         InferResult res = Expr.convertInferOrTransformToInferResult(
-          body.inferOrTransformAlgorithmW(engine, newEnv),
-          engine,
-          newEnv
-        );
+            body.inferOrTransformAlgorithmW(engine, newEnv),
+            engine,
+            newEnv);
         AlgorithmWType resultType = new Arrow(
-          res.subst.apply(freshTypeVar),
-          res.type
-        );
+            res.subst.apply(freshTypeVar),
+            res.type);
 
         return new InferResult(
-          res.subst,
-          resultType,
-          new InferenceTree(
-            "T-Abs",
-            input,
-            resultType.toString(),
-            List.of(res.tree)
-          )
-        );
+            res.subst,
+            resultType,
+            new InferenceTree(
+                "T-Abs",
+                input,
+                resultType.toString(),
+                List.of(res.tree)));
       }
     }
 
@@ -387,10 +356,9 @@ public final class AlgorithmWInference
         String input = env + " |- " + this;
 
         InferResult res1 = Expr.convertInferOrTransformToInferResult(
-          value.inferOrTransformAlgorithmW(engine, env),
-          engine,
-          env
-        );
+            value.inferOrTransformAlgorithmW(engine, env),
+            engine,
+            env);
         Env envSubst = env.apply(res1.subst);
         Scheme generalizedType = res1.type.generalize(envSubst);
 
@@ -398,31 +366,28 @@ public final class AlgorithmWInference
         newEnv.env.put(param, generalizedType);
 
         InferResult res2 = Expr.convertInferOrTransformToInferResult(
-          body.inferOrTransformAlgorithmW(engine, newEnv),
-          engine,
-          newEnv
-        );
+            body.inferOrTransformAlgorithmW(engine, newEnv),
+            engine,
+            newEnv);
         Subst finalSubst = res2.subst.compose(res1.subst);
 
         return new InferResult(
-          finalSubst,
-          res2.type,
-          new InferenceTree(
-            "T-Let",
-            input,
-            "" + res2.type,
-            List.of(res1.tree, res2.tree)
-          )
-        );
+            finalSubst,
+            res2.type,
+            new InferenceTree(
+                "T-Let",
+                input,
+                "" + res2.type,
+                List.of(res1.tree, res2.tree)));
       }
     }
   }
 
   public static final class TypeInference
-    extends TypeDialect.TypeInferenceSolver<AlgorithmWCompatibility>
-  {
+      extends TypeDialect.TypeInferenceSolver<AlgorithmWCompatibility> {
 
-    public TypeInference() {}
+    public TypeInference() {
+    }
 
     public TypeVar freshTypeVar() {
       return new TypeVar();
@@ -433,16 +398,14 @@ public final class AlgorithmWInference
       if (expr instanceof AlgorithmWCompatibility) {
         Env env = new Env(new HashMap<>());
         InferResult res = Expr.convertInferOrTransformToInferResult(
-          expr.inferOrTransformAlgorithmW(this, env),
-          this,
-          env
-        );
+            expr.inferOrTransformAlgorithmW(this, env),
+            this,
+            env);
         return (Type) res.subst.apply(res.type);
       } else {
         throw new TypingException.UnsupportedExpression(
-          TypingException.UnsupportedExpression.AlgorithmType.AlgorithmW,
-          expr
-        );
+            TypingException.UnsupportedExpression.AlgorithmType.AlgorithmW,
+            expr);
       }
     }
 
@@ -461,15 +424,14 @@ public final class AlgorithmWInference
   public final record Env(HashMap<String, Scheme> env) {
     @Override
     public final String toString() {
-      return (
-        "{" +
-        env
-          .entrySet()
-          .stream()
-          .map(entry -> entry.getKey() + " -> " + entry.getValue())
-          .collect(Collectors.joining(", ")) +
-        "}"
-      );
+      return ("{" +
+          env
+              .entrySet()
+              .stream()
+              .map(entry -> entry.getKey() + " -> " + entry.getValue())
+              .collect(Collectors.joining(", "))
+          +
+          "}");
     }
 
     /**
@@ -528,16 +490,15 @@ public final class AlgorithmWInference
 
     @Override
     public final String toString() {
-      return (
-        "[{" +
-        this.vars
-          .stream()
-          .map(Object::toString)
-          .collect(Collectors.joining(", ")) +
-        "}, " +
-        this.type +
-        "]"
-      );
+      return ("[{" +
+          this.vars
+              .stream()
+              .map(Object::toString)
+              .collect(Collectors.joining(", "))
+          +
+          "}, " +
+          this.type +
+          "]");
     }
 
     /**
@@ -577,15 +538,14 @@ public final class AlgorithmWInference
 
     @Override
     public final String toString() {
-      return (
-        "{" +
-        types
-          .entrySet()
-          .stream()
-          .map(entry -> entry.getKey() + " -> " + entry.getValue())
-          .collect(Collectors.joining(", ")) +
-        "}"
-      );
+      return ("{" +
+          types
+              .entrySet()
+              .stream()
+              .map(entry -> entry.getKey() + " -> " + entry.getValue())
+              .collect(Collectors.joining(", "))
+          +
+          "}");
     }
 
     public AlgorithmWType apply(AlgorithmWType type) {
@@ -616,16 +576,14 @@ public final class AlgorithmWInference
     public Subst compose(Subst other) {
       var otherTypes = new HashMap<TypeVar, AlgorithmWType>(other.types);
       otherTypes
-        .entrySet()
-        .stream()
-        .forEach(entry -> entry.setValue(this.apply(entry.getValue())));
+          .entrySet()
+          .stream()
+          .forEach(entry -> entry.setValue(this.apply(entry.getValue())));
 
       this.types
-        .entrySet()
-        .stream()
-        .forEach(entry ->
-          otherTypes.putIfAbsent(entry.getKey(), entry.getValue())
-        );
+          .entrySet()
+          .stream()
+          .forEach(entry -> otherTypes.putIfAbsent(entry.getKey(), entry.getValue()));
 
       return new Subst(otherTypes);
     }
@@ -644,9 +602,9 @@ public final class AlgorithmWInference
       Set<TypeVar> envFtv = env.freeTypeVars();
 
       List<TypeVar> unboundFtv = ftv
-        .stream()
-        .filter(ty -> !envFtv.contains(ty))
-        .collect(Collectors.toList());
+          .stream()
+          .filter(ty -> !envFtv.contains(ty))
+          .collect(Collectors.toList());
 
       return new Scheme(unboundFtv, this);
     }
@@ -661,9 +619,8 @@ public final class AlgorithmWInference
      * @throws RuntimeException if unimplemented
      */
     public abstract UnifyResult unify(
-      TypeInference engine,
-      AlgorithmWType other
-    );
+        TypeInference engine,
+        AlgorithmWType other);
 
     public boolean occursCheck(TypeVar ty) {
       var ftv = this.freeTypeVars();
@@ -700,12 +657,10 @@ public final class AlgorithmWInference
         // Maybe the two types (this and other) are actually the same type variable
         if (other instanceof Var b && this.tyVar == b.tyVar) {
           return new UnifyResult(
-            Subst.newEmpty(),
-            new InferenceTree(
-              "Unify-Var-Same",
-              this.toString() + " ~ " + b.toString()
-            )
-          );
+              Subst.newEmpty(),
+              new InferenceTree(
+                  "Unify-Var-Same",
+                  this.toString() + " ~ " + b.toString()));
         } else if (other.occursCheck(this.tyVar)) {
           throw new TypingException.OccursCheckFailed(other, this.tyVar);
         } else {
@@ -713,13 +668,11 @@ public final class AlgorithmWInference
           // type that is other
           var subst = Subst.newSingleton(this.tyVar, other);
           return new UnifyResult(
-            subst,
-            new InferenceTree(
-              "Unify-Var",
-              this.toString() + " ~ " + other.toString(),
-              other.toString() + "/" + this.toString()
-            )
-          );
+              subst,
+              new InferenceTree(
+                  "Unify-Var",
+                  this.toString() + " ~ " + other.toString(),
+                  other.toString() + "/" + this.toString()));
         }
       }
 
@@ -746,11 +699,9 @@ public final class AlgorithmWInference
 
       @Override
       public boolean equals(Object obj) {
-        return (
-          obj instanceof Arrow other &&
-          this.from.equals(other.from) &&
-          this.to.equals(other.to)
-        );
+        return (obj instanceof Arrow other &&
+            this.from.equals(other.from) &&
+            this.to.equals(other.to));
       }
 
       @Override
@@ -763,21 +714,18 @@ public final class AlgorithmWInference
         if (other instanceof Arrow b) {
           UnifyResult u1 = engine.unify(this.from, b.from);
           UnifyResult u2 = engine.unify(
-            u1.applySubst(this.to),
-            u1.applySubst(b.to)
-          );
+              u1.applySubst(this.to),
+              u1.applySubst(b.to));
 
           Subst finalSubst = u2.subst().compose(u1.subst());
 
           return new UnifyResult(
-            finalSubst,
-            new InferenceTree(
-              "Unify-Arrow",
-              this.toString() + " ~ " + b.toString(),
-              finalSubst.toString(),
-              List.of(u1.tree, u2.tree)
-            )
-          );
+              finalSubst,
+              new InferenceTree(
+                  "Unify-Arrow",
+                  this.toString() + " ~ " + b.toString(),
+                  finalSubst.toString(),
+                  List.of(u1.tree, u2.tree)));
         } else {
           throw new TypingException.UnificationFailed(this, other);
         }
@@ -809,22 +757,19 @@ public final class AlgorithmWInference
 
       @Override
       public String toString() {
-        return (
-          tyName +
-          "<" +
-          parameters
-            .stream()
-            .map(Object::toString)
-            .collect(Collectors.joining(",")) +
-          ">"
-        );
+        return (tyName +
+            "<" +
+            parameters
+                .stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(","))
+            +
+            ">");
       }
 
       @Override
       public boolean equals(Object obj) {
-        return (
-          obj instanceof LitType && ((LitType) obj).tyName.equals(this.tyName)
-        );
+        return (obj instanceof LitType && ((LitType) obj).tyName.equals(this.tyName));
       }
 
       @Override
@@ -834,38 +779,32 @@ public final class AlgorithmWInference
 
       @Override
       public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
-        if (
-          other instanceof LitType otherLit &&
-          otherLit.tyName.equals(this.tyName)
-        ) {
+        if (other instanceof LitType otherLit &&
+            otherLit.tyName.equals(this.tyName)) {
           var subst = Subst.newEmpty();
           var trees = new ArrayList<InferenceTree>();
 
           if (this.parameters.size() != otherLit.parameters.size()) {
             throw new RuntimeException(
-              "Parameter count mismatch: " +
-                this.parameters.size() +
-                " vs " +
-                otherLit.parameters.size()
-            );
+                "Parameter count mismatch: " +
+                    this.parameters.size() +
+                    " vs " +
+                    otherLit.parameters.size());
           }
 
           for (int i = 0; i < this.parameters.size(); i++) {
             var result = engine.unify(
-              this.parameters.get(i),
-              otherLit.parameters.get(i)
-            );
+                this.parameters.get(i),
+                otherLit.parameters.get(i));
             subst = result.subst.compose(subst);
             trees.add(result.tree);
           }
 
           return new UnifyResult(
-            Subst.newEmpty(),
-            new InferenceTree(
-              "Unify-Base",
-              this.toString() + " ~ " + other.toString()
-            )
-          );
+              Subst.newEmpty(),
+              new InferenceTree(
+                  "Unify-Base",
+                  this.toString() + " ~ " + other.toString()));
         } else {
           throw new TypingException.UnificationFailed(this, other);
         }
@@ -887,21 +826,18 @@ public final class AlgorithmWInference
 
       @Override
       public String toString() {
-        return (
-          "(" +
-          this.elements
-            .stream()
-            .map(Object::toString)
-            .collect(Collectors.joining(", ")) +
-          ")"
-        );
+        return ("(" +
+            this.elements
+                .stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(", "))
+            +
+            ")");
       }
 
       @Override
       public boolean equals(Object obj) {
-        return (
-          obj instanceof Tuple other && this.elements.equals(other.elements)
-        );
+        return (obj instanceof Tuple other && this.elements.equals(other.elements));
       }
 
       @Override
@@ -923,31 +859,27 @@ public final class AlgorithmWInference
         if (other instanceof Tuple b) {
           if (this.elements.size() != b.elements.size()) {
             throw new TypingException.TupleSizeMismatch(
-              this.elements.size(),
-              b.elements.size()
-            );
+                this.elements.size(),
+                b.elements.size());
           }
           Subst subst = Subst.newEmpty();
           ArrayList<InferenceTree> trees = new ArrayList<>();
 
           for (int i = 0; i < this.elements.size(); i++) {
             UnifyResult result = engine.unify(
-              subst.apply(this.elements.get(i)),
-              subst.apply(b.elements.get(i))
-            );
+                subst.apply(this.elements.get(i)),
+                subst.apply(b.elements.get(i)));
             subst = result.subst().compose(subst);
             trees.add(result.tree);
           }
 
           return new UnifyResult(
-            subst,
-            new InferenceTree(
-              "Unify-Tuple",
-              this + " ~ " + other,
-              subst + "",
-              List.copyOf(trees)
-            )
-          );
+              subst,
+              new InferenceTree(
+                  "Unify-Tuple",
+                  this + " ~ " + other,
+                  subst + "",
+                  List.copyOf(trees)));
         } else {
           throw new TypingException.UnificationFailed(this, other);
         }
