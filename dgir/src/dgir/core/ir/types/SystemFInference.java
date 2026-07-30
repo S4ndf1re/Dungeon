@@ -52,33 +52,33 @@ public final class SystemFInference
 
     public abstract boolean isMono();
 
-    public abstract Set<String> freeVariables();
+    public abstract Set<TypeVar> freeVariables();
 
-    public boolean occursCheck(String varName) {
+    public boolean occursCheck(TypeVar varName) {
       return this.freeVariables().contains(varName);
     }
 
     public abstract SystemFType substType(
-      String tyVar,
+      TypeVar tyVar,
       SystemFType replacement
     );
 
     public static final class Var extends SystemFType {
 
-      public final String name;
+      public final TypeVar tyVar;
 
-      public Var(String name) {
-        this.name = name;
+      public Var(TypeVar name) {
+        this.tyVar = name;
       }
 
       @Override
       public String toString() {
-        return name;
+        return tyVar.toString();
       }
 
       @Override
       public boolean equals(Object obj) {
-        return obj instanceof Var other && this.name.equals(other.name);
+        return obj instanceof Var other && this.tyVar.equals(other.tyVar);
       }
 
       @Override
@@ -92,13 +92,13 @@ public final class SystemFInference
       }
 
       @Override
-      public Set<String> freeVariables() {
-        return Set.of(this.name);
+      public Set<TypeVar> freeVariables() {
+        return Set.of(this.tyVar);
       }
 
       @Override
-      public SystemFType substType(String tyVar, SystemFType replacement) {
-        if (this.name.equals(tyVar)) {
+      public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+        if (this.tyVar.equals(tyVar)) {
           return replacement;
         } else {
           return this;
@@ -108,20 +108,20 @@ public final class SystemFInference
 
     public static final class EtVar extends SystemFType {
 
-      public final String name;
+      public final TypeVar tyVar;
 
-      public EtVar(String name) {
-        this.name = name;
+      public EtVar(TypeVar tyVar) {
+        this.tyVar = tyVar;
       }
 
       @Override
       public String toString() {
-        return name;
+        return tyVar.toString();
       }
 
       @Override
       public boolean equals(Object obj) {
-        return obj instanceof EtVar other && this.name.equals(other.name);
+        return obj instanceof EtVar other && this.tyVar.equals(other.tyVar);
       }
 
       @Override
@@ -135,13 +135,13 @@ public final class SystemFInference
       }
 
       @Override
-      public Set<String> freeVariables() {
-        return Set.of(this.name);
+      public Set<TypeVar> freeVariables() {
+        return Set.of(this.tyVar);
       }
 
       @Override
-      public SystemFType substType(String tyVar, SystemFType replacement) {
-        if (this.name.equals(tyVar)) {
+      public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+        if (this.tyVar.equals(tyVar)) {
           return replacement;
         } else {
           return this;
@@ -184,17 +184,17 @@ public final class SystemFInference
       }
 
       @Override
-      public Set<String> freeVariables() {
+      public Set<TypeVar> freeVariables() {
         var fromVars = this.from.freeVariables();
         var toVars = this.to.freeVariables();
-        var set = new HashSet<String>();
+        var set = new HashSet<TypeVar>();
         set.addAll(fromVars);
         set.addAll(toVars);
         return Set.copyOf(set);
       }
 
       @Override
-      public SystemFType substType(String tyVar, SystemFType replacement) {
+      public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
         return new SystemFType.Arrow(
           this.from.substType(tyVar, replacement),
           this.to.substType(tyVar, replacement)
@@ -204,10 +204,10 @@ public final class SystemFInference
 
     public static final class ForAll extends SystemFType {
 
-      public final String boundVar;
+      public final TypeVar boundVar;
       public final SystemFType body;
 
-      public ForAll(String name, SystemFType type) {
+      public ForAll(TypeVar name, SystemFType type) {
         this.boundVar = name;
         this.body = type;
       }
@@ -237,15 +237,15 @@ public final class SystemFInference
       }
 
       @Override
-      public Set<String> freeVariables() {
-        var set = new HashSet<String>();
+      public Set<TypeVar> freeVariables() {
+        var set = new HashSet<TypeVar>();
         set.addAll(this.body.freeVariables());
         set.remove(this.boundVar);
         return Set.copyOf(set);
       }
 
       @Override
-      public SystemFType substType(String tyVar, SystemFType replacement) {
+      public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
         if (this.boundVar.equals(tyVar)) {
           // The type variable is shadowed by the ForAll binder
           return this;
@@ -281,12 +281,12 @@ public final class SystemFInference
       }
 
       @Override
-      public Set<String> freeVariables() {
+      public Set<TypeVar> freeVariables() {
         return Set.of();
       }
 
       @Override
-      public SystemFType substType(String tyVar, SystemFType replacement) {
+      public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
         return this;
       }
     }
@@ -314,12 +314,12 @@ public final class SystemFInference
       }
 
       @Override
-      public Set<String> freeVariables() {
+      public Set<TypeVar> freeVariables() {
         return Set.of();
       }
 
       @Override
-      public SystemFType substType(String tyVar, SystemFType replacement) {
+      public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
         return this;
       }
     }
@@ -463,7 +463,7 @@ public final class SystemFInference
             )
           );
         } else if (funcTypeApplied instanceof SystemFType.EtVar etvar) {
-          var a = etvar.name;
+          var a = etvar.tyVar;
 
           var a1 = engine.freshTypeVar();
           var a2 = engine.freshTypeVar();
@@ -684,10 +684,10 @@ public final class SystemFInference
 
     public static final class TAbs implements Expr {
 
-      private final String variable;
+      private final TypeVar variable;
       private final Expr body;
 
-      public TAbs(String variable, Expr body) {
+      public TAbs(TypeVar variable, Expr body) {
         this.variable = variable;
         this.body = body;
       }
@@ -1018,22 +1018,22 @@ public final class SystemFInference
       }
     }
 
-    public final record TVarBnd(String tyVar) implements Entry {
+    public final record TVarBnd(TypeVar tyVar) implements Entry {
       @Override
       public final String toString() {
-        return tyVar;
+        return tyVar.toString();
       }
     }
 
-    public final record ETVarBnd(String tyVar) implements Entry {
+    public final record ETVarBnd(TypeVar tyVar) implements Entry {
       @Override
       public final String toString() {
-        return tyVar;
+        return tyVar.toString();
       }
     }
 
     public final record SETVarBnd(
-      String tyVar,
+      TypeVar tyVar,
       SystemFType type
     ) implements Entry {
       @Override
@@ -1042,7 +1042,7 @@ public final class SystemFInference
       }
     }
 
-    public final record Mark(String tyVar) implements Entry {
+    public final record Mark(TypeVar tyVar) implements Entry {
       @Override
       public final String toString() {
         return "MARK " + tyVar;
@@ -1147,7 +1147,8 @@ public final class SystemFInference
       if (type instanceof SystemFType.EtVar etVar) {
         var filterRes = this.find(
           entry ->
-            entry instanceof Entry.SETVarBnd bnd && bnd.tyVar.equals(etVar.name)
+            entry instanceof Entry.SETVarBnd bnd &&
+            bnd.tyVar.equals(etVar.tyVar)
         );
         if (filterRes.isPresent()) {
           return this.applyOnce(((Entry.SETVarBnd) filterRes.get()).type);
@@ -1187,7 +1188,7 @@ public final class SystemFInference
     /** Test wheather type Variable A appears before type Variable B in the context.
      * In this case, appearing before means that type Variable A appears later in the context
      */
-    public boolean before(String tyVarA, String tyVarB) {
+    public boolean before(TypeVar tyVarA, TypeVar tyVarB) {
       var posA = IntStream.range(0, this.entries.size())
         .filter(
           i ->
@@ -1215,14 +1216,10 @@ public final class SystemFInference
     extends TypeDialect.TypeInferenceSolver<SystemFCompatibility>
   {
 
-    private int counter;
+    public TypeInference() {}
 
-    public TypeInference() {
-      this.counter = 0;
-    }
-
-    public String freshTypeVar() {
-      return "t" + this.counter++;
+    public TypeVar freshTypeVar() {
+      return new TypeVar();
     }
 
     @Override
@@ -1243,7 +1240,7 @@ public final class SystemFInference
     }
 
     SystemFType substType(
-      String tyVar,
+      TypeVar tyVar,
       SystemFType replacement,
       SystemFType target
     ) {
@@ -1316,7 +1313,7 @@ public final class SystemFInference
       } else if (
         ty1 instanceof SystemFType.Var v1 &&
         ty2 instanceof SystemFType.Var v2 &&
-        v1.name.equals(v2.name)
+        v1.tyVar.equals(v2.tyVar)
       ) {
         return new SubtypeResult(
           ctx.copy(),
@@ -1325,7 +1322,7 @@ public final class SystemFInference
       } else if (
         ty1 instanceof SystemFType.EtVar v1 &&
         ty2 instanceof SystemFType.EtVar v2 &&
-        v1.name.equals(v2.name)
+        v1.tyVar.equals(v2.tyVar)
       ) {
         return new SubtypeResult(
           ctx.copy(),
@@ -1394,18 +1391,18 @@ public final class SystemFInference
           )
         );
       } else if (
-        ty1 instanceof SystemFType.EtVar etvar && !ty2.occursCheck(etvar.name)
+        ty1 instanceof SystemFType.EtVar etvar && !ty2.occursCheck(etvar.tyVar)
       ) {
-        var instLRes = this.instL(ctx, etvar.name, ty2);
+        var instLRes = this.instL(ctx, etvar.tyVar, ty2);
         var output = "" + instLRes.ctx;
         return new SubtypeResult(
           instLRes.ctx,
           new InferenceTree("SubInstL", input, output, List.of(instLRes.tree))
         );
       } else if (
-        ty2 instanceof SystemFType.EtVar etvar && !ty1.occursCheck(etvar.name)
+        ty2 instanceof SystemFType.EtVar etvar && !ty1.occursCheck(etvar.tyVar)
       ) {
-        var instRRes = this.instR(ctx, ty1, etvar.name);
+        var instRRes = this.instR(ctx, ty1, etvar.tyVar);
         var output = "" + instRRes.ctx;
         return new SubtypeResult(
           instRRes.ctx,
@@ -1418,17 +1415,17 @@ public final class SystemFInference
 
     final record InstResult(Context ctx, InferenceTree tree) {}
 
-    InstResult instL(Context ctx, String a, SystemFType ty) {
+    InstResult instL(Context ctx, TypeVar a, SystemFType ty) {
       var input = ctx + " |- ^" + a + " :=< " + ty;
 
-      if (ty instanceof SystemFType.EtVar etvar && ctx.before(a, etvar.name)) {
+      if (ty instanceof SystemFType.EtVar etvar && ctx.before(a, etvar.tyVar)) {
         var breakRes = ctx.break3(
           entry ->
-            entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(etvar.name)
+            entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(etvar.tyVar)
         );
         var newCtx = Context.fromParts(
           breakRes.left,
-          new Entry.SETVarBnd(etvar.name, new SystemFType.EtVar(a)),
+          new Entry.SETVarBnd(etvar.tyVar, new SystemFType.EtVar(a)),
           breakRes.right
         );
         return new InstResult(
@@ -1508,16 +1505,16 @@ public final class SystemFInference
       }
     }
 
-    InstResult instR(Context ctx, SystemFType ty, String a) {
+    InstResult instR(Context ctx, SystemFType ty, TypeVar a) {
       var input = ctx + " |- " + ty + " :=< ^" + a;
       if (ty instanceof SystemFType.EtVar etvar) {
         var breakRes = ctx.break3(
           entry ->
-            entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(etvar.name)
+            entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(etvar.tyVar)
         );
         var newCtx = Context.fromParts(
           breakRes.left,
-          new Entry.SETVarBnd(etvar.name, new SystemFType.EtVar(a)),
+          new Entry.SETVarBnd(etvar.tyVar, new SystemFType.EtVar(a)),
           breakRes.right
         );
 
