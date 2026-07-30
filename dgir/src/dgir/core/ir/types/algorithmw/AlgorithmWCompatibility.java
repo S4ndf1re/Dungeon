@@ -1,6 +1,7 @@
-package dgir.core.ir.types.compatibility;
+package dgir.core.ir.types.algorithmw;
 
-import dgir.core.ir.types.AlgorithmWInference;
+import dgir.core.ir.types.compatibility.CompatibilityMarker;
+import dgir.core.ir.types.compatibility.InferOrTransformResult;
 
 /**
  * Implement type system compatibility with the algorihtm w implementation
