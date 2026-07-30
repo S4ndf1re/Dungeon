@@ -49,8 +49,7 @@ public abstract sealed class TypingException extends RuntimeException {
 
     public UnsupportedExpression(AlgorithmType dialect, Object expression) {
       super(
-        "Expression is not type compatible with " + dialect + ": " + expression
-      );
+          "Expression is not type compatible with " + dialect + ": " + expression);
       this.dialect = dialect;
       this.expression = expression;
     }

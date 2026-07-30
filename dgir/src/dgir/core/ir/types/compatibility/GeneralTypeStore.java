@@ -12,6 +12,7 @@ public class GeneralTypeStore {
 
   /**
    * Register a new general type, like "Int"
+   *
    * @param type the {@link GeneralType} to register
    */
   public void register(GeneralType type) {
@@ -20,6 +21,7 @@ public class GeneralTypeStore {
 
   /**
    * Deregister a new general type, like "Int"
+   *
    * @param type the {@link GeneralType} to register
    */
   public void deregister(GeneralType type) {

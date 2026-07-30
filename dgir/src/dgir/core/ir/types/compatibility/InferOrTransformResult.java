@@ -3,10 +3,7 @@ package dgir.core.ir.types.compatibility;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
 
-public sealed interface InferOrTransformResult<
-  T extends InferResultMarker<? extends Type>,
-  E extends Expression
-> {
+public sealed interface InferOrTransformResult<T extends InferResultMarker<? extends Type>, E extends Expression> {
   public default boolean isInfer() {
     return this instanceof Infer;
   }
@@ -32,10 +29,10 @@ public sealed interface InferOrTransformResult<
   }
 
   public static final record Infer<T extends InferResultMarker<? extends Type>, E extends Expression>(
-    T type
-  ) implements InferOrTransformResult<T, E> {}
+      T type) implements InferOrTransformResult<T, E> {
+  }
 
   public static final record Transform<T extends InferResultMarker<? extends Type>, E extends Expression>(
-    E expr
-  ) implements InferOrTransformResult<T, E> {}
+      E expr) implements InferOrTransformResult<T, E> {
+  }
 }
