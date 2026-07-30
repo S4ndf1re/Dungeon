@@ -1,11 +1,16 @@
-package dgir.core.ir.types;
+package dgir.core.ir.types.systemf;
 
-import dgir.core.ir.types.SystemFInference.Context.Break3Result;
-import dgir.core.ir.types.SystemFInference.TypeInference.CheckResult;
-import dgir.core.ir.types.SystemFInference.TypeInference.TypeResult;
+import dgir.core.ir.types.systemf.SystemFInference.Context.Break3Result;
+import dgir.core.ir.types.systemf.SystemFInference.TypeInference.CheckResult;
+import dgir.core.ir.types.systemf.SystemFInference.TypeInference.TypeResult;
+import dgir.core.ir.types.Expression;
+import dgir.core.ir.types.InferenceTree;
+import dgir.core.ir.types.Type;
+import dgir.core.ir.types.TypeDialect;
+import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
-import dgir.core.ir.types.compatibility.SystemFCompatibility;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -18,7 +23,7 @@ import java.util.stream.IntStream;
 
 public final class SystemFInference
     extends
-    TypeDialect<InferOrTransformResult<dgir.core.ir.types.SystemFInference.TypeInference.TypeResult, dgir.core.ir.types.SystemFInference.Expr>, SystemFCompatibility> {
+    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, SystemFCompatibility> {
 
   private static Optional<TypeInference> solver = Optional.empty();
 

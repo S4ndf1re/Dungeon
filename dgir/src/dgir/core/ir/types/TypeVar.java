@@ -7,4 +7,18 @@ package dgir.core.ir.types;
  * This is analogous to the Value class of the DGIR, but for types.
  */
 public class TypeVar {
+
+  private static long counter;
+
+  private long idx;
+
+  public TypeVar() {
+    this.idx = TypeVar.counter++;
+  }
+
+  @Override
+  public String toString() {
+    return "t" + idx;
+  }
+
 }

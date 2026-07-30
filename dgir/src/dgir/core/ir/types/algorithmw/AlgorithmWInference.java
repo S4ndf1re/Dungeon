@@ -1,12 +1,17 @@
-package dgir.core.ir.types;
+package dgir.core.ir.types.algorithmw;
 
-import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Arrow;
-import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.LitType;
-import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Tuple;
-import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.UnifyResult;
-import dgir.core.ir.types.AlgorithmWInference.AlgorithmWType.Var;
-import dgir.core.ir.types.AlgorithmWInference.Expr.InferResult;
-import dgir.core.ir.types.compatibility.AlgorithmWCompatibility;
+import dgir.core.ir.types.Expression;
+import dgir.core.ir.types.InferenceTree;
+import dgir.core.ir.types.Type;
+import dgir.core.ir.types.TypeDialect;
+import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.TypingException;
+import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.LitType;
+import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.Tuple;
+import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.UnifyResult;
+import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.Var;
+import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.Arrow;
+import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
 import java.util.ArrayList;
@@ -19,7 +24,7 @@ import java.util.stream.Collectors;
 
 public final class AlgorithmWInference
     extends
-    TypeDialect<InferOrTransformResult<dgir.core.ir.types.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.AlgorithmWInference.Expr>, AlgorithmWCompatibility> {
+    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, AlgorithmWCompatibility> {
 
   private static Optional<TypeInference> instance = Optional.empty();
 
@@ -101,7 +106,7 @@ public final class AlgorithmWInference
       }
     }
 
-    public static sealed interface Lit {
+    public static interface Lit {
       public AlgorithmWType getAlgorithmWType();
 
       public final record LitInt(int value) implements Lit {
@@ -273,7 +278,6 @@ public final class AlgorithmWInference
 
         AlgorithmWType funcTypeSubst = res2.subst.apply(res1.type);
         AlgorithmWType expectedFuncType = new Arrow(res2.type, resultType);
-
         UnifyResult res3 = engine.unify(funcTypeSubst, expectedFuncType);
 
         Subst finalSubst = res3.subst.compose(res2.subst.compose(res1.subst));
@@ -758,13 +762,14 @@ public final class AlgorithmWInference
       @Override
       public String toString() {
         return (tyName +
-            "<" +
-            parameters
-                .stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(","))
-            +
-            ">");
+            (parameters.isEmpty() ? ""
+                : "<" +
+                    parameters
+                        .stream()
+                        .map(Object::toString)
+                        .collect(Collectors.joining(","))
+                    +
+                    ">"));
       }
 
       @Override
