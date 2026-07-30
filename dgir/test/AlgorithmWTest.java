@@ -1,9 +1,9 @@
+import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.LitType;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr;
 import java.util.List;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.Lit;
 import org.junit.jupiter.api.Test;
 
 public class AlgorithmWTest {
@@ -43,8 +43,8 @@ public class AlgorithmWTest {
         new Expr.ExprApp(
             new Expr.ExprApp(
                 new Expr.ExprVar("const"),
-                new Expr.ExprLit(new Lit.LitInt(42))),
-            new Expr.ExprLit(new Lit.LitBool(true))));
+                new Expr.ExprLit(new Literal.Int(42))),
+            new Expr.ExprLit(new Literal.Bool(true))));
 
     var result = solver.solve(expr);
     assert result instanceof AlgorithmWType;
@@ -65,8 +65,8 @@ public class AlgorithmWTest {
             new Expr.ExprApp(
                 new Expr.ExprApp(
                     new Expr.ExprVar("const"),
-                    new Expr.ExprLit(new Lit.LitInt(42))),
-                new Expr.ExprLit(new Lit.LitBool(true)))),
+                    new Expr.ExprLit(new Literal.Int(42))),
+                new Expr.ExprLit(new Literal.Bool(true)))),
         new AlgorithmWType.LitType("Int"));
 
     var result = solver.solve(expr);
@@ -98,10 +98,10 @@ public class AlgorithmWTest {
                 new Expr.ExprApp(
                     new Expr.ExprVar("const"),
                     new Expr.ExprAnn(
-                        new Expr.ExprLit(new Lit.LitInt(42)),
+                        new Expr.ExprLit(new Literal.Int(42)),
                         new AlgorithmWType.LitType("Int"))),
                 new Expr.ExprAnn(
-                    new Expr.ExprLit(new Lit.LitBool(true)),
+                    new Expr.ExprLit(new Literal.Bool(true)),
                     new AlgorithmWType.LitType("Bool")))),
         new AlgorithmWType.LitType("Int")
 

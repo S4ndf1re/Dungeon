@@ -1,7 +1,10 @@
 package dgir.core.ir.types.algorithmw;
 
 import dgir.core.ir.types.Expression;
+import dgir.core.ir.types.GeneralParameterizedNominalType;
+import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InferenceTree;
+import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
 import dgir.core.ir.types.TypeVar;
@@ -47,6 +50,15 @@ public final class AlgorithmWInference
   @Override
   public List<Class<? extends Expression>> getAllowedExpressions() {
     return TypeDialect.extractExpressionsFromAbstract(Expr.class);
+  }
+
+  private static AlgorithmWType generalNominalTypeToAlgorithmWType(GeneralParameterizedNominalType type) {
+    List<AlgorithmWType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
+      case GeneralTypeParameter.Concrete con -> AlgorithmWInference.generalNominalTypeToAlgorithmWType(con.ty());
+      case GeneralTypeParameter.Unknown unk -> new AlgorithmWType.Var(new TypeVar());
+    }).toList();
+
+    return new AlgorithmWType.LitType(type.getIdent(), paramTypes);
   }
 
   public static interface Expr extends Expression, AlgorithmWCompatibility {
@@ -106,40 +118,12 @@ public final class AlgorithmWInference
       }
     }
 
-    public static interface Lit {
-      public AlgorithmWType getAlgorithmWType();
-
-      public final record LitInt(int value) implements Lit {
-        @Override
-        public final String toString() {
-          return "Int(" + value + ")";
-        }
-
-        @Override
-        public AlgorithmWType getAlgorithmWType() {
-          return new AlgorithmWType.LitType("Int");
-        }
-      }
-
-      public final record LitBool(boolean value) implements Lit {
-        @Override
-        public final String toString() {
-          return "Bool(" + value + ")";
-        }
-
-        @Override
-        public AlgorithmWType getAlgorithmWType() {
-          return new AlgorithmWType.LitType("Bool");
-        }
-      }
-    }
-
     public static final class ExprLit implements Expr {
 
-      private Lit value;
+      private GeneralParameterizedNominalType value;
 
-      public ExprLit(Lit value) {
-        this.value = value;
+      public ExprLit(Literal value) {
+        this.value = value.toParameterizedNominalType();
       }
 
       @Override
@@ -149,13 +133,14 @@ public final class AlgorithmWInference
 
       @Override
       public InferResult infer(TypeInference engine, Env env) {
+        var algoWType = AlgorithmWInference.generalNominalTypeToAlgorithmWType(value);
         return new InferResult(
             Subst.newEmpty(),
-            value.getAlgorithmWType(),
+            algoWType,
             new InferenceTree(
-                "T-" + value.getAlgorithmWType(),
+                "T-" + algoWType,
                 env + " |- " + this,
-                value.getAlgorithmWType().toString(),
+                algoWType.toString(),
                 List.of()));
       }
     }
