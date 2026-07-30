@@ -11,11 +11,10 @@ public final class InferenceTree {
   public final List<InferenceTree> children;
 
   public InferenceTree(
-    String name,
-    String input,
-    String output,
-    List<InferenceTree> children
-  ) {
+      String name,
+      String input,
+      String output,
+      List<InferenceTree> children) {
     this.name = name;
     this.input = input;
     this.output = output;
@@ -38,18 +37,16 @@ public final class InferenceTree {
   String toStringWithIdent(int ident) {
     String prefix = "  ".repeat(ident + 1);
     String childrenStr = children
-      .stream()
-      .map(child -> child.toStringWithIdent(ident + 1))
-      .collect(Collectors.joining("\n"));
+        .stream()
+        .map(child -> child.toStringWithIdent(ident + 1))
+        .collect(Collectors.joining("\n"));
 
-    return (
-      prefix +
-      name +
-      ":" +
-      input +
-      " => " +
-      output +
-      (childrenStr.length() > 0 ? "\n" + childrenStr : "")
-    );
+    return (prefix +
+        name +
+        ":" +
+        input +
+        " => " +
+        output +
+        (childrenStr.length() > 0 ? "\n" + childrenStr : ""));
   }
 }
