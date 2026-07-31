@@ -1,16 +1,23 @@
 package dgir.core.ir.types;
 
-import dgir.core.ir.types.compatibility.CompatibilityMarker;
+import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
+import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, C extends CompatibilityMarker> {
+public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, C extends ExprOrOperator<? extends Expression>> {
 
-  public abstract static class TypeInferenceSolver<T extends CompatibilityMarker> {
+  public abstract static class TypeInferenceSolver<T extends ExprOrOperator<? extends Expression>> {
+     protected TypeDialectConverterRegistry registry;
+
+    public TypeInferenceSolver(TypeDialectConverterRegistry registry) {
+      this.registry = registry;
+    }
 
     public abstract Type solve(T expr);
   }
