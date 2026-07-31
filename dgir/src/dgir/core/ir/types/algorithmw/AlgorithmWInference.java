@@ -1,5 +1,6 @@
 package dgir.core.ir.types.algorithmw;
 
+import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
@@ -15,8 +16,12 @@ import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.UnifyRes
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.Var;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.Arrow;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult;
+import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
+import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
+import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,12 +32,12 @@ import java.util.stream.Collectors;
 
 public final class AlgorithmWInference
     extends
-    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, AlgorithmWCompatibility> {
+    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>> {
 
   private static Optional<TypeInference> instance = Optional.empty();
 
   @Override
-  public TypeInferenceSolver<AlgorithmWCompatibility> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr>> getSolverInstance() {
     if (AlgorithmWInference.instance.isPresent()) {
       return AlgorithmWInference.instance.get();
     } else {
@@ -61,16 +66,21 @@ public final class AlgorithmWInference
     return new AlgorithmWType.LitType(type.getIdent(), paramTypes);
   }
 
-  public static interface Expr extends Expression, AlgorithmWCompatibility {
-    private static InferResult convertInferOrTransformToInferResult(
-        InferOrTransformResult<InferResult, Expr> infOrTrans,
-        TypeInference engine,
-        Env env) {
-      if (infOrTrans.isInfer()) {
-        return infOrTrans.getInferResult();
-      } else {
-        return engine.infer(infOrTrans.getTransformExpr(), env);
-      }
+  public static interface Expr extends Expression, ExprOrOperator<AlgorithmWInference.Expr> {
+
+    @Override
+    default boolean isExpr() {
+      return true;
+    }
+
+    @Override
+    default boolean isOperator() {
+      return false;
+    }
+
+    @Override
+    default Expr getExpr() {
+      return this;
     }
 
     public static record InferResult(
@@ -81,28 +91,20 @@ public final class AlgorithmWInference
 
     public abstract InferResult infer(TypeInference engine, Env env);
 
-    public default @Override InferOrTransformResult<Expr.InferResult, Expr> inferOrTransformAlgorithmW(
-        TypeInference engine, Env env) {
-      return new InferOrTransformResult.Infer<Expr.InferResult, Expr>(
-          this.infer(engine, env));
-    }
-
     public static final class ExprAnn implements Expr {
 
-      private final AlgorithmWCompatibility expr;
+      private final ExprOrOperator<Expr> expr;
       private final AlgorithmWType type;
 
-      public ExprAnn(AlgorithmWCompatibility expr, AlgorithmWType type) {
+      public ExprAnn(ExprOrOperator<Expr> expr, AlgorithmWType type) {
         this.expr = expr;
         this.type = type;
       }
 
       @Override
       public InferResult infer(TypeInference engine, Env env) {
-        InferResult res = Expr.convertInferOrTransformToInferResult(
-            expr.inferOrTransformAlgorithmW(engine, env),
-            engine,
-            env);
+
+        InferResult res = engine.infer(expr, env);
 
         var unifyRes = engine.unify(res.type, type);
         var subst = unifyRes.subst.compose(res.subst);
@@ -147,9 +149,9 @@ public final class AlgorithmWInference
 
     public static final class ExprTuple implements Expr {
 
-      private List<Expr> elements;
+      private List<ExprOrOperator<Expr>> elements;
 
-      public ExprTuple(List<Expr> elements) {
+      public ExprTuple(List<ExprOrOperator<Expr>> elements) {
         this.elements = elements;
       }
 
@@ -195,15 +197,15 @@ public final class AlgorithmWInference
 
     public static final class ExprVar implements Expr {
 
-      private final String name;
+      private final Value name;
 
-      public ExprVar(String name) {
+      public ExprVar(Value name) {
         this.name = name;
       }
 
       @Override
       public final String toString() {
-        return name;
+        return name + "";
       }
 
       @Override
@@ -229,12 +231,12 @@ public final class AlgorithmWInference
 
     public static final class ExprApp implements Expr {
 
-      private final AlgorithmWCompatibility func;
-      private final AlgorithmWCompatibility arg;
+      private final ExprOrOperator<Expr> func;
+      private final ExprOrOperator<Expr> arg;
 
       public ExprApp(
-          AlgorithmWCompatibility func,
-          AlgorithmWCompatibility arg) {
+          ExprOrOperator<Expr> func,
+          ExprOrOperator<Expr> arg) {
         this.func = func;
         this.arg = arg;
       }
@@ -251,15 +253,11 @@ public final class AlgorithmWInference
         AlgorithmWType resultType = new AlgorithmWType.Var(
             engine.freshTypeVar());
 
-        InferResult res1 = Expr.convertInferOrTransformToInferResult(
-            func.inferOrTransformAlgorithmW(engine, env),
-            engine,
-            env);
+        InferResult res1 = engine.infer(func, env);
+
         Env envSubst = env.apply(res1.subst);
-        InferResult res2 = Expr.convertInferOrTransformToInferResult(
-            arg.inferOrTransformAlgorithmW(engine, envSubst),
-            engine,
-            envSubst);
+
+        InferResult res2 = engine.infer(arg, envSubst);
 
         AlgorithmWType funcTypeSubst = res2.subst.apply(res1.type);
         AlgorithmWType expectedFuncType = new Arrow(res2.type, resultType);
@@ -281,10 +279,10 @@ public final class AlgorithmWInference
 
     public static final class ExprAbs implements Expr {
 
-      private final String param;
-      private final AlgorithmWCompatibility body;
+      private final Value param;
+      private final ExprOrOperator<Expr> body;
 
-      public ExprAbs(String param, AlgorithmWCompatibility body) {
+      public ExprAbs(Value param, ExprOrOperator<Expr> body) {
         this.param = param;
         this.body = body;
       }
@@ -304,10 +302,7 @@ public final class AlgorithmWInference
         Scheme newScheme = new Scheme(List.of(), freshTypeVar);
         newEnv.env.put(param, newScheme);
 
-        InferResult res = Expr.convertInferOrTransformToInferResult(
-            body.inferOrTransformAlgorithmW(engine, newEnv),
-            engine,
-            newEnv);
+        InferResult res = engine.infer(body, newEnv);
         AlgorithmWType resultType = new Arrow(
             res.subst.apply(freshTypeVar),
             res.type);
@@ -325,11 +320,11 @@ public final class AlgorithmWInference
 
     public static final class ExprLet implements Expr {
 
-      private final String param;
-      private final AlgorithmWCompatibility value;
-      private final AlgorithmWCompatibility body;
+      private final Value param;
+      private final ExprOrOperator<Expr> value;
+      private final ExprOrOperator<Expr> body;
 
-      public ExprLet(String param, Expr value, Expr body) {
+      public ExprLet(Value param, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
         this.param = param;
         this.value = value;
         this.body = body;
@@ -344,20 +339,16 @@ public final class AlgorithmWInference
       public InferResult infer(TypeInference engine, Env env) {
         String input = env + " |- " + this;
 
-        InferResult res1 = Expr.convertInferOrTransformToInferResult(
-            value.inferOrTransformAlgorithmW(engine, env),
-            engine,
-            env);
+        InferResult res1 = engine.infer(value, env);
         Env envSubst = env.apply(res1.subst);
+
         Scheme generalizedType = res1.type.generalize(envSubst);
 
         Env newEnv = envSubst.copy();
         newEnv.env.put(param, generalizedType);
 
-        InferResult res2 = Expr.convertInferOrTransformToInferResult(
-            body.inferOrTransformAlgorithmW(engine, newEnv),
-            engine,
-            newEnv);
+        InferResult res2 = engine.infer(body, newEnv);
+
         Subst finalSubst = res2.subst.compose(res1.subst);
 
         return new InferResult(
@@ -370,12 +361,43 @@ public final class AlgorithmWInference
                 List.of(res1.tree, res2.tree)));
       }
     }
+
+    public class ExprCustom implements Expr {
+
+      @FunctionalInterface
+      public interface InferFunction {
+        InferResult infer(TypeInference engine, Env env, Object data);
+      }
+
+      private Object data;
+      private InferFunction inferFn;
+
+      public ExprCustom(
+          Object data, InferFunction inferFn) {
+        this.data = data;
+        this.inferFn = inferFn;
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        return this.inferFn.infer(engine, env, data);
+      }
+
+    }
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<AlgorithmWCompatibility> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>> {
+
+    private ConvertedOperationBuffer<Expr> operationToExprBuffer;
 
     public TypeInference() {
+      this(new TypeDialectConverterRegistry());
+    }
+
+    public TypeInference(TypeDialectConverterRegistry registry) {
+      super(registry);
+      operationToExprBuffer = new ConvertedOperationBuffer<>();
     }
 
     public TypeVar freshTypeVar() {
@@ -383,13 +405,10 @@ public final class AlgorithmWInference
     }
 
     @Override
-    public Type solve(AlgorithmWCompatibility expr) {
-      if (expr instanceof AlgorithmWCompatibility) {
+    public Type solve(ExprOrOperator<Expr> expr) {
+      if (expr.isExpr()) {
         Env env = new Env(new HashMap<>());
-        InferResult res = Expr.convertInferOrTransformToInferResult(
-            expr.inferOrTransformAlgorithmW(this, env),
-            this,
-            env);
+        InferResult res = this.infer(expr, env);
         return (Type) res.subst.apply(res.type);
       } else {
         throw new TypingException.UnsupportedExpression(
@@ -398,8 +417,14 @@ public final class AlgorithmWInference
       }
     }
 
-    public InferResult infer(Expr expr, Env env) {
-      return expr.infer(this, env);
+    public InferResult infer(ExprOrOperator<Expr> expr, Env env) {
+      if (expr.isExpr()) {
+        return expr.getExpr().infer(this, env);
+      } else if (expr.isOperator()) {
+        var op = expr.getOp();
+        return this.operationToExprBuffer.operationToExpr(op, this.registry, Expr.class).infer(this, env);
+      }
+      throw new RuntimeException("unimplemented for OPs");
     }
 
     public UnifyResult unify(AlgorithmWType left, AlgorithmWType right) {
@@ -410,7 +435,7 @@ public final class AlgorithmWInference
     }
   }
 
-  public final record Env(HashMap<String, Scheme> env) {
+  public final record Env(HashMap<Value, Scheme> env) {
     @Override
     public final String toString() {
       return ("{" +
@@ -430,7 +455,7 @@ public final class AlgorithmWInference
      * @return the applied env where subst is applied to this
      */
     public Env apply(Subst subst) {
-      var newEnv = new HashMap<String, Scheme>(env);
+      var newEnv = new HashMap<Value, Scheme>(env);
       for (var entry : this.env.entrySet()) {
         newEnv.put(entry.getKey(), entry.getValue().apply(subst));
       }

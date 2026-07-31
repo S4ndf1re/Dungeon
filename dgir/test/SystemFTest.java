@@ -1,3 +1,4 @@
+import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.systemf.SystemFInference;
 import dgir.core.ir.types.systemf.SystemFInference.Expr;
@@ -15,10 +16,12 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
+    var x = new Value();
+
     var expr = new Expr.Abs(
-        "x",
+        x,
         new SystemFType.Lit("Int"),
-        new Expr.BinOp(BinOpKind.ADD, new Expr.Var("x"), new Expr.Var("x")));
+        new Expr.BinOp(BinOpKind.ADD, new Expr.Var(x), new Expr.Var(x)));
 
     var resType = solver.solve(expr);
     assert resType instanceof SystemFType;
@@ -33,17 +36,21 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
+    var add = new Value();
+    var x = new Value();
+    var y = new Value();
+
     var expr = new Expr.Let(
-        "add",
+        add,
         new Expr.Abs(
-            "x",
+            x,
             new SystemFType.Lit("Int"),
             new Expr.Abs(
-                "y",
+                y,
                 new SystemFType.Lit("Int"),
-                new Expr.BinOp(BinOpKind.ADD, new Expr.Var("x"), new Expr.Var("y")))),
+                new Expr.BinOp(BinOpKind.ADD, new Expr.Var(x), new Expr.Var(y)))),
         new Expr.App(
-            new Expr.App(new Expr.Var("add"), new Expr.LitExpr(new Literal.Int(1))),
+            new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1))),
             new Expr.LitExpr(new Literal.Int(2))));
 
     var resType = solver.solve(expr);
@@ -62,13 +69,16 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
+    var add = new Value();
+    var x = new Value();
+
     var expr = new Expr.Ann(new Expr.Let(
-        "add",
+        add,
         new Expr.Abs(
-            "x",
+            x,
             new SystemFType.Lit("Int"),
             new Expr.LitExpr(new Literal.MyList())),
-        new Expr.App(new Expr.Var("add"), new Expr.LitExpr(new Literal.Int(1)))),
+        new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1)))),
         new SystemFType.Lit("List", List.of(new SystemFType.Lit("Bool"))));
 
     var resType = solver.solve(expr);

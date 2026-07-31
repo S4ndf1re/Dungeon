@@ -1,5 +1,7 @@
 package dgir.core.ir.types;
 
+import dgir.core.ir.Value;
+
 public abstract sealed class TypingException extends RuntimeException {
 
   protected TypingException(String message) {
@@ -18,9 +20,9 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class UnknownVariable extends TypingException {
 
-    public final String variableName;
+    public final Value variableName;
 
-    public UnknownVariable(String variableName) {
+    public UnknownVariable(Value variableName) {
       super("Unknown variable: " + variableName);
       this.variableName = variableName;
     }
@@ -129,9 +131,9 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class UnboundVariable extends TypingException {
 
-    public final String varName;
+    public final Value varName;
 
-    public UnboundVariable(String varName) {
+    public UnboundVariable(Value varName) {
       super("Variable " + varName + " is unbound");
       this.varName = varName;
     }
