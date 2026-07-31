@@ -3,6 +3,8 @@ package dgir.core.ir.types.systemf;
 import dgir.core.ir.types.systemf.SystemFInference.Context.Break3Result;
 import dgir.core.ir.types.systemf.SystemFInference.TypeInference.CheckResult;
 import dgir.core.ir.types.systemf.SystemFInference.TypeInference.TypeResult;
+import dgir.core.ir.Operation;
+import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.InferenceTree;
@@ -13,6 +15,9 @@ import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.TypeVar.TypeVarScope;
+import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
+import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
+import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
 import java.util.ArrayList;
@@ -27,7 +32,7 @@ import java.util.stream.IntStream;
 
 public final class SystemFInference
     extends
-    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, SystemFCompatibility> {
+    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>> {
 
   private static Optional<TypeInference> solver = Optional.empty();
 
@@ -42,7 +47,7 @@ public final class SystemFInference
   }
 
   @Override
-  public TypeInferenceSolver<SystemFCompatibility> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr>> getSolverInstance() {
     if (solver.isPresent()) {
       return solver.get();
     } else {
@@ -345,18 +350,26 @@ public final class SystemFInference
    * Expressions that are valid for the SytemF Type System. All needed methods for
    * inference and type checking are implemented here
    */
-  public static interface Expr extends Expression, SystemFCompatibility {
+  public static interface Expr extends Expression, ExprOrOperator<Expr> {
+
+    @Override
+    default boolean isExpr() {
+      return true;
+    }
+
+    @Override
+    default boolean isOperator() {
+      return false;
+    }
+
+    @Override
+    default Expr getExpr() {
+      return this;
+    }
+
     public abstract TypeInference.TypeResult infer(
         TypeInference engine,
         Context ctx);
-
-    @Override
-    default InferOrTransformResult<TypeResult, Expr> inferOrTransformSystemF(
-        TypeInference engine,
-        Context ctx) {
-      return new InferOrTransformResult.Infer<TypeInference.TypeResult, Expr>(
-          engine.infer(ctx, this));
-    }
 
     public default TypeInference.CheckResult check(
         TypeInference engine,
@@ -395,15 +408,15 @@ public final class SystemFInference
 
     public static final class Var implements Expr {
 
-      private final String name;
+      private final Value name;
 
-      public Var(String name) {
+      public Var(Value name) {
         this.name = name;
       }
 
       @Override
       public final String toString() {
-        return name;
+        return name + "";
       }
 
       @Override
@@ -430,10 +443,10 @@ public final class SystemFInference
 
     public static final class App implements Expr {
 
-      private final Expr fun;
-      private final Expr arg;
+      private final ExprOrOperator<Expr> fun;
+      private final ExprOrOperator<Expr> arg;
 
-      public App(Expr fun, Expr arg) {
+      public App(ExprOrOperator<Expr> fun, ExprOrOperator<Expr> arg) {
         this.fun = fun;
         this.arg = arg;
       }
@@ -513,11 +526,11 @@ public final class SystemFInference
 
     public static final class Abs implements Expr {
 
-      private final String name;
+      private final Value name;
       private final SystemFType type;
-      private final Expr body;
+      private final ExprOrOperator<Expr> body;
 
-      public Abs(String name, SystemFType type, Expr body) {
+      public Abs(Value name, SystemFType type, ExprOrOperator<Expr> body) {
         this.name = name;
         this.type = type;
         this.body = body;
@@ -593,10 +606,10 @@ public final class SystemFInference
 
     public static final class TApp implements Expr {
 
-      private final Expr func;
+      private final ExprOrOperator<Expr> func;
       private final SystemFType type;
 
-      public TApp(Expr func, SystemFType type) {
+      public TApp(ExprOrOperator<Expr> func, SystemFType type) {
         this.func = func;
         this.type = type;
       }
@@ -632,10 +645,10 @@ public final class SystemFInference
 
     public static final class Ann implements Expr {
 
-      private final Expr expr;
+      private final ExprOrOperator<Expr> expr;
       private final SystemFType type;
 
-      public Ann(Expr expr, SystemFType type) {
+      public Ann(ExprOrOperator<Expr> expr, SystemFType type) {
         this.expr = expr;
         this.type = type;
       }
@@ -664,9 +677,9 @@ public final class SystemFInference
     public static final class TAbs implements Expr {
 
       private final TypeVar variable;
-      private final Expr body;
+      private final ExprOrOperator<Expr> body;
 
-      public TAbs(TypeVar variable, Expr body) {
+      public TAbs(TypeVar variable, ExprOrOperator<Expr> body) {
         this.variable = variable;
         this.body = body;
       }
@@ -758,11 +771,11 @@ public final class SystemFInference
 
     public static final class Let implements Expr {
 
-      private final String name;
-      private final Expr value;
-      private final Expr body;
+      private final Value name;
+      private final ExprOrOperator<Expr> value;
+      private final ExprOrOperator<Expr> body;
 
-      public Let(String name, Expr value, Expr body) {
+      public Let(Value name, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
         this.name = name;
         this.value = value;
         this.body = body;
@@ -807,11 +820,11 @@ public final class SystemFInference
 
     public static final class IfThenElse implements Expr {
 
-      private final Expr cond;
-      private final Expr then;
-      private final Expr else_;
+      private final ExprOrOperator<Expr> cond;
+      private final ExprOrOperator<Expr> then;
+      private final ExprOrOperator<Expr> else_;
 
-      public IfThenElse(Expr cond, Expr then, Expr else_) {
+      public IfThenElse(ExprOrOperator<Expr> cond, ExprOrOperator<Expr> then, ExprOrOperator<Expr> else_) {
         this.cond = cond;
         this.then = then;
         this.else_ = else_;
@@ -854,10 +867,10 @@ public final class SystemFInference
     public static final class BinOp implements Expr {
 
       private final BinOpKind kind;
-      private final Expr left;
-      private final Expr right;
+      private final ExprOrOperator<Expr> left;
+      private final ExprOrOperator<Expr> right;
 
-      public BinOp(BinOpKind kind, Expr left, Expr right) {
+      public BinOp(BinOpKind kind, ExprOrOperator<Expr> left, ExprOrOperator<Expr> right) {
         this.kind = kind;
         this.left = left;
         this.right = right;
@@ -925,12 +938,35 @@ public final class SystemFInference
         }
       }
     }
+
+    public final class Custom implements Expr {
+
+      @FunctionalInterface
+      public interface InferFunction {
+        TypeResult infer(TypeInference engine, Context ctx, Object data);
+      }
+
+      private Object data;
+      private InferFunction inferFn;
+
+      public Custom(Object data, InferFunction inferFn) {
+        this.data = data;
+        this.inferFn = inferFn;
+
+      }
+
+      @Override
+      public TypeResult infer(TypeInference engine, Context ctx) {
+        return this.inferFn.infer(engine, ctx, data);
+      }
+
+    }
   }
 
   /** Context entry for type checking and inference */
   public sealed interface Entry {
     public final record VarBnd(
-        String tmVar,
+        Value tmVar,
         SystemFType type) implements Entry {
       @Override
       public final String toString() {
@@ -1124,9 +1160,17 @@ public final class SystemFInference
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<SystemFCompatibility> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>> {
+
+    private ConvertedOperationBuffer<Expr> operationToExprBuffer;
 
     public TypeInference() {
+      this(new TypeDialectConverterRegistry());
+    }
+
+    public TypeInference(TypeDialectConverterRegistry registry) {
+      super(registry);
+      operationToExprBuffer = new ConvertedOperationBuffer<>();
     }
 
     public TypeVar freshTypeVar() {
@@ -1134,9 +1178,9 @@ public final class SystemFInference
     }
 
     @Override
-    public Type solve(SystemFCompatibility expr) {
-      if (expr instanceof Expr exp) {
-        return (Type) this.inferType(exp);
+    public Type solve(ExprOrOperator<Expr> expr) {
+      if (expr.isExpr()) {
+        return (Type) this.inferType(expr.getExpr());
       } else {
         throw new TypingException.UnsupportedExpression(
             TypingException.UnsupportedExpression.AlgorithmType.SystemF,
@@ -1162,14 +1206,29 @@ public final class SystemFInference
         InferenceTree tree) implements InferResultMarker<SystemFType> {
     }
 
-    TypeResult infer(Context ctx, Expr expr) {
-      return expr.infer(this, ctx);
+    TypeResult infer(Context ctx, ExprOrOperator<Expr> expr) {
+      if (expr.isExpr()) {
+        return expr.getExpr().infer(this, ctx);
+      } else if (expr.isOperator()) {
+        Operation op = expr.getOp();
+        return this.operationToExprBuffer.operationToExpr(op, this.registry, Expr.class).infer(this, ctx);
+      }
+      throw new RuntimeException("unimplemented for OPs");
     }
 
     public final record CheckResult(Context ctx, InferenceTree tree) {
     }
 
-    public CheckResult check(Context ctx, Expr expr, SystemFType ty) {
+    public CheckResult check(Context ctx, ExprOrOperator<Expr> exprParam, SystemFType ty) {
+      Expr expr = null;
+      if (exprParam.isExpr()) {
+        expr = exprParam.getExpr();
+      } else if (exprParam.isOperator()) {
+        expr = this.operationToExprBuffer.operationToExpr(exprParam.getOp(), this.registry, Expr.class);
+      } else {
+        throw new RuntimeException("Can never happen, due to exhaustive If");
+      }
+
       var input = ctx + " |- " + expr + " <=" + ty;
 
       if (ty instanceof SystemFType.ForAll forall) {

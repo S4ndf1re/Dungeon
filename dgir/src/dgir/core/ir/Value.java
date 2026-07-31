@@ -10,6 +10,7 @@ import dgir.dialect.builtin.BuiltinTypes;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -38,7 +39,7 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
    * kind of data this value represents (e.g. integer, float, pointer) and is used for type
    * checking.
    */
-  private final @NotNull Type type;
+  private final @NotNull Optional<Type> type;
 
   /**
    * The set of definitions(assignments) of this value. Regions are not counted as definitions,
@@ -58,15 +59,19 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
   // Constructors
   // =========================================================================
 
+  public Value() {
+    this.type = Optional.empty();
+  }
+
   public Value(@NotNull Type type) {
-    this.type = type;
+    this.type = Optional.ofNullable(type);
   }
 
   @JsonCreator
   public Value(
       @JsonProperty("type") @NotNull Type type,
       @JsonProperty("debug") @Nullable ValueDebugInfo debugInfo) {
-    this.type = type;
+    this.type = Optional.ofNullable(type);
     if (debugInfo != null) {
       this.debugInfo = debugInfo;
     }
@@ -79,7 +84,7 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
   /** Returns the static type of this value. */
   @Contract(pure = true)
   public @NotNull Type getType() {
-    return type;
+    return type.get();
   }
 
   /**

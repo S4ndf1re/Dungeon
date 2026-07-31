@@ -1,3 +1,4 @@
+import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType;
@@ -36,13 +37,17 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
+    var cnst = new Value();
+    var x = new Value();
+    var y = new Value();
+
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprLet(
-        "const",
-        new Expr.ExprAbs("x", new Expr.ExprAbs("y", new Expr.ExprVar("x"))),
+        cnst,
+        new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
         new Expr.ExprApp(
             new Expr.ExprApp(
-                new Expr.ExprVar("const"),
+                new Expr.ExprVar(cnst),
                 new Expr.ExprLit(new Literal.Int(42))),
             new Expr.ExprLit(new Literal.Bool(true))));
 
@@ -57,14 +62,18 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
+    var cnst = new Value();
+    var x = new Value();
+    var y = new Value();
+
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprAnn(
         new Expr.ExprLet(
-            "const",
-            new Expr.ExprAbs("x", new Expr.ExprAbs("y", new Expr.ExprVar("x"))),
+            cnst,
+            new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
             new Expr.ExprApp(
                 new Expr.ExprApp(
-                    new Expr.ExprVar("const"),
+                    new Expr.ExprVar(cnst),
                     new Expr.ExprLit(new Literal.Int(42))),
                 new Expr.ExprLit(new Literal.Bool(true)))),
         new AlgorithmWType.LitType("Int"));
@@ -83,12 +92,16 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
+    var cnst = new Value();
+    var x = new Value();
+    var y = new Value();
+
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprAnn(
         new Expr.ExprLet(
-            "const",
+            cnst,
             new Expr.ExprAnn(
-                new Expr.ExprAbs("x", new Expr.ExprAbs("y", new Expr.ExprVar("x"))),
+                new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
                 new AlgorithmWType.Arrow(
                     new AlgorithmWType.LitType("Int"),
                     new AlgorithmWType.Arrow(
@@ -96,7 +109,7 @@ public class AlgorithmWTest {
                         new AlgorithmWType.LitType("Int")))),
             new Expr.ExprApp(
                 new Expr.ExprApp(
-                    new Expr.ExprVar("const"),
+                    new Expr.ExprVar(cnst),
                     new Expr.ExprAnn(
                         new Expr.ExprLit(new Literal.Int(42)),
                         new AlgorithmWType.LitType("Int"))),
