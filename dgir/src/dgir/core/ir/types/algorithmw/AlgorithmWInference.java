@@ -8,6 +8,7 @@ import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
+import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.LitType;
@@ -214,7 +215,7 @@ public final class AlgorithmWInference
 
         Scheme scheme = env.env.get(name);
         if (scheme != null) {
-          AlgorithmWType instantiated = scheme.instantiate(engine);
+          AlgorithmWType instantiated = scheme.instantiate(engine, this.name);
           return new InferResult(
               Subst.newEmpty(),
               instantiated,
@@ -250,8 +251,7 @@ public final class AlgorithmWInference
       public InferResult infer(TypeInference engine, Env env) {
         String input = env + " |- " + this;
 
-        AlgorithmWType resultType = new AlgorithmWType.Var(
-            engine.freshTypeVar());
+        AlgorithmWType resultType = new AlgorithmWType.Var(new TypeVar());
 
         InferResult res1 = engine.infer(func, env);
 
@@ -296,8 +296,7 @@ public final class AlgorithmWInference
       public InferResult infer(TypeInference engine, Env env) {
         String input = env + " |- " + this;
 
-        AlgorithmWType freshTypeVar = new AlgorithmWType.Var(
-            engine.freshTypeVar());
+        AlgorithmWType freshTypeVar = new AlgorithmWType.Var(new TypeVar(this.param));
         Env newEnv = env.copy();
         Scheme newScheme = new Scheme(List.of(), freshTypeVar);
         newEnv.env.put(param, newScheme);
@@ -398,10 +397,6 @@ public final class AlgorithmWInference
     public TypeInference(TypeDialectConverterRegistry registry) {
       super(registry);
       operationToExprBuffer = new ConvertedOperationBuffer<>();
-    }
-
-    public TypeVar freshTypeVar() {
-      return new TypeVar();
     }
 
     @Override
@@ -527,11 +522,11 @@ public final class AlgorithmWInference
       return Set.copyOf(set);
     }
 
-    public AlgorithmWType instantiate(TypeInference engine) {
+    public AlgorithmWType instantiate(TypeInference engine, Value value) {
       Subst s = Subst.newEmpty();
 
       for (var typeVar : this.vars) {
-        var fresh = engine.freshTypeVar();
+        var fresh = new TypeVar(value);
         s.types.put(typeVar, new AlgorithmWType.Var(fresh));
       }
 
@@ -566,7 +561,12 @@ public final class AlgorithmWInference
       if (type instanceof Var var) {
         var t = types.get(var.tyVar);
         if (t != null) {
-          return apply(t);
+          // In the case that a substitution for a type is found, make sure to inform a
+          // possibly present value that this substitution was performed and a type is
+          // possibly solved.
+          var resType = apply(t);
+          var.tyVar.provideSolution(resType);
+          return resType;
         } else {
           return type;
         }
@@ -756,15 +756,15 @@ public final class AlgorithmWInference
 
     public static final class LitType extends AlgorithmWType {
 
-      public final String tyName;
+      public final TypeIdent tyName;
       public final List<AlgorithmWType> parameters;
 
-      public LitType(String tyName) {
+      public LitType(TypeIdent tyName) {
         this.tyName = tyName;
         this.parameters = List.of();
       }
 
-      public LitType(String tyName, List<AlgorithmWType> parameters) {
+      public LitType(TypeIdent tyName, List<AlgorithmWType> parameters) {
         this.tyName = tyName;
         this.parameters = List.copyOf(parameters);
       }

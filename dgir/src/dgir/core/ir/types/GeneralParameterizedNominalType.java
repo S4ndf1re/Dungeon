@@ -18,20 +18,20 @@ public class GeneralParameterizedNominalType  {
     }
   }
 
-  private final String ident;
+  private final TypeIdent ident;
   private final List<GeneralTypeParameter> typedParameters;
 
-  public GeneralParameterizedNominalType(String ident) {
+  public GeneralParameterizedNominalType(TypeIdent ident) {
     this.ident = ident;
     this.typedParameters = List.of();
   }
 
-  public GeneralParameterizedNominalType(String ident, List<GeneralTypeParameter> typedParameters) {
+  public GeneralParameterizedNominalType(TypeIdent ident, List<GeneralTypeParameter> typedParameters) {
     this.ident = ident;
     this.typedParameters = typedParameters;
   }
 
-  public String getIdent() {
+  public TypeIdent getIdent() {
     return ident;
   }
 

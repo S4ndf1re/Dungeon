@@ -1,5 +1,6 @@
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.LitType;
@@ -54,7 +55,7 @@ public class AlgorithmWTest {
     var result = solver.solve(expr);
     assert result instanceof AlgorithmWType;
     assert result instanceof LitType;
-    assert ((LitType) result).tyName.equals("Int");
+    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   @Test
@@ -76,12 +77,12 @@ public class AlgorithmWTest {
                     new Expr.ExprVar(cnst),
                     new Expr.ExprLit(new Literal.Int(42))),
                 new Expr.ExprLit(new Literal.Bool(true)))),
-        new AlgorithmWType.LitType("Int"));
+        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT));
 
     var result = solver.solve(expr);
     assert result instanceof AlgorithmWType;
     assert result instanceof LitType;
-    assert ((LitType) result).tyName.equals("Int");
+    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   /**
@@ -103,26 +104,26 @@ public class AlgorithmWTest {
             new Expr.ExprAnn(
                 new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
                 new AlgorithmWType.Arrow(
-                    new AlgorithmWType.LitType("Int"),
+                    new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT),
                     new AlgorithmWType.Arrow(
-                        new AlgorithmWType.LitType("Bool"),
-                        new AlgorithmWType.LitType("Int")))),
+                        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL),
+                        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)))),
             new Expr.ExprApp(
                 new Expr.ExprApp(
                     new Expr.ExprVar(cnst),
                     new Expr.ExprAnn(
                         new Expr.ExprLit(new Literal.Int(42)),
-                        new AlgorithmWType.LitType("Int"))),
+                        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT))),
                 new Expr.ExprAnn(
                     new Expr.ExprLit(new Literal.Bool(true)),
-                    new AlgorithmWType.LitType("Bool")))),
-        new AlgorithmWType.LitType("Int")
+                    new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL)))),
+        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)
 
     );
 
     var result = solver.solve(expr);
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
-    assert ((LitType) result).tyName.equals("Int");
+    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
 }

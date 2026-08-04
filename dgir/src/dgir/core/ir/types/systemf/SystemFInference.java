@@ -11,6 +11,7 @@ import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
+import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
@@ -292,15 +293,15 @@ public final class SystemFInference
     }
 
     public static final class Lit extends SystemFType {
-      public final String ident;
+      public final TypeIdent ident;
       public final List<SystemFType> parameters;
 
-      public Lit(String ident, List<SystemFType> params) {
+      public Lit(TypeIdent ident, List<SystemFType> params) {
         this.ident = ident;
         this.parameters = params;
       }
 
-      public Lit(String ident) {
+      public Lit(TypeIdent ident) {
         this.ident = ident;
         this.parameters = List.of();
       }
@@ -479,8 +480,8 @@ public final class SystemFInference
         } else if (funcTypeApplied instanceof SystemFType.EtVar etvar) {
           var a = etvar.tyVar;
 
-          var a1 = engine.freshTypeVar();
-          var a2 = engine.freshTypeVar();
+          var a1 = new TypeVar();
+          var a2 = new TypeVar();
 
           var breakRes = funcInferred.ctx.break3(
               entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(a));
@@ -544,10 +545,11 @@ public final class SystemFInference
       @Override
       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
         var input = ctx + " |- " + this;
-        var b = engine.freshTypeVar();
+        var b = new TypeVar();
         var newCtx = ctx.copy();
 
         newCtx.push(new Entry.VarBnd(this.name, this.type));
+        // TODO(jan): provide solution here to name == type
         newCtx.push(new Entry.ETVarBnd(b));
 
         var c1 = engine.check(newCtx, this.body, new SystemFType.EtVar(b));
@@ -793,6 +795,7 @@ public final class SystemFInference
         var newCtx = valueInferred.ctx.copy();
 
         newCtx.push(new Entry.VarBnd(this.name, valueInferred.type));
+        // TODO(jan): set name == type here!
 
         var bodyInferred = engine.infer(newCtx, this.body);
 
@@ -838,7 +841,7 @@ public final class SystemFInference
       @Override
       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
         var input = ctx + " |- " + this;
-        var condCheck = engine.check(ctx, this.cond, new SystemFType.Lit("Bool"));
+        var condCheck = engine.check(ctx, this.cond, new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL));
         var thenInferred = engine.infer(condCheck.ctx, this.then);
         var elseInferred = engine.infer(thenInferred.ctx, this.else_);
 
@@ -888,11 +891,11 @@ public final class SystemFInference
             this.kind == BinOpKind.SUB ||
             this.kind == BinOpKind.MUL ||
             this.kind == BinOpKind.DIV) {
-          var res1 = engine.check(ctx, this.left, new SystemFType.Lit("Int"));
-          var res2 = engine.check(res1.ctx, this.right, new SystemFType.Lit("Int"));
+          var res1 = engine.check(ctx, this.left, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT));
+          var res2 = engine.check(res1.ctx, this.right, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT));
           var output = input + " => Int -| " + res2.ctx;
           return new TypeInference.TypeResult(
-              new SystemFType.Lit("Int"),
+              new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
               res2.ctx,
               new InferenceTree(
                   "InfArith",
@@ -905,7 +908,7 @@ public final class SystemFInference
 
           var output = input + " => Bool -| " + checkRes.ctx;
           return new TypeInference.TypeResult(
-              new SystemFType.Lit("Bool"),
+              new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL),
               checkRes.ctx,
               new InferenceTree(
                   "InfEq",
@@ -1102,7 +1105,9 @@ public final class SystemFInference
             entry -> entry instanceof Entry.SETVarBnd bnd &&
                 bnd.tyVar.equals(etVar.tyVar));
         if (filterRes.isPresent()) {
-          return this.applyOnce(((Entry.SETVarBnd) filterRes.get()).type);
+          var solvedEtVar = (Entry.SETVarBnd) filterRes.get();
+          solvedEtVar.tyVar.provideSolution(solvedEtVar.type);
+          return this.applyOnce(solvedEtVar.type);
         } else {
           return type;
         }
@@ -1173,24 +1178,16 @@ public final class SystemFInference
       operationToExprBuffer = new ConvertedOperationBuffer<>();
     }
 
-    public TypeVar freshTypeVar() {
-      return new TypeVar();
-    }
-
     @Override
     public Type solve(ExprOrOperator<Expr> expr) {
       if (expr.isExpr()) {
-        return (Type) this.inferType(expr.getExpr());
+        var res = this.infer(new Context(), expr);
+        return (Type) res.ctx.apply(res.type);
       } else {
         throw new TypingException.UnsupportedExpression(
             TypingException.UnsupportedExpression.AlgorithmType.SystemF,
             expr);
       }
-    }
-
-    SystemFType inferType(Expr expr) {
-      var res = this.infer(new Context(), expr);
-      return res.ctx.apply(res.type);
     }
 
     SystemFType substType(
@@ -1381,7 +1378,7 @@ public final class SystemFInference
       } else if (ty instanceof SystemFType.Lit lit) {
         try (var scope = TypeVar.addScope()) {
           var litType = new SystemFType.Lit(lit.ident,
-              lit.parameters.stream().map(p -> (SystemFType) new SystemFType.EtVar(this.freshTypeVar())).toList());
+              lit.parameters.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar())).toList());
 
           List<TypeVar> existentials = scope.createdVars();
 
@@ -1410,8 +1407,8 @@ public final class SystemFInference
           throw new RuntimeException(e);
         }
       } else if (ty instanceof SystemFType.Arrow arrow) {
-        var a1 = this.freshTypeVar();
-        var a2 = this.freshTypeVar();
+        var a1 = new TypeVar();
+        var a2 = new TypeVar();
         var breakRes = ctx.break3(
             entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(a));
         var arrowType = new SystemFType.Arrow(
@@ -1486,7 +1483,7 @@ public final class SystemFInference
       } else if (ty instanceof SystemFType.Lit lit) {
         try (var scope = TypeVar.addScope()) {
           var litType = new SystemFType.Lit(lit.ident,
-              lit.parameters.stream().map(p -> (SystemFType) new SystemFType.EtVar(this.freshTypeVar())).toList());
+              lit.parameters.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar())).toList());
 
           List<TypeVar> existentials = scope.createdVars();
 
@@ -1516,8 +1513,8 @@ public final class SystemFInference
         }
 
       } else if (ty instanceof SystemFType.Arrow arrow) {
-        var a1 = this.freshTypeVar();
-        var a2 = this.freshTypeVar();
+        var a1 = new TypeVar();
+        var a2 = new TypeVar();
         var breakRes = ctx.break3(
             entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(a));
         var arrowType = new SystemFType.Arrow(
