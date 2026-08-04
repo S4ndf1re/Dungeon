@@ -18,18 +18,24 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
 /**
- * A dynamic value produced by an {@link Operation} or introduced as a block/region argument. Values
- * carry a {@link Type} and maintain a use-list of all {@link ValueOperand}s that reference them.
+ * A dynamic value produced by an {@link Operation} or introduced as a
+ * block/region argument. Values
+ * carry a {@link Type} and maintain a use-list of all {@link ValueOperand}s
+ * that reference them.
  *
- * <p>Each value also carries optional debug metadata via {@link ValueDebugInfo}. This metadata
- * includes a source {@link Location} and a user-facing name (e.g. a variable name) used by
- * debugging tools. When the debug info is unknown, it is treated as absent and omitted from
+ * <p>
+ * Each value also carries optional debug metadata via {@link ValueDebugInfo}.
+ * This metadata
+ * includes a source {@link Location} and a user-facing name (e.g. a variable
+ * name) used by
+ * debugging tools. When the debug info is unknown, it is treated as absent and
+ * omitted from
  * serialization.
  */
 @JsonIdentityInfo(generator = ValueIdGenerator.class)
 public final class Value extends IRObjectWithUseList<Value, ValueOperand> implements Serializable {
   private static Value dummy = null;
-  
+
   public static synchronized Value getDummy() {
     if (dummy == null) {
       dummy = new Value(BuiltinTypes.IntegerT.INT32());
@@ -42,23 +48,31 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
   // =========================================================================
 
   /**
-   * The type of this value. This is immutable and must be provided at construction. It defines the
-   * kind of data this value represents (e.g. integer, float, pointer) and is used for type
+   * The type of this value. This is immutable and must be provided at
+   * construction. It defines the
+   * kind of data this value represents (e.g. integer, float, pointer) and is used
+   * for type
    * checking.
    */
-  private final @NotNull Optional<Type> type;
+  private @NotNull Optional<Type> type;
 
   /**
-   * The set of definitions(assignments) of this value. Regions are not counted as definitions,
-   * since the actual value of a region value is controlled by the owning operation's semantics.
+   * The set of definitions(assignments) of this value. Regions are not counted as
+   * definitions,
+   * since the actual value of a region value is controlled by the owning
+   * operation's semantics.
    */
   private final @NotNull Set<OperationResult> definitions = new HashSet<>();
 
   /**
-   * The debug information for this value. By default, this is {@link ValueDebugInfo#UNKNOWN}, which
-   * indicates that the value's location and name are not known. This can be updated later when the
-   * value is created or when more information becomes available. The debug info is not serialized
-   * if it is UNKNOWN, to save space and indicate that the value's debug information is not known.
+   * The debug information for this value. By default, this is
+   * {@link ValueDebugInfo#UNKNOWN}, which
+   * indicates that the value's location and name are not known. This can be
+   * updated later when the
+   * value is created or when more information becomes available. The debug info
+   * is not serialized
+   * if it is UNKNOWN, to save space and indicate that the value's debug
+   * information is not known.
    */
   private @NotNull ValueDebugInfo debugInfo = ValueDebugInfo.UNKNOWN;
 
@@ -88,6 +102,10 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
   // Functions
   // =========================================================================
 
+  public void setType(Type type) {
+    this.type = Optional.ofNullable(type);
+  }
+
   /** Returns the static type of this value. */
   @Contract(pure = true)
   public @NotNull Type getType() {
@@ -95,7 +113,8 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
   }
 
   /**
-   * Returns debug info only when known; otherwise returns {@code null} for compact serialization.
+   * Returns debug info only when known; otherwise returns {@code null} for
+   * compact serialization.
    */
   @Contract(pure = true)
   @JsonProperty("debug")
@@ -141,7 +160,10 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
     debugInfo = new ValueDebugInfo(debugInfo.location(), name);
   }
 
-  /** Returns an unmodifiable view of the set of operation results that define this value. */
+  /**
+   * Returns an unmodifiable view of the set of operation results that define this
+   * value.
+   */
   @Contract(pure = true)
   @JsonIgnore
   public @Unmodifiable @NotNull Set<OperationResult> getDefinitions() {
@@ -153,16 +175,21 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
     definitions.add(op);
   }
 
-  /** Removes a definition from the set of defining operation results for this value. */
+  /**
+   * Removes a definition from the set of defining operation results for this
+   * value.
+   */
   public void removeDefiningOp(OperationResult op) {
     definitions.remove(op);
   }
 
   @Override
   public void replaceAllUsesWith(@NotNull Value newValue) {
-    assert newValue.getType().equals(type) : "Cannot replace with a value of different type.";
+    assert type.isPresent() : "Cannot replace with a value of an empty type";
+    assert newValue.getType().equals(type.get()) : "Cannot replace with a value of different type.";
     super.replaceAllUsesWith(newValue);
-    // Make sure that all operation results defining this value define the new value instead.
+    // Make sure that all operation results defining this value define the new value
+    // instead.
     for (OperationResult result : definitions) {
       result.setValue(newValue);
     }
@@ -174,9 +201,10 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
 
   @Override
   public String toString() {
+    var typeStr = this.type.isPresent() ? ": " + type.get() : "";
     if (debugInfo.equals(ValueDebugInfo.UNKNOWN)) {
-      return getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + ": " + type;
+      return getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + typeStr;
     }
-    return debugInfo.name() + ": " + type;
+    return debugInfo.name() + typeStr;
   }
 }
