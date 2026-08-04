@@ -414,7 +414,7 @@ public class RValueVisitor extends GenericVisitorAdapter<EmitResult<Value>, Emit
     }
     if (methodResult.get().isEmpty()) {
       if (n.getParentNode().isPresent() && n.getParentNode().get() instanceof ExpressionStmt) {
-        return EmitResult.success(Value.DUMMY);
+        return EmitResult.success(Value.getDummy());
       }
       return EmitResult.failure(context, n, "Method call does not produce a value.");
     }
@@ -452,7 +452,7 @@ public class RValueVisitor extends GenericVisitorAdapter<EmitResult<Value>, Emit
               "The result of the unary operator "
                   + n.getOperator()
                   + " is discarded. This operator has no side effects, so the entire expression will be discarded.");
-          return EmitResult.of(Value.DUMMY);
+           return EmitResult.of(Value.getDummy());
         }
         default -> throw new IllegalArgumentException("Unexpected value: " + n.getOperator());
       }
@@ -567,6 +567,6 @@ public class RValueVisitor extends GenericVisitorAdapter<EmitResult<Value>, Emit
       bindName(varDecl.getName().asString(), initValue, varDecl, context);
     }
 
-    return EmitResult.of(Value.DUMMY);
+    return EmitResult.of(Value.getDummy());
   }
 }
