@@ -1,5 +1,6 @@
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.systemf.SystemFInference;
 import dgir.core.ir.types.systemf.SystemFInference.Expr;
 import dgir.core.ir.types.systemf.SystemFInference.Expr.BinOp.BinOpKind;
@@ -20,14 +21,15 @@ public class SystemFTest {
 
     var expr = new Expr.Abs(
         x,
-        new SystemFType.Lit("Int"),
+        new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
         new Expr.BinOp(BinOpKind.ADD, new Expr.Var(x), new Expr.Var(x)));
 
     var resType = solver.solve(expr);
     assert resType instanceof SystemFType;
 
     assert resType.equals(
-        new SystemFType.Arrow(new SystemFType.Lit("Int"), new SystemFType.Lit("Int")));
+        new SystemFType.Arrow(new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT)));
   }
 
   @Test
@@ -44,10 +46,10 @@ public class SystemFTest {
         add,
         new Expr.Abs(
             x,
-            new SystemFType.Lit("Int"),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
             new Expr.Abs(
                 y,
-                new SystemFType.Lit("Int"),
+                new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
                 new Expr.BinOp(BinOpKind.ADD, new Expr.Var(x), new Expr.Var(y)))),
         new Expr.App(
             new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1))),
@@ -56,7 +58,7 @@ public class SystemFTest {
     var resType = solver.solve(expr);
     assert resType instanceof SystemFType;
 
-    assert resType.equals(new SystemFType.Lit("Int"));
+    assert resType.equals(new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT));
   }
 
   /**
@@ -76,14 +78,15 @@ public class SystemFTest {
         add,
         new Expr.Abs(
             x,
-            new SystemFType.Lit("Int"),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
             new Expr.LitExpr(new Literal.MyList())),
         new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1)))),
-        new SystemFType.Lit("List", List.of(new SystemFType.Lit("Bool"))));
+        new SystemFType.Lit(TypeIdent.TYPE_IDENT_LIST, List.of(new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL))));
 
     var resType = solver.solve(expr);
     assert resType instanceof SystemFType;
 
-    assert resType.equals(new SystemFType.Lit("List", List.of(new SystemFType.Lit("Bool"))));
+    assert resType.equals(
+        new SystemFType.Lit(TypeIdent.TYPE_IDENT_LIST, List.of(new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL))));
   }
 }
