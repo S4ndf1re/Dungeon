@@ -28,7 +28,14 @@ import org.jetbrains.annotations.Unmodifiable;
  */
 @JsonIdentityInfo(generator = ValueIdGenerator.class)
 public final class Value extends IRObjectWithUseList<Value, ValueOperand> implements Serializable {
-  public static final Value DUMMY = new Value(BuiltinTypes.IntegerT.INT32());
+  private static Value dummy = null;
+  
+  public static synchronized Value getDummy() {
+    if (dummy == null) {
+      dummy = new Value(BuiltinTypes.IntegerT.INT32());
+    }
+    return dummy;
+  }
 
   // =========================================================================
   // Members
