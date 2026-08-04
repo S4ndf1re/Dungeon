@@ -24,7 +24,7 @@ public abstract class Literal {
 
     @Override
     public GeneralParameterizedNominalType toParameterizedNominalType() {
-      return new GeneralParameterizedNominalType("Int");
+      return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_INT);
     }
   }
 
@@ -42,7 +42,7 @@ public abstract class Literal {
 
     @Override
     public GeneralParameterizedNominalType toParameterizedNominalType() {
-      return new GeneralParameterizedNominalType("Bool");
+      return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_BOOL);
     }
   }
 
@@ -58,7 +58,7 @@ public abstract class Literal {
 
     @Override
     public GeneralParameterizedNominalType toParameterizedNominalType() {
-      return new GeneralParameterizedNominalType("List",
+      return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_LIST,
           List.of(new GeneralTypeParameter.Unknown()));
     }
 
