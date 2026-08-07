@@ -31,6 +31,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 public final class SystemFInference
     extends
     TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>> {
@@ -773,51 +775,66 @@ public final class SystemFInference
 
     public static final class Let implements Expr {
 
-      private final Value name;
-      private final ExprOrOperator<Expr> value;
+      private final List<Pair<Value, ExprOrOperator<Expr>>> bindings;
       private final ExprOrOperator<Expr> body;
 
       public Let(Value name, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
-        this.name = name;
-        this.value = value;
+        this.bindings = List.of(Pair.of(name, value));
+        this.body = body;
+      }
+
+      public Let(List<Pair<Value, ExprOrOperator<Expr>>> bindings, ExprOrOperator<Expr> body) {
+        this.bindings = List.copyOf(bindings);
         this.body = body;
       }
 
       @Override
       public final String toString() {
-        return "let " + name + " = " + value + " in " + body;
+        return "let (" + this.bindings.stream().map(Object::toString).collect(Collectors.joining(", ")) + ") in "
+            + body;
       }
 
       @Override
       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
         var input = ctx + " |- " + this;
-        var valueInferred = engine.infer(ctx, this.value);
-        var newCtx = valueInferred.ctx.copy();
+        Context newCtx = ctx.copy();
+        ArrayList<InferenceTree> trees = new ArrayList<>();
 
-        newCtx.push(new Entry.VarBnd(this.name, valueInferred.type));
-        // TODO(jan): set name == type here!
+        for (var binding : this.bindings) {
+          var valueInferred = engine.infer(newCtx, binding.getRight());
+          newCtx = valueInferred.ctx.copy();
+          newCtx.push(new Entry.VarBnd(binding.getLeft(), valueInferred.type));
+
+          // TODO(jan): set name == type here!
+          trees.add(valueInferred.tree);
+        }
 
         var bodyInferred = engine.infer(newCtx, this.body);
+        trees.add(bodyInferred.tree);
 
-        var break3Result = bodyInferred.ctx.break3(
-            entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
+        var finalCtx = bodyInferred.ctx().copy();
 
-        var solvedFinalCtxEntries = break3Result.left
-            .stream()
-            .filter(entry -> entry instanceof Entry.SETVarBnd)
-            .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
+        for (var binding : this.bindings) {
+          var break3Result = finalCtx.break3(
+              entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(binding.getLeft()));
 
-        solvedFinalCtxEntries.addAll(break3Result.right);
-        var finalCtx = new Context(solvedFinalCtxEntries);
+          var solvedFinalCtxEntries = break3Result.left
+              .stream()
+              .filter(entry -> entry instanceof Entry.SETVarBnd)
+              .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
+
+          solvedFinalCtxEntries.addAll(break3Result.right);
+          finalCtx = new Context(solvedFinalCtxEntries);
+        }
 
         return new TypeInference.TypeResult(
             bodyInferred.type,
             finalCtx,
             new InferenceTree(
-                "InfLet",
+                "InfLet*",
                 input,
                 input + " => " + bodyInferred.type + " -| " + finalCtx,
-                List.of(valueInferred.tree, bodyInferred.tree)));
+                List.copyOf(trees)));
       }
     }
 

@@ -2,6 +2,7 @@ package dgir.core.ir.types;
 
 public class TypeIdent {
 
+  public static TypeIdent TYPE_IDENT_UNIT = new TypeIdent("Unit");
   public static TypeIdent TYPE_IDENT_INT = new TypeIdent("Int");
   public static TypeIdent TYPE_IDENT_BOOL = new TypeIdent("Bool");
   public static TypeIdent TYPE_IDENT_LIST = new TypeIdent("List");
