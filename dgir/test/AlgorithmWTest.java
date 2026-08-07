@@ -1,5 +1,6 @@
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType;
@@ -38,9 +39,9 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    var cnst = new Value();
-    var x = new Value();
-    var y = new Value();
+    var cnst = Symbol.of(new Value());
+    var x = Symbol.of(new Value());
+    var y = Symbol.of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprLet(
@@ -63,9 +64,9 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    var cnst = new Value();
-    var x = new Value();
-    var y = new Value();
+    var cnst = Symbol.of(new Value());
+    var x = Symbol.of(new Value());
+    var y = Symbol.of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprAnn(
@@ -93,9 +94,9 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    var cnst = new Value();
-    var x = new Value();
-    var y = new Value();
+    var cnst = Symbol.of(new Value());
+    var x = Symbol.of(new Value());
+    var y = Symbol.of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprAnn(

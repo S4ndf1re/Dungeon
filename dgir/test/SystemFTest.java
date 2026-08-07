@@ -8,6 +8,7 @@ import dgir.core.ir.types.systemf.SystemFInference.SystemFType;
 
 import java.util.List;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 public class SystemFTest {
@@ -88,5 +89,43 @@ public class SystemFTest {
 
     assert resType.equals(
         new SystemFType.Lit(TypeIdent.TYPE_IDENT_LIST, List.of(new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL))));
+
+  }
+
+  @Test
+  public void multiLet() {
+    // let add = \x -> \y -> x + y
+    // a = 1
+    // b = 2
+    // in add 1 2
+    var inference = new SystemFInference();
+    var solver = inference.getSolverInstance();
+
+    var add = new Value();
+    var a = new Value();
+    var b = new Value();
+    var x = new Value();
+    var y = new Value();
+
+    var expr = new Expr.Let(
+        List.of(
+            Pair.of(add, new Expr.Abs(
+                x,
+                new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
+                new Expr.Abs(
+                    y,
+                    new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
+                    new Expr.BinOp(BinOpKind.ADD, new Expr.Var(x), new Expr.Var(y))))),
+
+            Pair.of(a, new Expr.LitExpr(new Literal.Int(10))),
+            Pair.of(b, new Expr.LitExpr(new Literal.Int(20)))),
+        new Expr.App(
+            new Expr.App(new Expr.Var(add), new Expr.Var(a)),
+            new Expr.Var(b)));
+
+    var resType = solver.solve(expr);
+    assert resType instanceof SystemFType;
+
+    assert resType.equals(new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT));
   }
 }

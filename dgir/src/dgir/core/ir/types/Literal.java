@@ -10,6 +10,20 @@ import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 public abstract class Literal {
   public abstract GeneralParameterizedNominalType toParameterizedNominalType();
 
+  public static class Unit extends Literal {
+
+    @Override
+    public String toString() {
+      return "unit";
+    }
+
+    @Override
+    public GeneralParameterizedNominalType toParameterizedNominalType() {
+      return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_UNIT);
+    }
+
+  }
+
   public static class Int extends Literal {
     private final int value;
 

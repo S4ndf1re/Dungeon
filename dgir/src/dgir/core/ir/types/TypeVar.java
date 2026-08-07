@@ -110,9 +110,13 @@ public class TypeVar {
     this(null);
   }
 
-  public TypeVar(Value value) {
+  public TypeVar(Symbol value) {
     this.idx = TypeVar.counter++;
-    this.boundValue = Optional.ofNullable(value);
+    if (value != null && value.isValue()) {
+      this.boundValue = Optional.ofNullable(value.getValue());
+    } else {
+      this.boundValue = Optional.empty();
+    }
     openScopes.forEach(scope -> scope.addCreated(this));
   }
 
@@ -174,7 +178,7 @@ public class TypeVar {
   }
 
   public void provideSolution(Type type) {
-    if(this.boundValue.isPresent()) {
+    if (this.boundValue.isPresent()) {
       // TODO(jan): set type here
       // this.boundValue.get().setType(type);
     }
