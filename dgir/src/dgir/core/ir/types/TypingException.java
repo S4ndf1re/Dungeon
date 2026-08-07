@@ -20,9 +20,9 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class UnknownVariable extends TypingException {
 
-    public final Value variableName;
+    public final Symbol variableName;
 
-    public UnknownVariable(Value variableName) {
+    public UnknownVariable(Symbol variableName) {
       super("Unknown variable: " + variableName);
       this.variableName = variableName;
     }

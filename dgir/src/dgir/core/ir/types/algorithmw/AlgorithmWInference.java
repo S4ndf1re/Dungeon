@@ -1,11 +1,11 @@
 package dgir.core.ir.types.algorithmw;
 
-import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
 import dgir.core.ir.types.TypeIdent;
@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 public final class AlgorithmWInference
     extends
@@ -198,9 +200,9 @@ public final class AlgorithmWInference
 
     public static final class ExprVar implements Expr {
 
-      private final Value name;
+      private final Symbol name;
 
-      public ExprVar(Value name) {
+      public ExprVar(Symbol name) {
         this.name = name;
       }
 
@@ -279,10 +281,10 @@ public final class AlgorithmWInference
 
     public static final class ExprAbs implements Expr {
 
-      private final Value param;
+      private final Symbol param;
       private final ExprOrOperator<Expr> body;
 
-      public ExprAbs(Value param, ExprOrOperator<Expr> body) {
+      public ExprAbs(Symbol param, ExprOrOperator<Expr> body) {
         this.param = param;
         this.body = body;
       }
@@ -301,13 +303,40 @@ public final class AlgorithmWInference
         Scheme newScheme = new Scheme(List.of(), freshTypeVar);
         newEnv.env.put(param, newScheme);
 
+        Scope functionScope = newEnv.addScope();
+        AlgorithmWType retTypeVar = new AlgorithmWType.Var(new TypeVar());
+        Subst subst = Subst.newEmpty();
+        ArrayList<InferenceTree> trees = new ArrayList<>();
+
+        // Unify all return values. If return values do not have the same type, error
+        // will get thrown here!
+        for (var retType : functionScope.getAllReturnTypesInScope()) {
+          var unifyRes = engine.unify(retTypeVar, subst.apply(retType));
+          subst = unifyRes.subst.compose(subst);
+          retTypeVar = subst.apply(retTypeVar);
+          trees.add(unifyRes.tree);
+        }
+
+        // In terms of IR, the body will not have a direct return parameter. Though it
+        // can be assumed,
+        // that the last expression is always a return in a function, even if nothing is
+        // returned.
+        // Hence, It would make sense to treat the last return expression as an
+        // expression that actually returns a value of type T.
+        // This must then be unified with the retTypeVar collected from all return
+        // statements (if present)
         InferResult res = engine.infer(body, newEnv);
+        retTypeVar = res.subst.apply(retTypeVar);
+        subst = res.subst.compose(subst);
+        UnifyResult retTypeUnify = engine.unify(res.type, retTypeVar);
+        subst = retTypeUnify.subst.compose(subst);
+
         AlgorithmWType resultType = new Arrow(
-            res.subst.apply(freshTypeVar),
-            res.type);
+            subst.apply(freshTypeVar),
+            subst.apply(retTypeVar));
 
         return new InferResult(
-            res.subst,
+            subst,
             resultType,
             new InferenceTree(
                 "T-Abs",
@@ -319,45 +348,61 @@ public final class AlgorithmWInference
 
     public static final class ExprLet implements Expr {
 
-      private final Value param;
-      private final ExprOrOperator<Expr> value;
+      private final List<Pair<Symbol, ExprOrOperator<Expr>>> bindings;
       private final ExprOrOperator<Expr> body;
 
-      public ExprLet(Value param, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
-        this.param = param;
-        this.value = value;
+      public ExprLet(Symbol param, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
+        this.bindings = List.of(Pair.of(param, value));
+        this.body = body;
+      }
+
+      public ExprLet(List<Pair<Symbol, ExprOrOperator<Expr>>> bindings, ExprOrOperator<Expr> body) {
+        this.bindings = List.copyOf(bindings);
         this.body = body;
       }
 
       @Override
       public final String toString() {
-        return "let " + param + " = " + value + " in " + body;
+        return "let (" + this.bindings.stream().map(Object::toString).collect(Collectors.joining(", ")) + ") in "
+            + body;
       }
 
       @Override
       public InferResult infer(TypeInference engine, Env env) {
         String input = env + " |- " + this;
 
-        InferResult res1 = engine.infer(value, env);
-        Env envSubst = env.apply(res1.subst);
+        Env newEnv = env.copy();
+        Subst subst = Subst.newEmpty();
+        ArrayList<InferenceTree> trees = new ArrayList<>();
 
-        Scheme generalizedType = res1.type.generalize(envSubst);
+        for (var binding : this.bindings) {
+          var value = binding.getRight();
+          var param = binding.getLeft();
 
-        Env newEnv = envSubst.copy();
-        newEnv.env.put(param, generalizedType);
+          InferResult res1 = engine.infer(value, env);
+          subst = res1.subst.compose(subst);
+          Env envSubst = newEnv.apply(subst);
+
+          Scheme generalizedType = res1.type.generalize(envSubst);
+
+          newEnv = envSubst.copy();
+          newEnv.env.put(param, generalizedType);
+          trees.add(res1.tree);
+        }
 
         InferResult res2 = engine.infer(body, newEnv);
 
-        Subst finalSubst = res2.subst.compose(res1.subst);
+        Subst finalSubst = res2.subst.compose(subst);
+        trees.add(res2.tree);
 
         return new InferResult(
             finalSubst,
             res2.type,
             new InferenceTree(
-                "T-Let",
+                "T-Let*",
                 input,
                 "" + res2.type,
-                List.of(res1.tree, res2.tree)));
+                List.copyOf(trees)));
       }
     }
 
@@ -402,7 +447,7 @@ public final class AlgorithmWInference
     @Override
     public Type solve(ExprOrOperator<Expr> expr) {
       if (expr.isExpr()) {
-        Env env = new Env(new HashMap<>());
+        Env env = new Env();
         InferResult res = this.infer(expr, env);
         return (Type) res.subst.apply(res.type);
       } else {
@@ -430,7 +475,35 @@ public final class AlgorithmWInference
     }
   }
 
-  public final record Env(HashMap<Value, Scheme> env) {
+  public static final class Scope {
+    private ArrayList<AlgorithmWType> returnTypes;
+
+    public Scope() {
+      this.returnTypes = new ArrayList<>();
+    }
+
+    public List<AlgorithmWType> getAllReturnTypesInScope() {
+      return List.copyOf(this.returnTypes);
+    }
+
+    public void addReturnType(AlgorithmWType retType) {
+      this.returnTypes.add(retType);
+    }
+  }
+
+  public static final class Env {
+    private HashMap<Symbol, Scheme> env;
+    private ArrayList<Scope> scopeStack;
+
+    public Env() {
+      this(new HashMap<>(), new ArrayList<>());
+    }
+
+    public Env(HashMap<Symbol, Scheme> env, ArrayList<Scope> scopeStack) {
+      this.env = env;
+      this.scopeStack = scopeStack;
+    }
+
     @Override
     public final String toString() {
       return ("{" +
@@ -450,11 +523,11 @@ public final class AlgorithmWInference
      * @return the applied env where subst is applied to this
      */
     public Env apply(Subst subst) {
-      var newEnv = new HashMap<Value, Scheme>(env);
+      var newEnv = new HashMap<Symbol, Scheme>(env);
       for (var entry : this.env.entrySet()) {
         newEnv.put(entry.getKey(), entry.getValue().apply(subst));
       }
-      return new Env(newEnv);
+      return new Env(newEnv, new ArrayList<>(this.scopeStack));
     }
 
     /**
@@ -473,7 +546,17 @@ public final class AlgorithmWInference
     }
 
     public Env copy() {
-      return new Env(new HashMap<>(this.env));
+      return new Env(new HashMap<>(this.env), new ArrayList<>(this.scopeStack));
+    }
+
+    public Scope addScope() {
+      var scope = new Scope();
+      this.scopeStack.add(scope);
+      return scope;
+    }
+
+    public Optional<Scope> popScope() {
+      return Optional.ofNullable(this.scopeStack.removeLast());
     }
   }
 
@@ -522,7 +605,7 @@ public final class AlgorithmWInference
       return Set.copyOf(set);
     }
 
-    public AlgorithmWType instantiate(TypeInference engine, Value value) {
+    public AlgorithmWType instantiate(TypeInference engine, Symbol value) {
       Subst s = Subst.newEmpty();
 
       for (var typeVar : this.vars) {
