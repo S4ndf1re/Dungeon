@@ -7,6 +7,8 @@ import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.LitType;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr;
 import java.util.List;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 public class AlgorithmWTest {
@@ -124,6 +126,68 @@ public class AlgorithmWTest {
 
     var result = solver.solve(expr);
     assert result instanceof AlgorithmWType;
+    assert result instanceof AlgorithmWType.LitType;
+    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
+  }
+
+  @Test
+  public void cyclicFunctionUse() {
+    var inference = new AlgorithmWInference();
+    var solver = inference.getSolverInstance();
+
+    Symbol a = Symbol.of(new Value());
+    Symbol b = Symbol.of(new Value());
+    Symbol x = Symbol.of(new Value());
+    Symbol y = Symbol.of(new Value());
+
+    // let a : Int -> Int = \x.(b x)
+    // b = \y.(a y)
+    // in (a 10)
+
+    Expr expr = new Expr.ExprLet(
+        List.of(
+            Pair.of(a,
+                new Expr.ExprAnn(new Expr.ExprAbs(x, new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprVar(x))),
+                    new AlgorithmWType.Arrow(
+                        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT),
+                        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)))),
+            Pair.of(b, new Expr.ExprAbs(y, new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprVar(y))))),
+        new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprLit(new Literal.Int(10))));
+
+    var result = solver.solve(expr);
+    assert result instanceof AlgorithmWType;
+    System.out.println(result);
+    assert result instanceof AlgorithmWType.LitType;
+    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
+  }
+
+  @Test
+  public void cyclicFunctionUse2() {
+    var inference = new AlgorithmWInference();
+    var solver = inference.getSolverInstance();
+
+    Symbol a = Symbol.of(new Value());
+    Symbol b = Symbol.of(new Value());
+    Symbol x = Symbol.of(new Value());
+    Symbol y = Symbol.of(new Value());
+
+    // let a : Int -> Int = \x.(b x)
+    // b = \y.(a y)
+    // in (b 10)
+
+    Expr expr = new Expr.ExprLet(
+        List.of(
+            Pair.of(a,
+                new Expr.ExprAnn(new Expr.ExprAbs(x, new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprVar(x))),
+                    new AlgorithmWType.Arrow(
+                        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT),
+                        new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)))),
+            Pair.of(b, new Expr.ExprAbs(y, new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprVar(y))))),
+        new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprLit(new Literal.Int(10))));
+
+    var result = solver.solve(expr);
+    assert result instanceof AlgorithmWType;
+    System.out.println(result);
     assert result instanceof AlgorithmWType.LitType;
     assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }

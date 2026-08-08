@@ -4,6 +4,13 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
 
 public interface ExprOrOperator<E extends Expression> {
+  public static <E extends Expression> ExprOrOperator<E> of(Operation op) {
+    return new ExprOrOperator.OperatorVariant<>(op);
+  }
+
+  public static <E extends Expression> ExprOrOperator<E> of(E expr) {
+    return new ExprOrOperator.ExpressionVariant<>(expr);
+  }
 
   public default boolean isExpr() {
     return this instanceof ExpressionVariant;
