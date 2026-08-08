@@ -1,6 +1,7 @@
 package dgir.core.ir.types;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
@@ -9,7 +10,8 @@ import dgir.core.ir.Operation;
  * A general list of {@link Operation}s that will be transformed into a nested
  * structure of let bindings.
  * FIXME: Large blocks could potentially lead to stack overflows within the
- * typechecking algorithm!
+ * typechecking algorithm! This can be mitigated using let* expressions by
+ * default (both SystemF and AlgorithmW use them in the default implementation)
  */
 public class GeneralBlock {
   private ArrayList<Operation> operations;
@@ -30,6 +32,10 @@ public class GeneralBlock {
     }
 
     return genBlock;
+  }
+
+  public List<Operation> getOperations() {
+    return List.copyOf(this.operations);
   }
 
 }

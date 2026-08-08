@@ -42,10 +42,10 @@ public class ConverterRegistry {
 
   // Holy hell what a type this is ............ All in the name of type safety.
   // Right?
-  private HashMap<Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker>>, TypeDialectConverterRegistry> converters;
+  private HashMap<Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>>, TypeDialectConverterRegistry> converters;
 
   public void registerDialect(
-      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker>> dialect) {
+      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>> dialect) {
 
     if (this.converters.containsKey(dialect)) {
       return;
@@ -55,12 +55,12 @@ public class ConverterRegistry {
   }
 
   public void deregisterDialect(
-      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker>> dialect) {
+      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>> dialect) {
     this.converters.remove(dialect);
   }
 
   public void addOperatorsToDialect(
-      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker>> dialect,
+      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>> dialect,
       Pair... pairs) {
 
     var convertersForDialect = this.converters.get(dialect);
@@ -74,7 +74,7 @@ public class ConverterRegistry {
   }
 
   public Optional<ConverterFunction> getConverterForDialectAndOp(
-      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker>> dialect,
+      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>> dialect,
       Op op) {
     var dialectConverters = this.converters.get(dialect);
     if (dialectConverters == null) {

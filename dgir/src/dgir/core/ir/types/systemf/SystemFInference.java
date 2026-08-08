@@ -6,6 +6,7 @@ import dgir.core.ir.types.systemf.SystemFInference.TypeInference.TypeResult;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
+import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
@@ -32,10 +33,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 public final class SystemFInference
     extends
-    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>> {
+    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>, dgir.core.ir.types.systemf.SystemFInference.Expr, dgir.core.ir.types.systemf.SystemFInference.SystemFType> {
 
   private static Optional<TypeInference> solver = Optional.empty();
 
@@ -50,7 +52,7 @@ public final class SystemFInference
   }
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr>> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr> getSolverInstance() {
     if (solver.isPresent()) {
       return solver.get();
     } else {
@@ -386,7 +388,7 @@ public final class SystemFInference
         Break3Result breakRes = checkRes.ctx.break3(
             entry -> entry instanceof Entry.TVarBnd bnd &&
                 bnd.tyVar.equals(forall.boundVar));
-        Context finalCtx = new Context(breakRes.right);
+        Context finalCtx = new Context(breakRes.left);
         return new CheckResult(
             finalCtx,
             new InferenceTree(
@@ -558,12 +560,12 @@ public final class SystemFInference
         var breakRes = c1.ctx.break3(
             entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
 
-        var solvedFinalCtxEntries = breakRes.left
+        var solvedFinalCtxEntries = new ArrayList<>(breakRes.left);
+        solvedFinalCtxEntries.addAll(breakRes.right
             .stream()
             .filter(entry -> entry instanceof Entry.SETVarBnd)
-            .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
+            .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
 
-        solvedFinalCtxEntries.addAll(breakRes.right);
         var finalCtx = new Context(solvedFinalCtxEntries);
         var resType = new SystemFType.Arrow(
             this.type,
@@ -593,7 +595,7 @@ public final class SystemFInference
           var break3Result = bodyCheck.ctx.break3(
               entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
 
-          var finalCtx = new Context(break3Result.right);
+          var finalCtx = new Context(break3Result.left);
 
           return new TypeInference.CheckResult(
               finalCtx,
@@ -706,12 +708,12 @@ public final class SystemFInference
             entry -> entry instanceof Entry.TVarBnd bnd &&
                 bnd.tyVar.equals(this.variable));
 
-        var solvedFinalCtxEntries = break3Result.left
+        var solvedFinalCtxEntries = new ArrayList<>(break3Result.left);
+
+        solvedFinalCtxEntries.addAll(break3Result.right
             .stream()
             .filter(entry -> entry instanceof Entry.SETVarBnd)
-            .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
-
-        solvedFinalCtxEntries.addAll(break3Result.right);
+            .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
         var finalCtx = new Context(solvedFinalCtxEntries);
         var resType = new SystemFType.ForAll(this.variable, resolvedBodyType);
 
@@ -799,11 +801,23 @@ public final class SystemFInference
         var input = ctx + " |- " + this;
         Context newCtx = ctx.copy();
         ArrayList<InferenceTree> trees = new ArrayList<>();
+        ArrayList<Triple<Value, TypeVar, ExprOrOperator<Expr>>> nonUnified = new ArrayList<>(this.bindings.size());
+
+        var mark = new Entry.Mark();
+        newCtx.push(mark);
 
         for (var binding : this.bindings) {
-          var valueInferred = engine.infer(newCtx, binding.getRight());
+          var typeVar = new TypeVar();
+          nonUnified.add(Triple.of(binding.getLeft(), typeVar, binding.getRight()));
+          newCtx.push(new Entry.ETVarBnd(typeVar));
+          newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(typeVar)));
+        }
+
+        for (var binding : nonUnified) {
+          var typeVar = binding.getMiddle();
+          var expr = binding.getRight();
+          var valueInferred = engine.check(newCtx, expr, new SystemFType.EtVar(typeVar));
           newCtx = valueInferred.ctx.copy();
-          newCtx.push(new Entry.VarBnd(binding.getLeft(), valueInferred.type));
 
           // TODO(jan): set name == type here!
           trees.add(valueInferred.tree);
@@ -812,20 +826,16 @@ public final class SystemFInference
         var bodyInferred = engine.infer(newCtx, this.body);
         trees.add(bodyInferred.tree);
 
-        var finalCtx = bodyInferred.ctx().copy();
+        var break3Result = bodyInferred.ctx.break3(
+            entry -> entry instanceof Entry.Mark m && m.equals(mark));
 
-        for (var binding : this.bindings) {
-          var break3Result = finalCtx.break3(
-              entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(binding.getLeft()));
+        var solvedFinalCtxEntries = new ArrayList<>(break3Result.left);
 
-          var solvedFinalCtxEntries = break3Result.left
-              .stream()
-              .filter(entry -> entry instanceof Entry.SETVarBnd)
-              .collect(Collectors.toCollection(() -> new ArrayList<Entry>()));
-
-          solvedFinalCtxEntries.addAll(break3Result.right);
-          finalCtx = new Context(solvedFinalCtxEntries);
-        }
+        solvedFinalCtxEntries.addAll(break3Result.right
+            .stream()
+            .filter(entry -> entry instanceof Entry.SETVarBnd)
+            .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
+        var finalCtx = new Context(solvedFinalCtxEntries);
 
         return new TypeInference.TypeResult(
             bodyInferred.type,
@@ -1017,10 +1027,14 @@ public final class SystemFInference
       }
     }
 
-    public final record Mark(TypeVar tyVar) implements Entry {
+    /**
+     * NOTE: this MUST be a class and not a record, as the equality to identify
+     * marks is based on reference equality, as is default with class objects
+     */
+    public final class Mark implements Entry {
       @Override
       public final String toString() {
-        return "MARK " + tyVar;
+        return "MARK";
       }
     }
   }
@@ -1182,7 +1196,7 @@ public final class SystemFInference
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr> {
 
     private ConvertedOperationBuffer<Expr> operationToExprBuffer;
 
@@ -1193,6 +1207,35 @@ public final class SystemFInference
     public TypeInference(TypeDialectConverterRegistry registry) {
       super(registry);
       operationToExprBuffer = new ConvertedOperationBuffer<>();
+    }
+
+    @Override
+    public Expr generalBlockToInferenceExpr(GeneralBlock block) {
+      ArrayList<Pair<Value, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
+      Optional<Value> lastValue = Optional.empty();
+
+      for (var op : block.getOperations()) {
+        var opOutput = op.getOutput();
+        if (opOutput.isPresent()) {
+          bindings.add(Pair.of(opOutput.get().getValue(), ExprOrOperator.of(op)));
+          lastValue = Optional.of(opOutput.get().getValue());
+        } else {
+          /*
+           * NOTE: handle everything as a returnable value, even though something like a
+           * function is not actually a expression! This is done to correctly typecheck
+           * each function and their parameters!
+           */
+          var val = new Value();
+          bindings.add(Pair.of(val, ExprOrOperator.of(op)));
+          lastValue = Optional.of(val);
+        }
+      }
+
+      if (lastValue.isPresent()) {
+        return new Expr.Let(bindings, new Expr.Var(lastValue.get()));
+      } else {
+        return new Expr.Let(bindings, new Expr.LitExpr(new Literal.Unit()));
+      }
     }
 
     @Override
@@ -1254,7 +1297,7 @@ public final class SystemFInference
             entry -> entry instanceof Entry.TVarBnd bnd &&
                 bnd.tyVar.equals(forall.boundVar));
 
-        var finalCtx = new Context(break3Result.right);
+        var finalCtx = new Context(break3Result.left);
 
         return new CheckResult(
             finalCtx,
@@ -1329,7 +1372,7 @@ public final class SystemFInference
         Break3Result breakRes = subtypeRes.ctx.break3(
             entry -> entry instanceof Entry.TVarBnd bnd &&
                 bnd.tyVar.equals(forall.boundVar));
-        Context finalCtx = new Context(breakRes.right);
+        Context finalCtx = new Context(breakRes.left);
 
         return new SubtypeResult(
             finalCtx,
@@ -1346,12 +1389,13 @@ public final class SystemFInference
 
         var newCtx = ctx.copy();
         newCtx.push(new Entry.ETVarBnd(forall.boundVar));
-        newCtx.push(new Entry.Mark(forall.boundVar));
+        var mark = new Entry.Mark();
+        newCtx.push(mark);
 
         var subtypeRes = this.subtype(newCtx, substT1, ty2);
         var breakRes = subtypeRes.ctx.break3(
-            entry -> entry instanceof Entry.Mark m && m.tyVar.equals(forall.boundVar));
-        var finalCtx = new Context(breakRes.right);
+            entry -> entry instanceof Entry.Mark m && m.equals(mark));
+        var finalCtx = new Context(breakRes.left);
         return new SubtypeResult(
             finalCtx,
             new InferenceTree(
@@ -1456,7 +1500,7 @@ public final class SystemFInference
         var breakRes = instLRes.ctx.break3(
             entry -> entry instanceof Entry.TVarBnd bnd &&
                 bnd.tyVar.equals(forall.boundVar));
-        var finalCtx = new Context(breakRes.right);
+        var finalCtx = new Context(breakRes.left);
         return new InstResult(
             finalCtx,
             new InferenceTree(
@@ -1563,12 +1607,13 @@ public final class SystemFInference
 
         var newCtx = ctx.copy();
         newCtx.push(new Entry.ETVarBnd(forall.boundVar));
-        newCtx.push(new Entry.Mark(forall.boundVar));
+        var mark = new Entry.Mark();
+        newCtx.push(mark);
 
         var instRRes = this.instR(newCtx, substT, a);
         var breakRes = instRRes.ctx.break3(
-            entry -> entry instanceof Entry.Mark m && m.tyVar.equals(forall.boundVar));
-        var finalCtx = new Context(breakRes.right);
+            entry -> entry instanceof Entry.Mark m && m.equals(mark));
+        var finalCtx = new Context(breakRes.left);
         return new InstResult(
             finalCtx,
             new InferenceTree(

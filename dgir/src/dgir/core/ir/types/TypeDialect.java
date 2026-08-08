@@ -10,26 +10,24 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, C extends ExprOrOperator<? extends Expression>> {
+public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<T>, E>, C extends ExprOrOperator<E>, E extends Expression, T extends Type> {
 
-  public abstract static class TypeInferenceSolver<T extends ExprOrOperator<? extends Expression>> {
-     protected TypeDialectConverterRegistry registry;
+  public abstract static class TypeInferenceSolver<T extends ExprOrOperator<E>, E extends Expression> {
+    protected TypeDialectConverterRegistry registry;
 
     public TypeInferenceSolver(TypeDialectConverterRegistry registry) {
       this.registry = registry;
     }
 
     public abstract Type solve(T expr);
+
+    public abstract E generalBlockToInferenceExpr(GeneralBlock block);
   }
 
-  public abstract TypeInferenceSolver<C> getSolverInstance();
+
+  public abstract TypeInferenceSolver<C, E> getSolverInstance();
 
   public abstract List<Class<? extends Type>> getAllowedTypes();
-
-  public void addAllowedExpression(Class<? extends Type> exprType) {
-    throw new UnsupportedOperationException(
-        "By default, a dialect must not allow additional expressions");
-  }
 
   public abstract List<Class<? extends Expression>> getAllowedExpressions();
 

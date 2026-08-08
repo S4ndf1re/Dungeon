@@ -1,6 +1,8 @@
 package dgir.core.ir.types.algorithmw;
 
+import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
+import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InferenceTree;
@@ -32,15 +34,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 public final class AlgorithmWInference
     extends
-    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>> {
+    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType> {
 
   private static Optional<TypeInference> instance = Optional.empty();
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr>> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr> getSolverInstance() {
     if (AlgorithmWInference.instance.isPresent()) {
       return AlgorithmWInference.instance.get();
     } else {
@@ -60,9 +63,9 @@ public final class AlgorithmWInference
     return TypeDialect.extractExpressionsFromAbstract(Expr.class);
   }
 
-  private static AlgorithmWType generalNominalTypeToAlgorithmWType(GeneralParameterizedNominalType type) {
+  private static AlgorithmWType generalNominalTypeToInferenceType(GeneralParameterizedNominalType type) {
     List<AlgorithmWType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
-      case GeneralTypeParameter.Concrete con -> AlgorithmWInference.generalNominalTypeToAlgorithmWType(con.ty());
+      case GeneralTypeParameter.Concrete con -> AlgorithmWInference.generalNominalTypeToInferenceType(con.ty());
       case GeneralTypeParameter.Unknown unk -> new AlgorithmWType.Var(new TypeVar());
     }).toList();
 
@@ -138,7 +141,7 @@ public final class AlgorithmWInference
 
       @Override
       public InferResult infer(TypeInference engine, Env env) {
-        var algoWType = AlgorithmWInference.generalNominalTypeToAlgorithmWType(value);
+        var algoWType = AlgorithmWInference.generalNominalTypeToInferenceType(value);
         return new InferResult(
             Subst.newEmpty(),
             algoWType,
@@ -346,6 +349,14 @@ public final class AlgorithmWInference
       }
     }
 
+    /**
+     * ExprLet is a multi let statement that infers multiple let expressions at the
+     * same time.
+     *
+     * @implNote The lets are considered global scope: i.e. the let values are first
+     *           assigned to a new {@link TypeVar}, that is then unified with the
+     *           inferred assigned type.
+     */
     public static final class ExprLet implements Expr {
 
       private final List<Pair<Symbol, ExprOrOperator<Expr>>> bindings;
@@ -372,18 +383,31 @@ public final class AlgorithmWInference
         String input = env + " |- " + this;
 
         Env newEnv = env.copy();
+        ArrayList<Triple<Symbol, AlgorithmWType, ExprOrOperator<Expr>>> notUnified = new ArrayList<>(
+            this.bindings.size());
+        for (var binding : this.bindings) {
+          var typeVar = new TypeVar();
+          notUnified.add(Triple.of(binding.getLeft(), new AlgorithmWType.Var(typeVar), binding.getRight()));
+          newEnv.env.put(binding.getLeft(), new AlgorithmWType.Var(typeVar).generalize(newEnv));
+        }
+
         Subst subst = Subst.newEmpty();
         ArrayList<InferenceTree> trees = new ArrayList<>();
 
-        for (var binding : this.bindings) {
-          var value = binding.getRight();
+        for (var binding : notUnified) {
           var param = binding.getLeft();
+          var typeVar = binding.getMiddle();
+          var value = binding.getRight();
 
-          InferResult res1 = engine.infer(value, env);
+          InferResult res1 = engine.infer(value, newEnv);
           subst = res1.subst.compose(subst);
           Env envSubst = newEnv.apply(subst);
 
-          Scheme generalizedType = res1.type.generalize(envSubst);
+          UnifyResult unifyRes = engine.unify(typeVar, res1.type);
+          subst = unifyRes.subst.compose(subst);
+          envSubst = envSubst.apply(subst);
+
+          Scheme generalizedType = subst.apply(res1.type).generalize(envSubst);
 
           newEnv = envSubst.copy();
           newEnv.env.put(param, generalizedType);
@@ -431,7 +455,7 @@ public final class AlgorithmWInference
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr> {
 
     private ConvertedOperationBuffer<Expr> operationToExprBuffer;
 
@@ -442,6 +466,35 @@ public final class AlgorithmWInference
     public TypeInference(TypeDialectConverterRegistry registry) {
       super(registry);
       operationToExprBuffer = new ConvertedOperationBuffer<>();
+    }
+
+    @Override
+    public Expr generalBlockToInferenceExpr(GeneralBlock block) {
+      ArrayList<Pair<Symbol, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
+      Optional<Value> lastValue = Optional.empty();
+
+      for (var op : block.getOperations()) {
+        var opOutput = op.getOutput();
+        if (opOutput.isPresent()) {
+          bindings.add(Pair.of(Symbol.of(opOutput.get().getValue()), ExprOrOperator.of(op)));
+          lastValue = Optional.of(opOutput.get().getValue());
+        } else {
+          /*
+           * NOTE: handle everything as a returnable value, even though something like a
+           * function is not actually a expression! This is done to correctly typecheck
+           * each function and their parameters!
+           */
+          var val = new Value();
+          bindings.add(Pair.of(Symbol.of(val), ExprOrOperator.of(op)));
+          lastValue = Optional.of(val);
+        }
+      }
+
+      if (lastValue.isPresent()) {
+        return new Expr.ExprLet(bindings, new Expr.ExprVar(Symbol.of(lastValue.get())));
+      } else {
+        return new Expr.ExprLet(bindings, new Expr.ExprLit(new Literal.Unit()));
+      }
     }
 
     @Override
