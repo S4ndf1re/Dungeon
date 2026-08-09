@@ -3,33 +3,35 @@ package dgir.core.ir.types.compatibility;
 import java.util.HashMap;
 import java.util.Optional;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.TypeDialect;
+import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 
 public class ConverterRegistry {
-  public static final record Pair(Op op, ConverterFunction converter) {
-  }
 
   @FunctionalInterface
   public static interface ConverterFunction {
-    <E extends Expression> E convertToExpression(
-        Operation op);
+    <T extends ExprOrOperator<E>, E extends Expression> E convertToExpression(
+        Operation op,
+        TypeInferenceSolver<T, E> engine);
   }
 
   public static final class TypeDialectConverterRegistry {
-    private HashMap<Op, ConverterFunction> converters = new HashMap<>();
+    private HashMap<Class<? extends Op>, ConverterFunction> converters = new HashMap<>();
 
-    public void addOpConverter(Op op, ConverterFunction fn) {
+    public void addOpConverter(Class<? extends Op> op, ConverterFunction fn) {
       this.converters.put(op, fn);
     }
 
-    public void removeOpConverter(Op op) {
+    public void removeOpConverter(Class<? extends Op> op) {
       this.converters.remove(op);
     }
 
-    public ConverterFunction getConverter(Op op) {
+    public ConverterFunction getConverter(Class<? extends Op> op) {
       var converter = this.converters.get(op);
       if (converter == null) {
         throw new RuntimeException("Op " + op + " is not registered");
@@ -58,9 +60,10 @@ public class ConverterRegistry {
     converters.remove(dialect);
   }
 
+  @SafeVarargs
   public static void addOperatorsToDialect(
       Class<? extends TypeDialect<?, ?, ?, ?>> dialect,
-      Pair... pairs) {
+      Pair<Class<? extends Op>, ConverterFunction>... pairs) {
 
     var convertersForDialect = converters.get(dialect);
     if (convertersForDialect == null) {
@@ -68,7 +71,7 @@ public class ConverterRegistry {
     }
 
     for (var pair : pairs) {
-      convertersForDialect.addOpConverter(pair.op(), pair.converter());
+      convertersForDialect.addOpConverter(pair.getLeft(), pair.getRight());
     }
   }
 

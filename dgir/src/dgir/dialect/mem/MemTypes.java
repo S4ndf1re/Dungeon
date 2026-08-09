@@ -1,6 +1,8 @@
 package dgir.dialect.mem;
 
 import dgir.core.ir.*;
+import dgir.core.ir.types.GeneralParameterizedNominalType;
+import dgir.core.ir.types.TypeIdent;
 import dgir.core.utility.DgirCoreUtils;
 import dgir.dialect.builtin.BuiltinTypes;
 import java.util.List;
@@ -13,9 +15,15 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
-/** Sealed marker interface for all types contributed by the {@link MemoryDialect}. */
+/**
+ * Sealed marker interface for all types contributed by the
+ * {@link MemoryDialect}.
+ */
 public sealed interface MemTypes {
-  /** Abstract base class for all type-descriptors contributed by the {@link MemoryDialect}. */
+  /**
+   * Abstract base class for all type-descriptors contributed by the
+   * {@link MemoryDialect}.
+   */
   sealed interface MemTypeDescriptor extends TypeDescriptor {
     @Override
     default @NotNull Class<? extends Dialect> getDialect() {
@@ -45,11 +53,11 @@ public sealed interface MemTypes {
       }
 
       @Override
-      public void initDefaultTypeInstances() {}
+      public void initDefaultTypeInstances() {
+      }
 
       @Override
-      public @NotNull Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type>
-          getParameterizedIdentFactory() {
+      public @NotNull Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type> getParameterizedIdentFactory() {
         return args -> {
           AtomicReference<Type> elementType = new AtomicReference<>();
           AtomicReference<OptionalInt> width = new AtomicReference<>();
@@ -102,6 +110,13 @@ public sealed interface MemTypes {
           DgirCoreUtils.listOf(getElementType(), getWidth().isPresent() ? width : null));
     }
 
+    @Override
+    public GeneralParameterizedNominalType asParameterizedNominalType() {
+      return new GeneralParameterizedNominalType(
+          TypeIdent.from(this.getIdent()), List.of(new GeneralParameterizedNominalType.GeneralTypeParameter.Concrete(
+              this.getElementType().asParameterizedNominalType())));
+    }
+
     // =========================================================================
     // Members
     // =========================================================================
@@ -124,7 +139,7 @@ public sealed interface MemTypes {
      * Creates an array type with the given element type and width.
      *
      * @param elementType the array element type.
-     * @param width the fixed width, or {@code -1} for dynamic sizing.
+     * @param width       the fixed width, or {@code -1} for dynamic sizing.
      */
     private ArrayT(@NotNull Type elementType, int width) {
       super("mem.array");
@@ -140,7 +155,7 @@ public sealed interface MemTypes {
      * Returns a canonical array type for the given element type and optional width.
      *
      * @param elementType the array element type.
-     * @param width the optional width.
+     * @param width       the optional width.
      * @return the canonicalized array type.
      */
     public static @NotNull ArrayT of(@NotNull Type elementType, @NotNull OptionalInt width) {

@@ -76,7 +76,7 @@ public abstract class Type {
     return details.ident();
   }
 
-  public final GeneralParameterizedNominalType asParameterizedNominalType() {
+  public GeneralParameterizedNominalType asParameterizedNominalType() {
     return new GeneralParameterizedNominalType(TypeIdent.from(this.details.ident()));
   }
 

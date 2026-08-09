@@ -112,6 +112,12 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
     return type.get();
   }
 
+  /** Returns the static type of this value. */
+  @Contract(pure = true)
+  public @NotNull Optional<Type> getMaybeType() {
+    return type;
+  }
+
   /**
    * Returns debug info only when known; otherwise returns {@code null} for
    * compact serialization.
