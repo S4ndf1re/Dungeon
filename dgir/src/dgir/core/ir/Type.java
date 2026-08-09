@@ -2,6 +2,9 @@ package dgir.core.ir;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
+
+import dgir.core.ir.types.GeneralParameterizedNominalType;
+import dgir.core.ir.types.TypeIdent;
 import dgir.core.serialization.TypeDeserializer;
 import dgir.core.utility.ExpressionScanner;
 import java.util.*;
@@ -17,15 +20,24 @@ import tools.jackson.databind.annotation.JsonDeserialize;
 /**
  * Base class for all IR types.
  *
- * <p>Types are contributed by dialects and are either non-parameterized (for example, {@code
- * int32}) or parameterized (for example, {@code ptr<int32>} or {@code func.func<"(int32) ->
- * (int32)">}). Each type has a stable ident and a validator used to check storage values.
+ * <p>
+ * Types are contributed by dialects and are either non-parameterized (for
+ * example, {@code
+ * int32}) or parameterized (for example, {@code ptr<int32>} or
+ * {@code func.func<"(int32) ->
+ * (int32)">}). Each type has a stable ident and a validator used to check
+ * storage values.
  *
- * <p>Type instances are treated as canonical values. Implementations should return shared instances
- * (singletons for non-parameterized types and {@link TypeUniquer}-canonicalized instances for
- * parameterized ones) so identity/reference comparisons are reliable across the IR.
+ * <p>
+ * Type instances are treated as canonical values. Implementations should return
+ * shared instances
+ * (singletons for non-parameterized types and {@link TypeUniquer}-canonicalized
+ * instances for
+ * parameterized ones) so identity/reference comparisons are reliable across the
+ * IR.
  */
-// We have to use the deserializer because we cant use @JsonCreator on static methods and therefore
+// We have to use the deserializer because we cant use @JsonCreator on static
+// methods and therefore
 // can put the logic
 // directly in this class.
 @JsonDeserialize(using = TypeDeserializer.class)
@@ -35,18 +47,22 @@ public abstract class Type {
   // Members
   // =========================================================================
 
-  @JsonIgnore private final @NotNull TypeDetails details;
+  @JsonIgnore
+  private final @NotNull TypeDetails details;
 
   // =========================================================================
   // Type Info
   // =========================================================================
 
   /**
-   * Get the identifier for this type. This is a unique string that identifies the basic type
-   * without any parameters. Example: {@code "i32"} or {@code "func.func"} (instead of {@code
+   * Get the identifier for this type. This is a unique string that identifies the
+   * basic type
+   * without any parameters. Example: {@code "i32"} or {@code "func.func"}
+   * (instead of {@code
    * func.func<...>}).
    *
-   * <p>Syntax:
+   * <p>
+   * Syntax:
    *
    * <pre>{@code
    * ident:
@@ -60,11 +76,17 @@ public abstract class Type {
     return details.ident();
   }
 
+  public final GeneralParameterizedNominalType asParameterizedNominalType() {
+    return new GeneralParameterizedNominalType(TypeIdent.from(this.details.ident()));
+  }
+
   /**
-   * Get the parameterized ident for this type. Simple types return just the ident; generic types
+   * Get the parameterized ident for this type. Simple types return just the
+   * ident; generic types
    * (e.g. {@link Type} parameterized) override this to include parameters.
    *
-   * <p>Syntax:
+   * <p>
+   * Syntax:
    *
    * <pre>{@code
    * parameterizedType:
@@ -80,7 +102,9 @@ public abstract class Type {
    *    '"' .* '"'
    * }</pre>
    *
-   * <p>Custom expressions should use the quoted form so embedded punctuation remains part of the
+   * <p>
+   * Custom expressions should use the quoted form so embedded punctuation remains
+   * part of the
    * parameter value instead of being parsed structurally.
    *
    * @return The parameterized ident string.
@@ -92,7 +116,8 @@ public abstract class Type {
   }
 
   /**
-   * Returns the namespace prefix for this type (e.g. {@code ""} for builtin types or {@code "func"}
+   * Returns the namespace prefix for this type (e.g. {@code ""} for builtin types
+   * or {@code "func"}
    * for the func dialect).
    *
    * @return the namespace string, never {@code null}.
@@ -113,9 +138,12 @@ public abstract class Type {
   }
 
   /**
-   * Returns a function that checks whether a given value is a valid instance of this type.
+   * Returns a function that checks whether a given value is a valid instance of
+   * this type.
    *
-   * <p>The validator is stored in {@link TypeDetails} at registration time and used by {@link
+   * <p>
+   * The validator is stored in {@link TypeDetails} at registration time and used
+   * by {@link
    * #validate(Object)} to type-check attribute storage values.
    *
    * @return the validator function, never {@code null}.
@@ -130,12 +158,10 @@ public abstract class Type {
   // =========================================================================
 
   protected Type(String ident) {
-    details =
-        TypeDetails.get(ident)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "Type class " + ident + " is not registered in DGIRContext"));
+    details = TypeDetails.get(ident)
+        .orElseThrow(
+            () -> new IllegalStateException(
+                "Type class " + ident + " is not registered in DGIRContext"));
   }
 
   // =========================================================================
@@ -181,16 +207,21 @@ public abstract class Type {
   // =========================================================================
 
   /**
-   * Build a parameterized ident string from the given type details and parameters. The parameters
+   * Build a parameterized ident string from the given type details and
+   * parameters. The parameters
    * are converted to strings according to the syntax rules defined in {@link
-   * #getParameterizedIdent()}. {@code String} parameters are escaped and stored as custom
-   * expressions. {@code null} parameters are allowed and will be skipped in the resulting ident
+   * #getParameterizedIdent()}. {@code String} parameters are escaped and stored
+   * as custom
+   * expressions. {@code null} parameters are allowed and will be skipped in the
+   * resulting ident
    * string, but the list itself must not be {@code null}.
    *
    * @param typeDetails the type details of the base type.
-   * @param parameters the list of parameters to include in the ident; entries may be {@code null}
-   *     but not the list itself. Parameters may be {@code Type}, {@code String}, or {@code Integer}
-   *     instances; other types are not supported.
+   * @param parameters  the list of parameters to include in the ident; entries
+   *                    may be {@code null}
+   *                    but not the list itself. Parameters may be {@code Type},
+   *                    {@code String}, or {@code Integer}
+   *                    instances; other types are not supported.
    * @return the constructed parameterized ident string.
    */
   public static @NotNull String buildParameterizedIdent(
@@ -199,43 +230,50 @@ public abstract class Type {
   }
 
   /**
-   * Build the parameter list portion of a parameterized ident string from the given parameters.
-   * Each parameter is converted to a string according to the syntax rules defined in {@link
-   * #getParameterizedIdent()}. {@code String} parameters are escaped and stored as custom
-   * expressions. {@code null} parameters are allowed and will be skipped in the resulting list, but
+   * Build the parameter list portion of a parameterized ident string from the
+   * given parameters.
+   * Each parameter is converted to a string according to the syntax rules defined
+   * in {@link
+   * #getParameterizedIdent()}. {@code String} parameters are escaped and stored
+   * as custom
+   * expressions. {@code null} parameters are allowed and will be skipped in the
+   * resulting list, but
    * the list itself must not be {@code null}.
    *
-   * @param parameters the list of parameters to include in the ident; entries may be {@code null}
-   *     but not the list itself. Parameters may be {@code Type}, {@code String}, or {@code Integer}
-   *     instances; other types are not supported.
-   * @return the constructed parameter list string (e.g. {@code "int32, func.func<...>,
+   * @param parameters the list of parameters to include in the ident; entries may
+   *                   be {@code null}
+   *                   but not the list itself. Parameters may be {@code Type},
+   *                   {@code String}, or {@code Integer}
+   *                   instances; other types are not supported.
+   * @return the constructed parameter list string (e.g.
+   *         {@code "int32, func.func<...>,
    *     \"custom\""}).
    */
   public static @NotNull String buildParameterList(
       @NotNull List<? extends @Nullable Object> parameters) {
-    List<String> typeParameters =
-        parameters.stream()
-            .map(
-                param ->
-                    switch (param) {
-                      case Type t -> t.toString();
-                      case String s -> quoteCustomExpression(s);
-                      case Integer n -> n.toString();
-                      case null -> null;
-                      default ->
-                          throw new IllegalArgumentException(
-                              "Unsupported parameter type: " + param.getClass().getName());
-                    })
-            .filter(Objects::nonNull)
-            .toList();
+    List<String> typeParameters = parameters.stream()
+        .map(
+            param -> switch (param) {
+              case Type t -> t.toString();
+              case String s -> quoteCustomExpression(s);
+              case Integer n -> n.toString();
+              case null -> null;
+              default ->
+                throw new IllegalArgumentException(
+                    "Unsupported parameter type: " + param.getClass().getName());
+            })
+        .filter(Objects::nonNull)
+        .toList();
     return String.join(", ", typeParameters);
   }
 
   /**
-   * Create a Type instance from the provided parameterized ident. Works for both simple and
+   * Create a Type instance from the provided parameterized ident. Works for both
+   * simple and
    * generic/complex types (e.g. {@code func.func<...>}).
    *
-   * <p>Examples:
+   * <p>
+   * Examples:
    *
    * <pre>{@literal
    *   int32
@@ -260,31 +298,38 @@ public abstract class Type {
     String baseIdent = extractBaseIdent(normalizedIdent);
     return TypeDetails.get(baseIdent)
         .map(
-            typeDetails ->
-                typeDetails
-                    .parameterizedIdentFactory()
-                    .apply(Pair.of(parameterizedIdent, typeDetails)))
+            typeDetails -> typeDetails
+                .parameterizedIdentFactory()
+                .apply(Pair.of(parameterizedIdent, typeDetails)))
         .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Cannot create type from parameterized ident with unregistered base type: "
-                        + parameterizedIdent));
+            () -> new IllegalArgumentException(
+                "Cannot create type from parameterized ident with unregistered base type: "
+                    + parameterizedIdent));
   }
 
   /**
-   * Extract the base ident from a parameterized ident string. If the input string contains a '<'
-   * character, the base ident is the substring before the first '<', trimmed of whitespace. If
-   * there is no '<' character, the entire input string is treated as the base ident. The method
+   * Extract the base ident from a parameterized ident string. If the input string
+   * contains a '<'
+   * character, the base ident is the substring before the first '<', trimmed of
+   * whitespace. If
+   * there is no '<' character, the entire input string is treated as the base
+   * ident. The method
    * also validates the generic part of the ident (if present) by calling {@link
-   * #extractParameterText(String)}, which will throw an IllegalArgumentException if the generic
-   * syntax is malformed. This ensures that the returned base ident is always valid and that any
+   * #extractParameterText(String)}, which will throw an IllegalArgumentException
+   * if the generic
+   * syntax is malformed. This ensures that the returned base ident is always
+   * valid and that any
    * issues with the generic part are caught early.
    *
-   * @param normalizedIdent a parameterized ident string that may contain generic parameters (e.g.
-   *     {@code "foo<a, b<c>, d>"}); must not be {@code null} or empty
+   * @param normalizedIdent a parameterized ident string that may contain generic
+   *                        parameters (e.g.
+   *                        {@code "foo<a, b<c>, d>"}); must not be {@code null}
+   *                        or empty
    * @return the base ident string (e.g. {@code "foo"}); never {@code null}.
-   * @throws IllegalArgumentException if the generic part of the input string is malformed (e.g.
-   *     unbalanced angle brackets, unexpected trailing content, or empty parameter list).
+   * @throws IllegalArgumentException if the generic part of the input string is
+   *                                  malformed (e.g.
+   *                                  unbalanced angle brackets, unexpected
+   *                                  trailing content, or empty parameter list).
    */
   private static @NotNull String extractBaseIdent(@NotNull String normalizedIdent) {
     int genericStart = normalizedIdent.indexOf('<');
@@ -296,19 +341,27 @@ public abstract class Type {
   }
 
   /**
-   * Extract the parameter text from a parameterized ident, validating the syntax in the process.
-   * The method locates the first '<' character to identify the start of the parameter list, then
-   * finds the matching '>' character while correctly handling nested angle brackets and quoted
-   * strings. It also checks that there is no trailing content after the closing '>' and that the
+   * Extract the parameter text from a parameterized ident, validating the syntax
+   * in the process.
+   * The method locates the first '<' character to identify the start of the
+   * parameter list, then
+   * finds the matching '>' character while correctly handling nested angle
+   * brackets and quoted
+   * strings. It also checks that there is no trailing content after the closing
+   * '>' and that the
    * parameter list is not empty. If any of these conditions are violated, an
    * IllegalArgumentException is thrown with a descriptive message.
    *
-   * @param parameterizedIdent a parameterized ident string that contains exactly one outermost
-   *     {@code <…>} wrapper (e.g. {@code "foo<a, b<c>, d>"}
-   * @return the raw parameter text inside the angle brackets (e.g. {@code "a, b<c>, d"}); never
-   *     {@code null}.
-   * @throws IllegalArgumentException if the input string is malformed (e.g. missing angle brackets,
-   *     unbalanced brackets, unexpected trailing content, or empty parameter list).
+   * @param parameterizedIdent a parameterized ident string that contains exactly
+   *                           one outermost
+   *                           {@code <…>} wrapper (e.g. {@code "foo<a, b<c>, d>"}
+   * @return the raw parameter text inside the angle brackets (e.g.
+   *         {@code "a, b<c>, d"}); never
+   *         {@code null}.
+   * @throws IllegalArgumentException if the input string is malformed (e.g.
+   *                                  missing angle brackets,
+   *                                  unbalanced brackets, unexpected trailing
+   *                                  content, or empty parameter list).
    */
   @Contract(pure = true)
   private static @NotNull String extractParameterText(@NotNull String parameterizedIdent) {
@@ -340,25 +393,36 @@ public abstract class Type {
   }
 
   /**
-   * Extract the top-level comma-separated parameter strings from a parameterized type ident.
+   * Extract the top-level comma-separated parameter strings from a parameterized
+   * type ident.
    *
-   * <p>The method strips the outermost {@code <…>} wrapper and then splits the inner text by {@code
-   * ','} at nesting depth 0 via {@link #splitAtDepth}. Both angle-bracket pairs ({@code < >}) and
-   * parenthesis pairs ({@code ( )}) increment/decrement the depth counter, so nested generic types
-   * and parenthesised signatures are never split mid-way. Quoted custom expressions are unquoted
-   * and unescaped. Each resulting segment is trimmed of surrounding whitespace, and empty segments
+   * <p>
+   * The method strips the outermost {@code <…>} wrapper and then splits the inner
+   * text by {@code
+   * ','} at nesting depth 0 via {@link #splitAtDepth}. Both angle-bracket pairs
+   * ({@code < >}) and
+   * parenthesis pairs ({@code ( )}) increment/decrement the depth counter, so
+   * nested generic types
+   * and parenthesised signatures are never split mid-way. Quoted custom
+   * expressions are unquoted
+   * and unescaped. Each resulting segment is trimmed of surrounding whitespace,
+   * and empty segments
    * are rejected.
    *
-   * <p>Examples:
+   * <p>
+   * Examples:
    *
    * <pre>
    *   "struct.struct&lt;i32, string&gt;"
    *       → ["i32", "string"]
    * </pre>
    *
-   * @param parameterizedIdent a parameterized ident string that contains exactly one outermost
-   *     {@code <…>} wrapper (e.g. {@code "foo<a, b<c>, d>"}).
-   * @return an unmodifiable list of trimmed, non-empty parameter strings; never {@code null}.
+   * @param parameterizedIdent a parameterized ident string that contains exactly
+   *                           one outermost
+   *                           {@code <…>} wrapper (e.g.
+   *                           {@code "foo<a, b<c>, d>"}).
+   * @return an unmodifiable list of trimmed, non-empty parameter strings; never
+   *         {@code null}.
    */
   @Contract(pure = true)
   public static @NotNull @Unmodifiable List<String> extractParameterStrings(
@@ -388,9 +452,12 @@ public abstract class Type {
   }
 
   /**
-   * A consumer interface for validating and using parameters parsed from a parameterized ident
-   * string. The {@code consume} method takes a list of parsed parameters (which may be of mixed
-   * types such as {@code Type}, {@code String}, and {@code Integer}) and returns an optional error.
+   * A consumer interface for validating and using parameters parsed from a
+   * parameterized ident
+   * string. The {@code consume} method takes a list of parsed parameters (which
+   * may be of mixed
+   * types such as {@code Type}, {@code String}, and {@code Integer}) and returns
+   * an optional error.
    */
   @FunctionalInterface
   public interface ParameterConsumer {
@@ -398,10 +465,12 @@ public abstract class Type {
   }
 
   /**
-   * A simple implementation of {@link ParameterConsumer} that expects all parameters to be types.
+   * A simple implementation of {@link ParameterConsumer} that expects all
+   * parameters to be types.
    *
-   * @param target the list to which the parsed Type parameters will be added; must not be {@code
-   *     null}.
+   * @param target the list to which the parsed Type parameters will be added;
+   *               must not be {@code
+   *     null}  .
    */
   public record AllTypes(@NotNull List<Type> target) implements ParameterConsumer {
     public static @NotNull AllTypes of(@NotNull List<Type> target) {
@@ -423,11 +492,13 @@ public abstract class Type {
   }
 
   /**
-   * A simple implementation of {@link ParameterConsumer} that expects all parameters to be strings
+   * A simple implementation of {@link ParameterConsumer} that expects all
+   * parameters to be strings
    * (custom expressions).
    *
-   * @param target the list to which the parsed String parameters will be added; must not be {@code
-   *     null}.
+   * @param target the list to which the parsed String parameters will be added;
+   *               must not be {@code
+   *     null}  .
    */
   public record AllExpressions(@NotNull List<String> target) implements ParameterConsumer {
     public static @NotNull AllExpressions of(@NotNull List<String> target) {
@@ -449,11 +520,13 @@ public abstract class Type {
   }
 
   /**
-   * A simple implementation of {@link ParameterConsumer} that expects all parameters to be
+   * A simple implementation of {@link ParameterConsumer} that expects all
+   * parameters to be
    * integers.
    *
-   * @param target the list to which the parsed Integer parameters will be added; must not be {@code
-   *     null}.
+   * @param target the list to which the parsed Integer parameters will be added;
+   *               must not be {@code
+   *     null}  .
    */
   public record AllIntegers(@NotNull List<Integer> target) implements ParameterConsumer {
     public static @NotNull AllIntegers of(@NotNull List<Integer> target) {
@@ -475,16 +548,21 @@ public abstract class Type {
   }
 
   /**
-   * Parse the parameters from a parameterized ident string and pass them to the given consumer for
+   * Parse the parameters from a parameterized ident string and pass them to the
+   * given consumer for
    * validation and use. This is a convenience method that combines {@link
-   * #extractParameterText(String)} and {@link #consumeParameterText(String, ParameterConsumer)}
-   * into a single step for cases where the full parameterized ident string is already available and
+   * #extractParameterText(String)} and
+   * {@link #consumeParameterText(String, ParameterConsumer)}
+   * into a single step for cases where the full parameterized ident string is
+   * already available and
    * we just want to extract and consume the parameters.
    *
-   * @param parametricIdent the full parameterized ident string (e.g. {@code "foo<a, b<c>, d>"});
-   *     must not be {@code null}.
-   * @param parameterConsumer the consumer that will receive the parsed parameters for validation
-   *     and use; must not be {@code null}.
+   * @param parametricIdent   the full parameterized ident string (e.g.
+   *                          {@code "foo<a, b<c>, d>"});
+   *                          must not be {@code null}.
+   * @param parameterConsumer the consumer that will receive the parsed parameters
+   *                          for validation
+   *                          and use; must not be {@code null}.
    */
   public static void consumeParametricIdent(
       @NotNull String parametricIdent, @NotNull ParameterConsumer parameterConsumer) {
@@ -492,14 +570,19 @@ public abstract class Type {
   }
 
   /**
-   * Parse a comma-separated list of (possibly nested/parameterized) type strings into a list of
+   * Parse a comma-separated list of (possibly nested/parameterized) type strings
+   * into a list of
    * Type instances, expression strings and numbers.
    *
-   * <p>Splitting is performed by {@link #splitAtDepth(String, String, int, boolean)} so that commas
-   * inside nested angle-bracket ({@code < >}) or parenthesis ({@code ( )}) groups are never treated
+   * <p>
+   * Splitting is performed by {@link #splitAtDepth(String, String, int, boolean)}
+   * so that commas
+   * inside nested angle-bracket ({@code < >}) or parenthesis ({@code ( )}) groups
+   * are never treated
    * as separators.
    *
-   * <p>Examples:
+   * <p>
+   * Examples:
    *
    * <pre>{@literal
    *   int32, float64
@@ -507,11 +590,14 @@ public abstract class Type {
    *   func.func<"(int32) -> (bool)">, string
    * }</pre>
    *
-   * @param parameterText The comma-separated parameter string (may be empty).
-   * @param parameterConsumer A consumer that validates the parsed parameters and uses them. Returns
-   *     an optional error message if validation fails.
-   * @throws IllegalArgumentException if the parameter string is malformed (e.g. empty parameters,
-   *     invalid integers, unbalanced brackets) or if validation fails.
+   * @param parameterText     The comma-separated parameter string (may be empty).
+   * @param parameterConsumer A consumer that validates the parsed parameters and
+   *                          uses them. Returns
+   *                          an optional error message if validation fails.
+   * @throws IllegalArgumentException if the parameter string is malformed (e.g.
+   *                                  empty parameters,
+   *                                  invalid integers, unbalanced brackets) or if
+   *                                  validation fails.
    */
   @Contract(pure = true)
   public static void consumeParameterText(
@@ -541,7 +627,8 @@ public abstract class Type {
           }
         }
 
-        // Otherwise, treat this as a nested parameterized ident and parse it recursively as a Type.
+        // Otherwise, treat this as a nested parameterized ident and parse it
+        // recursively as a Type.
         parameters.add(fromParameterizedIdent(parameter));
       }
 
@@ -554,11 +641,13 @@ public abstract class Type {
   }
 
   /**
-   * Quote a custom expression string by escaping special characters and wrapping it in double
+   * Quote a custom expression string by escaping special characters and wrapping
+   * it in double
    * quotes.
    *
    * @param expression the raw custom expression to quote.
-   * @return the quoted expression string suitable for inclusion in a parameterized ident.
+   * @return the quoted expression string suitable for inclusion in a
+   *         parameterized ident.
    */
   @Contract(pure = true)
   public static @NotNull String quoteCustomExpression(@NotNull String expression) {
@@ -566,7 +655,8 @@ public abstract class Type {
   }
 
   /**
-   * Escape a custom expression string by replacing backslashes and double quotes with their escaped
+   * Escape a custom expression string by replacing backslashes and double quotes
+   * with their escaped
    * forms.
    *
    * @param value the raw custom expression.
@@ -578,13 +668,16 @@ public abstract class Type {
   }
 
   /**
-   * Unquote a custom expression string by removing the surrounding double quotes and unescaping
+   * Unquote a custom expression string by removing the surrounding double quotes
+   * and unescaping
    * special characters.
    *
-   * @param value the quoted custom expression string (must start and end with double quotes).
+   * @param value the quoted custom expression string (must start and end with
+   *              double quotes).
    * @return the unquoted raw custom expression.
-   * @throws IllegalArgumentException if the input string is not properly quoted or contains
-   *     malformed escapes
+   * @throws IllegalArgumentException if the input string is not properly quoted
+   *                                  or contains
+   *                                  malformed escapes
    */
   @Contract(pure = true)
   public static @NotNull String unquoteCustomExpression(@NotNull String value) {
@@ -592,15 +685,20 @@ public abstract class Type {
   }
 
   /**
-   * Unescape a custom expression string by replacing escaped backslashes and double quotes with
-   * their literal forms. This method assumes that the input string has already been stripped of its
+   * Unescape a custom expression string by replacing escaped backslashes and
+   * double quotes with
+   * their literal forms. This method assumes that the input string has already
+   * been stripped of its
    * surrounding double quotes.
    *
-   * @param value the escaped custom expression string (must not contain unescaped backslashes or
-   *     double quotes).
+   * @param value the escaped custom expression string (must not contain unescaped
+   *              backslashes or
+   *              double quotes).
    * @return the unescaped raw custom expression.
-   * @throws IllegalArgumentException if the input string contains malformed escapes (e.g. a
-   *     backslash at the end of the string or an unescaped double quote).
+   * @throws IllegalArgumentException if the input string contains malformed
+   *                                  escapes (e.g. a
+   *                                  backslash at the end of the string or an
+   *                                  unescaped double quote).
    */
   @Contract(pure = true)
   public static @NotNull String unescapeCustomExpression(@NotNull String value) {
@@ -649,28 +747,39 @@ public abstract class Type {
   }
 
   /**
-   * Split {@code text} by the first occurrence of {@code delimiter} that appears at nesting depth
-   * 0, where depth is tracked by counting matched pairs of {@code < >} and {@code ( )}. Quoted
-   * substrings (delimited by {@code "..."}) are treated as atomic and may contain delimiters or
+   * Split {@code text} by the first occurrence of {@code delimiter} that appears
+   * at nesting depth
+   * 0, where depth is tracked by counting matched pairs of {@code < >} and
+   * {@code ( )}. Quoted
+   * substrings (delimited by {@code "..."}) are treated as atomic and may contain
+   * delimiters or
    * nested bracket characters without affecting the split.
    *
-   * <p>This is the core primitive used by {@link #extractParameterStrings(String)}. It can be
-   * reused whenever a string must be split on an arbitrary delimiter sequence while respecting
+   * <p>
+   * This is the core primitive used by {@link #extractParameterStrings(String)}.
+   * It can be
+   * reused whenever a string must be split on an arbitrary delimiter sequence
+   * while respecting
    * bracket nesting.
    *
-   * <p>If the delimiter does not appear at depth 0, the whole input is returned as a single-element
+   * <p>
+   * If the delimiter does not appear at depth 0, the whole input is returned as a
+   * single-element
    * list.
    *
-   * <p>Examples:
+   * <p>
+   * Examples:
    *
    * <pre>
    *   splitAtDepthZero("i32, string", ",")
    *       → ["i32", " string"]
    * </pre>
    *
-   * @param text the string to split; must not be {@code null}.
-   * @param delimiter the delimiter sequence to split on; must not be {@code null} or empty.
-   * @return an unmodifiable list of the parts (in order, not trimmed); never {@code null}.
+   * @param text      the string to split; must not be {@code null}.
+   * @param delimiter the delimiter sequence to split on; must not be {@code null}
+   *                  or empty.
+   * @return an unmodifiable list of the parts (in order, not trimmed); never
+   *         {@code null}.
    */
   @Contract(pure = true)
   public static @NotNull @Unmodifiable List<String> splitAtDepth(
@@ -696,7 +805,8 @@ public abstract class Type {
 
     // Add the final element which was not split by the delimiter.
     result.add(text.substring(start.get()));
-    if (tim) result.replaceAll(String::trim);
+    if (tim)
+      result.replaceAll(String::trim);
     return Collections.unmodifiableList(result);
   }
 }

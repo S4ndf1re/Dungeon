@@ -67,7 +67,7 @@ public abstract class Literal {
 
     @Override
     public String toString() {
-      return "List";
+      return "MyList";
     }
 
     @Override
