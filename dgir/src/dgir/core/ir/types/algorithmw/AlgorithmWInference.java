@@ -28,6 +28,7 @@ import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.Scope.ScopeLike;
+import dgir.core.traits.ISymbol;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -268,8 +269,10 @@ public final class AlgorithmWInference
       public final String toString() {
         if (args.size() > 1) {
           return func + " (" + args.stream().map(Object::toString).collect(Collectors.joining(",")) + ")";
-        } else {
+        } else if (!args.isEmpty()) {
           return func + " " + args.get(0);
+        } else {
+          return func + " ()";
         }
       }
 
@@ -336,9 +339,10 @@ public final class AlgorithmWInference
       public final String toString() {
         if (params.size() > 1) {
           return "λ(" + params.stream().map(Object::toString).collect(Collectors.joining(",")) + ")." + body + "";
-        } else {
+        } else if (!params.isEmpty()) {
           return "λ" + params.get(0) + "." + body + "";
-
+        } else {
+          return "λ()" + "." + body + "";
         }
       }
 
@@ -546,27 +550,34 @@ public final class AlgorithmWInference
     @Override
     public Expr generalBlockToInferenceExpr(GeneralBlock block) {
       ArrayList<Pair<Symbol, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
-      Optional<Value> lastValue = Optional.empty();
+      Optional<Symbol> lastValue = Optional.empty();
 
       for (var op : block.getOperations()) {
         var opOutput = op.getOutput();
         if (opOutput.isPresent()) {
-          bindings.add(Pair.of(Symbol.of(opOutput.get().getValue()), ExprOrOperator.of(op)));
-          lastValue = Optional.of(opOutput.get().getValue());
+          var sym = Symbol.of(opOutput.get().getValue());
+          bindings.add(Pair.of(sym, ExprOrOperator.of(op)));
+          lastValue = Optional.of(sym);
         } else {
           /*
            * NOTE: handle everything as a returnable value, even though something like a
            * function is not actually a expression! This is done to correctly typecheck
            * each function and their parameters!
            */
-          var val = new Value();
-          bindings.add(Pair.of(Symbol.of(val), ExprOrOperator.of(op)));
-          lastValue = Optional.of(val);
+          Symbol sym = null;
+          if (op.asOp() instanceof ISymbol isym) {
+            sym = Symbol.of(isym.getSymbol());
+          } else {
+            var val = new Value();
+            sym = Symbol.of(val);
+          }
+          bindings.add(Pair.of(sym, ExprOrOperator.of(op)));
+          lastValue = Optional.of(sym);
         }
       }
 
       if (lastValue.isPresent()) {
-        return new Expr.ExprLet(bindings, new Expr.ExprVar(Symbol.of(lastValue.get())));
+        return new Expr.ExprLet(bindings, new Expr.ExprVar(lastValue.get()));
       } else {
         return new Expr.ExprLet(bindings, new Expr.ExprLit(new Literal.Unit()));
       }
@@ -578,21 +589,16 @@ public final class AlgorithmWInference
 
       var params = fn.parameters.stream().map(param -> param.getLeft()).toList();
 
-      return Pair.of(fnName, new Expr.ExprAbs(params, this.generalBlockToInferenceExpr(fn.body)));
+      var exprBlock = this.generalBlockToInferenceExpr(fn.body);
+      return Pair.of(fnName, new Expr.ExprAbs(params, exprBlock));
 
     }
 
     @Override
     public Type solve(ExprOrOperator<Expr> expr) {
-      if (expr.isExpr()) {
-        Env env = new Env();
-        InferResult res = this.infer(expr, env);
-        return (Type) res.subst.apply(res.type);
-      } else {
-        throw new TypingException.UnsupportedExpression(
-            TypingException.UnsupportedExpression.AlgorithmType.AlgorithmW,
-            expr);
-      }
+      Env env = new Env();
+      InferResult res = this.infer(expr, env);
+      return (Type) res.subst.apply(res.type);
     }
 
     public InferResult infer(ExprOrOperator<Expr> expr, Env env) {
@@ -600,7 +606,7 @@ public final class AlgorithmWInference
         return expr.getExpr().infer(this, env);
       } else if (expr.isOperator()) {
         var op = expr.getOp();
-        return this.operationToExprBuffer.operationToExpr(op, this.registry, Expr.class).infer(this, env);
+        return this.operationToExprBuffer.operationToExpr(this, op, this.registry, Expr.class).infer(this, env);
       }
       throw new RuntimeException("unimplemented for OPs");
     }

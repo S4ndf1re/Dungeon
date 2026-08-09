@@ -2,6 +2,7 @@ package dgir.core.ir.types;
 
 import java.util.List;
 
+import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 
 /**
@@ -78,4 +79,24 @@ public abstract class Literal {
 
   }
 
+  public static class Generic extends Literal {
+    private Value value;
+    private GeneralParameterizedNominalType type;
+
+    public Generic(Value value) {
+      this.value = value;
+      assert value.getMaybeType().isPresent();
+      this.type = value.getType().asParameterizedNominalType();
+    }
+
+    @Override
+    public String toString() {
+      return this.value + "";
+    }
+
+    @Override
+    public GeneralParameterizedNominalType toParameterizedNominalType() {
+      return this.type;
+    }
+  }
 }
