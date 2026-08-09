@@ -1373,7 +1373,7 @@ public final class SystemFInference
         return expr.getExpr().infer(this, ctx);
       } else if (expr.isOperator()) {
         Operation op = expr.getOp();
-        return this.operationToExprBuffer.operationToExpr(op, this.registry, Expr.class).infer(this, ctx);
+        return this.operationToExprBuffer.operationToExpr(this, op, this.registry, Expr.class).infer(this, ctx);
       }
       throw new RuntimeException("unimplemented for OPs");
     }
@@ -1386,7 +1386,7 @@ public final class SystemFInference
       if (exprParam.isExpr()) {
         expr = exprParam.getExpr();
       } else if (exprParam.isOperator()) {
-        expr = this.operationToExprBuffer.operationToExpr(exprParam.getOp(), this.registry, Expr.class);
+        expr = this.operationToExprBuffer.operationToExpr(this, exprParam.getOp(), this.registry, Expr.class);
       } else {
         throw new RuntimeException("Can never happen, due to exhaustive If");
       }

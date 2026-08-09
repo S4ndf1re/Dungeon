@@ -1,6 +1,9 @@
 package dgir.dialect.func;
 
 import dgir.core.ir.*;
+import dgir.core.ir.types.GeneralParameterizedNominalType;
+import dgir.core.ir.types.TypeIdent;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,9 +16,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
-/** Sealed marker interface for all types contributed by the {@link FuncDialect}. */
+/**
+ * Sealed marker interface for all types contributed by the {@link FuncDialect}.
+ */
 public sealed interface FuncTypes {
-  /** Abstract base class for all type-descriptors contributed by the {@link FuncDialect}. */
+  /**
+   * Abstract base class for all type-descriptors contributed by the
+   * {@link FuncDialect}.
+   */
   sealed interface FuncTypeDescriptor extends TypeDescriptor {
     @Override
     default @NotNull Class<? extends Dialect> getDialect() {
@@ -45,18 +53,19 @@ public sealed interface FuncTypes {
       }
 
       @Override
-      public void initDefaultTypeInstances() {}
+      public void initDefaultTypeInstances() {
+      }
 
       /**
-       * Pattern to match correct function types and extract their arguments via group 1 and 2
+       * Pattern to match correct function types and extract their arguments via group
+       * 1 and 2
        * {@code ^func\.func<"\((.*)\)\s*->\s*\((.*)\)">$}
        */
-      private static final Pattern FUNC_TYPE_PATTERN =
-          Pattern.compile("^func\\.func<\"\\((.*)\\)\\s*->\\s*\\((.*)\\)\">$");
+      private static final Pattern FUNC_TYPE_PATTERN = Pattern
+          .compile("^func\\.func<\"\\((.*)\\)\\s*->\\s*\\((.*)\\)\">$");
 
       @Override
-      public @NotNull Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type>
-          getParameterizedIdentFactory() {
+      public @NotNull Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type> getParameterizedIdentFactory() {
         return args -> {
           Matcher matcher = FUNC_TYPE_PATTERN.matcher(args.getLeft());
           if (!matcher.matches()) {
@@ -71,7 +80,8 @@ public sealed interface FuncTypes {
           // Everything inside second ()
           String outputPart = Type.unescapeCustomExpression(matcher.group(2));
           Type output = null;
-          if (!outputPart.isBlank()) output = Type.fromParameterizedIdent(outputPart);
+          if (!outputPart.isBlank())
+            output = Type.fromParameterizedIdent(outputPart);
 
           return FuncType.of(inputs, output);
         };
@@ -82,13 +92,17 @@ public sealed interface FuncTypes {
   /**
    * Function signature type in the {@code func} dialect.
    *
-   * <p>A {@code FuncType} describes a function's parameter types and optional return type:
+   * <p>
+   * A {@code FuncType} describes a function's parameter types and optional return
+   * type:
    *
    * <pre>
    *   func.func&lt;"(int32, string) -&gt; (bool)"&gt;
    * </pre>
    *
-   * <p>The {@link #getParameterizedIdent()} method renders the full signature; simple (void/no-arg)
+   * <p>
+   * The {@link #getParameterizedIdent()} method renders the full signature;
+   * simple (void/no-arg)
    * function types can be compared by this string.
    */
   final class FuncType extends Type implements FuncTypes {
@@ -128,6 +142,27 @@ public sealed interface FuncTypes {
      */
     public static FuncType of(@NotNull List<Type> inputs, @Nullable Type output) {
       return TypeUniquer.uniqueInstance(new FuncType(inputs, output));
+    }
+
+    @Override
+    public GeneralParameterizedNominalType asParameterizedNominalType() {
+      var collectedInputs = this.getInputs().stream()
+          .map(inputType -> new GeneralParameterizedNominalType.GeneralTypeParameter.Concrete(
+              inputType.asParameterizedNominalType()))
+          .toList();
+
+      GeneralParameterizedNominalType.GeneralTypeParameter output = null;
+      if (this.getOutput() != null) {
+        output = new GeneralParameterizedNominalType.GeneralTypeParameter.Concrete(
+            this.getOutput().asParameterizedNominalType());
+      } else {
+        output = new GeneralParameterizedNominalType.GeneralTypeParameter.Concrete(
+            new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_UNIT));
+      }
+
+      ArrayList<GeneralParameterizedNominalType.GeneralTypeParameter> typeParams = new ArrayList<>(collectedInputs);
+      typeParams.add(output);
+      return new GeneralParameterizedNominalType(TypeIdent.from(this.getIdent()), List.copyOf(typeParams));
     }
 
     // =========================================================================
