@@ -10,10 +10,10 @@ import dgir.core.ir.Value;
 public class GeneralFunctionType {
 
   public final String name;
-  public final List<Pair<Value, Optional<Type>>> parameters;
+  public final List<Pair<Symbol, Optional<Type>>> parameters;
   public final Optional<Pair<Value, Optional<Type>>> returnValue;
 
-  public GeneralFunctionType(String name, List<Pair<Value, Optional<Type>>> parameters,
+  public GeneralFunctionType(String name, List<Pair<Symbol, Optional<Type>>> parameters,
       Optional<Pair<Value, Optional<Type>>> returnValue) {
     this.name = name;
     this.parameters = parameters;
