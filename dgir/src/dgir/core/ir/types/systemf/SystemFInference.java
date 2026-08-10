@@ -383,11 +383,15 @@ public final class SystemFInference
       var input = ctx + " |- " + this + " <=" + ty;
       if (ty instanceof SystemFType.ForAll forall) {
         var newCtx = ctx.copy();
+        var mark = new Entry.Mark();
+        newCtx.push(mark);
         newCtx.push(new Entry.TVarBnd(forall.boundVar));
+
         CheckResult checkRes = engine.check(newCtx, this, forall.body);
         Break3Result breakRes = checkRes.ctx.break3(
-            entry -> entry instanceof Entry.TVarBnd bnd &&
-                bnd.tyVar.equals(forall.boundVar));
+            entry -> entry instanceof Entry.Mark m &&
+                m.equals(mark));
+
         Context finalCtx = new Context(breakRes.left);
         return new CheckResult(
             finalCtx,
@@ -551,6 +555,8 @@ public final class SystemFInference
         var input = ctx + " |- " + this;
         var b = new TypeVar();
         var newCtx = ctx.copy();
+        var mark = new Entry.Mark();
+        newCtx.push(mark);
 
         newCtx.push(new Entry.VarBnd(this.name, this.type));
         // TODO(jan): provide solution here to name == type
@@ -558,7 +564,7 @@ public final class SystemFInference
 
         var c1 = engine.check(newCtx, this.body, new SystemFType.EtVar(b));
         var breakRes = c1.ctx.break3(
-            entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
+            entry -> entry instanceof Entry.Mark m && m.equals(mark));
 
         var solvedFinalCtxEntries = new ArrayList<>(breakRes.left);
         solvedFinalCtxEntries.addAll(breakRes.right
@@ -589,11 +595,13 @@ public final class SystemFInference
         var input = ctx + " |- " + this + " <=" + ty;
         if (ty instanceof SystemFType.Arrow arrow) {
           var newCtx = ctx.copy();
+          var mark = new Entry.Mark();
+          newCtx.push(mark);
           newCtx.push(new Entry.VarBnd(this.name, arrow.from));
 
           var bodyCheck = engine.check(newCtx, this.body, arrow.to);
           var break3Result = bodyCheck.ctx.break3(
-              entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
+              entry -> entry instanceof Entry.Mark m && m.equals(mark));
 
           var finalCtx = new Context(break3Result.left);
 
@@ -699,14 +707,17 @@ public final class SystemFInference
       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
         var input = ctx + " |- " + this;
         var newCtx = ctx.copy();
+        var mark = new Entry.Mark();
+        newCtx.push(mark);
         newCtx.push(new Entry.TVarBnd(this.variable));
+
         var bodyInferred = engine.infer(newCtx, this.body);
 
         var resolvedBodyType = bodyInferred.ctx.apply(bodyInferred.type);
 
         var break3Result = bodyInferred.ctx.break3(
-            entry -> entry instanceof Entry.TVarBnd bnd &&
-                bnd.tyVar.equals(this.variable));
+            entry -> entry instanceof Entry.Mark m &&
+                m.equals(mark));
 
         var solvedFinalCtxEntries = new ArrayList<>(break3Result.left);
 
@@ -976,18 +987,39 @@ public final class SystemFInference
         TypeResult infer(TypeInference engine, Context ctx, Object data);
       }
 
+      @FunctionalInterface
+      public interface CheckFunction {
+        CheckResult check(TypeInference engine, Context ctx, SystemFType ty, Object data);
+      }
+
       private Object data;
       private InferFunction inferFn;
+      private Optional<CheckFunction> checkFn;
 
       public Custom(Object data, InferFunction inferFn) {
         this.data = data;
         this.inferFn = inferFn;
+        this.checkFn = Optional.empty();
+      }
 
+      public Custom(Object data, InferFunction inferFn, CheckFunction checkFn) {
+        this.data = data;
+        this.inferFn = inferFn;
+        this.checkFn = Optional.ofNullable(checkFn);
       }
 
       @Override
       public TypeResult infer(TypeInference engine, Context ctx) {
         return this.inferFn.infer(engine, ctx, data);
+      }
+
+      @Override
+      public CheckResult check(TypeInference engine, Context ctx, SystemFType ty) {
+        if (this.checkFn.isPresent()) {
+          return this.checkFn.get().check(engine, ctx, ty, data);
+        } else {
+          return Expr.super.check(engine, ctx, ty);
+        }
       }
 
     }
