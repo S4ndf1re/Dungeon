@@ -2,11 +2,13 @@ package dgir.core.ir.types.systemf;
 
 import dgir.core.ir.types.systemf.SystemFInference.Context.Break3Result;
 import dgir.core.ir.types.systemf.SystemFInference.TypeInference.CheckResult;
+import dgir.core.ir.types.systemf.SystemFInference.TypeInference.SubtypeResult;
 import dgir.core.ir.types.systemf.SystemFInference.TypeInference.TypeResult;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralBlock;
+import dgir.core.ir.types.GeneralFunctionType;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
@@ -20,10 +22,13 @@ import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.TypeVar.TypeVarScope;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
+import dgir.core.ir.types.compatibility.Scope.ScopeLike;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
+import dgir.core.ir.types.compatibility.Scope;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -401,7 +406,7 @@ public final class SystemFInference
             entry -> entry instanceof Entry.Mark m &&
                 m.equals(mark));
 
-        Context finalCtx = new Context(breakRes.left);
+        Context finalCtx = new Context(breakRes.left, checkRes.ctx);
         return new CheckResult(
             finalCtx,
             new InferenceTree(
@@ -506,7 +511,7 @@ public final class SystemFInference
               new SystemFType.EtVar(a1),
               new SystemFType.EtVar(a2));
 
-          var newCtx = new Context(breakRes.left);
+          var newCtx = new Context(breakRes.left, funcInferred.ctx);
           newCtx.push(new Entry.SETVarBnd(a, arrowType));
           newCtx.push(new Entry.ETVarBnd(a1));
           newCtx.push(new Entry.ETVarBnd(a2));
@@ -564,6 +569,8 @@ public final class SystemFInference
         var input = ctx + " |- " + this;
         var b = new TypeVar();
         var newCtx = ctx.copy();
+        Scope<SystemFType> scope = newCtx.addScope();
+
         var mark = new Entry.Mark();
         newCtx.push(mark);
 
@@ -572,7 +579,19 @@ public final class SystemFInference
         newCtx.push(new Entry.ETVarBnd(b));
 
         var c1 = engine.check(newCtx, this.body, new SystemFType.EtVar(b));
-        var breakRes = c1.ctx.break3(
+
+        Context furtherCtx = c1.ctx.copy();
+        SystemFType resultType = new SystemFType.EtVar(b);
+        ArrayList<InferenceTree> trees = new ArrayList<>();
+
+        for (var retType : scope.getAllReturnTypesInScope()) {
+          SubtypeResult subTypeRes = engine.subtype(furtherCtx, retType, resultType);
+          furtherCtx = subTypeRes.ctx;
+          trees.add(subTypeRes.tree);
+          resultType = furtherCtx.apply(resultType);
+        }
+
+        var breakRes = furtherCtx.break3(
             entry -> entry instanceof Entry.Mark m && m.equals(mark));
 
         var solvedFinalCtxEntries = new ArrayList<>(breakRes.left);
@@ -581,10 +600,10 @@ public final class SystemFInference
             .filter(entry -> entry instanceof Entry.SETVarBnd)
             .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
 
-        var finalCtx = new Context(solvedFinalCtxEntries);
+        var finalCtx = new Context(solvedFinalCtxEntries, furtherCtx);
         var resType = new SystemFType.Arrow(
             this.type,
-            new SystemFType.EtVar(b));
+            resultType);
 
         return new TypeInference.TypeResult(
             resType,
@@ -612,7 +631,7 @@ public final class SystemFInference
           var break3Result = bodyCheck.ctx.break3(
               entry -> entry instanceof Entry.Mark m && m.equals(mark));
 
-          var finalCtx = new Context(break3Result.left);
+          var finalCtx = new Context(break3Result.left, bodyCheck.ctx);
 
           return new TypeInference.CheckResult(
               finalCtx,
@@ -734,7 +753,7 @@ public final class SystemFInference
             .stream()
             .filter(entry -> entry instanceof Entry.SETVarBnd)
             .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
-        var finalCtx = new Context(solvedFinalCtxEntries);
+        var finalCtx = new Context(solvedFinalCtxEntries, bodyInferred.ctx);
         var resType = new SystemFType.ForAll(this.variable, resolvedBodyType);
 
         var output = input + " => " + resType + " -| " + finalCtx;
@@ -855,7 +874,7 @@ public final class SystemFInference
             .stream()
             .filter(entry -> entry instanceof Entry.SETVarBnd)
             .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
-        var finalCtx = new Context(solvedFinalCtxEntries);
+        var finalCtx = new Context(solvedFinalCtxEntries, bodyInferred.ctx);
 
         return new TypeInference.TypeResult(
             bodyInferred.type,
@@ -989,6 +1008,27 @@ public final class SystemFInference
       }
     }
 
+    public final class Return implements Expr {
+
+      private ExprOrOperator<Expr> value;
+
+      public Return(ExprOrOperator<Expr> value) {
+        this.value = value;
+      }
+
+      @Override
+      public TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+
+        TypeResult res = engine.infer(ctx, this.value);
+        SystemFType resultType = res.ctx().apply(res.type);
+
+        var output = input + " => Bool -| " + res.ctx;
+        return new TypeResult(resultType, res.ctx, new InferenceTree("InfRet", input, output, List.of(res.tree)));
+      }
+
+    }
+
     public final class Custom implements Expr {
 
       @FunctionalInterface
@@ -1032,6 +1072,7 @@ public final class SystemFInference
       }
 
     }
+
   }
 
   /** Context entry for type checking and inference */
@@ -1080,16 +1121,23 @@ public final class SystemFInference
     }
   }
 
-  public static class Context {
+  public static class Context extends ScopeLike<SystemFType> {
 
     private List<Entry> entries;
 
     public Context() {
+      super();
       this.entries = new ArrayList<>();
     }
 
-    public Context(List<Entry> entries) {
+    public Context(List<Entry> entries, Context other) {
+      super(other);
       this.entries = new ArrayList<>(entries);
+    }
+
+    public Context(Context other) {
+      super(other);
+      this.entries = new ArrayList<>(other.entries);
     }
 
     @Override
@@ -1122,9 +1170,7 @@ public final class SystemFInference
     }
 
     public Context copy() {
-      var list = new ArrayList<Entry>();
-      list.addAll(this.entries);
-      return new Context(list);
+      return new Context(this);
     }
 
     /**
@@ -1162,13 +1208,14 @@ public final class SystemFInference
     public static Context fromParts(
         List<Entry> left,
         Entry middle,
-        List<Entry> right) {
+        List<Entry> right,
+        Context oldContext) {
       var list = new ArrayList<Entry>();
       list.addAll(left);
       list.add(middle);
       list.addAll(right);
 
-      return new Context(list);
+      return new Context(list, oldContext);
     }
 
     public SystemFType applyOnce(SystemFType type) {
@@ -1280,6 +1327,23 @@ public final class SystemFInference
     }
 
     @Override
+    public Pair<Symbol, Expr> generalFunctionToInferenceExpr(GeneralFunctionType fn) {
+
+      Expr abs = this.generalBlockToInferenceExpr(fn.body);
+
+      for (var param : fn.parameters.reversed()) {
+        if (!param.getRight().isPresent() || !(param.getRight().get() instanceof SystemFType)) {
+          throw new IllegalArgumentException(
+              "param type must be specified for " + param.getLeft() + " and of instance SystemFType");
+        }
+
+        abs = new Expr.Abs(param.getLeft(), (SystemFType) param.getRight().get(), abs);
+      }
+
+      return Pair.of(Symbol.of(fn.name), abs);
+    }
+
+    @Override
     public Type solve(ExprOrOperator<Expr> expr) {
       if (expr.isExpr()) {
         var res = this.infer(new Context(), expr);
@@ -1338,7 +1402,7 @@ public final class SystemFInference
             entry -> entry instanceof Entry.TVarBnd bnd &&
                 bnd.tyVar.equals(forall.boundVar));
 
-        var finalCtx = new Context(break3Result.left);
+        var finalCtx = new Context(break3Result.left, bodyCheck.ctx);
 
         return new CheckResult(
             finalCtx,
@@ -1413,7 +1477,7 @@ public final class SystemFInference
         Break3Result breakRes = subtypeRes.ctx.break3(
             entry -> entry instanceof Entry.TVarBnd bnd &&
                 bnd.tyVar.equals(forall.boundVar));
-        Context finalCtx = new Context(breakRes.left);
+        Context finalCtx = new Context(breakRes.left, subtypeRes.ctx);
 
         return new SubtypeResult(
             finalCtx,
@@ -1436,7 +1500,7 @@ public final class SystemFInference
         var subtypeRes = this.subtype(newCtx, substT1, ty2);
         var breakRes = subtypeRes.ctx.break3(
             entry -> entry instanceof Entry.Mark m && m.equals(mark));
-        var finalCtx = new Context(breakRes.left);
+        var finalCtx = new Context(breakRes.left, subtypeRes.ctx);
         return new SubtypeResult(
             finalCtx,
             new InferenceTree(
@@ -1473,7 +1537,7 @@ public final class SystemFInference
         var newCtx = Context.fromParts(
             breakRes.left,
             new Entry.SETVarBnd(etvar.tyVar, new SystemFType.EtVar(a)),
-            breakRes.right);
+            breakRes.right, ctx);
         return new InstResult(
             newCtx,
             new InferenceTree("InstLReach", input, "" + newCtx, List.of()));
@@ -1486,7 +1550,7 @@ public final class SystemFInference
 
           var breakRes = ctx.break3(entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(a));
 
-          Context newCtx = new Context(breakRes.left);
+          Context newCtx = new Context(breakRes.left, ctx);
           newCtx.push(new Entry.SETVarBnd(a, litType));
           for (var ext : existentials) {
             newCtx.push(new Entry.ETVarBnd(ext));
@@ -1517,7 +1581,7 @@ public final class SystemFInference
             new SystemFType.EtVar(a1),
             new SystemFType.EtVar(a2));
 
-        var newCtx = new Context(breakRes.left);
+        var newCtx = new Context(breakRes.left, ctx);
         newCtx.push(new Entry.SETVarBnd(a, arrowType));
         newCtx.push(new Entry.ETVarBnd(a1));
         newCtx.push(new Entry.ETVarBnd(a2));
@@ -1541,7 +1605,7 @@ public final class SystemFInference
         var breakRes = instLRes.ctx.break3(
             entry -> entry instanceof Entry.TVarBnd bnd &&
                 bnd.tyVar.equals(forall.boundVar));
-        var finalCtx = new Context(breakRes.left);
+        var finalCtx = new Context(breakRes.left, instLRes.ctx);
         return new InstResult(
             finalCtx,
             new InferenceTree(
@@ -1559,7 +1623,7 @@ public final class SystemFInference
         var newCtx = Context.fromParts(
             breakRes.left,
             new Entry.SETVarBnd(a, ty),
-            breakRes.right);
+            breakRes.right, ctx);
         return new InstResult(
             newCtx,
             new InferenceTree("InstLSolve", input, "" + newCtx, List.of()));
@@ -1577,7 +1641,7 @@ public final class SystemFInference
         var newCtx = Context.fromParts(
             breakRes.left,
             new Entry.SETVarBnd(etvar.tyVar, new SystemFType.EtVar(a)),
-            breakRes.right);
+            breakRes.right, ctx);
 
         return new InstResult(
             newCtx,
@@ -1591,7 +1655,7 @@ public final class SystemFInference
 
           var breakRes = ctx.break3(entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar.equals(a));
 
-          Context newCtx = new Context(breakRes.left);
+          Context newCtx = new Context(breakRes.left, ctx);
           newCtx.push(new Entry.SETVarBnd(a, litType));
           for (var ext : existentials) {
             newCtx.push(new Entry.ETVarBnd(ext));
@@ -1623,7 +1687,7 @@ public final class SystemFInference
             new SystemFType.EtVar(a1),
             new SystemFType.EtVar(a2));
 
-        var newCtx = new Context(breakRes.left);
+        var newCtx = new Context(breakRes.left, ctx);
         newCtx.push(new Entry.SETVarBnd(a, arrowType));
         newCtx.push(new Entry.ETVarBnd(a1));
         newCtx.push(new Entry.ETVarBnd(a2));
@@ -1654,7 +1718,7 @@ public final class SystemFInference
         var instRRes = this.instR(newCtx, substT, a);
         var breakRes = instRRes.ctx.break3(
             entry -> entry instanceof Entry.Mark m && m.equals(mark));
-        var finalCtx = new Context(breakRes.left);
+        var finalCtx = new Context(breakRes.left, instRRes.ctx);
         return new InstResult(
             finalCtx,
             new InferenceTree(
@@ -1672,7 +1736,7 @@ public final class SystemFInference
         var newCtx = Context.fromParts(
             breakRes.left,
             new Entry.SETVarBnd(a, ty),
-            breakRes.right);
+            breakRes.right, ctx);
         return new InstResult(
             newCtx,
             new InferenceTree("InstRSolve", input, "" + ctx, List.of()));
