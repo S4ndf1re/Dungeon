@@ -238,18 +238,29 @@ public final class AlgorithmWInference
     public static final class ExprApp implements Expr {
 
       private final ExprOrOperator<Expr> func;
-      private final ExprOrOperator<Expr> arg;
+      private final List<ExprOrOperator<Expr>> args;
 
       public ExprApp(
           ExprOrOperator<Expr> func,
           ExprOrOperator<Expr> arg) {
         this.func = func;
-        this.arg = arg;
+        this.args = List.of(arg);
+      }
+
+      public ExprApp(
+          ExprOrOperator<Expr> func,
+          List<ExprOrOperator<Expr>> args) {
+        this.func = func;
+        this.args = List.copyOf(args);
       }
 
       @Override
       public final String toString() {
-        return func + " " + arg;
+        if (args.size() > 1) {
+          return func + " (" + args.stream().map(Object::toString).collect(Collectors.joining(",")) + ")";
+        } else {
+          return func + " " + args.get(0);
+        }
       }
 
       @Override
@@ -258,53 +269,81 @@ public final class AlgorithmWInference
 
         AlgorithmWType resultType = new AlgorithmWType.Var(new TypeVar());
 
-        InferResult res1 = engine.infer(func, env);
+        InferResult funcInferRes = engine.infer(func, env);
 
-        Env envSubst = env.apply(res1.subst);
+        Env envSubst = env.apply(funcInferRes.subst);
 
-        InferResult res2 = engine.infer(arg, envSubst);
+        Subst finalSubst = funcInferRes.subst;
+        AlgorithmWType builtArrowType = resultType;
+        ArrayList<InferenceTree> trees = new ArrayList<>();
+        trees.add(funcInferRes.tree);
 
-        AlgorithmWType funcTypeSubst = res2.subst.apply(res1.type);
-        AlgorithmWType expectedFuncType = new Arrow(res2.type, resultType);
-        UnifyResult res3 = engine.unify(funcTypeSubst, expectedFuncType);
+        for (var arg : this.args.reversed()) {
+          InferResult argRes = engine.infer(arg, envSubst);
+          finalSubst = argRes.subst.compose(finalSubst);
+          envSubst = envSubst.apply(finalSubst);
+          builtArrowType = new Arrow(argRes.type, builtArrowType);
+          trees.add(argRes.tree);
+        }
 
-        Subst finalSubst = res3.subst.compose(res2.subst.compose(res1.subst));
-        AlgorithmWType finalType = res3.subst.apply(resultType);
+        AlgorithmWType funcTypeSubst = finalSubst.apply(funcInferRes.type);
+        UnifyResult unifyRes = engine.unify(funcTypeSubst, builtArrowType);
+
+        finalSubst = unifyRes.subst.compose(finalSubst);
+        // NOTE: subst the restltType not the builtArrowType, as the the arrow type is only needed for unification to build the final subst
+        resultType = unifyRes.subst.apply(resultType);
+
+        trees.add(unifyRes.tree);
 
         return new InferResult(
             finalSubst,
-            finalType,
+            resultType,
             new InferenceTree(
                 "T-App",
                 input,
-                "" + finalType,
-                List.of(res1.tree, res2.tree, res3.tree)));
+                "" + builtArrowType,
+                List.copyOf(trees)));
       }
     }
 
     public static final class ExprAbs implements Expr {
 
-      private final Symbol param;
+      private final List<Symbol> params;
       private final ExprOrOperator<Expr> body;
 
       public ExprAbs(Symbol param, ExprOrOperator<Expr> body) {
-        this.param = param;
+        this.params = List.of(param);
+        this.body = body;
+      }
+
+      public ExprAbs(List<Symbol> params, ExprOrOperator<Expr> body) {
+        this.params = List.copyOf(params);
         this.body = body;
       }
 
       @Override
       public final String toString() {
-        return "λ" + param + "." + body + "";
+        if (params.size() > 1) {
+          return "λ(" + params.stream().map(Object::toString).collect(Collectors.joining(",")) + ")." + body + "";
+        } else {
+          return "λ" + params.get(0) + "." + body + "";
+
+        }
       }
 
       @Override
       public InferResult infer(TypeInference engine, Env env) {
         String input = env + " |- " + this;
 
-        AlgorithmWType freshTypeVar = new AlgorithmWType.Var(new TypeVar(this.param));
         Env newEnv = env.copy();
-        Scheme newScheme = new Scheme(List.of(), freshTypeVar);
-        newEnv.env.put(param, newScheme);
+        ArrayList<Pair<Symbol, TypeVar>> paramsAndTypeVars = new ArrayList<>();
+        for (var param : this.params) {
+          var typeVar = new TypeVar();
+          AlgorithmWType freshTypeVar = new AlgorithmWType.Var(typeVar);
+          Scheme newScheme = new Scheme(List.of(), freshTypeVar);
+          newEnv.env.put(param, newScheme);
+          paramsAndTypeVars.add(Pair.of(param, typeVar));
+        }
 
         Scope functionScope = newEnv.addScope();
         AlgorithmWType retTypeVar = new AlgorithmWType.Var(new TypeVar());
@@ -334,9 +373,10 @@ public final class AlgorithmWInference
         UnifyResult retTypeUnify = engine.unify(res.type, retTypeVar);
         subst = retTypeUnify.subst.compose(subst);
 
-        AlgorithmWType resultType = new Arrow(
-            subst.apply(freshTypeVar),
-            subst.apply(retTypeVar));
+        AlgorithmWType resultType = subst.apply(retTypeVar);
+        for (var paramAndTypeVar : paramsAndTypeVars.reversed()) {
+          resultType = new Arrow(subst.apply(new AlgorithmWType.Var(paramAndTypeVar.getRight())), resultType);
+        }
 
         return new InferResult(
             subst,
