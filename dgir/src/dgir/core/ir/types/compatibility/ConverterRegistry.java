@@ -6,7 +6,6 @@ import java.util.Optional;
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
-import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
 
 public class ConverterRegistry {
@@ -42,28 +41,28 @@ public class ConverterRegistry {
 
   // Holy hell what a type this is ............ All in the name of type safety.
   // Right?
-  private HashMap<Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>>, TypeDialectConverterRegistry> converters;
+  private static HashMap<Class<? extends TypeDialect<?, ?, ?, ?>>, TypeDialectConverterRegistry> converters;
 
-  public void registerDialect(
-      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>> dialect) {
+  public static void registerDialect(
+      Class<? extends TypeDialect<?, ?, ?, ?>> dialect) {
 
-    if (this.converters.containsKey(dialect)) {
+    if (converters.containsKey(dialect)) {
       return;
     }
 
-    this.converters.put(dialect, new TypeDialectConverterRegistry());
+    converters.put(dialect, new TypeDialectConverterRegistry());
   }
 
-  public void deregisterDialect(
-      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>> dialect) {
-    this.converters.remove(dialect);
+  public static void deregisterDialect(
+      Class<? extends TypeDialect<?, ?, ?, ?>> dialect) {
+    converters.remove(dialect);
   }
 
-  public void addOperatorsToDialect(
-      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>> dialect,
+  public static void addOperatorsToDialect(
+      Class<? extends TypeDialect<?, ?, ?, ?>> dialect,
       Pair... pairs) {
 
-    var convertersForDialect = this.converters.get(dialect);
+    var convertersForDialect = converters.get(dialect);
     if (convertersForDialect == null) {
       throw new RuntimeException("Dialect " + dialect.getName() + " is not registered");
     }
@@ -73,16 +72,14 @@ public class ConverterRegistry {
     }
   }
 
-  public Optional<ConverterFunction> getConverterForDialectAndOp(
-      Class<? extends TypeDialect<? extends InferOrTransformResult<? extends InferResultMarker<? extends Type>, ? extends Expression>, ? extends CompatibilityMarker, ? extends Expression, ? extends Type>> dialect,
-      Op op) {
-    var dialectConverters = this.converters.get(dialect);
+  public static <D extends TypeDialect<?, ?, ?, ?>> Optional<TypeDialectConverterRegistry> getConverterForDialect(
+      Class<D> dialect) {
+    var dialectConverters = converters.get(dialect);
     if (dialectConverters == null) {
       return Optional.empty();
     }
 
-    var converter = dialectConverters.getConverter(op);
-    return Optional.of(converter);
+    return Optional.ofNullable(dialectConverters);
   }
 
 }
