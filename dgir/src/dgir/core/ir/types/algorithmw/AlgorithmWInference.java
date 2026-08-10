@@ -23,6 +23,7 @@ import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
+import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
 import java.util.ArrayList;
@@ -47,7 +48,13 @@ public final class AlgorithmWInference
     if (AlgorithmWInference.instance.isPresent()) {
       return AlgorithmWInference.instance.get();
     } else {
-      TypeInference solver = new TypeInference();
+      TypeInference solver = null;
+      var converterRegistry = ConverterRegistry.getConverterForDialect(AlgorithmWInference.class);
+      if (converterRegistry.isPresent()) {
+        solver = new TypeInference(converterRegistry.get());
+      } else {
+        solver = new TypeInference();
+      }
       AlgorithmWInference.instance = Optional.of(solver);
       return solver;
     }

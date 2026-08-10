@@ -18,6 +18,7 @@ import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.TypeVar.TypeVarScope;
+import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
@@ -54,11 +55,18 @@ public final class SystemFInference
 
   @Override
   public TypeInferenceSolver<ExprOrOperator<Expr>, Expr> getSolverInstance() {
-    if (solver.isPresent()) {
-      return solver.get();
+    if (SystemFInference.solver.isPresent()) {
+      return SystemFInference.solver.get();
     } else {
-      solver = Optional.of(new TypeInference());
-      return solver.get();
+      TypeInference solverInstance = null;
+      var converterRegistry = ConverterRegistry.getConverterForDialect(SystemFInference.class);
+      if (converterRegistry.isPresent()) {
+        solverInstance = new TypeInference(converterRegistry.get());
+      } else {
+        solverInstance = new TypeInference();
+      }
+      SystemFInference.solver = Optional.of(solverInstance);
+      return solverInstance;
     }
   }
 
