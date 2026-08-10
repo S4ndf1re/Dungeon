@@ -131,9 +131,9 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class UnboundVariable extends TypingException {
 
-    public final Value varName;
+    public final Symbol varName;
 
-    public UnboundVariable(Value varName) {
+    public UnboundVariable(Symbol varName) {
       super("Variable " + varName + " is unbound");
       this.varName = varName;
     }

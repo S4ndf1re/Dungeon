@@ -10,6 +10,7 @@ import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
 import dgir.core.ir.types.TypeIdent;
@@ -417,9 +418,9 @@ public final class SystemFInference
 
     public static final class Var implements Expr {
 
-      private final Value name;
+      private final Symbol name;
 
-      public Var(Value name) {
+      public Var(Symbol name) {
         this.name = name;
       }
 
@@ -535,11 +536,11 @@ public final class SystemFInference
 
     public static final class Abs implements Expr {
 
-      private final Value name;
+      private final Symbol name;
       private final SystemFType type;
       private final ExprOrOperator<Expr> body;
 
-      public Abs(Value name, SystemFType type, ExprOrOperator<Expr> body) {
+      public Abs(Symbol name, SystemFType type, ExprOrOperator<Expr> body) {
         this.name = name;
         this.type = type;
         this.body = body;
@@ -788,15 +789,15 @@ public final class SystemFInference
 
     public static final class Let implements Expr {
 
-      private final List<Pair<Value, ExprOrOperator<Expr>>> bindings;
+      private final List<Pair<Symbol, ExprOrOperator<Expr>>> bindings;
       private final ExprOrOperator<Expr> body;
 
-      public Let(Value name, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
+      public Let(Symbol name, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
         this.bindings = List.of(Pair.of(name, value));
         this.body = body;
       }
 
-      public Let(List<Pair<Value, ExprOrOperator<Expr>>> bindings, ExprOrOperator<Expr> body) {
+      public Let(List<Pair<Symbol, ExprOrOperator<Expr>>> bindings, ExprOrOperator<Expr> body) {
         this.bindings = List.copyOf(bindings);
         this.body = body;
       }
@@ -812,7 +813,7 @@ public final class SystemFInference
         var input = ctx + " |- " + this;
         Context newCtx = ctx.copy();
         ArrayList<InferenceTree> trees = new ArrayList<>();
-        ArrayList<Triple<Value, TypeVar, ExprOrOperator<Expr>>> nonUnified = new ArrayList<>(this.bindings.size());
+        ArrayList<Triple<Symbol, TypeVar, ExprOrOperator<Expr>>> nonUnified = new ArrayList<>(this.bindings.size());
 
         var mark = new Entry.Mark();
         newCtx.push(mark);
@@ -827,7 +828,7 @@ public final class SystemFInference
         for (var binding : nonUnified) {
           var typeVar = binding.getMiddle();
           var expr = binding.getRight();
-          var valueInferred = engine.check(newCtx, expr, new SystemFType.EtVar(typeVar));
+          var valueInferred = engine.check(newCtx, expr, newCtx.apply(new SystemFType.EtVar(typeVar)));
           newCtx = valueInferred.ctx.copy();
 
           // TODO(jan): set name == type here!
@@ -1028,7 +1029,7 @@ public final class SystemFInference
   /** Context entry for type checking and inference */
   public sealed interface Entry {
     public final record VarBnd(
-        Value tmVar,
+        Symbol tmVar,
         SystemFType type) implements Entry {
       @Override
       public final String toString() {
@@ -1243,21 +1244,21 @@ public final class SystemFInference
 
     @Override
     public Expr generalBlockToInferenceExpr(GeneralBlock block) {
-      ArrayList<Pair<Value, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
-      Optional<Value> lastValue = Optional.empty();
+      ArrayList<Pair<Symbol, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
+      Optional<Symbol> lastValue = Optional.empty();
 
       for (var op : block.getOperations()) {
         var opOutput = op.getOutput();
         if (opOutput.isPresent()) {
-          bindings.add(Pair.of(opOutput.get().getValue(), ExprOrOperator.of(op)));
-          lastValue = Optional.of(opOutput.get().getValue());
+          bindings.add(Pair.of(Symbol.of(opOutput.get().getValue()), ExprOrOperator.of(op)));
+          lastValue = Optional.of(Symbol.of(opOutput.get().getValue()));
         } else {
           /*
            * NOTE: handle everything as a returnable value, even though something like a
            * function is not actually a expression! This is done to correctly typecheck
            * each function and their parameters!
            */
-          var val = new Value();
+          var val = Symbol.of(new Value());
           bindings.add(Pair.of(val, ExprOrOperator.of(op)));
           lastValue = Optional.of(val);
         }

@@ -1,5 +1,6 @@
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.systemf.SystemFInference;
 import dgir.core.ir.types.systemf.SystemFInference.Expr;
@@ -19,7 +20,7 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
-    var x = new Value();
+    var x = Symbol.of(new Value());
 
     var expr = new Expr.Abs(
         x,
@@ -40,9 +41,9 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
-    var add = new Value();
-    var x = new Value();
-    var y = new Value();
+    var add = Symbol.of(new Value());
+    var x = Symbol.of(new Value());
+    var y = Symbol.of(new Value());
 
     var expr = new Expr.Let(
         add,
@@ -73,8 +74,8 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
-    var add = new Value();
-    var x = new Value();
+    var add = Symbol.of(new Value());
+    var x = Symbol.of(new Value());
 
     var expr = new Expr.Ann(new Expr.Let(
         add,
@@ -102,11 +103,11 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
-    var add = new Value();
-    var a = new Value();
-    var b = new Value();
-    var x = new Value();
-    var y = new Value();
+    var add = Symbol.of(new Value());
+    var a = Symbol.of(new Value());
+    var b = Symbol.of(new Value());
+    var x = Symbol.of(new Value());
+    var y = Symbol.of(new Value());
 
     var expr = new Expr.Let(
         List.of(
@@ -135,10 +136,10 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
-    Value a = new Value();
-    Value b = new Value();
-    Value x = new Value();
-    Value y = new Value();
+    Symbol a = Symbol.of(new Value());
+    Symbol b = Symbol.of(new Value());
+    Symbol x = Symbol.of(new Value());
+    Symbol y = Symbol.of(new Value());
 
     // let a : Int -> Int = \x.(b x)
     // b = \y.(a y)
@@ -160,7 +161,6 @@ public class SystemFTest {
 
     var result = solver.solve(expr);
     assert result instanceof SystemFType;
-    System.out.println(result);
     assert result instanceof SystemFType.Lit;
     assert ((Lit) result).ident.equals(TypeIdent.TYPE_IDENT_INT);
   }
@@ -170,10 +170,10 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
 
-    Value a = new Value();
-    Value b = new Value();
-    Value x = new Value();
-    Value y = new Value();
+    Symbol a = Symbol.of(new Value());
+    Symbol b = Symbol.of(new Value());
+    Symbol x = Symbol.of(new Value());
+    Symbol y = Symbol.of(new Value());
 
     // let a : Int -> Int = \x.(b x)
     // b = \y.(a y)
@@ -195,7 +195,6 @@ public class SystemFTest {
 
     var result = solver.solve(expr);
     assert result instanceof SystemFType;
-    System.out.println(result);
     assert result instanceof SystemFType.Lit;
     assert ((Lit) result).ident.equals(TypeIdent.TYPE_IDENT_INT);
   }
