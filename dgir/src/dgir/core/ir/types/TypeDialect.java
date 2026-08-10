@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<T>, E>, C extends ExprOrOperator<E>, E extends Expression, T extends Type> {
 
   public abstract static class TypeInferenceSolver<T extends ExprOrOperator<E>, E extends Expression> {
@@ -22,8 +24,9 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
     public abstract Type solve(T expr);
 
     public abstract E generalBlockToInferenceExpr(GeneralBlock block);
-  }
 
+    public abstract Pair<Symbol, E> generalFunctionToInferenceExpr(GeneralFunctionType fn);
+  }
 
   public abstract TypeInferenceSolver<C, E> getSolverInstance();
 

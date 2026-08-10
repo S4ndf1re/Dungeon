@@ -3,6 +3,7 @@ package dgir.core.ir.types.algorithmw;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralBlock;
+import dgir.core.ir.types.GeneralFunctionType;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InferenceTree;
@@ -22,9 +23,11 @@ import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
+import dgir.core.ir.types.compatibility.Scope;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
+import dgir.core.ir.types.compatibility.Scope.ScopeLike;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -297,7 +300,8 @@ public final class AlgorithmWInference
         UnifyResult unifyRes = engine.unify(funcTypeSubst, builtArrowType);
 
         finalSubst = unifyRes.subst.compose(finalSubst);
-        // NOTE: subst the restltType not the builtArrowType, as the the arrow type is only needed for unification to build the final subst
+        // NOTE: subst the restltType not the builtArrowType, as the the arrow type is
+        // only needed for unification to build the final subst
         resultType = unifyRes.subst.apply(resultType);
 
         trees.add(unifyRes.tree);
@@ -352,7 +356,7 @@ public final class AlgorithmWInference
           paramsAndTypeVars.add(Pair.of(param, typeVar));
         }
 
-        Scope functionScope = newEnv.addScope();
+        Scope<AlgorithmWType> functionScope = newEnv.addScope();
         AlgorithmWType retTypeVar = new AlgorithmWType.Var(new TypeVar());
         Subst subst = Subst.newEmpty();
         ArrayList<InferenceTree> trees = new ArrayList<>();
@@ -477,6 +481,30 @@ public final class AlgorithmWInference
       }
     }
 
+    public class ExprReturn implements Expr {
+      private ExprOrOperator<Expr> value;
+
+      public ExprReturn(ExprOrOperator<Expr> value) {
+        this.value = value;
+      }
+
+      @Override
+      public InferResult infer(TypeInference engine, Env env) {
+        String input = env + " |- " + this;
+
+        InferResult inferred = engine.infer(this.value, env);
+        var topScope = env.topScope();
+
+        var inferredType = inferred.subst.apply(inferred.type);
+        if (topScope.isPresent()) {
+          topScope.get().addReturnType(inferredType);
+        }
+
+        return new InferResult(inferred.subst, inferredType,
+            new InferenceTree("T-Return", input, "" + inferredType, List.of(inferred.tree)));
+      }
+    }
+
     public class ExprCustom implements Expr {
 
       @FunctionalInterface
@@ -545,6 +573,16 @@ public final class AlgorithmWInference
     }
 
     @Override
+    public Pair<Symbol, Expr> generalFunctionToInferenceExpr(GeneralFunctionType fn) {
+      var fnName = Symbol.of(fn.name);
+
+      var params = fn.parameters.stream().map(param -> param.getLeft()).toList();
+
+      return Pair.of(fnName, new Expr.ExprAbs(params, this.generalBlockToInferenceExpr(fn.body)));
+
+    }
+
+    @Override
     public Type solve(ExprOrOperator<Expr> expr) {
       if (expr.isExpr()) {
         Env env = new Env();
@@ -575,33 +613,17 @@ public final class AlgorithmWInference
     }
   }
 
-  public static final class Scope {
-    private ArrayList<AlgorithmWType> returnTypes;
-
-    public Scope() {
-      this.returnTypes = new ArrayList<>();
-    }
-
-    public List<AlgorithmWType> getAllReturnTypesInScope() {
-      return List.copyOf(this.returnTypes);
-    }
-
-    public void addReturnType(AlgorithmWType retType) {
-      this.returnTypes.add(retType);
-    }
-  }
-
-  public static final class Env {
+  public static final class Env extends ScopeLike<AlgorithmWType> {
     private HashMap<Symbol, Scheme> env;
-    private ArrayList<Scope> scopeStack;
 
     public Env() {
-      this(new HashMap<>(), new ArrayList<>());
+      super();
+      this.env = new HashMap<>();
     }
 
-    public Env(HashMap<Symbol, Scheme> env, ArrayList<Scope> scopeStack) {
-      this.env = env;
-      this.scopeStack = scopeStack;
+    public Env(Env other) {
+      super(other);
+      this.env = new HashMap<>(other.env);
     }
 
     @Override
@@ -623,11 +645,11 @@ public final class AlgorithmWInference
      * @return the applied env where subst is applied to this
      */
     public Env apply(Subst subst) {
-      var newEnv = new HashMap<Symbol, Scheme>(env);
+      var newEnv = this.copy();
       for (var entry : this.env.entrySet()) {
-        newEnv.put(entry.getKey(), entry.getValue().apply(subst));
+        newEnv.env.put(entry.getKey(), entry.getValue().apply(subst));
       }
-      return new Env(newEnv, new ArrayList<>(this.scopeStack));
+      return new Env(newEnv);
     }
 
     /**
@@ -646,18 +668,9 @@ public final class AlgorithmWInference
     }
 
     public Env copy() {
-      return new Env(new HashMap<>(this.env), new ArrayList<>(this.scopeStack));
+      return new Env(this);
     }
 
-    public Scope addScope() {
-      var scope = new Scope();
-      this.scopeStack.add(scope);
-      return scope;
-    }
-
-    public Optional<Scope> popScope() {
-      return Optional.ofNullable(this.scopeStack.removeLast());
-    }
   }
 
   public final record Scheme(List<TypeVar> vars, AlgorithmWType type) {

@@ -12,10 +12,13 @@ public class GeneralFunctionType {
   public final String name;
   public final List<Pair<Symbol, Optional<Type>>> parameters;
   public final Optional<Pair<Value, Optional<Type>>> returnValue;
+  public final GeneralBlock body;
 
   public GeneralFunctionType(String name, List<Pair<Symbol, Optional<Type>>> parameters,
+      GeneralBlock body,
       Optional<Pair<Value, Optional<Type>>> returnValue) {
     this.name = name;
+    this.body = body;
     this.parameters = parameters;
     this.returnValue = returnValue;
   }

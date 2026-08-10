@@ -41,7 +41,7 @@ public class ConverterRegistry {
 
   // Holy hell what a type this is ............ All in the name of type safety.
   // Right?
-  private static HashMap<Class<? extends TypeDialect<?, ?, ?, ?>>, TypeDialectConverterRegistry> converters;
+  private static HashMap<Class<? extends TypeDialect<?, ?, ?, ?>>, TypeDialectConverterRegistry> converters = new HashMap<>();
 
   public static void registerDialect(
       Class<? extends TypeDialect<?, ?, ?, ?>> dialect) {
