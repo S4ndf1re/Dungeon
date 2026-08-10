@@ -5,10 +5,11 @@ import java.util.Optional;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
+import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
-public class ConvertedOperationBuffer<E extends Expression> {
+public class ConvertedOperationBuffer<E extends Expression, T extends Type, C> {
   private HashMap<Operation, E> converted;
 
   public ConvertedOperationBuffer() {
@@ -23,7 +24,7 @@ public class ConvertedOperationBuffer<E extends Expression> {
     return Optional.ofNullable(this.converted.get(op));
   }
 
-  public E operationToExpr(TypeInferenceSolver<ExprOrOperator<E>, E> engine, Operation op,
+  public E operationToExpr(TypeInferenceSolver<ExprOrOperator<E>, E, T, C> engine, Operation op,
       TypeDialectConverterRegistry registry, Class<E> clazz) {
     var buffered = this.get(op);
 

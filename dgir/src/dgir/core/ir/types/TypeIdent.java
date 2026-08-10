@@ -25,6 +25,10 @@ public class TypeIdent {
     return this.ident;
   }
 
+  public String asStringIdent() {
+    return this.ident;
+  }
+
   public static TypeIdent from(String ident) {
     var normalizedIdent = ident.toLowerCase();
     var uniquedTypeIdent = TypeIdent.uniquedTypes.get(normalizedIdent);

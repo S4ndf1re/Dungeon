@@ -8,13 +8,54 @@ import java.util.List;
  * Additionally, A Literal class is defined to return its type as a
  * GeneralParameterizedNominalType, in order to work with every type system.
  */
-public class GeneralParameterizedNominalType  {
+public class GeneralParameterizedNominalType {
 
   public static sealed interface GeneralTypeParameter {
+    public default boolean isConcrete() {
+      return this instanceof Concrete;
+    }
+
+    public default boolean isUnknown() {
+      return this instanceof Unknown;
+    }
+
+    public default boolean isNumeric() {
+      return this instanceof Numeric;
+    }
+
+    public default GeneralParameterizedNominalType getConcrete() {
+      if (this.isConcrete()) {
+        return ((Concrete) this).ty;
+      }
+      throw new IllegalArgumentException("this is not of type concrete");
+    }
+
+    public default long getNumeric() {
+      if (this.isNumeric()) {
+        return ((Numeric) this).number;
+      }
+      throw new IllegalArgumentException("this is not of type numeric");
+    }
+
+    public static GeneralTypeParameter of(GeneralParameterizedNominalType ty) {
+      return new Concrete(ty);
+    }
+
+    public static GeneralTypeParameter of() {
+      return new Unknown();
+    }
+
+    public static GeneralTypeParameter of(long number) {
+      return new Numeric(number);
+    }
+
     public static final record Concrete(GeneralParameterizedNominalType ty) implements GeneralTypeParameter {
     }
 
     public static final record Unknown() implements GeneralTypeParameter {
+    }
+
+    public static final record Numeric(long number) implements GeneralTypeParameter {
     }
   }
 

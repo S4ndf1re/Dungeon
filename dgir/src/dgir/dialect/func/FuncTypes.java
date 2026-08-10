@@ -86,6 +86,40 @@ public sealed interface FuncTypes {
           return FuncType.of(inputs, output);
         };
       }
+
+      @Override
+      public @NotNull Function<@NotNull Pair<@NotNull GeneralParameterizedNominalType, @NotNull TypeDetails>, @NotNull Type> getGeneralParameterizedNominalTypeFactory() {
+        return typeArg -> {
+          assert typeArg.getLeft().getIdent().asStringIdent().equals(this.getIdent())
+              : "func.func was expected, but received" + typeArg.getLeft().getIdent();
+
+          var gpnt = typeArg.getLeft();
+          var params = gpnt.getTypedParameters();
+          assert params.size() >= 1 : "a function must at least have its return type specified";
+          assert !params.stream().anyMatch(param -> param.isUnknown() || param.isNumeric())
+              : "cannot convert unknown or numeric types to concrete function type";
+
+          ArrayList<Type> inputs = new ArrayList<>();
+          // Select all parameters that are not the return type
+          for (var param : params.subList(0, params.size() - 1)) {
+            if (param.isUnknown()) {
+              throw new IllegalArgumentException(
+                  "parameter is of type Unknown, which is not parseable. This was already checked without success");
+            }
+            inputs.add(Type.fromGeneralParameterizedNominalType(param.getConcrete()));
+          }
+
+          // This will always return a non-null value!
+          var outputGpnt = params.getLast();
+          assert outputGpnt.isConcrete() : "the output type of a function must always be known for parsing";
+          Type output = null;
+          if (!outputGpnt.getConcrete().getIdent().equals(TypeIdent.TYPE_IDENT_UNIT)) {
+            output = Type.fromGeneralParameterizedNominalType(outputGpnt.getConcrete());
+          }
+
+          return FuncType.of(inputs, output);
+        };
+      }
     }
   }
 
@@ -147,16 +181,16 @@ public sealed interface FuncTypes {
     @Override
     public GeneralParameterizedNominalType asParameterizedNominalType() {
       var collectedInputs = this.getInputs().stream()
-          .map(inputType -> new GeneralParameterizedNominalType.GeneralTypeParameter.Concrete(
+          .map(inputType -> GeneralParameterizedNominalType.GeneralTypeParameter.of(
               inputType.asParameterizedNominalType()))
           .toList();
 
       GeneralParameterizedNominalType.GeneralTypeParameter output = null;
       if (this.getOutput() != null) {
-        output = new GeneralParameterizedNominalType.GeneralTypeParameter.Concrete(
+        output = GeneralParameterizedNominalType.GeneralTypeParameter.of(
             this.getOutput().asParameterizedNominalType());
       } else {
-        output = new GeneralParameterizedNominalType.GeneralTypeParameter.Concrete(
+        output = GeneralParameterizedNominalType.GeneralTypeParameter.of(
             new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_UNIT));
       }
 

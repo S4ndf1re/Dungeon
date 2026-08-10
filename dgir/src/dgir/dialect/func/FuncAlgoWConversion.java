@@ -25,9 +25,9 @@ public final class FuncAlgoWConversion {
         Pair.of(FuncOps.CallOp.class, FuncAlgoWConversion::convertCallOp));
   }
 
-  public static <T extends ExprOrOperator<E>, E extends Expression> E convertFuncOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertFuncOp(
       Operation op,
-      TypeInferenceSolver<T, E> engine) {
+      TypeInferenceSolver<EO, E, T, C> engine) {
     FuncOps.FuncOp funcOp = (FuncOps.FuncOp) op.asOp();
 
     var i = 0;
@@ -50,9 +50,9 @@ public final class FuncAlgoWConversion {
   }
 
   @SuppressWarnings("unchecked")
-  public static <T extends ExprOrOperator<E>, E extends Expression> E convertReturnOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertReturnOp(
       Operation op,
-      TypeInferenceSolver<T, E> engine) {
+      TypeInferenceSolver<EO, E, T, C> engine) {
     FuncOps.ReturnOp returnOp = (FuncOps.ReturnOp) op.asOp();
 
     E result = null;
@@ -65,9 +65,9 @@ public final class FuncAlgoWConversion {
     return result;
   }
 
-  public static <T extends ExprOrOperator<E>, E extends Expression> E convertCallOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertCallOp(
       Operation op,
-      TypeInferenceSolver<T, E> engine) {
+      TypeInferenceSolver<EO, E, T, C> engine) {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
 
     @SuppressWarnings("unchecked")

@@ -3,8 +3,11 @@ package dgir.dialect.mem;
 import dgir.core.ir.*;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.utility.DgirCoreUtils;
 import dgir.dialect.builtin.BuiltinTypes;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -88,6 +91,33 @@ public sealed interface MemTypes {
           return ArrayT.of(elementType.get(), width.get());
         };
       }
+
+      @Override
+      public @NotNull Function<@NotNull Pair<@NotNull GeneralParameterizedNominalType, @NotNull TypeDetails>, @NotNull Type> getGeneralParameterizedNominalTypeFactory() {
+        return typedArgs -> {
+          var gpnt = typedArgs.getLeft();
+          var typeParams = gpnt.getTypedParameters();
+
+          assert !typeParams.isEmpty() && typeParams.size() <= 2
+              : "Either type and width or only type must be supplied as types";
+
+          OptionalInt width = OptionalInt.empty();
+          Type elemType = null;
+
+          if (typeParams.size() >= 1) {
+            var elemTypeGntp = typeParams.get(0);
+            assert elemTypeGntp.isConcrete() : "the first parameter must always be a concrete type";
+            elemType = Type.fromGeneralParameterizedNominalType(elemTypeGntp.getConcrete());
+          }
+          if (typeParams.size() == 2) {
+            var arrayWidth = typeParams.get(1);
+            assert arrayWidth.isNumeric() : "the second parameter indicates the array width and must be numeric";
+            width = OptionalInt.of((int) arrayWidth.getNumeric());
+          }
+
+          return ArrayT.of(elemType, width);
+        };
+      }
     }
   }
 
@@ -112,9 +142,15 @@ public sealed interface MemTypes {
 
     @Override
     public GeneralParameterizedNominalType asParameterizedNominalType() {
+      ArrayList<GeneralTypeParameter> parameters = new ArrayList<>();
+      parameters.add(GeneralTypeParameter.of(this.elementType.asParameterizedNominalType()));
+
+      // Has width, is -1 otherwise
+      if (this.width >= 0) {
+        parameters.add(GeneralTypeParameter.of(this.width));
+      }
       return new GeneralParameterizedNominalType(
-          TypeIdent.from(this.getIdent()), List.of(new GeneralParameterizedNominalType.GeneralTypeParameter.Concrete(
-              this.getElementType().asParameterizedNominalType())));
+          TypeIdent.from(this.getIdent()), parameters);
     }
 
     // =========================================================================
@@ -203,5 +239,6 @@ public sealed interface MemTypes {
     public @NotNull OptionalInt getWidth() {
       return width == -1 ? OptionalInt.empty() : OptionalInt.of(width);
     }
+
   }
 }

@@ -4,6 +4,8 @@ import dgir.core.ir.Dialect;
 import dgir.core.ir.Type;
 import dgir.core.ir.TypeDescriptor;
 import dgir.core.ir.TypeDetails;
+import dgir.core.ir.types.GeneralParameterizedNominalType;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -13,9 +15,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
-/** Sealed marker interface for all types contributed by the {@link StrDialect}. */
+/**
+ * Sealed marker interface for all types contributed by the {@link StrDialect}.
+ */
 public sealed interface StrTypes {
-  /** Abstract base class for all type-descriptors contributed by the {@link StrDialect}. */
+  /**
+   * Abstract base class for all type-descriptors contributed by the
+   * {@link StrDialect}.
+   */
   sealed interface StrTypeDescriptor extends TypeDescriptor {
     @Override
     default @NotNull Class<? extends Dialect> getDialect() {
@@ -44,8 +51,7 @@ public sealed interface StrTypes {
       }
 
       @Override
-      public @NotNull Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type>
-          getParameterizedIdentFactory() {
+      public @NotNull Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type> getParameterizedIdentFactory() {
         return args -> StrTypes.StringT.INSTANCE();
       }
 
@@ -53,15 +59,28 @@ public sealed interface StrTypes {
       public void initDefaultTypeInstances() {
         StringT.INSTANCE = new StringT();
       }
+
+      @Override
+      public @NotNull Function<@NotNull Pair<@NotNull GeneralParameterizedNominalType, @NotNull TypeDetails>, @NotNull Type> getGeneralParameterizedNominalTypeFactory() {
+        return typeArgs -> {
+          assert typeArgs.getLeft().getIdent().asStringIdent().equals(this.getIdent())
+              : "the factory is configured to the wrong type";
+
+          return StrTypes.StringT.INSTANCE();
+        };
+      }
     }
   }
 
   /**
    * UTF-16 string type in the {@code str} dialect.
    *
-   * <p>Ident: {@code string}. Validated values must be Java {@link String} instances.
+   * <p>
+   * Ident: {@code string}. Validated values must be Java {@link String}
+   * instances.
    *
-   * <p>The single pre-built instance is available as {@link #INSTANCE}.
+   * <p>
+   * The single pre-built instance is available as {@link #INSTANCE}.
    */
   final class StringT extends Type implements StrTypes {
 
@@ -82,7 +101,10 @@ public sealed interface StrTypes {
     // Constructors
     // =========================================================================
 
-    /** Creates a new {@code StringT} instance. Prefer {@link #INSTANCE} over this constructor. */
+    /**
+     * Creates a new {@code StringT} instance. Prefer {@link #INSTANCE} over this
+     * constructor.
+     */
     StringT() {
       super("string");
     }

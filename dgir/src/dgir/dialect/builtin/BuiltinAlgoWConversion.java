@@ -26,9 +26,9 @@ public final class BuiltinAlgoWConversion {
         Pair.of(IdOp.class, BuiltinAlgoWConversion::convertIdOp));
   }
 
-  public static <T extends ExprOrOperator<E>, E extends Expression> E convertProgramOp(
+    public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertProgramOp(
       Operation op,
-      TypeInferenceSolver<T, E> engine) {
+      TypeInferenceSolver<EO, E, T, C> engine) {
     BuiltinOps.ProgramOp programOp = (BuiltinOps.ProgramOp) op.asOp();
     var ops = programOp.getEntryBlock().getOperations();
 
@@ -51,9 +51,9 @@ public final class BuiltinAlgoWConversion {
     return result;
   }
 
-  public static <T extends ExprOrOperator<E>, E extends Expression> E convertIdOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertIdOp(
       Operation op,
-      TypeInferenceSolver<T, E> engine) {
+      TypeInferenceSolver<EO, E, T, C> engine) {
     BuiltinOps.IdOp idOp = (BuiltinOps.IdOp) op.asOp();
 
     var param = Symbol.of(idOp.getOperand());
