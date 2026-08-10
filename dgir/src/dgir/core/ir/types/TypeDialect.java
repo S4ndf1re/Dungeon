@@ -7,28 +7,31 @@ import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRe
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<T>, E>, C extends ExprOrOperator<E>, E extends Expression, T extends Type> {
+public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<T>, E>, C extends ExprOrOperator<E>, E extends Expression, T extends Type, CTX> {
 
-  public abstract static class TypeInferenceSolver<T extends ExprOrOperator<E>, E extends Expression> {
+  public abstract static class TypeInferenceSolver<EO extends ExprOrOperator<E>, E extends Expression, T extends Type, CTX> {
     protected TypeDialectConverterRegistry registry;
 
     public TypeInferenceSolver(TypeDialectConverterRegistry registry) {
       this.registry = registry;
     }
 
-    public abstract Type solve(T expr);
+    public abstract Type solve(EO expr);
 
     public abstract E generalBlockToInferenceExpr(GeneralBlock block);
 
     public abstract Pair<Symbol, E> generalFunctionToInferenceExpr(GeneralFunctionType fn);
+
+    public abstract Pair<T, Optional<CTX>> generalNominalTypeToInferenceType(GeneralParameterizedNominalType type, Optional<CTX> context);
   }
 
-  public abstract TypeInferenceSolver<C, E> getSolverInstance();
+  public abstract TypeInferenceSolver<C, E, T, CTX> getSolverInstance();
 
   public abstract List<Class<? extends Type>> getAllowedTypes();
 

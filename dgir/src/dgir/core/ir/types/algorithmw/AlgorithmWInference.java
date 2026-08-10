@@ -43,12 +43,12 @@ import org.apache.commons.lang3.tuple.Triple;
 
 public final class AlgorithmWInference
     extends
-    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType> {
+    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType, dgir.core.ir.types.algorithmw.AlgorithmWInference.Env> {
 
   private static Optional<TypeInference> instance = Optional.empty();
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType, Env> getSolverInstance() {
     if (AlgorithmWInference.instance.isPresent()) {
       return AlgorithmWInference.instance.get();
     } else {
@@ -72,15 +72,6 @@ public final class AlgorithmWInference
   @Override
   public List<Class<? extends Expression>> getAllowedExpressions() {
     return TypeDialect.extractExpressionsFromAbstract(Expr.class);
-  }
-
-  private static AlgorithmWType generalNominalTypeToInferenceType(GeneralParameterizedNominalType type) {
-    List<AlgorithmWType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
-      case GeneralTypeParameter.Concrete con -> AlgorithmWInference.generalNominalTypeToInferenceType(con.ty());
-      case GeneralTypeParameter.Unknown unk -> new AlgorithmWType.Var(new TypeVar());
-    }).toList();
-
-    return new AlgorithmWType.LitType(type.getIdent(), paramTypes);
   }
 
   public static interface Expr extends Expression, ExprOrOperator<AlgorithmWInference.Expr> {
@@ -152,10 +143,10 @@ public final class AlgorithmWInference
 
       @Override
       public InferResult infer(TypeInference engine, Env env) {
-        var algoWType = AlgorithmWInference.generalNominalTypeToInferenceType(value);
+        var algoWType = engine.generalNominalTypeToInferenceType(value, null);
         return new InferResult(
             Subst.newEmpty(),
-            algoWType,
+            algoWType.getLeft(),
             new InferenceTree(
                 "T-" + algoWType,
                 env + " |- " + this,
@@ -299,11 +290,20 @@ public final class AlgorithmWInference
           trees.add(argRes.tree);
         }
 
+        // NOTE: in case the APP parameters are empty, i.e. a function without
+        // parameters is configured, the APP behaviour and the ABS behaviour are
+        // identical and treat the function type as a Unit -> t0. This means, that the
+        // final
+        // type is an arrow type that accepts a unit value as a parameter.
+        if (builtArrowType == resultType) {
+          builtArrowType = new Arrow(new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT), builtArrowType);
+        }
+
         AlgorithmWType funcTypeSubst = finalSubst.apply(funcInferRes.type);
         UnifyResult unifyRes = engine.unify(funcTypeSubst, builtArrowType);
 
         finalSubst = unifyRes.subst.compose(finalSubst);
-        // NOTE: subst the restltType not the builtArrowType, as the the arrow type is
+        // NOTE: subst the resultType not the builtArrowType, as the the arrow type is
         // only needed for unification to build the final subst
         resultType = unifyRes.subst.apply(resultType);
 
@@ -362,7 +362,8 @@ public final class AlgorithmWInference
 
         Scope<AlgorithmWType> functionScope = newEnv.addScope();
         AlgorithmWType retTypeVar = new AlgorithmWType.Var(new TypeVar());
-        Subst subst = Subst.newEmpty();
+        InferResult res = engine.infer(body, newEnv);
+        Subst subst = res.subst;
         ArrayList<InferenceTree> trees = new ArrayList<>();
 
         // Unify all return values. If return values do not have the same type, error
@@ -382,15 +383,25 @@ public final class AlgorithmWInference
         // expression that actually returns a value of type T.
         // This must then be unified with the retTypeVar collected from all return
         // statements (if present)
-        InferResult res = engine.infer(body, newEnv);
         retTypeVar = res.subst.apply(retTypeVar);
         subst = res.subst.compose(subst);
         UnifyResult retTypeUnify = engine.unify(res.type, retTypeVar);
         subst = retTypeUnify.subst.compose(subst);
 
-        AlgorithmWType resultType = subst.apply(retTypeVar);
+        AlgorithmWType appliedRetType = subst.apply(retTypeVar);
+        AlgorithmWType resultType = appliedRetType;
         for (var paramAndTypeVar : paramsAndTypeVars.reversed()) {
           resultType = new Arrow(subst.apply(new AlgorithmWType.Var(paramAndTypeVar.getRight())), resultType);
+        }
+
+        // NOTE: in case the ABS parameters are empty, i.e. a function without
+        // parameters is configured, the APP behaviour and the ABS behaviour are
+        // identical and treat the function type as a Unit -> t0. This means, that the
+        // final
+        // type is an arrow type that accepts a unit value as a parameter.
+        if (resultType == appliedRetType) {
+          resultType = new Arrow(new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT), resultType);
+
         }
 
         return new InferResult(
@@ -510,10 +521,14 @@ public final class AlgorithmWInference
     }
 
     public class ExprCustom implements Expr {
+      public static final record InferFunctionResult(
+          Subst subst,
+          AlgorithmWType type) {
+      }
 
       @FunctionalInterface
       public interface InferFunction {
-        InferResult infer(TypeInference engine, Env env, Object data);
+        InferFunctionResult infer(TypeInference engine, Env env, Object data);
       }
 
       private Object data;
@@ -527,16 +542,19 @@ public final class AlgorithmWInference
 
       @Override
       public InferResult infer(TypeInference engine, Env env) {
-        return this.inferFn.infer(engine, env, data);
+        String input = env + " |- " + this;
+        var infRes = this.inferFn.infer(engine, env, data);
+        return new InferResult(infRes.subst, infRes.type,
+            new InferenceTree("T-Cust", input, "" + infRes.type, List.of()));
       }
 
     }
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType, Env> {
 
-    private ConvertedOperationBuffer<Expr> operationToExprBuffer;
+    private ConvertedOperationBuffer<Expr, AlgorithmWType, Env> operationToExprBuffer;
 
     public TypeInference() {
       this(new TypeDialectConverterRegistry());
@@ -545,6 +563,18 @@ public final class AlgorithmWInference
     public TypeInference(TypeDialectConverterRegistry registry) {
       super(registry);
       operationToExprBuffer = new ConvertedOperationBuffer<>();
+    }
+
+    @Override
+    public Pair<AlgorithmWType, Optional<Env>> generalNominalTypeToInferenceType(GeneralParameterizedNominalType type,
+        Optional<Env> data) {
+      List<AlgorithmWType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
+        case GeneralTypeParameter.Concrete con -> this.generalNominalTypeToInferenceType(con.ty(), data).getLeft();
+        case GeneralTypeParameter.Unknown unk -> new AlgorithmWType.Var(new TypeVar());
+        case GeneralTypeParameter.Numeric num -> new AlgorithmWType.NumericType(num.number());
+      }).toList();
+
+      return Pair.of(new AlgorithmWType.LitType(type.getIdent(), paramTypes), null);
     }
 
     @Override
@@ -843,6 +873,12 @@ public final class AlgorithmWInference
       return ftv.contains(ty);
     }
 
+    public GeneralTypeParameter toGeneralTypeParameter() {
+      throw new UnsupportedOperationException("not implemented for " + this);
+    }
+
+    public abstract boolean isFullySpecified();
+
     public abstract Set<TypeVar> freeTypeVars();
 
     public static final class Var extends AlgorithmWType {
@@ -895,6 +931,11 @@ public final class AlgorithmWInference
       @Override
       public Set<TypeVar> freeTypeVars() {
         return Set.of(this.tyVar);
+      }
+
+      @Override
+      public boolean isFullySpecified() {
+        return false;
       }
     }
 
@@ -954,6 +995,11 @@ public final class AlgorithmWInference
         set.addAll(this.to.freeTypeVars());
         return Set.copyOf(set);
       }
+
+      @Override
+      public boolean isFullySpecified() {
+        return this.from.isFullySpecified() && this.to.isFullySpecified();
+      }
     }
 
     public static final class LitType extends AlgorithmWType {
@@ -969,6 +1015,13 @@ public final class AlgorithmWInference
       public LitType(TypeIdent tyName, List<AlgorithmWType> parameters) {
         this.tyName = tyName;
         this.parameters = List.copyOf(parameters);
+      }
+
+      public GeneralTypeParameter toGeneralTypeParameter() {
+        assert this.isFullySpecified() : "the type must be fully specified to be convertable to a general type";
+
+        return GeneralTypeParameter.of(new GeneralParameterizedNominalType(this.tyName,
+            this.parameters.stream().map(AlgorithmWType::toGeneralTypeParameter).toList()));
       }
 
       @Override
@@ -1031,6 +1084,56 @@ public final class AlgorithmWInference
       public Set<TypeVar> freeTypeVars() {
         return Set.of();
       }
+
+      @Override
+      public boolean isFullySpecified() {
+        return this.parameters.stream().allMatch(AlgorithmWType::isFullySpecified);
+      }
+    }
+
+    public static final class NumericType extends AlgorithmWType {
+      public long size;
+
+      public NumericType(long size) {
+        this.size = size;
+      }
+
+      @Override
+      public String toString() {
+        return "" + this.size;
+      }
+
+      @Override
+      public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
+
+        if (other instanceof NumericType otherNum && this.size == otherNum.size) {
+          return new UnifyResult(
+              Subst.newEmpty(),
+              new InferenceTree(
+                  "Unify-NumericType",
+                  this.toString() + " ~ " + other.toString()));
+        } else {
+          throw new TypingException.UnificationFailed(this, other);
+        }
+      }
+
+      @Override
+      public Set<TypeVar> freeTypeVars() {
+        return Set.of();
+      }
+
+      @Override
+      public GeneralTypeParameter toGeneralTypeParameter() {
+        assert this.isFullySpecified() : "the type must be fully specified to be convertable to a general type";
+
+        return GeneralTypeParameter.of(this.size);
+      }
+
+      @Override
+      public boolean isFullySpecified() {
+        return true;
+      }
+
     }
 
     public static final class Tuple extends AlgorithmWType {
@@ -1100,6 +1203,11 @@ public final class AlgorithmWInference
         } else {
           throw new TypingException.UnificationFailed(this, other);
         }
+      }
+
+      @Override
+      public boolean isFullySpecified() {
+        return this.elements.stream().allMatch(AlgorithmWType::isFullySpecified);
       }
     }
   }

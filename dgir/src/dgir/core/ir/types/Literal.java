@@ -74,7 +74,7 @@ public abstract class Literal {
     @Override
     public GeneralParameterizedNominalType toParameterizedNominalType() {
       return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_LIST,
-          List.of(new GeneralTypeParameter.Unknown()));
+          List.of(GeneralTypeParameter.of()));
     }
 
   }

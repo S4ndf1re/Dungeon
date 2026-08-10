@@ -1,7 +1,5 @@
 package dgir.core.ir.types;
 
-import dgir.core.ir.Value;
-
 public abstract sealed class TypingException extends RuntimeException {
 
   protected TypingException(String message) {
@@ -146,6 +144,17 @@ public abstract sealed class TypingException extends RuntimeException {
     public InstantiationError(String detail) {
       super(detail);
       this.detail = detail;
+    }
+  }
+
+  public static final class ExpectedLiteral extends TypingException {
+    public final Symbol sym;
+    public final Type type;
+
+    public ExpectedLiteral(Symbol sym, Type type) {
+      super(sym + " has an invalid type: " + type + ". Expected Literal");
+      this.sym = sym;
+      this.type = type;
     }
   }
 }

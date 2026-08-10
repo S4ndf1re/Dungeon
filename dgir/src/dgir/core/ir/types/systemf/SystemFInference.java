@@ -1,6 +1,7 @@
 package dgir.core.ir.types.systemf;
 
 import dgir.core.ir.types.systemf.SystemFInference.Context.Break3Result;
+import dgir.core.ir.types.systemf.SystemFInference.SystemFType.NumericType;
 import dgir.core.ir.types.systemf.SystemFInference.TypeInference.CheckResult;
 import dgir.core.ir.types.systemf.SystemFInference.TypeInference.SubtypeResult;
 import dgir.core.ir.types.systemf.SystemFInference.TypeInference.TypeResult;
@@ -44,7 +45,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 public final class SystemFInference
     extends
-    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>, dgir.core.ir.types.systemf.SystemFInference.Expr, dgir.core.ir.types.systemf.SystemFInference.SystemFType> {
+    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>, dgir.core.ir.types.systemf.SystemFInference.Expr, dgir.core.ir.types.systemf.SystemFInference.SystemFType, dgir.core.ir.types.systemf.SystemFInference.Context> {
 
   private static Optional<TypeInference> solver = Optional.empty();
 
@@ -59,7 +60,7 @@ public final class SystemFInference
   }
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr, SystemFType, Context> getSolverInstance() {
     if (SystemFInference.solver.isPresent()) {
       return SystemFInference.solver.get();
     } else {
@@ -72,38 +73,6 @@ public final class SystemFInference
       }
       SystemFInference.solver = Optional.of(solverInstance);
       return solverInstance;
-    }
-  }
-
-  private static SystemFType convertInnerGeneralParameterized(GeneralParameterizedNominalType type) {
-    List<SystemFType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
-      case GeneralTypeParameter.Concrete con -> convertInnerGeneralParameterized(con.ty());
-      case GeneralTypeParameter.Unknown unk -> {
-        yield new SystemFType.EtVar(new TypeVar());
-      }
-    }).toList();
-
-    return new SystemFType.Lit(type.getIdent(), paramTypes);
-  }
-
-  private static record NominalConversionResult(Optional<Context> ctx, SystemFType type) {
-  }
-
-  private static NominalConversionResult generalNominalTypeToSystemFType(GeneralParameterizedNominalType type,
-      Optional<Context> ctx) {
-    try (TypeVarScope scope = TypeVar.addScope()) {
-      var resultType = convertInnerGeneralParameterized(type);
-      var newCtx = ctx.map(c -> {
-        var newC = c.copy();
-        for (var etvar : scope.createdVars()) {
-          newC.push(new Entry.ETVarBnd(etvar));
-        }
-
-        return newC;
-      });
-      return new NominalConversionResult(newCtx, resultType);
-    } catch (Exception e) {
-      throw new IllegalArgumentException("This will never happen!");
     }
   }
 
@@ -360,7 +329,29 @@ public final class SystemFInference
       public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
         return new Lit(this.ident, this.parameters.stream().map(param -> param.substType(tyVar, replacement)).toList());
       }
+    }
 
+    public static final class NumericType extends SystemFType {
+      public long size;
+
+      public NumericType(long size) {
+        this.size = size;
+      }
+
+      @Override
+      public boolean isMono() {
+        return true;
+      }
+
+      @Override
+      public Set<TypeVar> freeVariables() {
+        return Set.of();
+      }
+
+      @Override
+      public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+        return new NumericType(this.size);
+      }
     }
 
   }
@@ -785,10 +776,10 @@ public final class SystemFInference
       @Override
       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
         var input = ctx + " |- " + this;
-        var res = SystemFInference.generalNominalTypeToSystemFType(lit.toParameterizedNominalType(), Optional.of(ctx));
+        var res = engine.generalNominalTypeToInferenceType(lit.toParameterizedNominalType(), Optional.of(ctx));
         return new TypeInference.TypeResult(
-            res.type,
-            res.ctx.get().copy(), // This is safe, as the ctx is provided as a Some(ctx)
+            res.getLeft(),
+            res.getRight().get().copy(), // This is safe, as the ctx is provided as a Some(ctx)
             new InferenceTree(
                 "InfLit" + res,
                 input,
@@ -802,12 +793,12 @@ public final class SystemFInference
           Context ctx,
           SystemFType ty) {
         var input = ctx + " |- " + this + " <=" + ty;
-        var thisResult = SystemFInference.generalNominalTypeToSystemFType(lit.toParameterizedNominalType(),
+        var thisResult = engine.generalNominalTypeToInferenceType(lit.toParameterizedNominalType(),
             Optional.empty());
-        if (thisResult.type.equals(ty)) {
+        if (thisResult.getLeft().equals(ty)) {
           return new TypeInference.CheckResult(
               ctx.copy(),
-              new InferenceTree("ChkLit" + thisResult.type, input, "" + ctx, List.of()));
+              new InferenceTree("ChkLit" + thisResult.getLeft(), input, "" + ctx, List.of()));
         } else {
           return Expr.super.check(engine, ctx, ty);
         }
@@ -1284,9 +1275,9 @@ public final class SystemFInference
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr, SystemFType, Context> {
 
-    private ConvertedOperationBuffer<Expr> operationToExprBuffer;
+    private ConvertedOperationBuffer<Expr, SystemFType, Context> operationToExprBuffer;
 
     public TypeInference() {
       this(new TypeDialectConverterRegistry());
@@ -1295,6 +1286,39 @@ public final class SystemFInference
     public TypeInference(TypeDialectConverterRegistry registry) {
       super(registry);
       operationToExprBuffer = new ConvertedOperationBuffer<>();
+    }
+
+    private static SystemFType convertInnerGeneralParameterized(GeneralParameterizedNominalType type) {
+      List<SystemFType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
+        case GeneralTypeParameter.Concrete con -> convertInnerGeneralParameterized(con.ty());
+        case GeneralTypeParameter.Unknown unk -> new SystemFType.EtVar(new TypeVar());
+        case GeneralTypeParameter.Numeric num -> new SystemFType.NumericType(num.number());
+      }).toList();
+
+      return new SystemFType.Lit(type.getIdent(), paramTypes);
+    }
+
+    @Override
+    public Pair<SystemFType, Optional<Context>> generalNominalTypeToInferenceType(
+        GeneralParameterizedNominalType type,
+        Optional<Context> ctx) {
+      try (TypeVarScope scope = TypeVar.addScope()) {
+        var resultType = convertInnerGeneralParameterized(type);
+        if (ctx instanceof Optional<Context>) {
+
+        }
+        var newCtx = ctx.map(c -> {
+          var newC = c.copy();
+          for (var etvar : scope.createdVars()) {
+            newC.push(new Entry.ETVarBnd(etvar));
+          }
+
+          return newC;
+        });
+        return Pair.of(resultType, newCtx);
+      } catch (Exception e) {
+        throw new IllegalArgumentException("This will never happen!");
+      }
     }
 
     @Override
@@ -1446,6 +1470,11 @@ public final class SystemFInference
         } else {
           throw new RuntimeException("Error");
         }
+      } else if (ty1 instanceof NumericType n1 && ty2 instanceof NumericType n2) {
+        if (n1.size != n2.size) {
+          throw new TypingException.SubtypingFailed(ty1, ty2);
+        }
+        return new SubtypeResult(ctx.copy(), new InferenceTree("SubReflNum", input, "" + ctx, List.of()));
       } else if (ty1 instanceof SystemFType.Var v1 &&
           ty2 instanceof SystemFType.Var v2 &&
           v1.tyVar.equals(v2.tyVar)) {
@@ -1745,5 +1774,6 @@ public final class SystemFInference
             "InstR Instantiation error " + ctx + " |- " + ty);
       }
     }
+
   }
 }

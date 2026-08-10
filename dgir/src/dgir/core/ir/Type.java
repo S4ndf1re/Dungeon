@@ -76,6 +76,13 @@ public abstract class Type {
     return details.ident();
   }
 
+  /**
+   * Convert the type to a {@link GeneralParameterizedNominalType} that can be
+   * used with general type systems
+   *
+   * @return GeneralParameterizedNominalType as a converted Type with equal
+   *         semantics
+   */
   public GeneralParameterizedNominalType asParameterizedNominalType() {
     return new GeneralParameterizedNominalType(TypeIdent.from(this.details.ident()));
   }
@@ -305,6 +312,12 @@ public abstract class Type {
             () -> new IllegalArgumentException(
                 "Cannot create type from parameterized ident with unregistered base type: "
                     + parameterizedIdent));
+  }
+
+  public static Type fromGeneralParameterizedNominalType(GeneralParameterizedNominalType nominalType) {
+    return TypeDetails.get(nominalType.getIdent().asStringIdent()).map(details -> {
+      return details.generalParameterizedNominalTypeFactory().apply(Pair.of(nominalType, details));
+    }).orElseThrow();
   }
 
   /**

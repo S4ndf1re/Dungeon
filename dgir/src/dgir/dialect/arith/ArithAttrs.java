@@ -7,7 +7,9 @@ import static dgir.dialect.builtin.BuiltinTypes.isNumeric;
 import dgir.core.ir.Attribute;
 import dgir.core.ir.AttributeDescriptor;
 import dgir.core.ir.Dialect;
+import dgir.core.ir.Type;
 import dgir.dialect.builtin.BuiltinTypes;
+
 import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,7 +54,9 @@ public sealed interface ArithAttrs {
     }
   }
 
-  /** Attribute that stores the selected unary arithmetic mode for {@link UnaryOp}. */
+  /**
+   * Attribute that stores the selected unary arithmetic mode for {@link UnaryOp}.
+   */
   final class UnaryModeAttr extends Attribute implements ArithAttrs {
     @Override
     public @NotNull Object getStorage() {
@@ -66,11 +70,21 @@ public sealed interface ArithAttrs {
         public @NotNull Optional<String> verifyOperand(@NotNull UnaryOp unaryOp) {
           return UnaryMode.onlyNumericOperand(unaryOp);
         }
+
+        @Override
+        public Type getExpectedResultTypeForParams(Type param) {
+          return param;
+        }
       },
       INCREMENT {
         @Override
         public @NotNull Optional<String> verifyOperand(@NotNull UnaryOp unaryOp) {
           return UnaryMode.onlyNumericOperand(unaryOp);
+        }
+
+        @Override
+        public Type getExpectedResultTypeForParams(Type param) {
+          return param;
         }
       },
       DECREMENT {
@@ -78,11 +92,21 @@ public sealed interface ArithAttrs {
         public @NotNull Optional<String> verifyOperand(@NotNull UnaryOp unaryOp) {
           return UnaryMode.onlyNumericOperand(unaryOp);
         }
+
+        @Override
+        public Type getExpectedResultTypeForParams(Type param) {
+          return param;
+        }
       },
       COMPLEMENT {
         @Override
         public @NotNull Optional<String> verifyOperand(@NotNull UnaryOp unaryOp) {
           return UnaryMode.onlyIntegerOperand(unaryOp);
+        }
+
+        @Override
+        public Type getExpectedResultTypeForParams(Type param) {
+          return param;
         }
       },
       LOGICAL_COMPLEMENT {
@@ -90,18 +114,24 @@ public sealed interface ArithAttrs {
         public @NotNull Optional<String> verifyOperand(@NotNull UnaryOp unaryOp) {
           return UnaryMode.onlyBooleanOperand(unaryOp);
         }
+
+        @Override
+        public Type getExpectedResultTypeForParams(Type param) {
+          return param;
+        }
       },
       ;
+
+      public abstract Type getExpectedResultTypeForParams(Type param);
 
       public abstract @NotNull Optional<String> verifyOperand(@NotNull UnaryOp unaryOp);
 
       private static Optional<String> onlyNumericOperand(@NotNull UnaryOp unaryOp) {
-        int width =
-            switch (unaryOp.getOperand().getType()) {
-              case BuiltinTypes.IntegerT integerT -> integerT.getWidth();
-              case BuiltinTypes.FloatT floatT -> floatT.getWidth();
-              default -> 0;
-            };
+        int width = switch (unaryOp.getOperand().getType()) {
+          case BuiltinTypes.IntegerT integerT -> integerT.getWidth();
+          case BuiltinTypes.FloatT floatT -> floatT.getWidth();
+          default -> 0;
+        };
         if (width == 0) {
           return Optional.of("Operand must be a numeric type with a width greater than 0");
         }
@@ -109,10 +139,9 @@ public sealed interface ArithAttrs {
       }
 
       private static Optional<String> onlyIntegerOperand(@NotNull UnaryOp unaryOp) {
-        int width =
-            unaryOp.getOperand().getType() instanceof BuiltinTypes.IntegerT integerT
-                ? integerT.getWidth()
-                : 0;
+        int width = unaryOp.getOperand().getType() instanceof BuiltinTypes.IntegerT integerT
+            ? integerT.getWidth()
+            : 0;
         if (width == 0) {
           return Optional.of("Operand must be an integer type with a width greater than 0");
         }
@@ -120,10 +149,9 @@ public sealed interface ArithAttrs {
       }
 
       private static Optional<String> onlyBooleanOperand(@NotNull UnaryOp unaryOp) {
-        int width =
-            unaryOp.getOperand().getType() instanceof BuiltinTypes.IntegerT integerT
-                ? integerT.getWidth()
-                : 0;
+        int width = unaryOp.getOperand().getType() instanceof BuiltinTypes.IntegerT integerT
+            ? integerT.getWidth()
+            : 0;
         if (width != 1) {
           return Optional.of("Operand must be a boolean type with a width of 1");
         }
@@ -150,7 +178,10 @@ public sealed interface ArithAttrs {
     }
   }
 
-  /** Attribute that stores the selected binary arithmetic mode for {@link BinaryOp}. */
+  /**
+   * Attribute that stores the selected binary arithmetic mode for
+   * {@link BinaryOp}.
+   */
   final class BinModeAttr extends Attribute implements ArithAttrs {
     @Override
     public @NotNull Object getStorage() {
@@ -161,170 +192,280 @@ public sealed interface ArithAttrs {
     public enum BinMode {
       // Arithmetic
       /** Addition */
-      ADD {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
+       ADD {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
       /** Subtraction */
-      SUB {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
+       SUB {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
       /** Signed Multiplication */
-      MUL {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
+       MUL {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
       /** Division */
-      DIV {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
-      DIVUI {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyIntegerOperands(unaryOp);
-        }
-      },
+       DIV {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
+       DIVUI {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyIntegerOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
       /** Remainder */
-      MOD {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
+       MOD {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
       /** Unsigned Remainder */
-      MODUI {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyIntegerOperands(unaryOp);
-        }
-      },
+       MODUI {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyIntegerOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
 
       // Bitwise
       /** Bitwise OR */
-      BOR {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlySameIntegerOperands(unaryOp);
-        }
-      },
+       BOR {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlySameIntegerOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
       /** Bitwise AND */
-      BAND {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlySameIntegerOperands(unaryOp);
-        }
-      },
+       BAND {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlySameIntegerOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
       /** Bitwise XOR */
-      BXOR {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlySameIntegerOperands(unaryOp);
-        }
-      },
+       BXOR {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlySameIntegerOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.getDominantType(lhs, rhs);
+         }
+       },
       /** Bitwise shift left */
-      LSH {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyIntegerOperands(unaryOp);
-        }
-      },
+       LSH {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyIntegerOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return lhs;
+         }
+       },
       /** Signed bitwise shift right */
-      RSHS {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyIntegerOperands(unaryOp);
-        }
-      },
+       RSHS {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyIntegerOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return lhs;
+         }
+       },
       /** Unsigned bitwise shift right */
-      RSHU {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyIntegerOperands(unaryOp);
-        }
-      },
+       RSHU {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyIntegerOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return lhs;
+         }
+       },
 
       // Logical
-      AND {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyBooleanOperands(unaryOp);
-        }
-      },
-      OR {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyBooleanOperands(unaryOp);
-        }
-      },
-      XOR {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyBooleanOperands(unaryOp);
-        }
-      },
-      LT {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
-      LE {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
-      GT {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
-      GE {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.onlyNumericOperands(unaryOp);
-        }
-      },
+       AND {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyBooleanOperands(unaryOp);
+         }
 
-      EQ {
-        @Override
-        public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
-          return BinMode.anyOperands(unaryOp);
-        }
-      },
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.IntegerT.BOOL();
+         }
+       },
+       OR {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyBooleanOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.IntegerT.BOOL();
+         }
+       },
+       XOR {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyBooleanOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.IntegerT.BOOL();
+         }
+       },
+       LT {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.IntegerT.BOOL();
+         }
+       },
+       LE {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.IntegerT.BOOL();
+         }
+       },
+       GT {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.IntegerT.BOOL();
+         }
+       },
+       GE {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.onlyNumericOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.IntegerT.BOOL();
+         }
+       },
+
+       EQ {
+         @Override
+         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
+           return BinMode.anyOperands(unaryOp);
+         }
+
+         @Override
+         public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+           return BuiltinTypes.IntegerT.BOOL();
+         }
+       },
       NE {
         @Override
         public @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp) {
           return BinMode.anyOperands(unaryOp);
         }
+
+        @Override
+        public Type getExpectedResultTypeForParams(Type lhs, Type rhs) {
+          return BuiltinTypes.IntegerT.BOOL();
+        }
       };
+
+      public abstract Type getExpectedResultTypeForParams(Type lhs, Type rhs);
 
       public abstract @NotNull Optional<String> verifyOperands(@NotNull BinaryOp unaryOp);
 
       private static Optional<String> onlyNumericOperands(@NotNull BinaryOp binaryOp) {
-        int widthLhs =
-            switch (binaryOp.getLhs().getType()) {
-              case BuiltinTypes.IntegerT integerT -> integerT.getWidth();
-              case BuiltinTypes.FloatT floatT -> floatT.getWidth();
-              default -> 0;
-            };
-        int widthRhs =
-            switch (binaryOp.getRhs().getType()) {
-              case BuiltinTypes.IntegerT integerT -> integerT.getWidth();
-              case BuiltinTypes.FloatT floatT -> floatT.getWidth();
-              default -> 0;
-            };
+        int widthLhs = switch (binaryOp.getLhs().getType()) {
+          case BuiltinTypes.IntegerT integerT -> integerT.getWidth();
+          case BuiltinTypes.FloatT floatT -> floatT.getWidth();
+          default -> 0;
+        };
+        int widthRhs = switch (binaryOp.getRhs().getType()) {
+          case BuiltinTypes.IntegerT integerT -> integerT.getWidth();
+          case BuiltinTypes.FloatT floatT -> floatT.getWidth();
+          default -> 0;
+        };
         if (widthLhs == 0) {
           return Optional.of("LHS must be a numeric type with a width greater than 0");
         }
@@ -335,14 +476,12 @@ public sealed interface ArithAttrs {
       }
 
       private static Optional<String> onlyIntegerOperands(@NotNull BinaryOp binaryOp) {
-        int widthLhs =
-            binaryOp.getLhs().getType() instanceof BuiltinTypes.IntegerT integerT
-                ? integerT.getWidth()
-                : 0;
-        int widthRhs =
-            binaryOp.getRhs().getType() instanceof BuiltinTypes.IntegerT integerT
-                ? integerT.getWidth()
-                : 0;
+        int widthLhs = binaryOp.getLhs().getType() instanceof BuiltinTypes.IntegerT integerT
+            ? integerT.getWidth()
+            : 0;
+        int widthRhs = binaryOp.getRhs().getType() instanceof BuiltinTypes.IntegerT integerT
+            ? integerT.getWidth()
+            : 0;
         if (widthLhs == 0) {
           return Optional.of("LHS must be an integer type with a width greater than 0");
         }
@@ -354,7 +493,8 @@ public sealed interface ArithAttrs {
 
       private static Optional<String> onlySameIntegerOperands(@NotNull BinaryOp binaryOp) {
         Optional<String> error = onlyIntegerOperands(binaryOp);
-        if (error.isPresent()) return error;
+        if (error.isPresent())
+          return error;
 
         if (!binaryOp.getResult().getType().equals(binaryOp.getLhs().getType()))
           return Optional.of("Operands must be of the same type");
@@ -362,14 +502,12 @@ public sealed interface ArithAttrs {
       }
 
       private static Optional<String> onlyBooleanOperands(@NotNull BinaryOp binaryOp) {
-        int widthLhs =
-            binaryOp.getLhs().getType() instanceof BuiltinTypes.IntegerT integerT
-                ? integerT.getWidth()
-                : 0;
-        int widthRhs =
-            binaryOp.getRhs().getType() instanceof BuiltinTypes.IntegerT integerT
-                ? integerT.getWidth()
-                : 0;
+        int widthLhs = binaryOp.getLhs().getType() instanceof BuiltinTypes.IntegerT integerT
+            ? integerT.getWidth()
+            : 0;
+        int widthRhs = binaryOp.getRhs().getType() instanceof BuiltinTypes.IntegerT integerT
+            ? integerT.getWidth()
+            : 0;
         if (widthLhs != 1) {
           return Optional.of("LHS must be a boolean type with a width of 1");
         }

@@ -1,5 +1,6 @@
 package dgir.core.ir;
 
+import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.dialect.builtin.BuiltinTypes;
 import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
@@ -91,6 +92,11 @@ public interface TypeDescriptor {
   @NotNull
   Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type>
       getParameterizedIdentFactory();
+
+  @Contract(pure = true)
+  @NotNull
+  Function<@NotNull Pair<@NotNull GeneralParameterizedNominalType, @NotNull TypeDetails>, @NotNull Type>
+      getGeneralParameterizedNominalTypeFactory();
 
   /**
    * Initialize all default type instances for the type described by this descriptor. This should be
