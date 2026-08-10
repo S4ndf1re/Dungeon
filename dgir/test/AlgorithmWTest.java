@@ -191,4 +191,33 @@ public class AlgorithmWTest {
     assert result instanceof AlgorithmWType.LitType;
     assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
+
+  @Test
+  public void multiParamFunction() {
+    var inference = new AlgorithmWInference();
+    var solver = inference.getSolverInstance();
+
+    Symbol a = Symbol.of(new Value());
+    Symbol x = Symbol.of(new Value());
+    Symbol y = Symbol.of(new Value());
+
+    // let a = \(x,y).(x, y)
+    // in (a 10 false)
+
+    Expr expr = new Expr.ExprLet(a,
+        new Expr.ExprAbs(List.of(x, y), new Expr.ExprTuple(List.of(new Expr.ExprVar(x), new Expr.ExprVar(y)))),
+        new Expr.ExprApp(new Expr.ExprVar(a),
+            List.of(new Expr.ExprLit(new Literal.Int(10)), new Expr.ExprLit(new Literal.Bool(false)))));
+
+    var result = solver.solve(expr);
+    assert result instanceof AlgorithmWType;
+    System.out.println(result);
+    assert result instanceof AlgorithmWType.Tuple;
+    var resultTuple = (AlgorithmWType.Tuple) result;
+    assert resultTuple.elements.get(0) instanceof AlgorithmWType.LitType;
+    assert resultTuple.elements.get(1) instanceof AlgorithmWType.LitType;
+
+    assert ((AlgorithmWType.LitType) resultTuple.elements.get(0)).tyName == TypeIdent.TYPE_IDENT_INT;
+    assert ((AlgorithmWType.LitType) resultTuple.elements.get(1)).tyName == TypeIdent.TYPE_IDENT_BOOL;
+  }
 }
