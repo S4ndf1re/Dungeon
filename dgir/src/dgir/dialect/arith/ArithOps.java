@@ -26,14 +26,20 @@ import org.jetbrains.annotations.Unmodifiable;
 /**
  * Sealed marker interface for all operations in the {@link ArithDialect}.
  *
- * <p>Every concrete op must both extend {@link ArithOp} and implement this interface so that {@link
- * Dialect#allOpsFromSealedInterface(Class)} can discover it automatically via reflection.
+ * <p>
+ * Every concrete op must both extend {@link ArithOp} and implement this
+ * interface so that {@link
+ * Dialect#allOpsFromSealedInterface(Class)} can discover it automatically via
+ * reflection.
  */
 public sealed interface ArithOps {
   /**
-   * Abstract base class for all operations in the {@code arith} (arithmetic) dialect.
+   * Abstract base class for all operations in the {@code arith} (arithmetic)
+   * dialect.
    *
-   * <p>Concrete subclasses must implement {@link #getIdent()} and {@link #getVerifier()}, and must
+   * <p>
+   * Concrete subclasses must implement {@link #getIdent()} and
+   * {@link #getVerifier()}, and must
    * implement {@link ArithOps} to be enumerated by {@link ArithDialect}.
    */
   abstract class ArithOp extends Op {
@@ -66,7 +72,9 @@ public sealed interface ArithOps {
   /**
    * Unary arithmetic operation in the {@code arith} dialect.
    *
-   * <p>The operand and result types must both be numeric, and the operation kind is selected via
+   * <p>
+   * The operand and result types must both be numeric, and the operation kind is
+   * selected via
    * the required {@code unaryMode} attribute.
    */
   final class UnaryOp extends ArithOp implements ArithOps, ISingleOperand, IHasResult {
@@ -91,8 +99,7 @@ public sealed interface ArithOps {
      * @return a single {@link UnaryModeAttr} attribute named {@code unaryMode}.
      */
     @Override
-    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>>
-        defaultAttributes() {
+    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
       return () -> List.of(new NamedAttribute("unaryMode", new UnaryModeAttr()));
     }
 
@@ -105,7 +112,7 @@ public sealed interface ArithOps {
     public @NotNull Function<Operation, Boolean> getVerifier() {
       return operation -> {
         var unaryOp = operation.as(UnaryOp.class).orElseThrow();
-        Type targetType = unaryOp.getOperand().getType();
+        MaybeType targetType = unaryOp.getOperand().getType();
         if (!isNumeric(targetType)) {
           operation.emitError("Operands must be numeric");
           return false;
@@ -133,18 +140,22 @@ public sealed interface ArithOps {
     // =========================================================================
 
     @SuppressWarnings("unused")
-    private UnaryOp() {}
+    private UnaryOp() {
+    }
 
     /**
      * Creates a unary operation.
      *
-     * <p>In case of increment or decrement operations the output value will automatically be set to
-     * the operand, as these operations conceptually update the operand in-place. For other unary
+     * <p>
+     * In case of increment or decrement operations the output value will
+     * automatically be set to
+     * the operand, as these operations conceptually update the operand in-place.
+     * For other unary
      * operation kinds, the output value will be left defaulted to the operand type.
      *
-     * @param loc the source location of this operation.
+     * @param loc     the source location of this operation.
      * @param operand the operand to operate on.
-     * @param mode the unary operation kind.
+     * @param mode    the unary operation kind.
      */
     public UnaryOp(
         @NotNull Location loc, @NotNull Value operand, @NotNull UnaryModeAttr.UnaryMode mode) {
@@ -152,7 +163,8 @@ public sealed interface ArithOps {
       getAttributeAs("unaryMode", UnaryModeAttr.class).orElseThrow().setMode(mode);
       switch (mode) {
         case INCREMENT, DECREMENT -> setOutputValue(operand);
-        default -> {}
+        default -> {
+        }
       }
     }
 
@@ -176,7 +188,8 @@ public sealed interface ArithOps {
   /**
    * Unified binary numeric operation for the {@code arith} dialect.
    *
-   * <p>MLIR reference: {@code arith.bin}
+   * <p>
+   * MLIR reference: {@code arith.bin}
    */
   final class BinaryOp extends ArithOp implements ArithOps, IBinaryOperands, IHasResult {
 
@@ -200,8 +213,7 @@ public sealed interface ArithOps {
      * @return a single {@link BinModeAttr} attribute named {@code binMode}.
      */
     @Override
-    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>>
-        defaultAttributes() {
+    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
       return () -> List.of(new NamedAttribute("binMode", new BinModeAttr()));
     }
 
@@ -214,8 +226,8 @@ public sealed interface ArithOps {
     public @NotNull Function<Operation, Boolean> getVerifier() {
       return operation -> {
         BinaryOp binaryOp = operation.as(BinaryOp.class).orElseThrow();
-        Type lhsType = binaryOp.getLhs().getType();
-        Type rhsType = binaryOp.getRhs().getType();
+        MaybeType lhsType = binaryOp.getLhs().getType();
+        MaybeType rhsType = binaryOp.getRhs().getType();
         if (!isNumeric(lhsType) || !isNumeric(rhsType)) {
           binaryOp.emitError("Operands must be numeric");
           return false;
@@ -270,29 +282,29 @@ public sealed interface ArithOps {
     // =========================================================================
 
     @SuppressWarnings("unused")
-    private BinaryOp() {}
+    private BinaryOp() {
+    }
 
     /**
      * Creates a binary operation with two numeric operands.
      *
-     * @param loc the source location of this operation.
-     * @param lhs the left-hand operand.
-     * @param rhs the right-hand operand.
+     * @param loc     the source location of this operation.
+     * @param lhs     the left-hand operand.
+     * @param rhs     the right-hand operand.
      * @param binMode the binary operation kind.
      */
     public BinaryOp(
         @NotNull Location loc, @NotNull Value lhs, @NotNull Value rhs, @NotNull BinMode binMode) {
       // Get the right output type for the given operands and binary operation kind.
-      Type outputType =
-          switch (binMode) {
-            // Regular arithmetic operations.
-            case ADD, SUB, MUL, DIV, DIVUI, MOD, MODUI ->
-                getDominantType(lhs.getType(), rhs.getType());
-            // Binary operations.
-            case BOR, BAND, BXOR, LSH, RSHS, RSHU -> lhs.getType();
-            // Logical operations.
-            case AND, OR, XOR, EQ, NE, LT, LE, GT, GE -> IntegerT.BOOL();
-          };
+      MaybeType outputType = switch (binMode) {
+        // Regular arithmetic operations.
+        case ADD, SUB, MUL, DIV, DIVUI, MOD, MODUI ->
+          getDominantType(lhs.getType(), rhs.getType());
+        // Binary operations.
+        case BOR, BAND, BXOR, LSH, RSHS, RSHU -> lhs.getType();
+        // Logical operations.
+        case AND, OR, XOR, EQ, NE, LT, LE, GT, GE -> MaybeType.of(IntegerT.BOOL());
+      };
 
       setOperation(Operation.Create(loc, this, List.of(lhs, rhs), null, outputType));
       getAttributeAs("binMode", BinModeAttr.class).orElseThrow().setMode(binMode);
@@ -318,7 +330,9 @@ public sealed interface ArithOps {
   /**
    * Casts a numeric operand to a target numeric type.
    *
-   * <p>The input and output types must both be numeric, and the result type is taken from the
+   * <p>
+   * The input and output types must both be numeric, and the result type is taken
+   * from the
    * required {@code to} attribute.
    */
   final class CastOp extends ArithOp implements ArithOps, ISingleOperand, IHasResult {
@@ -343,13 +357,13 @@ public sealed interface ArithOps {
      * @return a single {@link TypeAttribute} attribute named {@code to}.
      */
     @Override
-    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>>
-        defaultAttributes() {
+    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
       return () -> List.of(new NamedAttribute("to", new TypeAttribute()));
     }
 
     /**
-     * Verifies operand, target type, and result type constraints for this operation.
+     * Verifies operand, target type, and result type constraints for this
+     * operation.
      *
      * @return a verifier that returns {@code true} when the op is well-formed.
      */
@@ -384,13 +398,14 @@ public sealed interface ArithOps {
     // =========================================================================
 
     @SuppressWarnings("unused")
-    private CastOp() {}
+    private CastOp() {
+    }
 
     /**
      * Creates a cast operation.
      *
-     * @param loc the source location of this operation.
-     * @param value the value to cast.
+     * @param loc        the source location of this operation.
+     * @param value      the value to cast.
      * @param targetType the target numeric type.
      */
     public CastOp(@NotNull Location loc, @NotNull Value value, @NotNull Type targetType) {
@@ -418,8 +433,11 @@ public sealed interface ArithOps {
   /**
    * Produces a single constant value in the {@code arith} dialect.
    *
-   * <p>The constant is carried by the required {@code "value"} attribute, which must be a {@link
-   * TypedAttribute}. The operation result type is taken directly from the attribute type.
+   * <p>
+   * The constant is carried by the required {@code "value"} attribute, which must
+   * be a {@link
+   * TypedAttribute}. The operation result type is taken directly from the
+   * attribute type.
    */
   final class ConstantOp extends ArithOp implements ArithOps, INoOperands, IHasResult {
 
@@ -460,8 +478,7 @@ public sealed interface ArithOps {
      */
     @Contract(pure = true)
     @Override
-    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>>
-        defaultAttributes() {
+    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
       return () -> List.of(new NamedAttribute("value"));
     }
 
@@ -470,13 +487,14 @@ public sealed interface ArithOps {
     // =========================================================================
 
     @SuppressWarnings("unused")
-    private ConstantOp() {}
+    private ConstantOp() {
+    }
 
     /**
      * Create a constant op whose value is given by the typed attribute.
      *
      * @param location the source location of this operation.
-     * @param value the typed attribute holding the constant value and its type.
+     * @param value    the typed attribute holding the constant value and its type.
      */
     public ConstantOp(@NotNull Location location, @NotNull TypedAttribute value) {
       setOperation(Operation.Create(location, this, null, null, value.getType()));
@@ -487,7 +505,7 @@ public sealed interface ArithOps {
      * Create a string constant.
      *
      * @param location the source location of this operation.
-     * @param value the string literal to embed.
+     * @param value    the string literal to embed.
      */
     public ConstantOp(@NotNull Location location, @NotNull String value) {
       this(location, new StrAttrs.StringAttribute(value));
@@ -497,7 +515,7 @@ public sealed interface ArithOps {
      * Create a 32-bit integer constant.
      *
      * @param location the source location of this operation.
-     * @param value the integer value to embed.
+     * @param value    the integer value to embed.
      */
     public ConstantOp(@NotNull Location location, int value) {
       this(location, new IntegerAttribute(value, IntegerT.INT32()));
@@ -507,7 +525,7 @@ public sealed interface ArithOps {
      * Create a 64-bit integer constant.
      *
      * @param location the source location of this operation.
-     * @param value the integer value to embed.
+     * @param value    the integer value to embed.
      */
     public ConstantOp(@NotNull Location location, long value) {
       this(location, new IntegerAttribute(value, IntegerT.INT64()));
@@ -517,7 +535,7 @@ public sealed interface ArithOps {
      * Create a boolean ({@code int1}) constant.
      *
      * @param location the source location of this operation.
-     * @param value the boolean value to embed.
+     * @param value    the boolean value to embed.
      */
     public ConstantOp(@NotNull Location location, boolean value) {
       this(location, new IntegerAttribute(value ? 1 : 0, IntegerT.BOOL()));

@@ -2,6 +2,7 @@ package dgir.dialect.io;
 
 import dgir.core.debug.Location;
 import dgir.core.ir.Dialect;
+import dgir.core.ir.MaybeType;
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
@@ -138,7 +139,7 @@ public sealed interface IoOps {
      *
      * @return the result type.
      */
-    public @NotNull Type getResultType() {
+    public @NotNull MaybeType getResultType() {
       return getResult().getType();
     }
   }

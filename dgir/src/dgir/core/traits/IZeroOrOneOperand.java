@@ -1,5 +1,6 @@
 package dgir.core.traits;
 
+import dgir.core.ir.MaybeType;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
@@ -51,7 +52,7 @@ public interface IZeroOrOneOperand extends IOpTrait {
    */
   @SuppressWarnings("OptionalMapToOptional")
   @Contract(pure = true)
-  default @NotNull Optional<Optional<@NotNull Type>> getOperandType() {
+  default @NotNull Optional<Optional<@NotNull MaybeType>> getOperandType() {
     return getOperand().map(value -> value.map(Value::getType));
   }
 }

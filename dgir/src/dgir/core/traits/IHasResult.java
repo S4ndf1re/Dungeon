@@ -1,5 +1,6 @@
 package dgir.core.traits;
 
+import dgir.core.ir.MaybeType;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
@@ -49,7 +50,7 @@ public interface IHasResult extends IOpTrait {
    *
    * @return the result type.
    */
-  default @NotNull Type getResultType() {
+  default @NotNull MaybeType getResultType() {
     return getResult().getType();
   }
 }

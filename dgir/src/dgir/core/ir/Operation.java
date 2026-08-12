@@ -22,13 +22,20 @@ import tools.jackson.databind.annotation.JsonSerialize;
 /**
  * Carries the runtime state associated with a concrete operation instance.
  *
- * <p>The design deliberately separates <em>data</em> (this class) from <em>behaviour</em> (the
- * {@link Op} subclass hierarchy). This decoupling makes serialisation and deserialisation
- * straightforward: an {@code Operation} can be created from JSON without instantiating any
- * dialect-specific {@code Op} class, and the {@code Op} wrapper can be reconstructed on demand via
+ * <p>
+ * The design deliberately separates <em>data</em> (this class) from
+ * <em>behaviour</em> (the
+ * {@link Op} subclass hierarchy). This decoupling makes serialisation and
+ * deserialisation
+ * straightforward: an {@code Operation} can be created from JSON without
+ * instantiating any
+ * dialect-specific {@code Op} class, and the {@code Op} wrapper can be
+ * reconstructed on demand via
  * {@link #asOp()}.
  *
- * <p>An {@code Operation} is always created through one of the {@link #Create} static factory
+ * <p>
+ * An {@code Operation} is always created through one of the {@link #Create}
+ * static factory
  * methods; direct constructor calls are for deserialisation only.
  */
 @JsonSerialize(using = OperationSerializer.class)
@@ -42,16 +49,22 @@ public final class Operation implements Serializable {
   /**
    * Create an {@link Operation} and populate body values for each of its regions.
    *
-   * <p>Each element of {@code regionValueTypes} corresponds to one region in declaration order. The
-   * values are created as fresh {@link Value} instances typed according to the provided lists and
+   * <p>
+   * Each element of {@code regionValueTypes} corresponds to one region in
+   * declaration order. The
+   * values are created as fresh {@link Value} instances typed according to the
+   * provided lists and
    * set as the region's body values after creation.
    *
-   * @param location the source location of the operation.
-   * @param op a default (no-arg) op prototype used to obtain the ident and default attributes.
-   * @param operands input value operands, or {@code null} for none.
-   * @param successors successor blocks (for branching ops), or {@code null} for none.
-   * @param outputType result type, or {@code null} for void ops.
-   * @param regionValueTypes per-region lists of region value types; the number of elements
+   * @param location         the source location of the operation.
+   * @param op               a default (no-arg) op prototype used to obtain the
+   *                         ident and default attributes.
+   * @param operands         input value operands, or {@code null} for none.
+   * @param successors       successor blocks (for branching ops), or {@code null}
+   *                         for none.
+   * @param outputType       result type, or {@code null} for void ops.
+   * @param regionValueTypes per-region lists of region value types; the number of
+   *                         elements
    * @return the newly constructed operation.
    */
   @NotNull
@@ -61,15 +74,14 @@ public final class Operation implements Serializable {
       @NotNull Op op,
       @Nullable List<Value> operands,
       @Nullable List<Block> successors,
-      @Nullable Type outputType,
-      @NotNull List<Type>... regionValueTypes) {
+      @Nullable MaybeType outputType,
+      @NotNull List<MaybeType>... regionValueTypes) {
     return Create(
         location,
         OperationDetails.lookup(op.getIdent())
             .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        MessageFormat.format("Operation {0} is not registered.", op.getIdent()))),
+                () -> new IllegalArgumentException(
+                    MessageFormat.format("Operation {0} is not registered.", op.getIdent()))),
         operands != null ? operands : List.of(),
         successors != null ? successors : List.of(),
         outputType,
@@ -79,9 +91,10 @@ public final class Operation implements Serializable {
   /**
    * Create an {@link Operation} with a fixed number of empty regions.
    *
-   * @param location the source location of the operation.
-   * @param op a default op prototype used to obtain the ident and default attributes.
-   * @param operands input value operands, or {@code null} for none.
+   * @param location   the source location of the operation.
+   * @param op         a default op prototype used to obtain the ident and default
+   *                   attributes.
+   * @param operands   input value operands, or {@code null} for none.
    * @param successors successor blocks, or {@code null} for none.
    * @param outputType result type, or {@code null} for void ops.
    * @param numRegions number of (initially empty) regions to attach.
@@ -94,7 +107,7 @@ public final class Operation implements Serializable {
       @NotNull Op op,
       @Nullable List<Value> operands,
       @Nullable List<Block> successors,
-      @Nullable Type outputType,
+      @Nullable MaybeType outputType,
       int numRegions) {
     return Create(
         location,
@@ -102,7 +115,7 @@ public final class Operation implements Serializable {
         operands,
         successors,
         outputType,
-        Stream.generate(List::<Type>of).limit(numRegions).toArray(List[]::new));
+        Stream.generate(List::<MaybeType>of).limit(numRegions).toArray(List[]::new));
   }
 
   @SafeVarargs
@@ -111,8 +124,8 @@ public final class Operation implements Serializable {
       @NotNull OperationDetails operationDetails,
       @Nullable List<Value> operands,
       @Nullable List<Block> successors,
-      @Nullable Type outputType,
-      @NotNull List<Type>... regionValueTypes) {
+      @Nullable MaybeType outputType,
+      @NotNull List<MaybeType>... regionValueTypes) {
     return Create(
         location,
         operationDetails,
@@ -130,7 +143,7 @@ public final class Operation implements Serializable {
       @NotNull OperationDetails operationDetails,
       @Nullable List<Value> operands,
       @Nullable List<Block> successors,
-      @Nullable Type outputType,
+      @Nullable MaybeType outputType,
       @NotNull List<List<Value>> regionsValues) {
     return new Operation(
         location,
@@ -179,20 +192,21 @@ public final class Operation implements Serializable {
   /**
    * Full constructor for Operation.
    *
-   * @param location The source location of this operation.
-   * @param details The operation details.
-   * @param operands The input values.
-   * @param successors The blocks succeeding this operation.
-   * @param resultType The output result type.
-   * @param regionsValues The values used for the region values for each region; the number of
-   *     elements determines the number of regions created
+   * @param location      The source location of this operation.
+   * @param details       The operation details.
+   * @param operands      The input values.
+   * @param successors    The blocks succeeding this operation.
+   * @param resultType    The output result type.
+   * @param regionsValues The values used for the region values for each region;
+   *                      the number of
+   *                      elements determines the number of regions created
    */
   public Operation(
       @NotNull Location location,
       @NotNull OperationDetails details,
       @NotNull List<Value> operands,
       @NotNull List<Block> successors,
-      @Nullable Type resultType,
+      @Nullable MaybeType resultType,
       @NotNull List<List<Value>> regionsValues) {
     this.location = location;
 
@@ -203,7 +217,8 @@ public final class Operation implements Serializable {
     this.dynamicAttributes = new HashMap<>();
 
     List<ValueOperand> operandsList = new ArrayList<>(operands.size());
-    for (var operand : operands) operandsList.add(new ValueOperand(this, operand));
+    for (var operand : operands)
+      operandsList.add(new ValueOperand(this, operand));
     this.operands = Collections.unmodifiableList(operandsList);
 
     List<BlockOperand> blockOperandsList = new ArrayList<>(successors.size());
@@ -212,9 +227,8 @@ public final class Operation implements Serializable {
     }
     this.blockOperands = Collections.unmodifiableList(blockOperandsList);
 
-    this.attributes =
-        details.defaultAttributes().get().stream()
-            .collect(Collectors.toMap(NamedAttribute::getName, attr -> attr));
+    this.attributes = details.defaultAttributes().get().stream()
+        .collect(Collectors.toMap(NamedAttribute::getName, attr -> attr));
 
     var regionsList = new ArrayList<Region>(regionsValues.size());
     for (List<Value> regionValues : regionsValues) {
@@ -230,7 +244,8 @@ public final class Operation implements Serializable {
   /**
    * Run the {@link OperationVerifier} on this operation.
    *
-   * @param recursive {@code true} to also verify all nested operations and blocks.
+   * @param recursive {@code true} to also verify all nested operations and
+   *                  blocks.
    * @return {@code true} if verification succeeds.
    */
   @Contract(pure = true)
@@ -275,14 +290,17 @@ public final class Operation implements Serializable {
   }
 
   /**
-   * Create a typed trait wrapper for this operation if it implements the given trait.
+   * Create a typed trait wrapper for this operation if it implements the given
+   * trait.
    *
    * @param clazz The trait to check for
-   * @return The trait wrapper, or empty if this operation does not implement the trait.
+   * @return The trait wrapper, or empty if this operation does not implement the
+   *         trait.
    */
   @Contract(pure = true)
   public <T extends IOpTrait> @NotNull Optional<T> asTrait(@NotNull Class<T> clazz) {
-    if (!hasTrait(clazz)) return Optional.empty();
+    if (!hasTrait(clazz))
+      return Optional.empty();
     return Optional.of(clazz.cast(asOp()));
   }
 
@@ -341,7 +359,8 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull ValueOperand getOperandOrThrow(int index) {
-    if (index >= operands.size()) throw new NoSuchElementException("No operand at index " + index);
+    if (index >= operands.size())
+      throw new NoSuchElementException("No operand at index " + index);
     return operands.get(index);
   }
 
@@ -349,7 +368,8 @@ public final class Operation implements Serializable {
    * Returns the value referenced by the operand at the given index, if present.
    *
    * @param i zero-based operand index.
-   * @return the referenced {@link Value}, or empty if the index is out of range or unset.
+   * @return the referenced {@link Value}, or empty if the index is out of range
+   *         or unset.
    */
   @Contract(pure = true)
   public @NotNull Optional<Value> getOperandValue(int i) {
@@ -357,15 +377,18 @@ public final class Operation implements Serializable {
   }
 
   /**
-   * Returns the value referenced by the operand at the given index, throwing if absent.
+   * Returns the value referenced by the operand at the given index, throwing if
+   * absent.
    *
    * @param i zero-based operand index.
    * @return the referenced {@link Value}, never {@code null}.
-   * @throws NoSuchElementException if the index is out of range or the operand is unset.
+   * @throws NoSuchElementException if the index is out of range or the operand is
+   *                                unset.
    */
   @Contract(pure = true)
   public @NotNull Value getOperandValueOrThrow(int i) {
-    if (i >= operands.size()) throw new NoSuchElementException("No operand at index " + i);
+    if (i >= operands.size())
+      throw new NoSuchElementException("No operand at index " + i);
     return operands
         .get(i)
         .getValue()
@@ -373,19 +396,21 @@ public final class Operation implements Serializable {
   }
 
   @Contract(pure = true)
-  public @NotNull Optional<Type> getOperandType(int i) {
+  public @NotNull Optional<MaybeType> getOperandType(int i) {
     return getOperandValue(i).map(Value::getType);
   }
 
   /**
-   * Returns the type of the value referenced by the operand at the given index, throwing if absent.
+   * Returns the type of the value referenced by the operand at the given index,
+   * throwing if absent.
    *
    * @param i zero-based operand index.
-   * @return the {@link Type}, never {@code null}.
-   * @throws NoSuchElementException if the index is out of range or the operand is unset.
+   * @return the {@link MaybeType}, never {@code null}.
+   * @throws NoSuchElementException if the index is out of range or the operand is
+   *                                unset.
    */
   @Contract(pure = true)
-  public @NotNull Type getOperandTypeOrThrow(int i) {
+  public @NotNull MaybeType getOperandTypeOrThrow(int i) {
     return getOperandValueOrThrow(i).getType();
   }
 
@@ -414,7 +439,8 @@ public final class Operation implements Serializable {
   }
 
   /**
-   * Returns the {@link OperationResult} for this operation, if it produces a value.
+   * Returns the {@link OperationResult} for this operation, if it produces a
+   * value.
    *
    * @return the result wrapper, or empty for void operations.
    */
@@ -424,14 +450,16 @@ public final class Operation implements Serializable {
   }
 
   /**
-   * Returns the {@link OperationResult} for this operation, throwing if this is a void operation.
+   * Returns the {@link OperationResult} for this operation, throwing if this is a
+   * void operation.
    *
    * @return the result wrapper, never {@code null}.
    * @throws NoSuchElementException if this operation has no output.
    */
   @Contract(pure = true)
   public @NotNull OperationResult getOutputOrThrow() {
-    if (output == null) throw new NoSuchElementException("Operation has no output: " + this);
+    if (output == null)
+      throw new NoSuchElementException("Operation has no output: " + this);
     return output;
   }
 
@@ -442,12 +470,14 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull Optional<Value> getOutputValue() {
-    if (output == null) return Optional.empty();
+    if (output == null)
+      return Optional.empty();
     return getOutput().map(OperationResult::getValue);
   }
 
   /**
-   * Returns the output {@link Value} produced by this operation, throwing if this is a void
+   * Returns the output {@link Value} produced by this operation, throwing if this
+   * is a void
    * operation.
    *
    * @return the output value, never {@code null}.
@@ -455,14 +485,16 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull Value getOutputValueOrThrow() {
-    if (output == null) throw new NoSuchElementException("Operation has no output: " + this);
+    if (output == null)
+      throw new NoSuchElementException("Operation has no output: " + this);
     return output.getValue();
   }
 
   /**
    * Replace the output value of this operation.
    *
-   * @param value the new output value; its type must match the existing result type.
+   * @param value the new output value; its type must match the existing result
+   *              type.
    * @throws AssertionError if this operation has no output.
    */
   public void setOutputValue(@NotNull Value value) {
@@ -502,36 +534,41 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull Optional<Attribute> getAttribute(@NotNull String name) {
-    if (!getAttributesMap().containsKey(name)) return Optional.empty();
+    if (!getAttributesMap().containsKey(name))
+      return Optional.empty();
     return Optional.of(getAttributesMap().get(name).getAttributeOrThrow());
   }
 
   /**
-   * Returns the attribute for the given name cast to {@code clazz}, if present, set, and of the
+   * Returns the attribute for the given name cast to {@code clazz}, if present,
+   * set, and of the
    * correct type.
    *
    * @param clazz the expected attribute class.
-   * @param name the attribute name.
-   * @param <T> the attribute type.
+   * @param name  the attribute name.
+   * @param <T>   the attribute type.
    * @return the typed attribute, or empty if absent, unset, or the wrong type.
    */
   @Contract(pure = true)
   public <T extends Attribute> @NotNull Optional<T> getAttributeAs(
       @NotNull String name, @NotNull Class<T> clazz) {
     var attribute = getAttribute(name);
-    if (attribute.isEmpty() || !clazz.isInstance(attribute.get())) return Optional.empty();
+    if (attribute.isEmpty() || !clazz.isInstance(attribute.get()))
+      return Optional.empty();
     return Optional.of(clazz.cast(attribute.get()));
   }
 
   /**
-   * Returns the attribute for the given name cast to {@code clazz}, throwing if absent, unset, or
+   * Returns the attribute for the given name cast to {@code clazz}, throwing if
+   * absent, unset, or
    * the wrong type.
    *
-   * @param name the attribute name.
+   * @param name  the attribute name.
    * @param clazz the expected attribute class.
-   * @param <T> the attribute type.
+   * @param <T>   the attribute type.
    * @return the typed attribute, never {@code null}.
-   * @throws NoSuchElementException if the attribute is absent, unset, or the wrong type.
+   * @throws NoSuchElementException if the attribute is absent, unset, or the
+   *                                wrong type.
    */
   @Contract(pure = true)
   public <T extends Attribute> @NotNull T getAttributeAsOrThrow(
@@ -546,7 +583,8 @@ public final class Operation implements Serializable {
   /**
    * Set the value of an existing named attribute.
    *
-   * @param name the attribute name; the attribute must already exist in the map.
+   * @param name      the attribute name; the attribute must already exist in the
+   *                  map.
    * @param attribute the new attribute value.
    * @throws AssertionError if no attribute with the given name exists.
    */
@@ -589,36 +627,41 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull Optional<Attribute> getDynamicAttribute(@NotNull String name) {
-    if (!getDynamicAttributesMap().containsKey(name)) return Optional.empty();
+    if (!getDynamicAttributesMap().containsKey(name))
+      return Optional.empty();
     return Optional.of(getDynamicAttributesMap().get(name).getAttributeOrThrow());
   }
 
   /**
-   * Returns the attribute for the given name cast to {@code clazz}, if present, set, and of the
+   * Returns the attribute for the given name cast to {@code clazz}, if present,
+   * set, and of the
    * correct type.
    *
    * @param clazz the expected attribute class.
-   * @param name the attribute name.
-   * @param <T> the attribute type.
+   * @param name  the attribute name.
+   * @param <T>   the attribute type.
    * @return the typed attribute, or empty if absent, unset, or the wrong type.
    */
   @Contract(pure = true)
   public <T extends Attribute> @NotNull Optional<T> getDynamicAttributeAs(
       @NotNull String name, @NotNull Class<T> clazz) {
     var attribute = getDynamicAttribute(name);
-    if (attribute.isEmpty() || !clazz.isInstance(attribute.get())) return Optional.empty();
+    if (attribute.isEmpty() || !clazz.isInstance(attribute.get()))
+      return Optional.empty();
     return Optional.of(clazz.cast(attribute.get()));
   }
 
   /**
-   * Returns the dynamic attribute for the given name cast to {@code clazz}, throwing if absent,
+   * Returns the dynamic attribute for the given name cast to {@code clazz},
+   * throwing if absent,
    * unset, or the wrong type.
    *
-   * @param name the dattribute name.
+   * @param name  the dattribute name.
    * @param clazz the expected attribute class.
-   * @param <T> the attribute type.
+   * @param <T>   the attribute type.
    * @return the typed attribute, never {@code null}.
-   * @throws NoSuchElementException if the attribute is absent, unset, or the wrong type.
+   * @throws NoSuchElementException if the attribute is absent, unset, or the
+   *                                wrong type.
    */
   @Contract(pure = true)
   public <T extends Attribute> @NotNull T getDynamicAttributeAsOrThrow(
@@ -633,7 +676,7 @@ public final class Operation implements Serializable {
   /**
    * Set (or replace) a dynamic attribute by name.
    *
-   * @param name the dynamic attribute name.
+   * @param name      the dynamic attribute name.
    * @param attribute the dynamic attribute value.
    */
   public void setDynamicAttribute(@NotNull String name, @NotNull Attribute attribute) {
@@ -648,9 +691,10 @@ public final class Operation implements Serializable {
   /**
    * Add a new dynamic attribute.
    *
-   * @param name the dynamic attribute name.
+   * @param name      the dynamic attribute name.
    * @param attribute the dynamic attribute value.
-   * @throws AssertionError if a dynamic attribute with the same name already exists.
+   * @throws AssertionError if a dynamic attribute with the same name already
+   *                        exists.
    */
   public void addDynamicAttribute(@NotNull String name, @NotNull Attribute attribute) {
     assert !getDynamicAttributesMap().containsKey(name)
@@ -662,11 +706,13 @@ public final class Operation implements Serializable {
    * Remove a dynamic attribute.
    *
    * @param name the dynamic attribute name.
-   * @return the removed dynamic attribute value, or empty if no entry existed for the given name.
+   * @return the removed dynamic attribute value, or empty if no entry existed for
+   *         the given name.
    */
   public @NotNull Optional<Attribute> removeDynamicAttribute(@NotNull String name) {
     NamedAttribute removed = getDynamicAttributesMap().remove(name);
-    if (removed == null) return Optional.empty();
+    if (removed == null)
+      return Optional.empty();
     return removed.getAttribute();
   }
 
@@ -727,7 +773,8 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull Region getFirstRegionOrThrow() {
-    if (regions.isEmpty()) throw new NoSuchElementException("Operation has no regions: " + this);
+    if (regions.isEmpty())
+      throw new NoSuchElementException("Operation has no regions: " + this);
     return regions.getFirst();
   }
 
@@ -738,7 +785,8 @@ public final class Operation implements Serializable {
   /**
    * Returns the block that contains this operation, if any.
    *
-   * @return the parent block, or empty if this operation is not yet placed in a block.
+   * @return the parent block, or empty if this operation is not yet placed in a
+   *         block.
    */
   @Contract(pure = true)
   public @NotNull Optional<Block> getParent() {
@@ -753,7 +801,8 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull Block getParentOrThrow() {
-    if (parent == null) throw new NoSuchElementException("Operation has no parent block: " + this);
+    if (parent == null)
+      throw new NoSuchElementException("Operation has no parent block: " + this);
     return parent;
   }
 
@@ -768,7 +817,8 @@ public final class Operation implements Serializable {
   }
 
   /**
-   * Returns the region that contains the parent block of this operation, throwing if absent.
+   * Returns the region that contains the parent block of this operation, throwing
+   * if absent.
    *
    * @return the parent region, never {@code null}.
    * @throws NoSuchElementException if not available.
@@ -784,7 +834,8 @@ public final class Operation implements Serializable {
   /**
    * Returns the operation that owns the parent region of this operation, if any.
    *
-   * @return the parent operation, or empty if this operation is at the top of the tree.
+   * @return the parent operation, or empty if this operation is at the top of the
+   *         tree.
    */
   @Contract(pure = true)
   public @NotNull Optional<Operation> getParentOperation() {
@@ -792,7 +843,8 @@ public final class Operation implements Serializable {
   }
 
   /**
-   * Returns the operation that owns the parent region of this operation, throwing if absent.
+   * Returns the operation that owns the parent region of this operation, throwing
+   * if absent.
    *
    * @return the parent operation, never {@code null}.
    * @throws NoSuchElementException if this operation is at the top of the tree.
@@ -806,11 +858,13 @@ public final class Operation implements Serializable {
   }
 
   /**
-   * Set the parent block of this operation. May only be called from {@link Block}.
+   * Set the parent block of this operation. May only be called from
+   * {@link Block}.
    *
    * @param parent the new parent block, or {@code null} to detach.
-   * @throws AssertionError if called from outside {@link Block}, or if this operation already has a
-   *     non-null parent and the new value is also non-null.
+   * @throws AssertionError if called from outside {@link Block}, or if this
+   *                        operation already has a
+   *                        non-null parent and the new value is also non-null.
    */
   public void setParent(Block parent) {
     assert DgirCoreUtils.getCallingClass() == Block.class
@@ -823,19 +877,23 @@ public final class Operation implements Serializable {
   }
 
   /**
-   * Walks the parent chain and returns the first parent operation that implements the given trait.
+   * Walks the parent chain and returns the first parent operation that implements
+   * the given trait.
    *
    * @param traitClass The trait to search for.
-   * @return The first parent operation implementing the trait, or empty if none was found.
+   * @return The first parent operation implementing the trait, or empty if none
+   *         was found.
    */
   @Contract(pure = true)
   public <T extends IOpTrait> @NotNull Optional<T> getParentWithTrait(
       @NotNull Class<T> traitClass) {
     Optional<Operation> currentParent = getParentOperation();
-    if (currentParent.isEmpty()) return Optional.empty();
+    if (currentParent.isEmpty())
+      return Optional.empty();
 
     while (currentParent.isPresent()) {
-      if (currentParent.get().hasTrait(traitClass)) return currentParent.get().asTrait(traitClass);
+      if (currentParent.get().hasTrait(traitClass))
+        return currentParent.get().asTrait(traitClass);
       currentParent = currentParent.get().getParentOperation();
     }
     return Optional.empty();
@@ -862,7 +920,8 @@ public final class Operation implements Serializable {
         .map(
             block -> {
               int index = block.getOperationsRaw().indexOf(this);
-              if (index == -1 || index == block.getOperationsRaw().size() - 1) return null;
+              if (index == -1 || index == block.getOperationsRaw().size() - 1)
+                return null;
               return block.getOperationsRaw().get(index + 1);
             });
   }
@@ -878,16 +937,19 @@ public final class Operation implements Serializable {
         .map(
             block -> {
               int index = block.getOperationsRaw().indexOf(this);
-              if (index == -1 || index == 0) return null;
+              if (index == -1 || index == 0)
+                return null;
               return block.getOperationsRaw().get(index - 1);
             });
   }
 
   /**
-   * Get the next operation in the same block as this operation, throwing if there is none.
+   * Get the next operation in the same block as this operation, throwing if there
+   * is none.
    *
    * @return The next operation, never {@code null}.
-   * @throws NoSuchElementException if this is the last operation in its block or has no parent.
+   * @throws NoSuchElementException if this is the last operation in its block or
+   *                                has no parent.
    */
   @Contract(pure = true)
   public @NotNull Operation getNextOrThrow() {
@@ -970,13 +1032,11 @@ public final class Operation implements Serializable {
     sb.append(")");
 
     if (!attributes.isEmpty()) {
-      String attrs =
-          attributes.values().stream()
-              .map(
-                  attr ->
-                      MessageFormat.format(
-                          "{0} = {1}", attr.getName(), attr.getAttributeOrThrow().getStorage()))
-              .collect(Collectors.joining(", "));
+      String attrs = attributes.values().stream()
+          .map(
+              attr -> MessageFormat.format(
+                  "{0} = {1}", attr.getName(), attr.getAttributeOrThrow().getStorage()))
+          .collect(Collectors.joining(", "));
       if (!attrs.isEmpty()) {
         sb.append(" [ ");
         sb.append(attrs);
@@ -985,13 +1045,11 @@ public final class Operation implements Serializable {
     }
 
     if (!dynamicAttributes.isEmpty()) {
-      String dynAttrs =
-          dynamicAttributes.values().stream()
-              .map(
-                  attr ->
-                      MessageFormat.format(
-                          "{0} = {1}", attr.getName(), attr.getAttributeOrThrow().getStorage()))
-              .collect(Collectors.joining(", "));
+      String dynAttrs = dynamicAttributes.values().stream()
+          .map(
+              attr -> MessageFormat.format(
+                  "{0} = {1}", attr.getName(), attr.getAttributeOrThrow().getStorage()))
+          .collect(Collectors.joining(", "));
       if (!dynAttrs.isEmpty()) {
         sb.append(" <dynamic [ ");
         sb.append(dynAttrs);

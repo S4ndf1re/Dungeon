@@ -27,8 +27,10 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * These are test for checking the validity of the core IR and traits. These test are mainly there
- * to check if the structural analysis of the IR hold, especially reaching definitions and in that
+ * These are test for checking the validity of the core IR and traits. These
+ * test are mainly there
+ * to check if the structural analysis of the IR hold, especially reaching
+ * definitions and in that
  * context region visiblity, nesting and isolation.
  */
 public class CoreTests {
@@ -56,7 +58,7 @@ public class CoreTests {
     assertSame(topLevelFunc, Type.fromParameterizedIdent(topLevelFunc.getParameterizedIdent()));
     assertEquals("func.func<\"(int32) -> (int32)\">", nestedFunc.getParameterizedIdent());
 
-    List<Type> deserialized = new ArrayList<>();
+    List<MaybeType> deserialized = new ArrayList<>();
     Type.consumeParameterText(
         "int32, mem.array<func.func<\"(int32) -> (int32)\">, 4>, func.func<\"(int32) -> (int32)\">",
         Type.AllTypes.of(deserialized));
@@ -70,9 +72,8 @@ public class CoreTests {
         () -> Type.fromParameterizedIdent("func.func<\"(int32) -> (int32)"));
     assertThrows(
         IllegalArgumentException.class,
-        () ->
-            Type.consumeParameterText(
-                "int32,,func.func<\"(int32) -> (int32)\">", parameters -> Optional.empty()));
+        () -> Type.consumeParameterText(
+            "int32,,func.func<\"(int32) -> (int32)\">", parameters -> Optional.empty()));
   }
 
   @Test
@@ -140,7 +141,8 @@ public class CoreTests {
     rightBlock.addOperation(new BranchOp(LOC, mergeBlock));
 
     // Merge block: uses val
-    // This is a violation because 'val' is not defined on the path through 'rightBlock'.
+    // This is a violation because 'val' is not defined on the path through
+    // 'rightBlock'.
     mergeBlock.addOperation(new PrintOp(LOC, val.getResult()));
     mergeBlock.addOperation(new ReturnOp(LOC));
 
@@ -218,7 +220,7 @@ public class CoreTests {
    * Equivalent of this bril code
    *
    * <pre>{@code
-   * @main {
+   * &#64;main {
    *      a: int = const 47;
    *      b: int = const 42;
    *      cond: bool = const true;

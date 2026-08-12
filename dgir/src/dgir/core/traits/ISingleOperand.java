@@ -1,5 +1,6 @@
 package dgir.core.traits;
 
+import dgir.core.ir.MaybeType;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
@@ -49,7 +50,7 @@ public interface ISingleOperand extends IOpTrait {
    * @return the operand type.
    */
   @Contract(pure = true)
-  default @NotNull Type getOperandType() {
+  default @NotNull MaybeType getOperandType() {
     return getOperand().getType();
   }
 }

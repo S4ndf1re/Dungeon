@@ -25,14 +25,19 @@ import org.jetbrains.annotations.Unmodifiable;
 /**
  * Sealed marker interface for all operations in the {@link FuncDialect}.
  *
- * <p>Every concrete op must both extend {@link FuncBaseOp} and implement this interface so that
- * {@link Dialect#allOpsFromSealedInterface(Class)} can discover it automatically via reflection.
+ * <p>
+ * Every concrete op must both extend {@link FuncBaseOp} and implement this
+ * interface so that
+ * {@link Dialect#allOpsFromSealedInterface(Class)} can discover it
+ * automatically via reflection.
  */
 public sealed interface FuncOps {
   /**
    * Abstract base class for all operations in the {@code func} dialect.
    *
-   * <p>Concrete subclasses must implement {@link #getIdent()} and {@link #getVerifier()}, and must
+   * <p>
+   * Concrete subclasses must implement {@link #getIdent()} and
+   * {@link #getVerifier()}, and must
    * implement {@link FuncOps} to be enumerated by {@link FuncDialect}.
    */
   abstract class FuncBaseOp extends Op {
@@ -60,11 +65,15 @@ public sealed interface FuncOps {
   /**
    * Calls a named function in the {@code func} dialect.
    *
-   * <p>The callee is referenced by name via the {@code "callee"} {@link SymbolRefAttribute}. At
-   * verification time the symbol is resolved in the nearest enclosing {@link SymbolTable} and the
+   * <p>
+   * The callee is referenced by name via the {@code "callee"}
+   * {@link SymbolRefAttribute}. At
+   * verification time the symbol is resolved in the nearest enclosing
+   * {@link SymbolTable} and the
    * operand/result types are checked against the callee's {@link FuncType}.
    *
-   * <p>MLIR reference: {@code func.call}
+   * <p>
+   * MLIR reference: {@code func.call}
    *
    * <pre>{@code
    * %result = func.call @add(%a, %b) : (int32, int32) -> int32
@@ -88,8 +97,8 @@ public sealed interface FuncOps {
         CallOp callOp = operation.as(CallOp.class).orElseThrow();
 
         // Make sure that the callee function exists in the nearest symbol table
-        Optional<FuncOp> callee =
-            SymbolTable.lookupSymbolInNearestTableAsOp(operation, callOp.getCallee(), FuncOp.class);
+        Optional<FuncOp> callee = SymbolTable.lookupSymbolInNearestTableAsOp(operation, callOp.getCallee(),
+            FuncOp.class);
         if (callee.isEmpty()) {
           operation.emitError("Could not find function " + callOp.getCallee());
           return false;
@@ -121,10 +130,8 @@ public sealed interface FuncOps {
 
     @Contract(pure = true)
     @Override
-    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>>
-        defaultAttributes() {
-      return () ->
-          List.of(new NamedAttribute(getCalleeAttributeName(), new SymbolRefAttribute("foo")));
+    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
+      return () -> List.of(new NamedAttribute(getCalleeAttributeName(), new SymbolRefAttribute("foo")));
     }
 
     /**
@@ -141,14 +148,15 @@ public sealed interface FuncOps {
     // Constructors
     // =========================================================================
 
-    private CallOp() {}
+    private CallOp() {
+    }
 
     /**
      * Create a call with an explicit operand list and callee type.
      *
-     * @param location the source location of this operation.
-     * @param name the symbol name of the function to call.
-     * @param operands the argument values.
+     * @param location   the source location of this operation.
+     * @param name       the symbol name of the function to call.
+     * @param operands   the argument values.
      * @param calleeType the function signature used to determine the result type.
      */
     public CallOp(
@@ -156,16 +164,16 @@ public sealed interface FuncOps {
         @NotNull String name,
         @NotNull List<Value> operands,
         @NotNull FuncType calleeType) {
-      setOperation(Operation.Create(location, this, operands, null, calleeType.getOutput()));
+      setOperation(Operation.Create(location, this, operands, null, calleeType.getOutputAsNullable()));
       setCallee(name);
     }
 
     /**
      * Create a call with an explicit operand list and return type.
      *
-     * @param location the source location of this operation.
-     * @param name the symbol name of the function to call.
-     * @param operands the argument values.
+     * @param location   the source location of this operation.
+     * @param name       the symbol name of the function to call.
+     * @param operands   the argument values.
      * @param returnType the return type of the call
      */
     public CallOp(
@@ -180,10 +188,10 @@ public sealed interface FuncOps {
     /**
      * Create a call using varargs syntax.
      *
-     * @param location the source location of this operation.
-     * @param name the symbol name of the function to call.
+     * @param location   the source location of this operation.
+     * @param name       the symbol name of the function to call.
      * @param calleeType the function signature used to determine the result type.
-     * @param operands the argument values (varargs).
+     * @param operands   the argument values (varargs).
      */
     public CallOp(
         @NotNull Location location,
@@ -197,12 +205,12 @@ public sealed interface FuncOps {
      * Create a call to a specific {@link FuncOp} with an explicit operand list.
      *
      * @param location the source location of this operation.
-     * @param funcOp the function to call.
+     * @param funcOp   the function to call.
      * @param operands the argument values.
      */
     public CallOp(
         @NotNull Location location, @NotNull FuncOp funcOp, @NotNull List<Value> operands) {
-      setOperation(Operation.Create(location, this, operands, null, funcOp.getType().getOutput()));
+      setOperation(Operation.Create(location, this, operands, null, funcOp.getType().getOutputAsNullable()));
       setCallee(funcOp.getFuncName());
     }
 
@@ -210,7 +218,7 @@ public sealed interface FuncOps {
      * Create a call to a specific {@link FuncOp} using varargs syntax.
      *
      * @param location the source location of this operation.
-     * @param funcOp the function to call.
+     * @param funcOp   the function to call.
      * @param operands the argument values (varargs).
      */
     public CallOp(@NotNull Location location, @NotNull FuncOp funcOp, Value... operands) {
@@ -242,13 +250,14 @@ public sealed interface FuncOps {
     /**
      * Get the function type that results from this call's operands and output.
      *
-     * @return The function type inferred from the operands and the operation result.
+     * @return The function type inferred from the operands and the operation
+     *         result.
      */
     @Contract(pure = true)
     public @NotNull FuncType getFunctionType() {
-      List<Type> inputTypes =
-          getOperands().stream().map(ValueOperand::getType).map(type -> type.orElse(null)).toList();
-      Type outputType = getOutput().map(OperationResult::getType).orElse(null);
+      List<MaybeType> inputTypes = getOperands().stream().map(ValueOperand::getType).map(type -> type.orElse(null))
+          .toList();
+      MaybeType outputType = getOutput().map(OperationResult::getType).orElse(null);
       return FuncType.of(inputTypes, outputType);
     }
 
@@ -263,19 +272,26 @@ public sealed interface FuncOps {
   /**
    * Declares a named function with a body region in the {@code func} dialect.
    *
-   * <p>A {@code func.func} op carries two mandatory attributes:
+   * <p>
+   * A {@code func.func} op carries two mandatory attributes:
    *
    * <ul>
-   *   <li>{@link SymbolTable#getSymbolAttributeName()} — the function's symbol name (e.g. {@code
+   * <li>{@link SymbolTable#getSymbolAttributeName()} — the function's symbol name
+   * (e.g. {@code
    *       "main"}).
-   *   <li>{@code "type"} — a {@link TypeAttribute} wrapping the function's {@link FuncType}.
+   * <li>{@code "type"} — a {@link TypeAttribute} wrapping the function's
+   * {@link FuncType}.
    * </ul>
    *
-   * <p>The op contributes exactly one region that holds the function body. It implements {@link
-   * ISymbol} so its name can be looked up via {@link SymbolTable}, and {@link IIsolatedFromAbove}
+   * <p>
+   * The op contributes exactly one region that holds the function body. It
+   * implements {@link
+   * ISymbol} so its name can be looked up via {@link SymbolTable}, and
+   * {@link IIsolatedFromAbove}
    * to prevent the body from capturing values defined outside the function.
    *
-   * <p>MLIR reference: {@code func.func}
+   * <p>
+   * MLIR reference: {@code func.func}
    *
    * <pre>{@code
    * func.func @add(%a: int32, %b: int32) -> int32 {
@@ -285,12 +301,12 @@ public sealed interface FuncOps {
    */
   final class FuncOp extends FuncBaseOp
       implements FuncOps,
-          ImplicitTerminator,
-          ISymbol,
-          IIsolatedFromAbove,
-          IGlobal,
-          ISingleRegion,
-          INoResult {
+      ImplicitTerminator,
+      ISymbol,
+      IIsolatedFromAbove,
+      IGlobal,
+      ISingleRegion,
+      INoResult {
 
     // =========================================================================
     // Type Info
@@ -314,12 +330,10 @@ public sealed interface FuncOps {
 
     @Contract(pure = true)
     @Override
-    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>>
-        defaultAttributes() {
-      return () ->
-          List.of(
-              new NamedAttribute(SymbolTable.getSymbolAttributeName(), new StringAttribute("foo")),
-              new NamedAttribute("type", new TypeAttribute(FuncType.empty())));
+    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
+      return () -> List.of(
+          new NamedAttribute(SymbolTable.getSymbolAttributeName(), new StringAttribute("foo")),
+          new NamedAttribute("type", new TypeAttribute(FuncType.empty())));
     }
 
     @Override
@@ -327,22 +341,23 @@ public sealed interface FuncOps {
       return new ReturnOp()
           .getLocationConstructor()
           .orElseThrow(
-              () ->
-                  new AssertionError(
-                      "FuncOp's implicit terminator must have a location constructor"));
+              () -> new AssertionError(
+                  "FuncOp's implicit terminator must have a location constructor"));
     }
 
     // =========================================================================
     // Constructors
     // =========================================================================
 
-    private FuncOp() {}
+    private FuncOp() {
+    }
 
     /**
-     * Create a function with the given name and a default (no-arg, void) {@link FuncType}.
+     * Create a function with the given name and a default (no-arg, void)
+     * {@link FuncType}.
      *
      * @param location the source location of this operation.
-     * @param name the symbol name of the function.
+     * @param name     the symbol name of the function.
      */
     public FuncOp(@NotNull Location location, @NotNull String name) {
       this(location, name, FuncType.empty());
@@ -352,8 +367,8 @@ public sealed interface FuncOps {
      * Create a function with the given name and explicit type.
      *
      * @param location the source location of this operation.
-     * @param name the symbol name of the function.
-     * @param type the function signature.
+     * @param name     the symbol name of the function.
+     * @param type     the function signature.
      */
     public FuncOp(@NotNull Location location, @NotNull String name, @NotNull FuncType type) {
       setOperation(Operation.Create(location, this, null, null, null, type.getInputs()));
@@ -388,7 +403,8 @@ public sealed interface FuncOps {
     }
 
     /**
-     * Returns the {@link TypeAttribute} that carries the function's {@link FuncType}.
+     * Returns the {@link TypeAttribute} that carries the function's
+     * {@link FuncType}.
      *
      * @return the type attribute.
      * @throws RuntimeException if the attribute is absent.
@@ -414,11 +430,15 @@ public sealed interface FuncOps {
   /**
    * Returns from a {@link FuncOp}, optionally carrying a single return value.
    *
-   * <p>This is a terminator: it must be the last operation in the function body's exit block. If
-   * the enclosing {@link FuncOp} has a non-void output type, exactly one operand must be provided
+   * <p>
+   * This is a terminator: it must be the last operation in the function body's
+   * exit block. If
+   * the enclosing {@link FuncOp} has a non-void output type, exactly one operand
+   * must be provided
    * and its type must match the function output type.
    *
-   * <p>MLIR reference: {@code func.return}
+   * <p>
+   * MLIR reference: {@code func.return}
    *
    * <pre>{@code
    * func.return %result : int32
@@ -463,19 +483,18 @@ public sealed interface FuncOps {
         FuncOp ancestorFuncOp = parentOp.get().as(FuncOp.class).orElseThrow();
         // Ensure that the return op's operand type matches the function output type
         if (returnOp.getOperandType().isPresent()) {
-          var returnType =
-              returnOp
-                  .getOperandType()
-                  .get()
-                  .orElseThrow(() -> new RuntimeException("Return op operand value is not set."));
+          var returnType = returnOp
+              .getOperandType()
+              .get()
+              .orElseThrow(() -> new RuntimeException("Return op operand value is not set."));
           var funcType = ancestorFuncOp.getType();
-          if (!returnType.equals(funcType.getOutput())) {
+          if (!returnType.equals(funcType.getOutput().orElse(null))) {
             operation.emitError(
                 "Return type "
-                    + returnType.getParameterizedIdent()
+                    + returnType.getAsKnownOrThrow().getParameterizedIdent()
                     + " does not match function return type "
-                    + (funcType.getOutput() != null
-                        ? funcType.getOutput().getParameterizedIdent()
+                    + (funcType.getOutput().isPresent() && funcType.getOutput().get().isKnown()
+                        ? funcType.getOutput().get().getAsKnownOrThrow().getParameterizedIdent()
                         : null));
             return false;
           }
@@ -507,7 +526,8 @@ public sealed interface FuncOps {
     // =========================================================================
 
     /** Default constructor used during dialect registration. */
-    private ReturnOp() {}
+    private ReturnOp() {
+    }
 
     /**
      * Create a void return op.
@@ -522,7 +542,7 @@ public sealed interface FuncOps {
      * Create a return op that yields the given value.
      *
      * @param location the source location of this operation.
-     * @param operand the value to return from the enclosing function.
+     * @param operand  the value to return from the enclosing function.
      */
     public ReturnOp(@NotNull Location location, @NotNull Value operand) {
       setOperation(Operation.Create(location, this, List.of(operand), null, null));
@@ -543,7 +563,10 @@ public sealed interface FuncOps {
     }
   }
 
-  /** Creates a constant function reference. Can be used for indirect function calls. */
+  /**
+   * Creates a constant function reference. Can be used for indirect function
+   * calls.
+   */
   final class ConstantOp extends FuncBaseOp implements FuncOps, INoOperands, IHasResult {
 
     @Override
@@ -568,12 +591,12 @@ public sealed interface FuncOps {
     }
 
     @Override
-    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>>
-        defaultAttributes() {
+    public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
       return () -> List.of(new NamedAttribute("callee", new SymbolRefAttribute("foo")));
     }
 
-    private ConstantOp() {}
+    private ConstantOp() {
+    }
 
     public ConstantOp(
         @NotNull Location location, @NotNull String name, @NotNull FuncType funcType) {
@@ -607,7 +630,8 @@ public sealed interface FuncOps {
           operation.emitError("Indirect call target value must hold a function type");
           return false;
         }
-        // Make sure that the function type matches the call site (i.e. the operand types and result
+        // Make sure that the function type matches the call site (i.e. the operand
+        // types and result
         // type match the function type)
         if (!callIndirectOp.getSignature().equals(funcType)) {
           operation.emitError(
@@ -626,7 +650,8 @@ public sealed interface FuncOps {
       return operation -> new CallIndirectOp().setOperation(operation);
     }
 
-    private CallIndirectOp() {}
+    private CallIndirectOp() {
+    }
 
     public CallIndirectOp(
         @NotNull Location location, @NotNull Value target, @NotNull List<Value> operands) {
@@ -636,17 +661,16 @@ public sealed interface FuncOps {
       List<Value> operandsWithTarget = new ArrayList<>(operands);
       operandsWithTarget.addFirst(target);
       setOperation(
-          Operation.Create(location, this, operandsWithTarget, null, funcType.getOutput()));
+          Operation.Create(location, this, operandsWithTarget, null, funcType.getOutputAsNullable()));
     }
 
     public @NotNull FuncType getSignature() {
-      List<Type> inputTypes =
-          getOperands().stream()
-              .skip(1)
-              .map(ValueOperand::getType)
-              .map(type -> type.orElse(null))
-              .toList();
-      Type outputType = getOutput().map(OperationResult::getType).orElse(null);
+      List<MaybeType> inputTypes = getOperands().stream()
+          .skip(1)
+          .map(ValueOperand::getType)
+          .map(type -> type.orElse(null))
+          .toList();
+      MaybeType outputType = getOutput().map(OperationResult::getType).orElse(null);
       return FuncType.of(inputTypes, outputType);
     }
   }

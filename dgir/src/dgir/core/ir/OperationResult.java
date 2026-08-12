@@ -41,7 +41,7 @@ public class OperationResult {
    * @param parent the operation that produces this result.
    * @param type the type of the new value.
    */
-  public OperationResult(@NotNull Operation parent, @NotNull Type type) {
+  public OperationResult(@NotNull Operation parent, @NotNull MaybeType type) {
     this(parent, new Value(type));
   }
 
@@ -86,7 +86,7 @@ public class OperationResult {
    * @return the result type, never {@code null}.
    */
   @Contract(pure = true)
-  public @NotNull Type getType() {
+  public @NotNull MaybeType getType() {
     return value.getType();
   }
 
