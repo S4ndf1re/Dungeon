@@ -16,18 +16,21 @@ import tools.jackson.databind.deser.std.StdDeserializer;
 /**
  * Deserializes an {@link Operation} from its JSON object form.
  *
- * <p>Required field: {@code ident}. Optional fields ({@code operands}, {@code attributes}, {@code
- * dynamicAttributes}, {@code output}, {@code successors}, {@code regions}, {@code loc}) are
+ * <p>
+ * Required field: {@code ident}. Optional fields ({@code operands},
+ * {@code attributes}, {@code
+ * dynamicAttributes}, {@code output}, {@code successors}, {@code regions},
+ * {@code loc}) are
  * validated when present. Malformed input is reported via {@link
  * DeserializationContext#reportInputMismatch}.
  */
 public class OperationDeserializer extends StdDeserializer<Operation> {
   /**
-   * Stores unresolved successor references until all nested regions/blocks/operations are available
+   * Stores unresolved successor references until all nested
+   * regions/blocks/operations are available
    * for identity resolution.
    */
-  private static final Map<Operation, Map<BlockOperand, JsonNode>> unresolvedSuccessorReferences =
-      new HashMap<>();
+  private static final Map<Operation, Map<BlockOperand, JsonNode>> unresolvedSuccessorReferences = new HashMap<>();
 
   /** Constructs the deserializer bound to {@link Operation} class. */
   public OperationDeserializer() {
@@ -43,13 +46,16 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
     super(vc);
   }
 
-  /** Deserialize a full operation payload, then resolve successor references in a second step. */
+  /**
+   * Deserialize a full operation payload, then resolve successor references in a
+   * second step.
+   */
   @Override
-  @SuppressWarnings("unchecked")
   public Operation deserialize(JsonParser jp, DeserializationContext ctxt) throws JacksonException {
     JsonNode node = jp.readValueAsTree();
 
-    // Step 1: read the operation kind first so we can look up the registered IR definition.
+    // Step 1: read the operation kind first so we can look up the registered IR
+    // definition.
     JsonNode identNode = node.get("ident");
     if (identNode == null || identNode.isNull()) {
       return ctxt.reportInputMismatch(Operation.class, "Missing required field 'ident'.");
@@ -104,8 +110,7 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
       }
       dynamicAttributes = new ArrayList<>();
       for (JsonNode dynamicAttributeNode : dynamicAttributesNode) {
-        NamedAttribute dynamicAttribute =
-            ctxt.readTreeAsValue(dynamicAttributeNode, NamedAttribute.class);
+        NamedAttribute dynamicAttribute = ctxt.readTreeAsValue(dynamicAttributeNode, NamedAttribute.class);
         dynamicAttributes.add(dynamicAttribute);
       }
     }
@@ -117,7 +122,8 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
       outputValue = ctxt.readTreeAsValue(outputNode, Value.class);
     }
 
-    // Step 5: successors are resolved later, so create placeholders now and remember their JSON.
+    // Step 5: successors are resolved later, so create placeholders now and
+    // remember their JSON.
     List<Block> successors = null;
     Map<Block, JsonNode> unresolvedSuccessors = new HashMap<>();
     JsonNode successorsNode = node.get("successors");
@@ -127,14 +133,16 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
       }
       successors = new ArrayList<>();
       for (JsonNode successorNode : successorsNode) {
-        // Use placeholders first; resolve to real blocks once all child regions are read.
+        // Use placeholders first; resolve to real blocks once all child regions are
+        // read.
         Block placeHolderBlock = new Block();
         successors.add(placeHolderBlock);
         unresolvedSuccessors.put(placeHolderBlock, successorNode);
       }
     }
 
-    // Step 6:  Extract the region value types from the deserialized regions to pass to the
+    // Step 6: Extract the region value types from the deserialized regions to pass
+    // to the
     // operation constructor.
     List<List<Value>> regionsValues;
     JsonNode regionsNode = node.get("regions");
@@ -142,31 +150,29 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
       if (!regionsNode.isArray()) {
         return ctxt.reportInputMismatch(Operation.class, "Field 'regions' must be an array.");
       }
-      regionsValues =
-          regionsNode
-              // Access the individual regions
-              .valueStream()
-              // Filter out the regionValues into separate streams
-              .map(JsonNode::propertyStream)
-              .map(
-                  entryStream ->
-                      entryStream.filter(entry -> entry.getKey().equals("regionValues")).findAny())
-              // Deserialize the values from the stream if present
-              .map(
-                  optionalEntry ->
-                      // Get the value stream if the entry exists
-                      optionalEntry.map(Map.Entry::getValue).map(JsonNode::valueStream).stream()
-                          // Flat map so that we get an empty stream in case no values are given
-                          .flatMap(
-                              values ->
-                                  values.map(value -> ctxt.readTreeAsValue(value, Value.class))))
-              .map(Stream::toList)
-              .toList();
+      regionsValues = regionsNode
+          // Access the individual regions
+          .valueStream()
+          // Filter out the regionValues into separate streams
+          .map(JsonNode::propertyStream)
+          .map(
+              entryStream -> entryStream.filter(entry -> entry.getKey().equals("regionValues")).findAny())
+          // Deserialize the values from the stream if present
+          .map(
+              optionalEntry ->
+              // Get the value stream if the entry exists
+              optionalEntry.map(Map.Entry::getValue).map(JsonNode::valueStream).stream()
+                  // Flat map so that we get an empty stream in case no values are given
+                  .flatMap(
+                      values -> values.map(value -> ctxt.readTreeAsValue(value, Value.class))))
+          .map(Stream::toList)
+          .toList();
     } else {
       regionsValues = List.of();
     }
 
-    // Step 7: load the source location if present; otherwise keep the unknown sentinel.
+    // Step 7: load the source location if present; otherwise keep the unknown
+    // sentinel.
     Location location = Location.UNKNOWN;
     JsonNode locNode = node.get("loc");
     if (locNode != null && !locNode.isNull()) {
@@ -174,15 +180,15 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
     }
 
     Operation operation;
-    operation =
-        Operation.Create(
-            location,
-            operationDetails.get(),
-            operands,
-            successors,
-            outputValue != null ? outputValue.getType() : null,
-            regionsValues);
-    if (outputValue != null) operation.setOutputValue(outputValue);
+    operation = Operation.Create(
+        location,
+        operationDetails.get(),
+        operands,
+        successors,
+        MaybeType.of(outputValue != null ? outputValue.getType() : null),
+        regionsValues);
+    if (outputValue != null)
+      operation.setOutputValue(outputValue);
 
     if (attributes != null) {
       for (NamedAttribute attribute : attributes) {
@@ -213,7 +219,8 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
       }
     }
 
-    // Step 9: now that all child regions are populated, walk their operations and resolve any
+    // Step 9: now that all child regions are populated, walk their operations and
+    // resolve any
     // deferred successor references to real blocks.
     for (Region region : operation.getRegions()) {
       for (Block block : region.getBlocks()) {
@@ -227,7 +234,8 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
                 return ctxt.reportInputMismatch(
                     Operation.class, "Encountered unresolved successor block reference.");
               }
-              // Resolve the block identity only after the target region has been materialized.
+              // Resolve the block identity only after the target region has been
+              // materialized.
               Block targetBlock = ctxt.readTreeAsValue(blockId, Block.class);
               blockOperand.setValue(targetBlock);
             }
@@ -236,7 +244,8 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
       }
     }
 
-    // Step 9: collect any successor operands whose targets still need to be bound by a parent
+    // Step 9: collect any successor operands whose targets still need to be bound
+    // by a parent
     // region deserializer, and keep their JSON ids for that later pass.
     Map<BlockOperand, JsonNode> unresolvedBlockOperands = new HashMap<>();
     for (BlockOperand blockOperand : operation.getBlockOperands()) {
@@ -252,11 +261,13 @@ public class OperationDeserializer extends StdDeserializer<Operation> {
             "Missing unresolved successor id for block operand in operation '%s'.",
             ident);
       }
-      // Keep unresolved ids so parent-region deserialization can bind forward edges later.
+      // Keep unresolved ids so parent-region deserialization can bind forward edges
+      // later.
       unresolvedBlockOperands.put(blockOperand, unresolvedId);
     }
     if (!unresolvedBlockOperands.isEmpty()) {
-      // Store the deferred bindings keyed by this operation so nested deserializations can
+      // Store the deferred bindings keyed by this operation so nested
+      // deserializations can
       // complete successor resolution once all surrounding blocks are available.
       unresolvedSuccessorReferences.put(operation, unresolvedBlockOperands);
     }

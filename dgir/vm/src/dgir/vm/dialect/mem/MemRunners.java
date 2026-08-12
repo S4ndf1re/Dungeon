@@ -45,7 +45,7 @@ public sealed interface MemRunners {
       } else {
         size = state.getValueAsOrThrow(op.getOperandOrThrow(0), Integer.class);
       }
-      state.setValueForOutput(op, arrayWithDefaultValues(size, type.getElementType()));
+      state.setValueForOutput(op, arrayWithDefaultValues(size, type.getElementType().getAsKnownOrThrow()));
       return Action.Next();
     }
   }
@@ -61,7 +61,7 @@ public sealed interface MemRunners {
       Object[] elements = new Object[op.getOperands().size()];
       for (int i = 0; i < elements.length; i++) {
         Object element = state.getValueOrThrow(op.getOperandOrThrow(i));
-        if (type.getElementType().validate(element)) {
+        if (type.getElementType().getAsKnownOrThrow().validate(element)) {
           elements[i] = element;
         } else {
           return Action.Abort(
@@ -95,7 +95,7 @@ public sealed interface MemRunners {
       }
       Object[] oldArray = state.getValueAsOrThrow(op.getOperandOrThrow(0), Object[].class);
       Object[] newArray = Arrays.copyOf(oldArray, newSize);
-      state.setValueForOutput(op, fillArrayWithDefaultValues(newArray, type.getElementType()));
+      state.setValueForOutput(op, fillArrayWithDefaultValues(newArray, type.getElementType().getAsKnownOrThrow()));
       return Action.Next();
     }
   }

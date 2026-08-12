@@ -41,7 +41,7 @@ public final class ValueOperand extends Operand<ValueOperand, Value> {
    * @return the operand value type if present.
    */
   @Contract(pure = true)
-  public @NotNull Optional<Type> getType() {
+  public @NotNull Optional<MaybeType> getType() {
     return getValue().map(Value::getType);
   }
 }
