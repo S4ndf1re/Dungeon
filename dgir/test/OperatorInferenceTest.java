@@ -50,8 +50,12 @@ public class OperatorInferenceTest {
 
     var solved = solver.solve(ExprOrOperator.of(programOp.getOperation()));
     assert solved instanceof AlgorithmWType;
-    assert solved instanceof AlgorithmWType.LitType;
-    assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("string"));
+    assert solved instanceof AlgorithmWType.Arrow;
+    assert ((AlgorithmWType.Arrow) solved).from instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) ((AlgorithmWType.Arrow) solved).from).tyName.equals(TypeIdent.TYPE_IDENT_UNIT);
+
+    assert ((AlgorithmWType.Arrow) solved).to instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) ((AlgorithmWType.Arrow) solved).to).tyName.equals(TypeIdent.from("string"));
   }
 
   @Test
@@ -71,8 +75,12 @@ public class OperatorInferenceTest {
 
     var solved = solver.solve(ExprOrOperator.of(programOp.getOperation()));
     assert solved instanceof AlgorithmWType;
-    assert solved instanceof AlgorithmWType.LitType;
-    assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("int32"));
+    assert solved instanceof AlgorithmWType.Arrow;
+    assert ((AlgorithmWType.Arrow) solved).from instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) ((AlgorithmWType.Arrow) solved).from).tyName.equals(TypeIdent.TYPE_IDENT_UNIT);
+
+    assert ((AlgorithmWType.Arrow) solved).to instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) ((AlgorithmWType.Arrow) solved).to).tyName.equals(TypeIdent.from("int32"));
   }
 
   @Test
@@ -92,7 +100,11 @@ public class OperatorInferenceTest {
 
     var solved = solver.solve(ExprOrOperator.of(programOp.getOperation()));
     assert solved instanceof AlgorithmWType;
-    assert solved instanceof AlgorithmWType.LitType;
-    assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("int64"));
+    assert solved instanceof AlgorithmWType.Arrow;
+    assert ((AlgorithmWType.Arrow) solved).from instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) ((AlgorithmWType.Arrow) solved).from).tyName.equals(TypeIdent.TYPE_IDENT_UNIT);
+
+    assert ((AlgorithmWType.Arrow) solved).to instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) ((AlgorithmWType.Arrow) solved).to).tyName.equals(TypeIdent.from("int64"));
   }
 }

@@ -16,6 +16,7 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
+import dgir.core.ir.types.TypeDialect.TypeInferenceSolver.ConversionContext;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
@@ -45,7 +46,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 public final class SystemFInference
     extends
-    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>, dgir.core.ir.types.systemf.SystemFInference.Expr, dgir.core.ir.types.systemf.SystemFInference.SystemFType, dgir.core.ir.types.systemf.SystemFInference.Context> {
+    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr, SystemFInference.SystemFType>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>, dgir.core.ir.types.systemf.SystemFInference.Expr, dgir.core.ir.types.systemf.SystemFInference.SystemFType> {
 
   private static Optional<TypeInference> solver = Optional.empty();
 
@@ -55,12 +56,12 @@ public final class SystemFInference
   }
 
   @Override
-  public List<Class<? extends Expression>> getAllowedExpressions() {
+  public List<Class<? extends Expression<SystemFType>>> getAllowedExpressions() {
     return TypeDialect.extractExpressionsFromAbstract(Expr.class);
   }
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr, SystemFType, Context> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr, SystemFType> getSolverInstance() {
     if (SystemFInference.solver.isPresent()) {
       return SystemFInference.solver.get();
     } else {
@@ -360,20 +361,39 @@ public final class SystemFInference
    * Expressions that are valid for the SytemF Type System. All needed methods for
    * inference and type checking are implemented here
    */
-  public static interface Expr extends Expression, ExprOrOperator<Expr> {
+  public static abstract class Expr implements Expression<SystemFType>, ExprOrOperator<Expr> {
+    private Optional<SystemFType> inferredType;
 
     @Override
-    default boolean isExpr() {
+    public void setInferredType(SystemFType inferredType) {
+      this.inferredType = Optional.ofNullable(inferredType);
+    }
+
+    @Override
+    public Optional<SystemFType> getInferredType() {
+      return this.inferredType;
+    }
+
+    @Override
+    public void setSolver(SolutionRelayFunction<SystemFType> solutionRelay) {
+    }
+
+    public void resolveUsingContext(Expression.SolutionContext<SystemFType> ctx) {
+      // TODO: resolve the types back to exprs
+    };
+
+    @Override
+    public boolean isExpr() {
       return true;
     }
 
     @Override
-    default boolean isOperator() {
+    public boolean isOperator() {
       return false;
     }
 
     @Override
-    default Expr getExpr() {
+    public Expr getExpr() {
       return this;
     }
 
@@ -381,7 +401,7 @@ public final class SystemFInference
         TypeInference engine,
         Context ctx);
 
-    public default TypeInference.CheckResult check(
+    public TypeInference.CheckResult check(
         TypeInference engine,
         Context ctx,
         SystemFType ty) {
@@ -420,7 +440,7 @@ public final class SystemFInference
               List.of(inferred.tree, subtyped.tree)));
     }
 
-    public static final class Var implements Expr {
+    public static final class Var extends Expr {
 
       private final Symbol name;
 
@@ -455,7 +475,7 @@ public final class SystemFInference
       }
     }
 
-    public static final class App implements Expr {
+    public static final class App extends Expr {
 
       private final ExprOrOperator<Expr> fun;
       private final ExprOrOperator<Expr> arg;
@@ -538,7 +558,7 @@ public final class SystemFInference
       }
     }
 
-    public static final class Abs implements Expr {
+    public static final class Abs extends Expr {
 
       private final Symbol name;
       private final SystemFType type;
@@ -632,12 +652,12 @@ public final class SystemFInference
                   "" + finalCtx,
                   List.of(bodyCheck.tree)));
         } else {
-          return Expr.super.check(engine, ctx, ty);
+          return super.check(engine, ctx, ty);
         }
       }
     }
 
-    public static final class TApp implements Expr {
+    public static final class TApp extends Expr {
 
       private final ExprOrOperator<Expr> func;
       private final SystemFType type;
@@ -676,7 +696,7 @@ public final class SystemFInference
       }
     }
 
-    public static final class Ann implements Expr {
+    public static final class Ann extends Expr {
 
       private final ExprOrOperator<Expr> expr;
       private final SystemFType type;
@@ -707,7 +727,7 @@ public final class SystemFInference
       }
     }
 
-    public static final class TAbs implements Expr {
+    public static final class TAbs extends Expr {
 
       private final TypeVar variable;
       private final ExprOrOperator<Expr> body;
@@ -760,7 +780,7 @@ public final class SystemFInference
       }
     }
 
-    public static final class LitExpr implements Expr {
+    public static final class LitExpr extends Expr {
 
       private final Literal lit;
 
@@ -779,7 +799,7 @@ public final class SystemFInference
         var res = engine.generalNominalTypeToInferenceType(lit.toParameterizedNominalType(), Optional.of(ctx));
         return new TypeInference.TypeResult(
             res.getLeft(),
-            res.getRight().get().copy(), // This is safe, as the ctx is provided as a Some(ctx)
+            ((Context) res.getRight().get()).copy(), // This is safe, as the ctx is provided as a Some(ctx)
             new InferenceTree(
                 "InfLit" + res,
                 input,
@@ -800,12 +820,12 @@ public final class SystemFInference
               ctx.copy(),
               new InferenceTree("ChkLit" + thisResult.getLeft(), input, "" + ctx, List.of()));
         } else {
-          return Expr.super.check(engine, ctx, ty);
+          return super.check(engine, ctx, ty);
         }
       }
     }
 
-    public static final class Let implements Expr {
+    public static final class Let extends Expr {
 
       private final List<Pair<Symbol, ExprOrOperator<Expr>>> bindings;
       private final ExprOrOperator<Expr> body;
@@ -878,7 +898,7 @@ public final class SystemFInference
       }
     }
 
-    public final class Return implements Expr {
+    public final class Return extends Expr {
 
       private ExprOrOperator<Expr> value;
 
@@ -899,7 +919,7 @@ public final class SystemFInference
 
     }
 
-    public final class Custom implements Expr {
+    public final class Custom extends Expr {
 
       @FunctionalInterface
       public interface InferFunction {
@@ -937,7 +957,7 @@ public final class SystemFInference
         if (this.checkFn.isPresent()) {
           return this.checkFn.get().check(engine, ctx, ty, data);
         } else {
-          return Expr.super.check(engine, ctx, ty);
+          return super.check(engine, ctx, ty);
         }
       }
 
@@ -991,7 +1011,8 @@ public final class SystemFInference
     }
   }
 
-  public static class Context extends ScopeLike<SystemFType> {
+  public static class Context extends ScopeLike<SystemFType>
+      implements ConversionContext<Expr, SystemFType> {
 
     private List<Entry> entries;
 
@@ -1154,9 +1175,9 @@ public final class SystemFInference
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr, SystemFType, Context> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr, SystemFType> {
 
-    private ConvertedOperationBuffer<Expr, SystemFType, Context> operationToExprBuffer;
+    private ConvertedOperationBuffer<Expr, SystemFType> operationToExprBuffer;
 
     public TypeInference() {
       this(new TypeDialectConverterRegistry());
@@ -1178,15 +1199,21 @@ public final class SystemFInference
     }
 
     @Override
-    public Pair<SystemFType, Optional<Context>> generalNominalTypeToInferenceType(
+    public Pair<SystemFType, Optional<ConversionContext<Expr, SystemFType>>> generalNominalTypeToInferenceType(
         GeneralParameterizedNominalType type,
-        Optional<Context> ctx) {
+        Optional<ConversionContext<Expr, SystemFType>> ctx) {
+
+      var mappedCtx = ctx.map(c -> {
+        if (!(c instanceof Context)) {
+          throw new IllegalArgumentException("ctx must be of instance Context");
+        }
+
+        return (Context) c;
+      });
+
       try (TypeVarScope scope = TypeVar.addScope()) {
         var resultType = convertInnerGeneralParameterized(type);
-        if (ctx instanceof Optional<Context>) {
-
-        }
-        var newCtx = ctx.map(c -> {
+        var newCtx = mappedCtx.map(c -> {
           var newC = c.copy();
           for (var etvar : scope.createdVars()) {
             newC.push(new Entry.ETVarBnd(etvar));
@@ -1194,7 +1221,8 @@ public final class SystemFInference
 
           return newC;
         });
-        return Pair.of(resultType, newCtx);
+
+        return Pair.of(resultType, newCtx.map(c -> (ConversionContext<Expr, SystemFType>) c));
       } catch (Exception e) {
         throw new IllegalArgumentException("This will never happen!");
       }
