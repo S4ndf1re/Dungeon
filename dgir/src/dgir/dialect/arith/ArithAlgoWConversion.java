@@ -33,9 +33,9 @@ public final class ArithAlgoWConversion {
         Pair.of(UnaryOp.class, ArithAlgoWConversion::convertUnaryOp));
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertConstOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertConstOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T, C> engine) {
+      TypeInferenceSolver<EO, E, T> engine) {
     ArithOps.ConstantOp constOp = (ArithOps.ConstantOp) op.asOp();
 
     @SuppressWarnings("unchecked")
@@ -44,9 +44,9 @@ public final class ArithAlgoWConversion {
     return result;
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertBinOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertBinOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T, C> engine) {
+      TypeInferenceSolver<EO, E, T> engine) {
 
     InferFunction infFunc = (eng, env, data) -> {
       ArithOps.BinaryOp binOp = (ArithOps.BinaryOp) op.asOp();
@@ -98,9 +98,9 @@ public final class ArithAlgoWConversion {
     return result;
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertUnaryOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertUnaryOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T, C> engine) {
+      TypeInferenceSolver<EO, E, T> engine) {
 
     InferFunction infFunc = (eng, env, data) -> {
       ArithOps.UnaryOp unaryOp = (ArithOps.UnaryOp) op.asOp();
@@ -144,9 +144,9 @@ public final class ArithAlgoWConversion {
     return result;
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertCastOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertCastOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T, C> engine) {
+      TypeInferenceSolver<EO, E, T> engine) {
 
     InferFunction infFunc = (eng, env, data) -> {
       ArithOps.CastOp unaryOp = (ArithOps.CastOp) op.asOp();

@@ -9,7 +9,7 @@ import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
-public class ConvertedOperationBuffer<E extends Expression, T extends Type, C> {
+public class ConvertedOperationBuffer<E extends Expression<T>, T extends Type> {
   private HashMap<Operation, E> converted;
 
   public ConvertedOperationBuffer() {
@@ -24,13 +24,13 @@ public class ConvertedOperationBuffer<E extends Expression, T extends Type, C> {
     return Optional.ofNullable(this.converted.get(op));
   }
 
-  public E operationToExpr(TypeInferenceSolver<ExprOrOperator<E>, E, T, C> engine, Operation op,
+  public E operationToExpr(TypeInferenceSolver<ExprOrOperator<E>, E, T> engine, Operation op,
       TypeDialectConverterRegistry registry, Class<E> clazz) {
     var buffered = this.get(op);
 
     var exprConverted = buffered.orElseGet(() -> {
       var converter = registry.getConverter(op.asOp().getClass());
-      Expression convertedExpr = converter.convertToExpression(op, engine);
+      Expression<T> convertedExpr = converter.convertToExpression(op, engine);
 
       if (!(clazz.isInstance(convertedExpr))) {
         throw new RuntimeException("Expression is not of type SystemFInference.Expr");

@@ -2,13 +2,14 @@ package dgir.core.ir.types.compatibility;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
+import dgir.core.ir.types.Type;
 
-public interface ExprOrOperator<E extends Expression> {
-  public static <E extends Expression> ExprOrOperator<E> of(Operation op) {
+public interface ExprOrOperator<E extends Expression<? extends Type>> {
+  public static <E extends Expression<? extends Type>> ExprOrOperator<E> of(Operation op) {
     return new ExprOrOperator.OperatorVariant<>(op);
   }
 
-  public static <E extends Expression> ExprOrOperator<E> of(E expr) {
+  public static <E extends Expression<? extends Type>> ExprOrOperator<E> of(E expr) {
     return new ExprOrOperator.ExpressionVariant<>(expr);
   }
 
@@ -36,10 +37,10 @@ public interface ExprOrOperator<E extends Expression> {
     return ((OperatorVariant<E>) this).op;
   }
 
-  public final record ExpressionVariant<E extends Expression>(E expr) implements ExprOrOperator<E> {
+  public final record ExpressionVariant<E extends Expression<? extends Type>>(E expr) implements ExprOrOperator<E> {
   }
 
-  public final record OperatorVariant<E extends Expression>(Operation op) implements ExprOrOperator<E> {
+  public final record OperatorVariant<E extends Expression<? extends Type>>(Operation op) implements ExprOrOperator<E> {
   }
 
 }

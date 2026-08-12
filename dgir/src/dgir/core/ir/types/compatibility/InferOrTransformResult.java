@@ -3,7 +3,7 @@ package dgir.core.ir.types.compatibility;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
 
-public sealed interface InferOrTransformResult<T extends InferResultMarker<? extends Type>, E extends Expression> {
+public sealed interface InferOrTransformResult<EO extends InferResultMarker<T>, E extends Expression<T>, T extends Type> {
   public default boolean isInfer() {
     return this instanceof Infer;
   }
@@ -14,7 +14,7 @@ public sealed interface InferOrTransformResult<T extends InferResultMarker<? ext
 
   public default T getInferResult() {
     if (this.isInfer()) {
-      return ((Infer<T, E>) this).type;
+      return ((Infer<EO, E, T>) this).type;
     } else {
       throw new IllegalStateException("Not an infer type");
     }
@@ -22,17 +22,17 @@ public sealed interface InferOrTransformResult<T extends InferResultMarker<? ext
 
   public default E getTransformExpr() {
     if (this.isTransform()) {
-      return ((Transform<T, E>) this).expr;
+      return ((Transform<EO, E, T>) this).expr;
     } else {
       throw new IllegalStateException("Not a transform type");
     }
   }
 
-  public static final record Infer<T extends InferResultMarker<? extends Type>, E extends Expression>(
-      T type) implements InferOrTransformResult<T, E> {
+  public static final record Infer<EO extends InferResultMarker<T>, E extends Expression<T>, T extends Type>(
+      T type) implements InferOrTransformResult<EO, E, T> {
   }
 
-  public static final record Transform<T extends InferResultMarker<? extends Type>, E extends Expression>(
-      E expr) implements InferOrTransformResult<T, E> {
+  public static final record Transform<EO extends InferResultMarker<T>, E extends Expression<T>, T extends Type>(
+      E expr) implements InferOrTransformResult<EO, E, T> {
   }
 }

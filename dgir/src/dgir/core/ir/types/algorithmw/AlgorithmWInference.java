@@ -6,6 +6,7 @@ import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralFunctionType;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
+import dgir.core.ir.types.TypeDialect.TypeInferenceSolver.ConversionContext;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
@@ -43,12 +44,12 @@ import org.apache.commons.lang3.tuple.Triple;
 
 public final class AlgorithmWInference
     extends
-    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType, dgir.core.ir.types.algorithmw.AlgorithmWInference.Env> {
+    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType>, ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr>, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType> {
 
   private static Optional<TypeInference> instance = Optional.empty();
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType, Env> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> getSolverInstance() {
     if (AlgorithmWInference.instance.isPresent()) {
       return AlgorithmWInference.instance.get();
     } else {
@@ -70,24 +71,74 @@ public final class AlgorithmWInference
   }
 
   @Override
-  public List<Class<? extends Expression>> getAllowedExpressions() {
+  public List<Class<? extends Expression<AlgorithmWType>>> getAllowedExpressions() {
     return TypeDialect.extractExpressionsFromAbstract(Expr.class);
   }
 
-  public static interface Expr extends Expression, ExprOrOperator<AlgorithmWInference.Expr> {
+  public static abstract class Expr
+      implements Expression<AlgorithmWType>, ExprOrOperator<AlgorithmWInference.Expr> {
+
+    private Optional<AlgorithmWType> inferredType;
+    private Optional<SolutionRelayFunction<AlgorithmWType>> solutionRelay;
+
+
+    protected Expr() {
+      this.inferredType = Optional.empty();
+      this.solutionRelay = Optional.empty();
+    }
+
+    // Make sure, that exprs always equals via object reference (needed for in-set
+    // storage!)
+    @Override
+    public final boolean equals(Object obj) {
+      return super.equals(obj);
+    }
+
+    // Make sure, that exprs always equals via object hash (needed for in-set
+    // storage!)
+    @Override
+    public final int hashCode() {
+      return super.hashCode();
+    }
 
     @Override
-    default boolean isExpr() {
+    public void setInferredType(AlgorithmWType inferredType) {
+      this.inferredType = Optional.ofNullable(inferredType);
+    }
+
+    @Override
+    public Optional<AlgorithmWType> getInferredType() {
+      return this.inferredType;
+    }
+
+    @Override
+    public void setSolver(SolutionRelayFunction<AlgorithmWType> solutionRelay) {
+      this.solutionRelay = Optional.ofNullable(solutionRelay);
+    }
+
+    @Override
+    public void resolveUsingContext(SolutionContext<AlgorithmWType> subst) {
+      var inferredType = this.getInferredType();
+      if (inferredType.isPresent()) {
+        var finalType = subst.apply(inferredType.get());
+        if (this.solutionRelay.isPresent()) {
+          this.solutionRelay.get().applySolution(finalType);
+        }
+      }
+    };
+
+    @Override
+    public boolean isExpr() {
       return true;
     }
 
     @Override
-    default boolean isOperator() {
+    public boolean isOperator() {
       return false;
     }
 
     @Override
-    default Expr getExpr() {
+    public Expr getExpr() {
       return this;
     }
 
@@ -99,7 +150,7 @@ public final class AlgorithmWInference
 
     public abstract InferResult infer(TypeInference engine, Env env);
 
-    public static final class ExprAnn implements Expr {
+    public static final class ExprAnn extends Expr {
 
       private final ExprOrOperator<Expr> expr;
       private final AlgorithmWType type;
@@ -128,7 +179,7 @@ public final class AlgorithmWInference
       }
     }
 
-    public static final class ExprLit implements Expr {
+    public static final class ExprLit extends Expr {
 
       private GeneralParameterizedNominalType value;
 
@@ -155,7 +206,7 @@ public final class AlgorithmWInference
       }
     }
 
-    public static final class ExprTuple implements Expr {
+    public static final class ExprTuple extends Expr {
 
       private List<ExprOrOperator<Expr>> elements;
 
@@ -203,7 +254,7 @@ public final class AlgorithmWInference
       }
     }
 
-    public static final class ExprVar implements Expr {
+    public static final class ExprVar extends Expr {
 
       private final Symbol name;
 
@@ -237,7 +288,7 @@ public final class AlgorithmWInference
       }
     }
 
-    public static final class ExprApp implements Expr {
+    public static final class ExprApp extends Expr {
 
       private final ExprOrOperator<Expr> func;
       private final List<ExprOrOperator<Expr>> args;
@@ -320,7 +371,7 @@ public final class AlgorithmWInference
       }
     }
 
-    public static final class ExprAbs implements Expr {
+    public static final class ExprAbs extends Expr {
 
       private final List<Symbol> params;
       private final ExprOrOperator<Expr> body;
@@ -423,7 +474,7 @@ public final class AlgorithmWInference
      *           assigned to a new {@link TypeVar}, that is then unified with the
      *           inferred assigned type.
      */
-    public static final class ExprLet implements Expr {
+    public static final class ExprLet extends Expr {
 
       private final List<Pair<Symbol, ExprOrOperator<Expr>>> bindings;
       private final ExprOrOperator<Expr> body;
@@ -496,7 +547,7 @@ public final class AlgorithmWInference
       }
     }
 
-    public class ExprReturn implements Expr {
+    public static class ExprReturn extends Expr {
       private ExprOrOperator<Expr> value;
 
       public ExprReturn(ExprOrOperator<Expr> value) {
@@ -520,7 +571,7 @@ public final class AlgorithmWInference
       }
     }
 
-    public class ExprCustom implements Expr {
+    public static class ExprCustom extends Expr {
       public static final record InferFunctionResult(
           Subst subst,
           AlgorithmWType type) {
@@ -552,9 +603,10 @@ public final class AlgorithmWInference
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType, Env> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> {
 
-    private ConvertedOperationBuffer<Expr, AlgorithmWType, Env> operationToExprBuffer;
+    private ConvertedOperationBuffer<Expr, AlgorithmWType> operationToExprBuffer;
+    private HashSet<Expr> inferredExprs;
 
     public TypeInference() {
       this(new TypeDialectConverterRegistry());
@@ -563,11 +615,13 @@ public final class AlgorithmWInference
     public TypeInference(TypeDialectConverterRegistry registry) {
       super(registry);
       operationToExprBuffer = new ConvertedOperationBuffer<>();
+      this.inferredExprs = new HashSet<>();
     }
 
     @Override
-    public Pair<AlgorithmWType, Optional<Env>> generalNominalTypeToInferenceType(GeneralParameterizedNominalType type,
-        Optional<Env> data) {
+    public Pair<AlgorithmWType, Optional<ConversionContext<Expr, AlgorithmWType>>> generalNominalTypeToInferenceType(
+        GeneralParameterizedNominalType type,
+        Optional<ConversionContext<Expr, AlgorithmWType>> data) {
       List<AlgorithmWType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
         case GeneralTypeParameter.Concrete con -> this.generalNominalTypeToInferenceType(con.ty(), data).getLeft();
         case GeneralTypeParameter.Unknown unk -> new AlgorithmWType.Var(new TypeVar());
@@ -628,17 +682,35 @@ public final class AlgorithmWInference
     public Type solve(ExprOrOperator<Expr> expr) {
       Env env = new Env();
       InferResult res = this.infer(expr, env);
-      return (Type) res.subst.apply(res.type);
+      var finalType = res.subst.apply(res.type);
+
+      // Provide solution to the origins
+      this.inferredExprs.stream().forEach(infExpr -> infExpr.resolveUsingContext(res.subst));
+      return (Type) finalType;
     }
 
-    public InferResult infer(ExprOrOperator<Expr> expr, Env env) {
-      if (expr.isExpr()) {
-        return expr.getExpr().infer(this, env);
-      } else if (expr.isOperator()) {
-        var op = expr.getOp();
-        return this.operationToExprBuffer.operationToExpr(this, op, this.registry, Expr.class).infer(this, env);
+    /**
+     * First infer, the `exprOrOp`. If `exprOrOp` is of type Operator, first convert
+     * to an {@link Expr} using the conversion untilities and buffer the converted
+     * result.
+     *
+     * <p>
+     * After inferring either the {@link Expr} or the {@Link Operation}, store the inferred result in combination with the already inferred {@link Expr}
+     */
+    public InferResult infer(ExprOrOperator<Expr> exprOrOp, Env env) {
+      Expr expr = null;
+      if (exprOrOp.isExpr()) {
+        expr = exprOrOp.getExpr();
+      } else if (exprOrOp.isOperator()) {
+        var op = exprOrOp.getOp();
+        expr = this.operationToExprBuffer.operationToExpr(this, op, this.registry, Expr.class);
+      } else {
+        throw new RuntimeException("unimplemented for OPs");
       }
-      throw new RuntimeException("unimplemented for OPs");
+      InferResult res = expr.infer(this, env);
+      expr.setInferredType(res.type);
+      this.inferredExprs.add(expr);
+      return res;
     }
 
     public UnifyResult unify(AlgorithmWType left, AlgorithmWType right) {
@@ -649,7 +721,7 @@ public final class AlgorithmWInference
     }
   }
 
-  public static final class Env extends ScopeLike<AlgorithmWType> {
+  public static final class Env extends ScopeLike<AlgorithmWType> implements ConversionContext<Expr, AlgorithmWType> {
     private HashMap<Symbol, Scheme> env;
 
     public Env() {
@@ -766,7 +838,8 @@ public final class AlgorithmWInference
     }
   }
 
-  public final record Subst(HashMap<TypeVar, AlgorithmWType> types) {
+  public final record Subst(HashMap<TypeVar, AlgorithmWType> types)
+      implements Expression.SolutionContext<AlgorithmWType> {
     public static Subst newEmpty() {
       return new Subst(new HashMap<>());
     }

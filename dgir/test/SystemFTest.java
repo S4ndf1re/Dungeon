@@ -4,7 +4,6 @@ import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.systemf.SystemFInference;
 import dgir.core.ir.types.systemf.SystemFInference.Expr;
-import dgir.core.ir.types.systemf.SystemFInference.Expr.BinOp.BinOpKind;
 import dgir.core.ir.types.systemf.SystemFInference.SystemFType.Lit;
 import dgir.core.ir.types.systemf.SystemFInference.SystemFType;
 
@@ -25,7 +24,7 @@ public class SystemFTest {
     var expr = new Expr.Abs(
         x,
         new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-        new Expr.BinOp(BinOpKind.ADD, new Expr.Var(x), new Expr.Var(x)));
+        new Expr.Var(x));
 
     var resType = solver.solve(expr);
     assert resType instanceof SystemFType;
@@ -53,7 +52,7 @@ public class SystemFTest {
             new Expr.Abs(
                 y,
                 new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                new Expr.BinOp(BinOpKind.ADD, new Expr.Var(x), new Expr.Var(y)))),
+                new Expr.Var(x))),
         new Expr.App(
             new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1))),
             new Expr.LitExpr(new Literal.Int(2))));
@@ -117,7 +116,7 @@ public class SystemFTest {
                 new Expr.Abs(
                     y,
                     new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                    new Expr.BinOp(BinOpKind.ADD, new Expr.Var(x), new Expr.Var(y))))),
+                    new Expr.Var(x)))),
 
             Pair.of(a, new Expr.LitExpr(new Literal.Int(10))),
             Pair.of(b, new Expr.LitExpr(new Literal.Int(20)))),

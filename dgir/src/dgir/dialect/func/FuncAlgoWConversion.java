@@ -17,7 +17,8 @@ import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 
 public final class FuncAlgoWConversion {
-  // NOTE: this is still very error prone, as the functions and ops must match perfectly. maybe there is a better way to do this in the future.
+  // NOTE: this is still very error prone, as the functions and ops must match
+  // perfectly. maybe there is a better way to do this in the future.
   public static void registerBuiltinAlgoWConversion() {
     ConverterRegistry.addOperatorsToDialect(AlgorithmWInference.class,
         Pair.of(FuncOps.FuncOp.class, FuncAlgoWConversion::convertFuncOp),
@@ -25,9 +26,9 @@ public final class FuncAlgoWConversion {
         Pair.of(FuncOps.CallOp.class, FuncAlgoWConversion::convertCallOp));
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertFuncOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertFuncOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T, C> engine) {
+      TypeInferenceSolver<EO, E, T> engine) {
     FuncOps.FuncOp funcOp = (FuncOps.FuncOp) op.asOp();
 
     var i = 0;
@@ -50,9 +51,9 @@ public final class FuncAlgoWConversion {
   }
 
   @SuppressWarnings("unchecked")
-  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertReturnOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertReturnOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T, C> engine) {
+      TypeInferenceSolver<EO, E, T> engine) {
     FuncOps.ReturnOp returnOp = (FuncOps.ReturnOp) op.asOp();
 
     E result = null;
@@ -65,9 +66,9 @@ public final class FuncAlgoWConversion {
     return result;
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression, T extends dgir.core.ir.types.Type, C> E convertCallOp(
+  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertCallOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T, C> engine) {
+      TypeInferenceSolver<EO, E, T> engine) {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
 
     @SuppressWarnings("unchecked")
