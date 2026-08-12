@@ -2,6 +2,7 @@ package dgir.dialect.builtin;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dgir.core.ir.Dialect;
+import dgir.core.ir.MaybeType;
 import dgir.core.ir.Type;
 import dgir.core.ir.TypeDescriptor;
 import dgir.core.ir.TypeDetails;
@@ -547,8 +548,8 @@ public sealed interface BuiltinTypes {
    * @param type the type to inspect.
    * @return {@code true} for integer and floating-point types.
    */
-  static boolean isNumeric(@NotNull Type type) {
-    return type instanceof IntegerT || type instanceof FloatT;
+  static boolean isNumeric(@NotNull MaybeType type) {
+    return type.getAsNullable() instanceof IntegerT || type.getAsNullable() instanceof FloatT;
   }
 
   /**
@@ -559,25 +560,25 @@ public sealed interface BuiltinTypes {
    * @return the wider and/or more precise numeric type.
    * @throws IllegalArgumentException if either type is not numeric.
    */
-  static @NotNull Type getDominantType(@NotNull Type lhsType, @NotNull Type rhsType) {
+  static @NotNull MaybeType getDominantType(@NotNull MaybeType lhsType, @NotNull MaybeType rhsType) {
     if (!isNumeric(lhsType) || !isNumeric(rhsType)) {
       throw new IllegalArgumentException(
           "Dominant type requires numeric operands. Got " + lhsType + " and " + rhsType);
     }
 
-    if (lhsType instanceof FloatT || rhsType instanceof FloatT) {
-      int lhsFloatWidth = lhsType instanceof FloatT floatT ? floatT.getWidth() : 0;
-      int rhsFloatWidth = rhsType instanceof FloatT floatT ? floatT.getWidth() : 0;
-      int lhsIntWidth = lhsType instanceof IntegerT intT ? intT.getWidth() : 0;
-      int rhsIntWidth = rhsType instanceof IntegerT intT ? intT.getWidth() : 0;
+    if (lhsType.getAsNullable() instanceof FloatT || rhsType.getAsNullable() instanceof FloatT) {
+      int lhsFloatWidth = lhsType.getAsNullable() instanceof FloatT floatT ? floatT.getWidth() : 0;
+      int rhsFloatWidth = rhsType.getAsNullable() instanceof FloatT floatT ? floatT.getWidth() : 0;
+      int lhsIntWidth = lhsType.getAsNullable() instanceof IntegerT intT ? intT.getWidth() : 0;
+      int rhsIntWidth = rhsType.getAsNullable() instanceof IntegerT intT ? intT.getWidth() : 0;
       int desiredWidth = Math.max(Math.max(lhsFloatWidth, rhsFloatWidth), Math.max(lhsIntWidth, rhsIntWidth));
       return desiredWidth > 32 ? FloatT.FLOAT64() : FloatT.FLOAT32();
     }
 
-    int lhsWidth = ((IntegerT) lhsType).getWidth();
-    boolean lhsIsSigned = ((IntegerT) lhsType).isSigned();
-    int rhsWidth = ((IntegerT) rhsType).getWidth();
-    boolean rhsIsSigned = ((IntegerT) rhsType).isSigned();
+    int lhsWidth = ((IntegerT) lhsType.getAsNullable()).getWidth();
+    boolean lhsIsSigned = ((IntegerT) lhsType.getAsNullable()).isSigned();
+    int rhsWidth = ((IntegerT) rhsType.getAsNullable()).getWidth();
+    boolean rhsIsSigned = ((IntegerT) rhsType.getAsNullable()).isSigned();
     // By default, the result is signed if both operands are signed. However, if one
     // operand is
     // wider than the other, we take the signedness of the wider operand. This

@@ -143,7 +143,7 @@ public sealed interface MemTypes {
     @Override
     public GeneralParameterizedNominalType asParameterizedNominalType() {
       ArrayList<GeneralTypeParameter> parameters = new ArrayList<>();
-      parameters.add(GeneralTypeParameter.of(this.elementType.asParameterizedNominalType()));
+      parameters.add(GeneralTypeParameter.of(this.elementType.getAsKnownOrThrow().asParameterizedNominalType()));
 
       // Has width, is -1 otherwise
       if (this.width >= 0) {
@@ -157,7 +157,7 @@ public sealed interface MemTypes {
     // Members
     // =========================================================================
 
-    private final @NotNull Type elementType;
+    private final @NotNull MaybeType elementType;
     private final int width;
 
     // =========================================================================
@@ -177,7 +177,7 @@ public sealed interface MemTypes {
      * @param elementType the array element type.
      * @param width       the fixed width, or {@code -1} for dynamic sizing.
      */
-    private ArrayT(@NotNull Type elementType, int width) {
+    private ArrayT(@NotNull MaybeType elementType, int width) {
       super("mem.array");
       this.elementType = elementType;
       this.width = width;
@@ -194,7 +194,7 @@ public sealed interface MemTypes {
      * @param width       the optional width.
      * @return the canonicalized array type.
      */
-    public static @NotNull ArrayT of(@NotNull Type elementType, @NotNull OptionalInt width) {
+    public static @NotNull ArrayT of(@NotNull MaybeType elementType, @NotNull OptionalInt width) {
       return TypeUniquer.uniqueInstance(new ArrayT(elementType, width.orElse(-1)));
     }
 
@@ -227,7 +227,7 @@ public sealed interface MemTypes {
      *
      * @return the array element type.
      */
-    public @NotNull Type getElementType() {
+    public @NotNull MaybeType getElementType() {
       return elementType;
     }
 

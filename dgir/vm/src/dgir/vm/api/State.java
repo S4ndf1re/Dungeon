@@ -37,7 +37,8 @@ public class State {
   /**
    * Closes the current call frame and all scopes contained in it.
    *
-   * @return metadata for the scopes closed by the frame pop, innermost scope first.
+   * @return metadata for the scopes closed by the frame pop, innermost scope
+   *         first.
    */
   public @NotNull Optional<Stack.ClosedCallFrame> popCallFrame() {
     return stack.popCallFrame();
@@ -46,9 +47,9 @@ public class State {
   /**
    * Opens a new scope inside the current call frame.
    *
-   * @param opener the operation that opened the scope.
+   * @param opener              the operation that opened the scope.
    * @param isIsolatedFromAbove whether this scope hides outer scopes from {@link
-   *     #getVisibleValues()}.
+   *                            #getVisibleValues()}.
    */
   public void pushScope(@NotNull Operation opener, boolean isIsolatedFromAbove) {
     stack.pushScope(opener, isIsolatedFromAbove);
@@ -57,7 +58,8 @@ public class State {
   /**
    * Closes the current scope and removes all values defined in it from the store.
    *
-   * @return metadata for the closed scope, or {@link Optional#empty()} if no scope is open.
+   * @return metadata for the closed scope, or {@link Optional#empty()} if no
+   *         scope is open.
    */
   public @NotNull Optional<Stack.ClosedScope> popScope() {
     return stack.popScope();
@@ -88,30 +90,35 @@ public class State {
   // =========================================================================
 
   /**
-   * Gets the object associated with the given value and casts it to the given class. Returns an
+   * Gets the object associated with the given value and casts it to the given
+   * class. Returns an
    * empty optional if the object is not an instance of the given class.
    *
    * @param value The value to get the object for.
    * @param clazz The class to cast the object to.
-   * @param <T> The type to cast to.
+   * @param <T>   The type to cast to.
    * @return The typed value, or empty if the wrong type.
-   * @throws IllegalStateException If the value is not defined in the current scope.
+   * @throws IllegalStateException If the value is not defined in the current
+   *                               scope.
    */
   public <T> @NotNull Optional<T> getValue(@NotNull Value value, @NotNull Class<T> clazz) {
     var obj = stack.getOrThrow(value);
-    if (clazz.isInstance(obj)) return Optional.of(clazz.cast(obj));
+    if (clazz.isInstance(obj))
+      return Optional.of(clazz.cast(obj));
     return Optional.empty();
   }
 
   /**
-   * Gets the object associated with the operand's value and casts it to the given class. Returns an
+   * Gets the object associated with the operand's value and casts it to the given
+   * class. Returns an
    * empty optional if the object is not an instance of the given class.
    *
    * @param operand The operand to get the object for.
-   * @param clazz The class to cast the object to.
-   * @param <T> The type to cast to.
+   * @param clazz   The class to cast the object to.
+   * @param <T>     The type to cast to.
    * @return The typed value, or empty if the wrong type.
-   * @throws IllegalStateException If the value is not defined in the current scope.
+   * @throws IllegalStateException If the value is not defined in the current
+   *                               scope.
    */
   public <T> @NotNull Optional<T> getValue(@NotNull ValueOperand operand, @NotNull Class<T> clazz) {
     return getValue(operand.getValueOrThrow(), clazz);
@@ -126,7 +133,8 @@ public class State {
    *
    * @param value The value to get the object for.
    * @return The bound object, never {@code null}.
-   * @throws IllegalStateException If the value is not defined in the current scope.
+   * @throws IllegalStateException If the value is not defined in the current
+   *                               scope.
    */
   public @NotNull Object getValueOrThrow(@NotNull Value value) {
     return stack.getOrThrow(value);
@@ -137,8 +145,9 @@ public class State {
    *
    * @param operand The operand to get the object for.
    * @return The bound object, never {@code null}.
-   * @throws AssertionError If the operand does not reference a value.
-   * @throws IllegalStateException If the value is not defined in the current scope.
+   * @throws AssertionError        If the operand does not reference a value.
+   * @throws IllegalStateException If the value is not defined in the current
+   *                               scope.
    */
   public @NotNull Object getValueOrThrow(@NotNull ValueOperand operand) {
     return stack.getOrThrow(operand);
@@ -149,25 +158,30 @@ public class State {
    *
    * @param value The value to get the object for.
    * @param clazz The expected runtime type.
-   * @param <T> The expected type.
+   * @param <T>   The expected type.
    * @return The bound object cast to {@code T}, never {@code null}.
-   * @throws IllegalStateException If the value is not defined in the current scope.
-   * @throws ClassCastException If the bound object is not an instance of {@code clazz}.
+   * @throws IllegalStateException If the value is not defined in the current
+   *                               scope.
+   * @throws ClassCastException    If the bound object is not an instance of
+   *                               {@code clazz}.
    */
   public <T> @NotNull T getValueAsOrThrow(@NotNull Value value, @NotNull Class<T> clazz) {
     return stack.getAsOrThrow(value, clazz);
   }
 
   /**
-   * Gets the object associated with the given operand's value, cast to {@code clazz}.
+   * Gets the object associated with the given operand's value, cast to
+   * {@code clazz}.
    *
    * @param operand The operand to get the object for.
-   * @param clazz The expected runtime type.
-   * @param <T> The expected type.
+   * @param clazz   The expected runtime type.
+   * @param <T>     The expected type.
    * @return The bound object cast to {@code T}, never {@code null}.
-   * @throws AssertionError If the operand does not reference a value.
-   * @throws IllegalStateException If the value is not defined in the current scope.
-   * @throws ClassCastException If the bound object is not an instance of {@code clazz}.
+   * @throws AssertionError        If the operand does not reference a value.
+   * @throws IllegalStateException If the value is not defined in the current
+   *                               scope.
+   * @throws ClassCastException    If the bound object is not an instance of
+   *                               {@code clazz}.
    */
   public <T> @NotNull T getValueAsOrThrow(@NotNull ValueOperand operand, @NotNull Class<T> clazz) {
     return stack.getAsOrThrow(operand, clazz);
@@ -180,25 +194,26 @@ public class State {
   /**
    * Sets the object associated with the given value.
    *
-   * @param value The value to bind.
+   * @param value  The value to bind.
    * @param object The runtime object to associate with the given value.
    */
   public void setValue(@NotNull Value value, @NotNull Object object) {
-    if (!value.getType().validate(object)) {
+    if (!value.getType().getAsKnownOrThrow().validate(object)) {
       throw new IllegalArgumentException("Object " + object + " is not valid for value " + value);
     }
     stack.set(value, object);
   }
 
   /**
-   * Sets the value associated with the output of the given operation to the given object.
+   * Sets the value associated with the output of the given operation to the given
+   * object.
    *
    * @param operation The operation whose output value should be set.
-   * @param object The object to associate with the output value.
+   * @param object    The object to associate with the output value.
    * @throws NoSuchElementException If the operation has no output value.
    */
   public void setValueForOutput(@NotNull Operation operation, @NotNull Object object) {
-    if (!operation.getOutputValueOrThrow().getType().validate(object)) {
+    if (!operation.getOutputValueOrThrow().getType().getAsKnownOrThrow().validate(object)) {
       throw new IllegalArgumentException(
           "Object " + object + " is not valid for value " + operation.getOutputValueOrThrow());
     }
@@ -206,12 +221,11 @@ public class State {
   }
 
   public void setValueForNumberOutput(@NotNull Operation operation, Number number) {
-    Number validNumber =
-        switch (operation.getOutputOrThrow().getType()) {
-          case BuiltinTypes.IntegerT integerT -> integerT.convertToValidNumber(number.longValue());
-          case BuiltinTypes.FloatT floatT -> floatT.convertToValidNumber(number);
-          default -> throw new IllegalArgumentException("Unsupported number type");
-        };
+    Number validNumber = switch (operation.getOutputOrThrow().getType()) {
+      case BuiltinTypes.IntegerT integerT -> integerT.convertToValidNumber(number.longValue());
+      case BuiltinTypes.FloatT floatT -> floatT.convertToValidNumber(number);
+      default -> throw new IllegalArgumentException("Unsupported number type");
+    };
     stack.set(operation.getOutputValueOrThrow(), validNumber);
   }
 
@@ -219,7 +233,8 @@ public class State {
     Number validNumber;
     if (operation.getOutputOrThrow().getType() instanceof BuiltinTypes.IntegerT integerT)
       validNumber = integerT.convertToValidNumber(value ? 1 : 0);
-    else throw new IllegalArgumentException("Unsupported number type");
+    else
+      throw new IllegalArgumentException("Unsupported number type");
     stack.set(operation.getOutputValueOrThrow(), validNumber);
   }
 
@@ -239,10 +254,13 @@ public class State {
   // =========================================================================
 
   /**
-   * Returns all values that are visible in the current scope as an unmodifiable map from {@link
+   * Returns all values that are visible in the current scope as an unmodifiable
+   * map from {@link
    * Value} to its bound object. Values in isolated parent frames are excluded.
    *
-   * <p>Intended for DAP {@code VariablesResponse} population; may be called from any thread while
+   * <p>
+   * Intended for DAP {@code VariablesResponse} population; may be called from any
+   * thread while
    * the VM is paused.
    *
    * @return a snapshot map of visible value bindings, innermost scope first.

@@ -3,10 +3,12 @@ package dgir.dialect.func;
 import dgir.core.ir.*;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -74,7 +76,7 @@ public sealed interface FuncTypes {
           }
           // Everything inside first ()
           String inputsPart = Type.unescapeCustomExpression(matcher.group(1));
-          List<Type> inputs = new ArrayList<>();
+          List<MaybeType> inputs = new ArrayList<>();
           Type.consumeParameterText(inputsPart, Type.AllTypes.of(inputs));
 
           // Everything inside second ()
@@ -83,7 +85,7 @@ public sealed interface FuncTypes {
           if (!outputPart.isBlank())
             output = Type.fromParameterizedIdent(outputPart);
 
-          return FuncType.of(inputs, output);
+          return FuncType.of(inputs, MaybeType.of(output));
         };
       }
 
@@ -99,14 +101,14 @@ public sealed interface FuncTypes {
           assert !params.stream().anyMatch(param -> param.isUnknown() || param.isNumeric())
               : "cannot convert unknown or numeric types to concrete function type";
 
-          ArrayList<Type> inputs = new ArrayList<>();
+          ArrayList<MaybeType> inputs = new ArrayList<>();
           // Select all parameters that are not the return type
           for (var param : params.subList(0, params.size() - 1)) {
             if (param.isUnknown()) {
               throw new IllegalArgumentException(
                   "parameter is of type Unknown, which is not parseable. This was already checked without success");
             }
-            inputs.add(Type.fromGeneralParameterizedNominalType(param.getConcrete()));
+            inputs.add(MaybeType.of(Type.fromGeneralParameterizedNominalType(param.getConcrete())));
           }
 
           // This will always return a non-null value!
@@ -117,7 +119,7 @@ public sealed interface FuncTypes {
             output = Type.fromGeneralParameterizedNominalType(outputGpnt.getConcrete());
           }
 
-          return FuncType.of(inputs, output);
+          return FuncType.of(inputs, MaybeType.of(output));
         };
       }
     }
@@ -149,7 +151,7 @@ public sealed interface FuncTypes {
     @Override
     public @NotNull String getParameterizedIdent() {
       String inputs = Type.buildParameterList(getInputs());
-      String output = getOutput() != null ? getOutput().toString() : "";
+      String output = getOutputAsNullable() != null ? getOutputAsNullable().toString() : "";
       String expression = "(%s) -> (%s)".formatted(inputs, output);
       return Type.buildParameterizedIdent(getDetails(), List.of(expression));
     }
@@ -174,21 +176,30 @@ public sealed interface FuncTypes {
      * @param output the return type, or {@code null} for void.
      * @return a canonicalized {@link FuncType} instance.
      */
-    public static FuncType of(@NotNull List<Type> inputs, @Nullable Type output) {
+    public static FuncType of(@NotNull List<MaybeType> inputs, @Nullable MaybeType output) {
       return TypeUniquer.uniqueInstance(new FuncType(inputs, output));
     }
 
     @Override
     public GeneralParameterizedNominalType asParameterizedNominalType() {
       var collectedInputs = this.getInputs().stream()
-          .map(inputType -> GeneralParameterizedNominalType.GeneralTypeParameter.of(
-              inputType.asParameterizedNominalType()))
+          .map(inputType -> {
+            if (inputType.isUnknown()) {
+              return GeneralTypeParameter.of();
+            } else {
+              return GeneralTypeParameter.of(inputType.getAsKnownOrThrow().asParameterizedNominalType());
+            }
+          })
           .toList();
 
       GeneralParameterizedNominalType.GeneralTypeParameter output = null;
-      if (this.getOutput() != null) {
-        output = GeneralParameterizedNominalType.GeneralTypeParameter.of(
-            this.getOutput().asParameterizedNominalType());
+      if (this.getOutput().isPresent()) {
+        if (this.getOutput().get().isKnown()) {
+          output = GeneralParameterizedNominalType.GeneralTypeParameter.of(
+              this.getOutput().get().getAsKnownOrThrow().asParameterizedNominalType());
+        } else {
+          output = GeneralParameterizedNominalType.GeneralTypeParameter.of();
+        }
       } else {
         output = GeneralParameterizedNominalType.GeneralTypeParameter.of(
             new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_UNIT));
@@ -204,10 +215,10 @@ public sealed interface FuncTypes {
     // =========================================================================
 
     /** The ordered list of input types (never {@code null}, may be empty). */
-    private final List<Type> inputs;
+    private final List<MaybeType> inputs;
 
     /** The return type, or {@code null} for void functions. */
-    private final @Nullable Type output;
+    private final Optional<MaybeType> output;
 
     // =========================================================================
     // Constructors
@@ -217,7 +228,7 @@ public sealed interface FuncTypes {
     private FuncType() {
       super("func.func");
       inputs = List.of();
-      output = null;
+      output = Optional.empty();
     }
 
     /**
@@ -226,10 +237,10 @@ public sealed interface FuncTypes {
      * @param inputs the ordered list of parameter types; must not be {@code null}.
      * @param output the return type, or {@code null} for a void function.
      */
-    private FuncType(@NotNull List<Type> inputs, @Nullable Type output) {
+    private FuncType(@NotNull List<MaybeType> inputs, @Nullable MaybeType output) {
       super("func.func");
       this.inputs = Collections.unmodifiableList(inputs);
-      this.output = output;
+      this.output = Optional.ofNullable(output);
     }
 
     // =========================================================================
@@ -242,7 +253,7 @@ public sealed interface FuncTypes {
      * @return immutable list of input types.
      */
     @Contract(pure = true)
-    public @NotNull List<Type> getInputs() {
+    public @NotNull List<MaybeType> getInputs() {
       return inputs;
     }
 
@@ -252,8 +263,18 @@ public sealed interface FuncTypes {
      * @return the return type, or {@code null}.
      */
     @Contract(pure = true)
-    public @Nullable Type getOutput() {
+    public Optional<MaybeType> getOutput() {
       return output;
+    }
+
+    /**
+     * Returns the return type of this function, or {@code null} for void functions.
+     *
+     * @return the return type, or {@code null}.
+     */
+    @Contract(pure = true)
+    public MaybeType getOutputAsNullable() {
+      return output.orElse(null);
     }
   }
 }

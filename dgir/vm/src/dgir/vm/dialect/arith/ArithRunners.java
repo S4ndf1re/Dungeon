@@ -27,7 +27,7 @@ public sealed interface ArithRunners {
           unaryOperation(
               operandValue,
               op.getAttributeAsOrThrow("unaryMode", ArithAttrs.UnaryModeAttr.class).getMode(),
-              operand.getType()));
+              operand.getType().getAsKnownOrThrow()));
       return Action.Next();
     }
 
@@ -99,9 +99,9 @@ public sealed interface ArithRunners {
           binaryOperation(
               NumericUtils.getNumber(state, lhsValue),
               NumericUtils.getNumber(state, rhsValue),
-              lhsValue.getType(),
-              rhsValue.getType(),
-              binOp.getOutputValueOrThrow().getType(),
+              lhsValue.getType().getAsKnownOrThrow(),
+              rhsValue.getType().getAsKnownOrThrow(),
+              binOp.getOutputValueOrThrow().getType().getAsKnownOrThrow(),
               binOp.getAttributeAsOrThrow("binMode", ArithAttrs.BinModeAttr.class).getMode());
       state.setValueForOutput(binOp, result);
       return Action.Next();

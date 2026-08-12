@@ -17,14 +17,19 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Sealed marker interface for all operations in the {@link MemoryDialect}.
  *
- * <p>Every concrete op must both extend {@link MemOp} and implement this interface so that {@link
- * Dialect#allOpsFromSealedInterface(Class)} can discover it automatically via reflection.
+ * <p>
+ * Every concrete op must both extend {@link MemOp} and implement this interface
+ * so that {@link
+ * Dialect#allOpsFromSealedInterface(Class)} can discover it automatically via
+ * reflection.
  */
 public sealed interface MemOps {
   /**
    * Abstract base class for all operations in the {@code mem} (memory) dialect.
    *
-   * <p>Concrete subclasses must implement {@link #getIdent()} and {@link #getVerifier()}, and must
+   * <p>
+   * Concrete subclasses must implement {@link #getIdent()} and
+   * {@link #getVerifier()}, and must
    * implement {@link MemOps} to be enumerated by {@link MemoryDialect}.
    */
   abstract class MemOp extends Op {
@@ -46,7 +51,9 @@ public sealed interface MemOps {
   /**
    * Allocates a GC-managed array in the {@code mem} dialect.
    *
-   * <p>The allocation may be specified either by a static width or by a dynamic size operand.
+   * <p>
+   * The allocation may be specified either by a static width or by a dynamic size
+   * operand.
    */
   final class AllocGcOp extends MemOp implements MemOps, IHasResult, IZeroOrOneOperand {
     // =========================================================================
@@ -76,7 +83,7 @@ public sealed interface MemOps {
             && !(op.getOperand().get().orElseThrow().getType() instanceof BuiltinTypes.IntegerT)) {
           operation.emitError(
               "AllocGcOp dynamic size operand must be of type builtin.int, but got "
-                  + op.getOperand().get().get().getType().getParameterizedIdent());
+                  + op.getOperand().get().get().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
         if (op.getStaticSize().isPresent()) {
@@ -98,14 +105,15 @@ public sealed interface MemOps {
     // Constructors
     // =========================================================================
 
-    private AllocGcOp() {}
+    private AllocGcOp() {
+    }
 
     /**
      * Creates a GC allocation with a static size.
      *
-     * @param loc the source location of this operation.
-     * @param elementType the array element type.
-     * @param staticSize the allocated width.
+     * @param loc           the source location of this operation.
+     * @param elementType   the array element type.
+     * @param staticSize    the allocated width.
      * @param explicitBound whether the width should be encoded as a fixed bound.
      */
     public AllocGcOp(
@@ -123,7 +131,7 @@ public sealed interface MemOps {
     /**
      * Creates a GC allocation whose width is computed dynamically.
      *
-     * @param loc the source location of this operation.
+     * @param loc         the source location of this operation.
      * @param elementType the array element type.
      * @param dynamicSize the runtime size operand.
      */
@@ -156,7 +164,8 @@ public sealed interface MemOps {
     /**
      * Returns the dynamic size operand, if present.
      *
-     * @return the dynamic size operand, or an empty optional for static allocations.
+     * @return the dynamic size operand, or an empty optional for static
+     *         allocations.
      */
     public Optional<Value> getDynamicSize() {
       if (getOperand().isPresent()) {
@@ -205,9 +214,9 @@ public sealed interface MemOps {
           if (!element.getType().equals(op.getArrayType().getElementType())) {
             operation.emitError(
                 "AllocGcFromElementsOp element operand type does not match array element type.\nExpected element type: "
-                    + op.getArrayType().getElementType().getParameterizedIdent()
+                    + op.getArrayType().getElementType().getAsKnownOrThrow().getParameterizedIdent()
                     + "\nProvided element type: "
-                    + element.getType().getParameterizedIdent());
+                    + element.getType().getAsKnownOrThrow().getParameterizedIdent());
             return false;
           }
         }
@@ -233,15 +242,17 @@ public sealed interface MemOps {
     // Constructors
     // =========================================================================
 
-    private AllocGcFromElementsOp() {}
+    private AllocGcFromElementsOp() {
+    }
 
     /**
      * Creates a GC allocation from explicit element values.
      *
-     * @param loc the source location of this operation.
-     * @param elementType the array element type.
-     * @param elements the element values used to initialize the array.
-     * @param explicitBound whether the array width should be fixed to the element count.
+     * @param loc           the source location of this operation.
+     * @param elementType   the array element type.
+     * @param elements      the element values used to initialize the array.
+     * @param explicitBound whether the array width should be fixed to the element
+     *                      count.
      */
     public AllocGcFromElementsOp(
         Location loc, Type elementType, List<Value> elements, boolean explicitBound) {
@@ -304,7 +315,7 @@ public sealed interface MemOps {
         if (!(op.getOperandValue(0).orElseThrow().getType() instanceof MemTypes.ArrayT inputType)) {
           operation.emitError(
               "ReallocGcOp operand must be of type mem.array, but got "
-                  + op.getOperandValue(0).orElseThrow().getType().getParameterizedIdent());
+                  + op.getOperandValue(0).orElseThrow().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
         MemTypes.ArrayT outputType = op.getArrayType();
@@ -329,14 +340,15 @@ public sealed interface MemOps {
     // Constructors
     // =========================================================================
 
-    private ReallocGcOp() {}
+    private ReallocGcOp() {
+    }
 
     /**
      * Creates a reallocation with a static target size.
      *
-     * @param loc the source location of this operation.
-     * @param array the array to reallocate.
-     * @param newSize the new width.
+     * @param loc           the source location of this operation.
+     * @param array         the array to reallocate.
+     * @param newSize       the new width.
      * @param explicitBound whether the width should be encoded as a fixed bound.
      */
     public ReallocGcOp(
@@ -344,7 +356,7 @@ public sealed interface MemOps {
       if (!(array.getType() instanceof MemTypes.ArrayT arrayType)) {
         throw new IllegalArgumentException(
             "ReallocGcOp operand must be of type mem.array, but got "
-                + array.getType().getParameterizedIdent());
+                + array.getType().getAsKnownOrThrow().getParameterizedIdent());
       }
       setOperation(
           Operation.Create(
@@ -358,15 +370,15 @@ public sealed interface MemOps {
     /**
      * Creates a reallocation whose target size is provided dynamically.
      *
-     * @param loc the source location of this operation.
-     * @param array the array to reallocate.
+     * @param loc     the source location of this operation.
+     * @param array   the array to reallocate.
      * @param newSize the runtime size operand.
      */
     public ReallocGcOp(@NotNull Location loc, @NotNull Value array, @NotNull Value newSize) {
       if (!(array.getType() instanceof MemTypes.ArrayT arrayType)) {
         throw new IllegalArgumentException(
             "ReallocGcOp operand must be of type mem.array, but got "
-                + array.getType().getParameterizedIdent());
+                + array.getType().getAsKnownOrThrow().getParameterizedIdent());
       }
       setOperation(
           Operation.Create(
@@ -392,7 +404,8 @@ public sealed interface MemOps {
     /**
      * Returns the dynamic size operand, if present.
      *
-     * @return the dynamic size operand, or an empty optional for static reallocation.
+     * @return the dynamic size operand, or an empty optional for static
+     *         reallocation.
      */
     public Optional<Value> getDynamicSize() {
       if (getOperand(1).isPresent()) {
@@ -439,7 +452,7 @@ public sealed interface MemOps {
         if (!(op.getOperandValue(0).orElseThrow().getType() instanceof MemTypes.ArrayT inputType)) {
           operation.emitError(
               "CastOp operand must be of type mem.array, but got "
-                  + op.getOperandValue(0).orElseThrow().getType().getParameterizedIdent());
+                  + op.getOperandValue(0).orElseThrow().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
         MemTypes.ArrayT outputType = op.getArrayType();
@@ -480,13 +493,14 @@ public sealed interface MemOps {
     // Constructors
     // =========================================================================
 
-    private CastOp() {}
+    private CastOp() {
+    }
 
     /**
      * Creates an array cast to the provided target type.
      *
-     * @param loc the source location of this operation.
-     * @param type the target array type.
+     * @param loc   the source location of this operation.
+     * @param type  the target array type.
      * @param array the array value to cast.
      */
     public CastOp(@NotNull Location loc, @NotNull MemTypes.ArrayT type, @NotNull Value array) {
@@ -531,7 +545,7 @@ public sealed interface MemOps {
         if (!(op.getOperandValue(0).orElseThrow().getType() instanceof MemTypes.ArrayT)) {
           operation.emitError(
               "GetSizeOp operand must be of type mem.array, but got "
-                  + op.getOperandValue(0).orElseThrow().getType().getParameterizedIdent());
+                  + op.getOperandValue(0).orElseThrow().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
         return true;
@@ -547,12 +561,13 @@ public sealed interface MemOps {
     // Constructors
     // =========================================================================
 
-    private SizeofOp() {}
+    private SizeofOp() {
+    }
 
     /**
      * Creates a size-of operation for the given array.
      *
-     * @param loc the source location of this operation.
+     * @param loc   the source location of this operation.
      * @param array the array whose size should be computed.
      */
     public SizeofOp(@NotNull Location loc, @NotNull Value array) {
@@ -589,13 +604,13 @@ public sealed interface MemOps {
         if (!(op.getArrayValue().getType() instanceof MemTypes.ArrayT)) {
           operation.emitError(
               "GetElementOp first operand must be of type mem.array, but got "
-                  + op.getOperandValue(0).orElseThrow().getType().getParameterizedIdent());
+                  + op.getOperandValue(0).orElseThrow().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
         if (!(op.getIndexValue().getType() instanceof BuiltinTypes.IntegerT)) {
           operation.emitError(
               "GetElementOp second operand must be of type builtin.int, but got "
-                  + op.getOperandValue(1).orElseThrow().getType().getParameterizedIdent());
+                  + op.getOperandValue(1).orElseThrow().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
         return true;
@@ -611,12 +626,13 @@ public sealed interface MemOps {
     // Constructors
     // =========================================================================
 
-    private GetElementOp() {}
+    private GetElementOp() {
+    }
 
     /**
      * Creates an element-read operation.
      *
-     * @param loc the source location of this operation.
+     * @param loc   the source location of this operation.
      * @param array the array to read from.
      * @param index the element index.
      */
@@ -624,7 +640,7 @@ public sealed interface MemOps {
       if (!(array.getType() instanceof MemTypes.ArrayT arrayType)) {
         throw new IllegalArgumentException(
             "GetElementOp first operand must be of type mem.array, but got "
-                + array.getType().getParameterizedIdent());
+                + array.getType().getAsKnownOrThrow().getParameterizedIdent());
       }
       setOperation(
           Operation.Create(loc, this, List.of(array, index), null, arrayType.getElementType()));
@@ -678,24 +694,24 @@ public sealed interface MemOps {
     public @NotNull Function<@NotNull Operation, @NotNull Boolean> getVerifier() {
       return operation -> {
         SetElementOp op = operation.as(SetElementOp.class).orElseThrow();
-        if (!(op.getArrayValue().getType() instanceof MemTypes.ArrayT arrayType)) {
+        if (!(op.getArrayValue().getType().getAsKnownOrThrow() instanceof MemTypes.ArrayT arrayType)) {
           operation.emitError(
               "SetElementOp first operand must be of type mem.array, but got "
-                  + op.getOperandValue(0).orElseThrow().getType().getParameterizedIdent());
+                  + op.getOperandValue(0).orElseThrow().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
-        if (!(op.getIndexValue().getType() instanceof BuiltinTypes.IntegerT)) {
+        if (!(op.getIndexValue().getType().getAsKnownOrThrow() instanceof BuiltinTypes.IntegerT)) {
           operation.emitError(
               "SetElementOp second operand must be of type builtin.int, but got "
-                  + op.getOperandValue(1).orElseThrow().getType().getParameterizedIdent());
+                  + op.getOperandValue(1).orElseThrow().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
         if (!arrayType.getElementType().equals(op.getValueValue().getType())) {
           operation.emitError(
               "SetElementOp value operand is not valid for the element type of the array.\nExpected element type: "
-                  + arrayType.getElementType().getParameterizedIdent()
+                  + arrayType.getElementType().getAsKnownOrThrow().getParameterizedIdent()
                   + "\nProvided value type: "
-                  + op.getValueValue().getType().getParameterizedIdent());
+                  + op.getValueValue().getType().getAsKnownOrThrow().getParameterizedIdent());
           return false;
         }
         return true;
@@ -711,12 +727,13 @@ public sealed interface MemOps {
     // Constructors
     // =========================================================================
 
-    private SetElementOp() {}
+    private SetElementOp() {
+    }
 
     /**
      * Creates an element-write operation.
      *
-     * @param loc the source location of this operation.
+     * @param loc   the source location of this operation.
      * @param array the array to modify.
      * @param index the element index.
      * @param value the value to store.

@@ -86,7 +86,8 @@ public final class ArithAlgoWConversion {
       // SAFETY: The cast to AlgorithmWType is safe, as this funciton should only get
       // called from algorithmW engine
       AlgorithmWType resultType = (AlgorithmWType) engine
-          .generalNominalTypeToInferenceType(resultIrType.asParameterizedNominalType(), Optional.empty())
+          .generalNominalTypeToInferenceType(resultIrType.getAsKnownOrThrow().asParameterizedNominalType(),
+              Optional.empty())
           .getLeft();
 
       return new InferFunctionResult(finalSubst, resultType);

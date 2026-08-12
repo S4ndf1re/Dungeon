@@ -17,20 +17,23 @@ public class AlgorithmWTest {
   public void algorithmWDialectTest() {
     AlgorithmWInference inference = new AlgorithmWInference();
     List<Class<? extends dgir.core.ir.types.Type>> allowedTypes = inference.getAllowedTypes();
-    assert allowedTypes.contains(
-        AlgorithmWInference.AlgorithmWType.LitType.class);
-    assert allowedTypes.contains(
-        AlgorithmWInference.AlgorithmWType.Arrow.class);
+    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.LitType.class);
+    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.Arrow.class);
     assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.Var.class);
+    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.NumericType.class);
+    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.Tuple.class);
 
     List<Class<? extends dgir.core.ir.types.Expression<AlgorithmWType>>> allowedExpression = inference
         .getAllowedExpressions();
     assert allowedExpression.contains(AlgorithmWInference.Expr.ExprLit.class);
     assert allowedExpression.contains(AlgorithmWInference.Expr.ExprAbs.class);
     assert allowedExpression.contains(AlgorithmWInference.Expr.ExprApp.class);
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprAnn.class);
     assert allowedExpression.contains(AlgorithmWInference.Expr.ExprTuple.class);
     assert allowedExpression.contains(AlgorithmWInference.Expr.ExprLet.class);
     assert allowedExpression.contains(AlgorithmWInference.Expr.ExprVar.class);
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprReturn.class);
+    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprCustom.class);
 
     var solver = inference.getSolverInstance();
     assert solver != null;

@@ -85,8 +85,8 @@ public abstract class Literal {
 
     public Generic(Value value) {
       this.value = value;
-      assert value.getMaybeType().isPresent();
-      this.type = value.getType().asParameterizedNominalType();
+      assert value.getType().isKnown();
+      this.type = value.getType().getAsKnownOrThrow().asParameterizedNominalType();
     }
 
     @Override

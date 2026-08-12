@@ -1,11 +1,11 @@
 package dgir.core.ir;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.serialization.TypeDeserializer;
+import dgir.core.serialization.TypeSerializer;
 import dgir.core.utility.ExpressionScanner;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 /**
  * Base class for all IR types.
@@ -41,7 +42,8 @@ import tools.jackson.databind.annotation.JsonDeserialize;
 // can put the logic
 // directly in this class.
 @JsonDeserialize(using = TypeDeserializer.class)
-public abstract class Type {
+@JsonSerialize(using = TypeSerializer.class)
+public abstract class Type extends MaybeType {
 
   // =========================================================================
   // Members
@@ -117,7 +119,6 @@ public abstract class Type {
    * @return The parameterized ident string.
    */
   @Contract(pure = true)
-  @JsonValue
   public @NotNull String getParameterizedIdent() {
     return getIdent();
   }
@@ -165,10 +166,15 @@ public abstract class Type {
   // =========================================================================
 
   protected Type(String ident) {
+    super();
     details = TypeDetails.get(ident)
         .orElseThrow(
             () -> new IllegalStateException(
                 "Type class " + ident + " is not registered in DGIRContext"));
+
+    // This is just that everyhwere a type is used, a maybe type may be found as
+    // well
+    this.specifyToKnown(this);
   }
 
   // =========================================================================
@@ -202,11 +208,6 @@ public abstract class Type {
   @Override
   public final String toString() {
     return getParameterizedIdent();
-  }
-
-  @Override
-  public final boolean equals(Object obj) {
-    return super.equals(obj);
   }
 
   // =========================================================================
@@ -262,6 +263,7 @@ public abstract class Type {
         .map(
             param -> switch (param) {
               case Type t -> t.toString();
+              case MaybeType t -> t.toString();
               case String s -> quoteCustomExpression(s);
               case Integer n -> n.toString();
               case null -> null;
@@ -485,8 +487,8 @@ public abstract class Type {
    *               must not be {@code
    *     null}  .
    */
-  public record AllTypes(@NotNull List<Type> target) implements ParameterConsumer {
-    public static @NotNull AllTypes of(@NotNull List<Type> target) {
+  public record AllTypes(@NotNull List<MaybeType> target) implements ParameterConsumer {
+    public static @NotNull AllTypes of(@NotNull List<MaybeType> target) {
       return new AllTypes(target);
     }
 
@@ -498,7 +500,7 @@ public abstract class Type {
               "Invalid parameter type: expected a type, got "
                   + parameter.getClass().getSimpleName());
         }
-        target.add(type);
+        target.add(MaybeType.of(type));
       }
       return Optional.empty();
     }

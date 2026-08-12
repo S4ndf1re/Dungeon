@@ -10,7 +10,6 @@ import dgir.dialect.builtin.BuiltinTypes;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -54,7 +53,7 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
    * for type
    * checking.
    */
-  private @NotNull Optional<Type> type;
+  private @NotNull MaybeType type;
 
   /**
    * The set of definitions(assignments) of this value. Regions are not counted as
@@ -81,18 +80,22 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
   // =========================================================================
 
   public Value() {
-    this.type = Optional.empty();
+    this.type = MaybeType.of();
   }
 
   public Value(@NotNull Type type) {
-    this.type = Optional.ofNullable(type);
+    this.type = MaybeType.of(type);
+  }
+
+  public Value(MaybeType type) {
+    this.type = type;
   }
 
   @JsonCreator
   public Value(
       @JsonProperty("type") @NotNull Type type,
       @JsonProperty("debug") @Nullable ValueDebugInfo debugInfo) {
-    this.type = Optional.ofNullable(type);
+    this.type = MaybeType.of(type);
     if (debugInfo != null) {
       this.debugInfo = debugInfo;
     }
@@ -103,18 +106,12 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
   // =========================================================================
 
   public void setType(Type type) {
-    this.type = Optional.ofNullable(type);
+    this.type = MaybeType.of(type);
   }
 
   /** Returns the static type of this value. */
   @Contract(pure = true)
-  public @NotNull Type getType() {
-    return type.get();
-  }
-
-  /** Returns the static type of this value. */
-  @Contract(pure = true)
-  public @NotNull Optional<Type> getMaybeType() {
+  public @NotNull MaybeType getType() {
     return type;
   }
 
@@ -191,8 +188,8 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
 
   @Override
   public void replaceAllUsesWith(@NotNull Value newValue) {
-    assert type.isPresent() : "Cannot replace with a value of an empty type";
-    assert newValue.getType().equals(type.get()) : "Cannot replace with a value of different type.";
+    assert type.isKnown() : "Cannot replace with a value of an empty type";
+    assert newValue.getType().equals(type.getAsKnownOrThrow()) : "Cannot replace with a value of different type.";
     super.replaceAllUsesWith(newValue);
     // Make sure that all operation results defining this value define the new value
     // instead.
@@ -207,7 +204,7 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
 
   @Override
   public String toString() {
-    var typeStr = this.type.isPresent() ? ": " + type.get() : "";
+    var typeStr = this.type.isKnown() ? ": " + type.getAsKnownOrThrow() : "";
     if (debugInfo.equals(ValueDebugInfo.UNKNOWN)) {
       return getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + typeStr;
     }
