@@ -55,8 +55,8 @@ public final class BuiltinAlgoWConversion {
       TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
     BuiltinOps.IdOp idOp = (BuiltinOps.IdOp) op.asOp();
 
-    var param = Symbol.of(idOp.getOperand());
-    var anonParam = Symbol.of(idOp.getResult());
+     var param = Symbol.<Expr, AlgorithmWType>of(idOp.getOperand());
+     var anonParam = Symbol.<Expr, AlgorithmWType>of(idOp.getResult());
 
     return new Expr.ExprApp(new Expr.ExprAbs(anonParam, new Expr.ExprVar(anonParam)), new Expr.ExprVar(param));
   }
