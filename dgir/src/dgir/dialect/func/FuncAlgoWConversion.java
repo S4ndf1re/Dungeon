@@ -12,6 +12,7 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
+import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
@@ -26,9 +27,9 @@ public final class FuncAlgoWConversion {
         Pair.of(FuncOps.CallOp.class, FuncAlgoWConversion::convertCallOp));
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertFuncOp(
+  public static Expr convertFuncOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
     FuncOps.FuncOp funcOp = (FuncOps.FuncOp) op.asOp();
 
     var i = 0;
@@ -44,38 +45,31 @@ public final class FuncAlgoWConversion {
       throw new IllegalArgumentException("Invalid, as the engine is not of type algorithm w");
     }
 
-    @SuppressWarnings("unchecked")
-    E result = (E) new Expr.ExprAbs(List.copyOf(params), (Expr) blockAsExpr);
-
-    return result;
+    return new Expr.ExprAbs(List.copyOf(params), (Expr) blockAsExpr);
   }
 
-  @SuppressWarnings("unchecked")
-  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertReturnOp(
+  public static Expr convertReturnOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
     FuncOps.ReturnOp returnOp = (FuncOps.ReturnOp) op.asOp();
 
-    E result = null;
+    Expr result = null;
     if (returnOp.getReturnValue().isPresent()) {
-      result = (E) new Expr.ExprReturn(new Expr.ExprVar(Symbol.of(returnOp.getReturnValue().get())));
+      result = new Expr.ExprReturn(new Expr.ExprVar(Symbol.of(returnOp.getReturnValue().get())));
     } else {
-      result = (E) new Expr.ExprReturn(new Expr.ExprLit(new Literal.Unit()));
+      result = new Expr.ExprReturn(new Expr.ExprLit(new Literal.Unit()));
     }
 
     return result;
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertCallOp(
+  public static Expr convertCallOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
 
-    @SuppressWarnings("unchecked")
-    E result = (E) new Expr.ExprApp(new Expr.ExprVar(Symbol.of(callOp.getCallee())),
+    return new Expr.ExprApp(new Expr.ExprVar(Symbol.of(callOp.getCallee())),
         callOp.getOperands().stream()
             .map(operand -> (ExprOrOperator<Expr>) new Expr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
-
-    return result;
   }
 }
