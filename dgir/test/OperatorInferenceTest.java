@@ -1,6 +1,6 @@
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import dgir.core.ir.Dialect;
@@ -24,8 +24,8 @@ import dgir.core.debug.Location;
 public class OperatorInferenceTest {
   static final Location LOC = Location.UNKNOWN;
 
-  @BeforeAll
-  public static void setup() {
+  @BeforeEach
+  public void setup() {
     ConverterRegistry.registerDialect(AlgorithmWInference.class);
     Dialect.registerAllDialects();
     FuncAlgoWConversion.registerBuiltinAlgoWConversion();

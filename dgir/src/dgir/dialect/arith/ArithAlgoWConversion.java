@@ -47,8 +47,8 @@ public final class ArithAlgoWConversion {
     InferFunction infFunc = (eng, env, data) -> {
       ArithOps.BinaryOp binOp = (ArithOps.BinaryOp) op.asOp();
 
-      var lhs = Symbol.of(binOp.getLhs());
-      var rhs = Symbol.of(binOp.getRhs());
+       var lhs = Symbol.<Expr, AlgorithmWType>of(binOp.getLhs());
+       var rhs = Symbol.<Expr, AlgorithmWType>of(binOp.getRhs());
       var binMode = binOp.getMode();
 
       InferResult resLhs = eng.infer(new Expr.ExprVar(lhs), env);
@@ -99,7 +99,7 @@ public final class ArithAlgoWConversion {
     InferFunction infFunc = (eng, env, data) -> {
       ArithOps.UnaryOp unaryOp = (ArithOps.UnaryOp) op.asOp();
 
-      var lhs = Symbol.of(unaryOp.getOperand());
+       var lhs = Symbol.<Expr, AlgorithmWType>of(unaryOp.getOperand());
       var unaryMode = unaryOp.getMode();
 
       InferResult resLhs = eng.infer(new Expr.ExprVar(lhs), env);

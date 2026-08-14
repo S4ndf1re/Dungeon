@@ -18,9 +18,9 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class UnknownVariable extends TypingException {
 
-    public final Symbol variableName;
+    public final Symbol<?, ?> variableName;
 
-    public UnknownVariable(Symbol variableName) {
+    public UnknownVariable(Symbol<?, ?> variableName) {
       super("Unknown variable: " + variableName);
       this.variableName = variableName;
     }
@@ -129,9 +129,9 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class UnboundVariable extends TypingException {
 
-    public final Symbol varName;
+    public final Symbol<?, ?> varName;
 
-    public UnboundVariable(Symbol varName) {
+    public UnboundVariable(Symbol<?, ?> varName) {
       super("Variable " + varName + " is unbound");
       this.varName = varName;
     }
@@ -148,10 +148,10 @@ public abstract sealed class TypingException extends RuntimeException {
   }
 
   public static final class ExpectedLiteral extends TypingException {
-    public final Symbol sym;
+    public final Symbol<?, ?> sym;
     public final Type type;
 
-    public ExpectedLiteral(Symbol sym, Type type) {
+    public ExpectedLiteral(Symbol<?, ?> sym, Type type) {
       super(sym + " has an invalid type: " + type + ". Expected Literal");
       this.sym = sym;
       this.type = type;

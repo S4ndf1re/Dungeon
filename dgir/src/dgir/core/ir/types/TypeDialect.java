@@ -29,8 +29,6 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
 
     public abstract E generalBlockToInferenceExpr(GeneralBlock block);
 
-    public abstract Pair<Symbol, E> generalFunctionToInferenceExpr(GeneralFunctionType fn);
-
     public abstract Pair<T, Optional<ConversionContext<E, T>>> generalNominalTypeToInferenceType(
         GeneralParameterizedNominalType type,
         Optional<ConversionContext<E, T>> context);

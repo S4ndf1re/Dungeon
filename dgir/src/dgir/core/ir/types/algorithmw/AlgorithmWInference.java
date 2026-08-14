@@ -4,7 +4,6 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralBlock;
-import dgir.core.ir.types.GeneralFunctionType;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.TypeDialect.TypeInferenceSolver.ConversionContext;
@@ -267,9 +266,9 @@ public final class AlgorithmWInference
 
     public static final class ExprVar extends Expr {
 
-      private final Symbol name;
+      private final Symbol<Expr, AlgorithmWType> name;
 
-      public ExprVar(Symbol name) {
+      public ExprVar(Symbol<Expr, AlgorithmWType> name) {
         this.name = name;
       }
 
@@ -392,15 +391,15 @@ public final class AlgorithmWInference
 
     public static final class ExprAbs extends Expr {
 
-      private final List<Symbol> params;
+      private final List<Symbol<Expr, AlgorithmWType>> params;
       private final ExprOrOperator<Expr> body;
 
-      public ExprAbs(Symbol param, ExprOrOperator<Expr> body) {
+      public ExprAbs(Symbol<Expr, AlgorithmWType> param, ExprOrOperator<Expr> body) {
         this.params = List.of(param);
         this.body = body;
       }
 
-      public ExprAbs(List<Symbol> params, ExprOrOperator<Expr> body) {
+      public ExprAbs(List<Symbol<Expr, AlgorithmWType>> params, ExprOrOperator<Expr> body) {
         this.params = List.copyOf(params);
         this.body = body;
       }
@@ -421,7 +420,7 @@ public final class AlgorithmWInference
         String input = env + " |- " + this;
 
         Env newEnv = env.copy();
-        ArrayList<Pair<Symbol, TypeVar>> paramsAndTypeVars = new ArrayList<>();
+        ArrayList<Pair<Symbol<Expr, AlgorithmWType>, TypeVar>> paramsAndTypeVars = new ArrayList<>();
         for (var param : this.params) {
           var typeVar = new TypeVar();
           AlgorithmWType freshTypeVar = new AlgorithmWType.Var(typeVar);
@@ -495,15 +494,16 @@ public final class AlgorithmWInference
      */
     public static final class ExprLet extends Expr {
 
-      private final List<Pair<Symbol, ExprOrOperator<Expr>>> bindings;
+      private final List<Pair<Symbol<Expr, AlgorithmWType>, ExprOrOperator<Expr>>> bindings;
       private final ExprOrOperator<Expr> body;
 
-      public ExprLet(Symbol param, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
+      public ExprLet(Symbol<Expr, AlgorithmWType> param, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
         this.bindings = List.of(Pair.of(param, value));
         this.body = body;
       }
 
-      public ExprLet(List<Pair<Symbol, ExprOrOperator<Expr>>> bindings, ExprOrOperator<Expr> body) {
+      public ExprLet(List<Pair<Symbol<Expr, AlgorithmWType>, ExprOrOperator<Expr>>> bindings,
+          ExprOrOperator<Expr> body) {
         this.bindings = List.copyOf(bindings);
         this.body = body;
       }
@@ -519,7 +519,7 @@ public final class AlgorithmWInference
         String input = env + " |- " + this;
 
         Env newEnv = env.copy();
-        ArrayList<Triple<Symbol, AlgorithmWType, ExprOrOperator<Expr>>> notUnified = new ArrayList<>(
+        ArrayList<Triple<Symbol<Expr, AlgorithmWType>, AlgorithmWType, ExprOrOperator<Expr>>> notUnified = new ArrayList<>(
             this.bindings.size());
         for (var binding : this.bindings) {
           var typeVar = new TypeVar();
@@ -652,13 +652,13 @@ public final class AlgorithmWInference
 
     @Override
     public Expr generalBlockToInferenceExpr(GeneralBlock block) {
-      ArrayList<Pair<Symbol, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
-      Optional<Symbol> lastValue = Optional.empty();
+      ArrayList<Pair<Symbol<Expr, AlgorithmWType>, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
+      Optional<Symbol<Expr, AlgorithmWType>> lastValue = Optional.empty();
 
       for (var op : block.getOperations()) {
         var opOutput = op.getOutput();
         if (opOutput.isPresent()) {
-          var sym = Symbol.of(opOutput.get().getValue());
+          var sym = Symbol.<Expr, AlgorithmWType>of(opOutput.get().getValue());
           bindings.add(Pair.of(sym, ExprOrOperator.of(op)));
           lastValue = Optional.of(sym);
         } else {
@@ -667,12 +667,12 @@ public final class AlgorithmWInference
            * function is not actually a expression! This is done to correctly typecheck
            * each function and their parameters!
            */
-          Symbol sym = null;
+          Symbol<Expr, AlgorithmWType> sym = null;
           if (op.asOp() instanceof ISymbol isym) {
-            sym = Symbol.of(isym.getSymbol());
+            sym = Symbol.<Expr, AlgorithmWType>of(isym.getSymbol());
           } else {
             var val = new Value();
-            sym = Symbol.of(val);
+            sym = Symbol.<Expr, AlgorithmWType>of(val);
           }
           bindings.add(Pair.of(sym, ExprOrOperator.of(op)));
           lastValue = Optional.of(sym);
@@ -684,17 +684,6 @@ public final class AlgorithmWInference
       } else {
         return new Expr.ExprLet(bindings, new Expr.ExprLit(new Literal.Unit()));
       }
-    }
-
-    @Override
-    public Pair<Symbol, Expr> generalFunctionToInferenceExpr(GeneralFunctionType fn) {
-      var fnName = Symbol.of(fn.name);
-
-      var params = fn.parameters.stream().map(param -> param.getLeft()).toList();
-
-      var exprBlock = this.generalBlockToInferenceExpr(fn.body);
-      return Pair.of(fnName, new Expr.ExprAbs(params, exprBlock));
-
     }
 
     @Override
@@ -742,7 +731,7 @@ public final class AlgorithmWInference
   }
 
   public static final class Env extends ScopeLike<AlgorithmWType> implements ConversionContext<Expr, AlgorithmWType> {
-    private HashMap<Symbol, Scheme> env;
+    private HashMap<Symbol<Expr, AlgorithmWType>, Scheme> env;
 
     public Env() {
       super();
@@ -846,7 +835,7 @@ public final class AlgorithmWInference
       return Set.copyOf(set);
     }
 
-    public AlgorithmWType instantiate(TypeInference engine, Symbol value) {
+    public AlgorithmWType instantiate(TypeInference engine, Symbol<Expr, AlgorithmWType> value) {
       Subst s = Subst.newEmpty();
 
       for (var typeVar : this.vars) {

@@ -110,7 +110,7 @@ public class TypeVar {
     this(null);
   }
 
-  public TypeVar(Symbol value) {
+  public <E extends Expression<T>, T extends Type> TypeVar(Symbol<E, T> value) {
     this.idx = TypeVar.counter++;
     if (value != null && value.isValue()) {
       this.boundValue = Optional.ofNullable(value.getValue());

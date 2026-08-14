@@ -32,11 +32,11 @@ public final class FuncAlgoWConversion {
       TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
     FuncOps.FuncOp funcOp = (FuncOps.FuncOp) op.asOp();
 
-    var i = 0;
-    ArrayList<Symbol> params = new ArrayList<>();
-    while (funcOp.getArgument(i).isPresent()) {
-      params.add(Symbol.of(funcOp.getArgument(i).get()));
-    }
+     var i = 0;
+     ArrayList<Symbol<Expr, AlgorithmWType>> params = new ArrayList<>();
+     while (funcOp.getArgument(i).isPresent()) {
+       params.add(Symbol.<Expr, AlgorithmWType>of(funcOp.getArgument(i).get()));
+     }
 
     var block = GeneralBlock.fromBlock(funcOp.getEntryBlock());
     var blockAsExpr = engine.generalBlockToInferenceExpr(block);

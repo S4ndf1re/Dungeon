@@ -9,7 +9,6 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralBlock;
-import dgir.core.ir.types.GeneralFunctionType;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
@@ -446,40 +445,40 @@ public final class SystemFInference
               List.of(inferred.tree, subtyped.tree)));
     }
 
-    public static final class Var extends Expr {
+  public static final class Var extends Expr {
 
-      private final Symbol name;
+       private final Symbol<Expr, SystemFType> name;
 
-      public Var(Symbol name) {
-        this.name = name;
-      }
+       public Var(Symbol<Expr, SystemFType> name) {
+         this.name = name;
+       }
 
-      @Override
-      public final String toString() {
-        return name + "";
-      }
+       @Override
+       public final String toString() {
+         return name + "";
+       }
 
-      @Override
-      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
-        var input = ctx + " |- " + this;
-        var boundVariable = ctx.find(
-            entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
+       @Override
+       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+         var input = ctx + " |- " + this;
+         var boundVariable = ctx.find(
+             entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
 
-        if (boundVariable.isPresent()) {
-          var varBnd = (Entry.VarBnd) boundVariable.get();
-          return new TypeInference.TypeResult(
-              varBnd.type,
-              ctx.copy(),
-              new InferenceTree(
-                  "InfVar",
-                  ctx + " |- " + this,
-                  input + " => " + varBnd.type + " -| " + ctx,
-                  List.of()));
-        }
+         if (boundVariable.isPresent()) {
+           var varBnd = (Entry.VarBnd) boundVariable.get();
+           return new TypeInference.TypeResult(
+               varBnd.type,
+               ctx.copy(),
+               new InferenceTree(
+                   "InfVar",
+                   ctx + " |- " + this,
+                   input + " => " + varBnd.type + " -| " + ctx,
+                   List.of()));
+         }
 
-        throw new TypingException.UnboundVariable(this.name);
-      }
-    }
+         throw new TypingException.UnboundVariable(this.name);
+       }
+     }
 
     public static final class App extends Expr {
 
@@ -566,11 +565,11 @@ public final class SystemFInference
 
     public static final class Abs extends Expr {
 
-      private final Symbol name;
+      private final Symbol<Expr, SystemFType> name;
       private final SystemFType type;
       private final ExprOrOperator<Expr> body;
 
-      public Abs(Symbol name, SystemFType type, ExprOrOperator<Expr> body) {
+      public Abs(Symbol<Expr, SystemFType> name, SystemFType type, ExprOrOperator<Expr> body) {
         this.name = name;
         this.type = type;
         this.body = body;
@@ -831,43 +830,43 @@ public final class SystemFInference
       }
     }
 
-    public static final class Let extends Expr {
+     public static final class Let extends Expr {
 
-      private final List<Pair<Symbol, ExprOrOperator<Expr>>> bindings;
-      private final ExprOrOperator<Expr> body;
+       private final List<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr>>> bindings;
+       private final ExprOrOperator<Expr> body;
 
-      public Let(Symbol name, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
-        this.bindings = List.of(Pair.of(name, value));
-        this.body = body;
-      }
+       public Let(Symbol<Expr, SystemFType> name, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
+         this.bindings = List.of(Pair.of(name, value));
+         this.body = body;
+       }
 
-      public Let(List<Pair<Symbol, ExprOrOperator<Expr>>> bindings, ExprOrOperator<Expr> body) {
-        this.bindings = List.copyOf(bindings);
-        this.body = body;
-      }
+       public Let(List<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr>>> bindings, ExprOrOperator<Expr> body) {
+         this.bindings = List.copyOf(bindings);
+         this.body = body;
+       }
 
-      @Override
-      public final String toString() {
-        return "let (" + this.bindings.stream().map(Object::toString).collect(Collectors.joining(", ")) + ") in "
-            + body;
-      }
+       @Override
+       public final String toString() {
+         return "let (" + this.bindings.stream().map(Object::toString).collect(Collectors.joining(", ")) + ") in "
+             + body;
+       }
 
-      @Override
-      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
-        var input = ctx + " |- " + this;
-        Context newCtx = ctx.copy();
-        ArrayList<InferenceTree> trees = new ArrayList<>();
-        ArrayList<Triple<Symbol, TypeVar, ExprOrOperator<Expr>>> nonUnified = new ArrayList<>(this.bindings.size());
+       @Override
+       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+         var input = ctx + " |- " + this;
+         Context newCtx = ctx.copy();
+         ArrayList<InferenceTree> trees = new ArrayList<>();
+         ArrayList<Triple<Symbol<Expr, SystemFType>, TypeVar, ExprOrOperator<Expr>>> nonUnified = new ArrayList<>(this.bindings.size());
 
-        var mark = new Entry.Mark();
-        newCtx.push(mark);
+         var mark = new Entry.Mark();
+         newCtx.push(mark);
 
-        for (var binding : this.bindings) {
-          var typeVar = new TypeVar();
-          nonUnified.add(Triple.of(binding.getLeft(), typeVar, binding.getRight()));
-          newCtx.push(new Entry.ETVarBnd(typeVar));
-          newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(typeVar)));
-        }
+         for (var binding : this.bindings) {
+           var typeVar = new TypeVar();
+           nonUnified.add(Triple.of(binding.getLeft(), typeVar, binding.getRight()));
+           newCtx.push(new Entry.ETVarBnd(typeVar));
+           newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(typeVar)));
+         }
 
         for (var binding : nonUnified) {
           var typeVar = binding.getMiddle();
@@ -974,7 +973,7 @@ public final class SystemFInference
   /** Context entry for type checking and inference */
   public sealed interface Entry {
     public final record VarBnd(
-        Symbol tmVar,
+        Symbol<Expr, SystemFType> tmVar,
         SystemFType type) implements Entry {
       @Override
       public final String toString() {
@@ -1236,21 +1235,22 @@ public final class SystemFInference
 
     @Override
     public Expr generalBlockToInferenceExpr(GeneralBlock block) {
-      ArrayList<Pair<Symbol, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
-      Optional<Symbol> lastValue = Optional.empty();
+      ArrayList<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
+      Optional<Symbol<Expr, SystemFType>> lastValue = Optional.empty();
 
       for (var op : block.getOperations()) {
         var opOutput = op.getOutput();
         if (opOutput.isPresent()) {
-          bindings.add(Pair.of(Symbol.of(opOutput.get().getValue()), ExprOrOperator.of(op)));
-          lastValue = Optional.of(Symbol.of(opOutput.get().getValue()));
+          Symbol<Expr, SystemFType> sym = Symbol.<Expr, SystemFType>of(opOutput.get().getValue());
+          bindings.add(Pair.of(sym, ExprOrOperator.of(op)));
+          lastValue = Optional.of(sym);
         } else {
           /*
            * NOTE: handle everything as a returnable value, even though something like a
            * function is not actually a expression! This is done to correctly typecheck
            * each function and their parameters!
            */
-          var val = Symbol.of(new Value());
+          Symbol<Expr, SystemFType> val = Symbol.<Expr, SystemFType>of(new Value());
           bindings.add(Pair.of(val, ExprOrOperator.of(op)));
           lastValue = Optional.of(val);
         }
@@ -1261,23 +1261,6 @@ public final class SystemFInference
       } else {
         return new Expr.Let(bindings, new Expr.LitExpr(new Literal.Unit()));
       }
-    }
-
-    @Override
-    public Pair<Symbol, Expr> generalFunctionToInferenceExpr(GeneralFunctionType fn) {
-
-      Expr abs = this.generalBlockToInferenceExpr(fn.body);
-
-      for (var param : fn.parameters.reversed()) {
-        if (!param.getRight().isPresent() || !(param.getRight().get() instanceof SystemFType)) {
-          throw new IllegalArgumentException(
-              "param type must be specified for " + param.getLeft() + " and of instance SystemFType");
-        }
-
-        abs = new Expr.Abs(param.getLeft(), (SystemFType) param.getRight().get(), abs);
-      }
-
-      return Pair.of(Symbol.of(fn.name), abs);
     }
 
     @Override

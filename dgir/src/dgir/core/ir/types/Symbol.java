@@ -2,14 +2,14 @@ package dgir.core.ir.types;
 
 import dgir.core.ir.Value;
 
-public sealed abstract class Symbol {
+public sealed abstract class Symbol<E extends Expression<T>, T extends Type> {
 
-  public static Symbol of(String name) {
-    return new Symbol.StringSymbol(name);
+  public static <E extends Expression<T>, T extends Type> Symbol<E, T> of(String name) {
+    return new Symbol.StringSymbol<E, T>(name);
   }
 
-  public static Symbol of(Value val) {
-    return new Symbol.ValueSymbol(val);
+  public static <E extends Expression<T>, T extends Type> Symbol<E, T> of(Value val) {
+    return new Symbol.ValueSymbol<E, T>(val);
   }
 
   public boolean isValue() {
@@ -18,7 +18,7 @@ public sealed abstract class Symbol {
 
   public Value getValue() {
     if (this.isValue()) {
-      return ((ValueSymbol) this).value;
+      return ((ValueSymbol<E, T>) this).value;
     }
     throw new RuntimeException("Symbol is not of type Value");
   }
@@ -29,7 +29,7 @@ public sealed abstract class Symbol {
 
   public String getString() {
     if (this.isString()) {
-      return ((StringSymbol) this).value;
+      return ((StringSymbol<E, T>) this).value;
     }
     throw new RuntimeException("Symbol is not of type String");
   }
@@ -40,7 +40,7 @@ public sealed abstract class Symbol {
   @Override
   public abstract int hashCode();
 
-  public static final class ValueSymbol extends Symbol {
+  public static final class ValueSymbol<E extends Expression<T>, T extends Type> extends Symbol<E, T> {
     private final Value value;
 
     public ValueSymbol(Value value) {
@@ -62,7 +62,7 @@ public sealed abstract class Symbol {
     }
   }
 
-  public static final class StringSymbol extends Symbol {
+  public static final class StringSymbol<E extends Expression<T>, T extends Type> extends Symbol<E, T> {
     private final String value;
 
     public StringSymbol(String value) {
