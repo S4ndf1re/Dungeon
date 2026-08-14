@@ -6,7 +6,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
-import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
@@ -33,20 +32,17 @@ public final class ArithAlgoWConversion {
         Pair.of(UnaryOp.class, ArithAlgoWConversion::convertUnaryOp));
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertConstOp(
+  public static Expr convertConstOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
     ArithOps.ConstantOp constOp = (ArithOps.ConstantOp) op.asOp();
 
-    @SuppressWarnings("unchecked")
-    E result = (E) new Expr.ExprLit(new Literal.Generic(constOp.getResult()));
-
-    return result;
+    return new Expr.ExprLit(new Literal.Generic(constOp.getResult()));
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertBinOp(
+  public static Expr convertBinOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
 
     InferFunction infFunc = (eng, env, data) -> {
       ArithOps.BinaryOp binOp = (ArithOps.BinaryOp) op.asOp();
@@ -93,15 +89,12 @@ public final class ArithAlgoWConversion {
       return new InferFunctionResult(finalSubst, resultType);
     };
 
-    @SuppressWarnings("unchecked")
-    E result = (E) new Expr.ExprCustom(null, infFunc);
-
-    return result;
+    return new Expr.ExprCustom(null, infFunc);
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertUnaryOp(
+  public static Expr convertUnaryOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
 
     InferFunction infFunc = (eng, env, data) -> {
       ArithOps.UnaryOp unaryOp = (ArithOps.UnaryOp) op.asOp();
@@ -139,15 +132,12 @@ public final class ArithAlgoWConversion {
       return new InferFunctionResult(finalSubst, resultType);
     };
 
-    @SuppressWarnings("unchecked")
-    E result = (E) new Expr.ExprCustom(null, infFunc);
-
-    return result;
+    return new Expr.ExprCustom(null, infFunc);
   }
 
-  public static <EO extends ExprOrOperator<E>, E extends Expression<T>, T extends dgir.core.ir.types.Type> E convertCastOp(
+  public static Expr convertCastOp(
       Operation op,
-      TypeInferenceSolver<EO, E, T> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
 
     InferFunction infFunc = (eng, env, data) -> {
       ArithOps.CastOp unaryOp = (ArithOps.CastOp) op.asOp();
@@ -155,9 +145,6 @@ public final class ArithAlgoWConversion {
           .generalNominalTypeToInferenceType(unaryOp.getTargetType().asParameterizedNominalType(), null).getLeft());
     };
 
-    @SuppressWarnings("unchecked")
-    E result = (E) new Expr.ExprCustom(null, infFunc);
-
-    return result;
+    return new Expr.ExprCustom(null, infFunc);
   }
 }

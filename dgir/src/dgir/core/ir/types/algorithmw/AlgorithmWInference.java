@@ -1,5 +1,6 @@
 package dgir.core.ir.types.algorithmw;
 
+import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralBlock;
@@ -78,11 +79,16 @@ public final class AlgorithmWInference
   public static abstract class Expr
       implements Expression<AlgorithmWType>, ExprOrOperator<AlgorithmWInference.Expr> {
 
+    private Optional<Operation> originalOp;
     private Optional<AlgorithmWType> inferredType;
     private Optional<SolutionRelayFunction<AlgorithmWType>> solutionRelay;
 
-
     protected Expr() {
+      this(Optional.empty());
+    }
+
+    protected Expr(Optional<Operation> originalOp) {
+      this.originalOp = originalOp;
       this.inferredType = Optional.empty();
       this.solutionRelay = Optional.empty();
     }
@@ -109,6 +115,11 @@ public final class AlgorithmWInference
     @Override
     public Optional<AlgorithmWType> getInferredType() {
       return this.inferredType;
+    }
+
+    @Override
+    public Optional<Operation> getOriginalOperation() {
+      return this.originalOp;
     }
 
     @Override
@@ -324,6 +335,14 @@ public final class AlgorithmWInference
 
         AlgorithmWType resultType = new AlgorithmWType.Var(new TypeVar());
 
+        // TODO: when the function is inferred to be a symbol lookup
+        // (it always is in IR context),
+        // the function type that may be polymorphic is instantiated.
+        // This instantiation must somehow be reflected
+        // within the final Expression tree.
+        // Somehow a all function calls with their call expressions must be tracked to
+        // generate the correctly typed operations after the
+        // type inference and checking.
         InferResult funcInferRes = engine.infer(func, env);
 
         Env envSubst = env.apply(funcInferRes.subst);
@@ -695,7 +714,8 @@ public final class AlgorithmWInference
      * result.
      *
      * <p>
-     * After inferring either the {@link Expr} or the {@Link Operation}, store the inferred result in combination with the already inferred {@link Expr}
+     * After inferring either the {@link Expr} or the {@Link Operation}, store the
+     * inferred result in combination with the already inferred {@link Expr}
      */
     public InferResult infer(ExprOrOperator<Expr> exprOrOp, Env env) {
       Expr expr = null;
