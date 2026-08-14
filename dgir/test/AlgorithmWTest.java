@@ -45,9 +45,9 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    var cnst = Symbol.of(new Value());
-    var x = Symbol.of(new Value());
-    var y = Symbol.of(new Value());
+    var cnst = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var x = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprLet(
@@ -70,9 +70,9 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    var cnst = Symbol.of(new Value());
-    var x = Symbol.of(new Value());
-    var y = Symbol.of(new Value());
+    var cnst = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var x = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprAnn(
@@ -100,9 +100,9 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    var cnst = Symbol.of(new Value());
-    var x = Symbol.of(new Value());
-    var y = Symbol.of(new Value());
+    var cnst = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var x = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprAnn(
@@ -139,10 +139,10 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    Symbol a = Symbol.of(new Value());
-    Symbol b = Symbol.of(new Value());
-    Symbol x = Symbol.of(new Value());
-    Symbol y = Symbol.of(new Value());
+    Symbol<Expr, AlgorithmWType> a = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> b = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> x = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let a : Int -> Int = \x.(b x)
     // b = \y.(a y)
@@ -170,10 +170,10 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    Symbol a = Symbol.of(new Value());
-    Symbol b = Symbol.of(new Value());
-    Symbol x = Symbol.of(new Value());
-    Symbol y = Symbol.of(new Value());
+    Symbol<Expr, AlgorithmWType> a = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> b = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> x = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let a : Int -> Int = \x.(b x)
     // b = \y.(a y)
@@ -201,9 +201,9 @@ public class AlgorithmWTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
-    Symbol a = Symbol.of(new Value());
-    Symbol x = Symbol.of(new Value());
-    Symbol y = Symbol.of(new Value());
+    Symbol<Expr, AlgorithmWType> a = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> x = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let a = \(x,y).(x, y)
     // in (a 10 false)
