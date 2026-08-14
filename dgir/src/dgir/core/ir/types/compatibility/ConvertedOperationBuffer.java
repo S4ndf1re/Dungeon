@@ -7,6 +7,7 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
+import dgir.core.ir.types.compatibility.ConverterRegistry.ConverterFunction;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
 public class ConvertedOperationBuffer<E extends Expression<T>, T extends Type> {
@@ -29,7 +30,9 @@ public class ConvertedOperationBuffer<E extends Expression<T>, T extends Type> {
     var buffered = this.get(op);
 
     var exprConverted = buffered.orElseGet(() -> {
-      var converter = registry.getConverter(op.asOp().getClass());
+      @SuppressWarnings("unchecked")
+      ConverterFunction<ExprOrOperator<E>, E, T> converter = (ConverterFunction<ExprOrOperator<E>, E, T>) registry
+          .getConverter(op.asOp().getClass());
       Expression<T> convertedExpr = converter.convertToExpression(op, engine);
 
       if (!(clazz.isInstance(convertedExpr))) {

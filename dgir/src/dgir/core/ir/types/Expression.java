@@ -26,4 +26,5 @@ public interface Expression<T extends Type> {
 
   public void setSolver(SolutionRelayFunction<T> solutionRelay);
 
+  public Optional<Operation> getOriginalOperation();
 }

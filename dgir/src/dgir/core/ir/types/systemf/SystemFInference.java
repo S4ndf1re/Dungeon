@@ -375,9 +375,15 @@ public final class SystemFInference
     }
 
     @Override
+    public Optional<Operation> getOriginalOperation() {
+      return Optional.empty();
+    }
+
+    @Override
     public void setSolver(SolutionRelayFunction<SystemFType> solutionRelay) {
     }
 
+    @Override
     public void resolveUsingContext(Expression.SolutionContext<SystemFType> ctx) {
       // TODO: resolve the types back to exprs
     };
