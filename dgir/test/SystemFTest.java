@@ -26,7 +26,8 @@ public class SystemFTest {
         new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
         new Expr.Var(x));
 
-    var resType = solver.solve(expr);
+    var resTypePair = solver.solve(expr);
+    var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
 
     assert resType.equals(
@@ -57,7 +58,8 @@ public class SystemFTest {
             new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1))),
             new Expr.LitExpr(new Literal.Int(2))));
 
-    var resType = solver.solve(expr);
+    var resTypePair = solver.solve(expr);
+    var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
 
     assert resType.equals(new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT));
@@ -85,7 +87,8 @@ public class SystemFTest {
         new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1)))),
         new SystemFType.Lit(TypeIdent.TYPE_IDENT_LIST, List.of(new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL))));
 
-    var resType = solver.solve(expr);
+    var resTypePair = solver.solve(expr);
+    var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
 
     assert resType.equals(
@@ -123,7 +126,8 @@ public class SystemFTest {
             new Expr.App(new Expr.Var(add), new Expr.Var(a)),
             new Expr.Var(b)));
 
-    var resType = solver.solve(expr);
+    var resTypePair = solver.solve(expr);
+    var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
 
     assert resType.equals(new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT));
@@ -157,10 +161,11 @@ public class SystemFTest {
                     new Expr.App(new Expr.Var(a), new Expr.Var(y))))),
         new Expr.App(new Expr.Var(a), new Expr.LitExpr(new Literal.Int(10))));
 
-    var result = solver.solve(expr);
-    assert result instanceof SystemFType;
-    assert result instanceof SystemFType.Lit;
-    assert ((Lit) result).ident.equals(TypeIdent.TYPE_IDENT_INT);
+    var resTypePair = solver.solve(expr);
+    var resType = resTypePair.getLeft();
+    assert resType instanceof SystemFType;
+    assert resType instanceof SystemFType.Lit;
+    assert ((Lit) resType).ident.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   @Test
@@ -191,9 +196,10 @@ public class SystemFTest {
                     new Expr.App(new Expr.Var(a), new Expr.Var(y))))),
         new Expr.App(new Expr.Var(b), new Expr.LitExpr(new Literal.Int(10))));
 
-    var result = solver.solve(expr);
-    assert result instanceof SystemFType;
-    assert result instanceof SystemFType.Lit;
-    assert ((Lit) result).ident.equals(TypeIdent.TYPE_IDENT_INT);
+    var resTypePair = solver.solve(expr);
+    var resType = resTypePair.getLeft();
+    assert resType instanceof SystemFType;
+    assert resType instanceof SystemFType.Lit;
+    assert ((Lit) resType).ident.equals(TypeIdent.TYPE_IDENT_INT);
   }
 }

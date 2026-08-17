@@ -48,7 +48,8 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new IdOp(LOC, numberOp.getResult()), 0);
     funcMainOp.addOperation(new ReturnOp(LOC, idOp.getResult()), 0);
 
-    var solved = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    var solved = solvedPair.getLeft();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("string"));
@@ -69,7 +70,8 @@ public class OperatorInferenceTest {
         .addOperation(new ArithOps.BinaryOp(LOC, lhsNumber.getResult(), rhsNumber.getResult(), BinMode.ADD), 0);
     funcMainOp.addOperation(new ReturnOp(LOC, addOp.getResult()), 0);
 
-    var solved = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    var solved = solvedPair.getLeft();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("int32"));
@@ -90,7 +92,8 @@ public class OperatorInferenceTest {
         .addOperation(new ArithOps.BinaryOp(LOC, lhsNumber.getResult(), rhsNumber.getResult(), BinMode.ADD), 0);
     funcMainOp.addOperation(new ReturnOp(LOC, addOp.getResult()), 0);
 
-    var solved = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    var solved = solvedPair.getLeft();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("int64"));

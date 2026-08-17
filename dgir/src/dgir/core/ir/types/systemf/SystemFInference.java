@@ -45,7 +45,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 public final class SystemFInference
     extends
-    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr, SystemFInference.SystemFType>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr>, dgir.core.ir.types.systemf.SystemFInference.Expr, dgir.core.ir.types.systemf.SystemFInference.SystemFType> {
+    TypeDialect<InferOrTransformResult<SystemFInference.TypeInference.TypeResult, SystemFInference.Expr, SystemFInference.SystemFType>, ExprOrOperator<dgir.core.ir.types.systemf.SystemFInference.Expr, dgir.core.ir.types.systemf.SystemFInference.SystemFType>, dgir.core.ir.types.systemf.SystemFInference.Expr, dgir.core.ir.types.systemf.SystemFInference.SystemFType> {
 
   private static Optional<TypeInference> solver = Optional.empty();
 
@@ -60,7 +60,7 @@ public final class SystemFInference
   }
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr>, Expr, SystemFType> getSolverInstance() {
+  public TypeInferenceSolver<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType> getSolverInstance() {
     if (SystemFInference.solver.isPresent()) {
       return SystemFInference.solver.get();
     } else {
@@ -360,7 +360,7 @@ public final class SystemFInference
    * Expressions that are valid for the SytemF Type System. All needed methods for
    * inference and type checking are implemented here
    */
-  public static abstract class Expr implements Expression<SystemFType>, ExprOrOperator<Expr> {
+  public static abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements Expression<SystemFType> {
     private Optional<SystemFType> inferredType;
 
     @Override
@@ -372,20 +372,6 @@ public final class SystemFInference
     public Optional<SystemFType> getInferredType() {
       return this.inferredType;
     }
-
-    @Override
-    public Optional<Operation> getOriginalOperation() {
-      return Optional.empty();
-    }
-
-    @Override
-    public void setSolver(SolutionRelayFunction<SystemFType> solutionRelay) {
-    }
-
-    @Override
-    public void resolveUsingContext(Expression.SolutionContext<SystemFType> ctx) {
-      // TODO: resolve the types back to exprs
-    };
 
     @Override
     public boolean isExpr() {
@@ -445,47 +431,47 @@ public final class SystemFInference
               List.of(inferred.tree, subtyped.tree)));
     }
 
-  public static final class Var extends Expr {
+    public static final class Var extends Expr {
 
-       private final Symbol<Expr, SystemFType> name;
+      private final Symbol<Expr, SystemFType> name;
 
-       public Var(Symbol<Expr, SystemFType> name) {
-         this.name = name;
-       }
+      public Var(Symbol<Expr, SystemFType> name) {
+        this.name = name;
+      }
 
-       @Override
-       public final String toString() {
-         return name + "";
-       }
+      @Override
+      public final String toString() {
+        return name + "";
+      }
 
-       @Override
-       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
-         var input = ctx + " |- " + this;
-         var boundVariable = ctx.find(
-             entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        var boundVariable = ctx.find(
+            entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar.equals(this.name));
 
-         if (boundVariable.isPresent()) {
-           var varBnd = (Entry.VarBnd) boundVariable.get();
-           return new TypeInference.TypeResult(
-               varBnd.type,
-               ctx.copy(),
-               new InferenceTree(
-                   "InfVar",
-                   ctx + " |- " + this,
-                   input + " => " + varBnd.type + " -| " + ctx,
-                   List.of()));
-         }
+        if (boundVariable.isPresent()) {
+          var varBnd = (Entry.VarBnd) boundVariable.get();
+          return new TypeInference.TypeResult(
+              varBnd.type,
+              ctx.copy(),
+              new InferenceTree(
+                  "InfVar",
+                  ctx + " |- " + this,
+                  input + " => " + varBnd.type + " -| " + ctx,
+                  List.of()));
+        }
 
-         throw new TypingException.UnboundVariable(this.name);
-       }
-     }
+        throw new TypingException.UnboundVariable(this.name);
+      }
+    }
 
     public static final class App extends Expr {
 
-      private final ExprOrOperator<Expr> fun;
-      private final ExprOrOperator<Expr> arg;
+      private final ExprOrOperator<Expr, SystemFType> fun;
+      private final ExprOrOperator<Expr, SystemFType> arg;
 
-      public App(ExprOrOperator<Expr> fun, ExprOrOperator<Expr> arg) {
+      public App(ExprOrOperator<Expr, SystemFType> fun, ExprOrOperator<Expr, SystemFType> arg) {
         this.fun = fun;
         this.arg = arg;
       }
@@ -567,9 +553,9 @@ public final class SystemFInference
 
       private final Symbol<Expr, SystemFType> name;
       private final SystemFType type;
-      private final ExprOrOperator<Expr> body;
+      private final ExprOrOperator<Expr, SystemFType> body;
 
-      public Abs(Symbol<Expr, SystemFType> name, SystemFType type, ExprOrOperator<Expr> body) {
+      public Abs(Symbol<Expr, SystemFType> name, SystemFType type, ExprOrOperator<Expr, SystemFType> body) {
         this.name = name;
         this.type = type;
         this.body = body;
@@ -664,10 +650,10 @@ public final class SystemFInference
 
     public static final class TApp extends Expr {
 
-      private final ExprOrOperator<Expr> func;
+      private final ExprOrOperator<Expr, SystemFType> func;
       private final SystemFType type;
 
-      public TApp(ExprOrOperator<Expr> func, SystemFType type) {
+      public TApp(ExprOrOperator<Expr, SystemFType> func, SystemFType type) {
         this.func = func;
         this.type = type;
       }
@@ -703,10 +689,10 @@ public final class SystemFInference
 
     public static final class Ann extends Expr {
 
-      private final ExprOrOperator<Expr> expr;
+      private final ExprOrOperator<Expr, SystemFType> expr;
       private final SystemFType type;
 
-      public Ann(ExprOrOperator<Expr> expr, SystemFType type) {
+      public Ann(ExprOrOperator<Expr, SystemFType> expr, SystemFType type) {
         this.expr = expr;
         this.type = type;
       }
@@ -735,9 +721,9 @@ public final class SystemFInference
     public static final class TAbs extends Expr {
 
       private final TypeVar variable;
-      private final ExprOrOperator<Expr> body;
+      private final ExprOrOperator<Expr, SystemFType> body;
 
-      public TAbs(TypeVar variable, ExprOrOperator<Expr> body) {
+      public TAbs(TypeVar variable, ExprOrOperator<Expr, SystemFType> body) {
         this.variable = variable;
         this.body = body;
       }
@@ -830,43 +816,46 @@ public final class SystemFInference
       }
     }
 
-     public static final class Let extends Expr {
+    public static final class Let extends Expr {
 
-       private final List<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr>>> bindings;
-       private final ExprOrOperator<Expr> body;
+      private final List<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr, SystemFType>>> bindings;
+      private final ExprOrOperator<Expr, SystemFType> body;
 
-       public Let(Symbol<Expr, SystemFType> name, ExprOrOperator<Expr> value, ExprOrOperator<Expr> body) {
-         this.bindings = List.of(Pair.of(name, value));
-         this.body = body;
-       }
+      public Let(Symbol<Expr, SystemFType> name, ExprOrOperator<Expr, SystemFType> value,
+          ExprOrOperator<Expr, SystemFType> body) {
+        this.bindings = List.of(Pair.of(name, value));
+        this.body = body;
+      }
 
-       public Let(List<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr>>> bindings, ExprOrOperator<Expr> body) {
-         this.bindings = List.copyOf(bindings);
-         this.body = body;
-       }
+      public Let(List<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr, SystemFType>>> bindings,
+          ExprOrOperator<Expr, SystemFType> body) {
+        this.bindings = List.copyOf(bindings);
+        this.body = body;
+      }
 
-       @Override
-       public final String toString() {
-         return "let (" + this.bindings.stream().map(Object::toString).collect(Collectors.joining(", ")) + ") in "
-             + body;
-       }
+      @Override
+      public final String toString() {
+        return "let (" + this.bindings.stream().map(Object::toString).collect(Collectors.joining(", ")) + ") in "
+            + body;
+      }
 
-       @Override
-       public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
-         var input = ctx + " |- " + this;
-         Context newCtx = ctx.copy();
-         ArrayList<InferenceTree> trees = new ArrayList<>();
-         ArrayList<Triple<Symbol<Expr, SystemFType>, TypeVar, ExprOrOperator<Expr>>> nonUnified = new ArrayList<>(this.bindings.size());
+      @Override
+      public TypeInference.TypeResult infer(TypeInference engine, Context ctx) {
+        var input = ctx + " |- " + this;
+        Context newCtx = ctx.copy();
+        ArrayList<InferenceTree> trees = new ArrayList<>();
+        ArrayList<Triple<Symbol<Expr, SystemFType>, TypeVar, ExprOrOperator<Expr, SystemFType>>> nonUnified = new ArrayList<>(
+            this.bindings.size());
 
-         var mark = new Entry.Mark();
-         newCtx.push(mark);
+        var mark = new Entry.Mark();
+        newCtx.push(mark);
 
-         for (var binding : this.bindings) {
-           var typeVar = new TypeVar();
-           nonUnified.add(Triple.of(binding.getLeft(), typeVar, binding.getRight()));
-           newCtx.push(new Entry.ETVarBnd(typeVar));
-           newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(typeVar)));
-         }
+        for (var binding : this.bindings) {
+          var typeVar = new TypeVar();
+          nonUnified.add(Triple.of(binding.getLeft(), typeVar, binding.getRight()));
+          newCtx.push(new Entry.ETVarBnd(typeVar));
+          newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(typeVar)));
+        }
 
         for (var binding : nonUnified) {
           var typeVar = binding.getMiddle();
@@ -905,9 +894,9 @@ public final class SystemFInference
 
     public final class Return extends Expr {
 
-      private ExprOrOperator<Expr> value;
+      private ExprOrOperator<Expr, SystemFType> value;
 
-      public Return(ExprOrOperator<Expr> value) {
+      public Return(ExprOrOperator<Expr, SystemFType> value) {
         this.value = value;
       }
 
@@ -1180,7 +1169,7 @@ public final class SystemFInference
   }
 
   public static final class TypeInference
-      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr>, Expr, SystemFType> {
+      extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType> {
 
     private ConvertedOperationBuffer<Expr, SystemFType> operationToExprBuffer;
 
@@ -1235,7 +1224,7 @@ public final class SystemFInference
 
     @Override
     public Expr generalBlockToInferenceExpr(GeneralBlock block) {
-      ArrayList<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr>>> bindings = new ArrayList<>();
+      ArrayList<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr, SystemFType>>> bindings = new ArrayList<>();
       Optional<Symbol<Expr, SystemFType>> lastValue = Optional.empty();
 
       for (var op : block.getOperations()) {
@@ -1264,10 +1253,10 @@ public final class SystemFInference
     }
 
     @Override
-    public Type solve(ExprOrOperator<Expr> expr) {
+    public Pair<Type, ExprOrOperator<Expr, SystemFType>> solve(ExprOrOperator<Expr, SystemFType> expr) {
       if (expr.isExpr()) {
         var res = this.infer(new Context(), expr);
-        return (Type) res.ctx.apply(res.type);
+        return Pair.of((Type) res.ctx.apply(res.type), expr);
       } else {
         throw new TypingException.UnsupportedExpression(
             TypingException.UnsupportedExpression.AlgorithmType.SystemF,
@@ -1288,7 +1277,7 @@ public final class SystemFInference
         InferenceTree tree) implements InferResultMarker<SystemFType> {
     }
 
-    TypeResult infer(Context ctx, ExprOrOperator<Expr> expr) {
+    TypeResult infer(Context ctx, ExprOrOperator<Expr, SystemFType> expr) {
       if (expr.isExpr()) {
         return expr.getExpr().infer(this, ctx);
       } else if (expr.isOperator()) {
@@ -1301,7 +1290,7 @@ public final class SystemFInference
     public final record CheckResult(Context ctx, InferenceTree tree) {
     }
 
-    public CheckResult check(Context ctx, ExprOrOperator<Expr> exprParam, SystemFType ty) {
+    public CheckResult check(Context ctx, ExprOrOperator<Expr, SystemFType> exprParam, SystemFType ty) {
       Expr expr = null;
       if (exprParam.isExpr()) {
         expr = exprParam.getExpr();

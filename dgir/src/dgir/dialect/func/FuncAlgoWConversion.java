@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
-import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
@@ -29,7 +28,7 @@ public final class FuncAlgoWConversion {
 
   public static Expr convertFuncOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     FuncOps.FuncOp funcOp = (FuncOps.FuncOp) op.asOp();
 
      var i = 0;
@@ -50,7 +49,7 @@ public final class FuncAlgoWConversion {
 
   public static Expr convertReturnOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     FuncOps.ReturnOp returnOp = (FuncOps.ReturnOp) op.asOp();
 
     Expr result = null;
@@ -65,11 +64,11 @@ public final class FuncAlgoWConversion {
 
   public static Expr convertCallOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
 
     return new Expr.ExprApp(new Expr.ExprVar(Symbol.of(callOp.getCallee())),
         callOp.getOperands().stream()
-            .map(operand -> (ExprOrOperator<Expr>) new Expr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
+            .map(operand -> (ExprOrOperator<Expr, AlgorithmWType>) new Expr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
   }
 }

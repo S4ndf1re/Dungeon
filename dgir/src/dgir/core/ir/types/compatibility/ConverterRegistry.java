@@ -15,7 +15,7 @@ import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 public class ConverterRegistry {
 
   @FunctionalInterface
-  public static interface ConverterFunction<EO extends ExprOrOperator<E>, E extends Expression<T>, T extends Type> {
+  public static interface ConverterFunction<EO extends ExprOrOperator<E, T>, E extends Expression<T>, T extends Type> {
     E convertToExpression(
         Operation op,
         TypeInferenceSolver<EO, E, T> engine);
@@ -64,7 +64,7 @@ public class ConverterRegistry {
   @SafeVarargs
   public static <E extends Expression<T>, T extends Type> void addOperatorsToDialect(
       Class<? extends TypeDialect<?, ?, E, T>> dialect,
-      Pair<Class<? extends Op>, ConverterFunction<ExprOrOperator<E>, E, T>>... pairs) {
+      Pair<Class<? extends Op>, ConverterFunction<ExprOrOperator<E, T>, E, T>>... pairs) {
 
     var convertersForDialect = converters.get(dialect);
     if (convertersForDialect == null) {

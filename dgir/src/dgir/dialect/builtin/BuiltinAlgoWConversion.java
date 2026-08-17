@@ -28,7 +28,7 @@ public final class BuiltinAlgoWConversion {
 
   public static Expr convertProgramOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     BuiltinOps.ProgramOp programOp = (BuiltinOps.ProgramOp) op.asOp();
     var ops = programOp.getEntryBlock().getOperations();
 
@@ -52,7 +52,7 @@ public final class BuiltinAlgoWConversion {
 
   public static Expr convertIdOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     BuiltinOps.IdOp idOp = (BuiltinOps.IdOp) op.asOp();
 
      var param = Symbol.<Expr, AlgorithmWType>of(idOp.getOperand());

@@ -4,43 +4,53 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
 
-public interface ExprOrOperator<E extends Expression<? extends Type>> {
-  public static <E extends Expression<? extends Type>> ExprOrOperator<E> of(Operation op) {
+public abstract class ExprOrOperator<E extends Expression<T>, T extends Type> {
+  public static <E extends Expression<T>, T extends Type> ExprOrOperator<E, T> of(Operation op) {
     return new ExprOrOperator.OperatorVariant<>(op);
   }
 
-  public static <E extends Expression<? extends Type>> ExprOrOperator<E> of(E expr) {
+  public static <E extends Expression<T>, T extends Type> ExprOrOperator<E, T> of(E expr) {
     return new ExprOrOperator.ExpressionVariant<>(expr);
   }
 
-  public default boolean isExpr() {
+  public boolean isExpr() {
     return this instanceof ExpressionVariant;
   }
 
-  public default boolean isOperator() {
+  public boolean isOperator() {
     return this instanceof OperatorVariant;
   }
 
-  public default E getExpr() {
+  public E getExpr() {
     if (!this.isExpr()) {
       throw new RuntimeException("value is not of type Expr");
     }
 
-    return ((ExpressionVariant<E>) this).expr;
+    return ((ExpressionVariant<E, T>) this).expr;
   }
 
-  public default Operation getOp() {
+  public Operation getOp() {
     if (!this.isOperator()) {
       throw new RuntimeException("value is not of type Operator");
     }
 
-    return ((OperatorVariant<E>) this).op;
+    return ((OperatorVariant<E, T>) this).op;
   }
 
-  public final record ExpressionVariant<E extends Expression<? extends Type>>(E expr) implements ExprOrOperator<E> {
+  public static final class ExpressionVariant<E extends Expression<T>, T extends Type> extends ExprOrOperator<E, T> {
+    public E expr;
+
+    public ExpressionVariant(E expr) {
+      this.expr = expr;
+    }
   }
 
-  public final record OperatorVariant<E extends Expression<? extends Type>>(Operation op) implements ExprOrOperator<E> {
+  public static final class OperatorVariant<E extends Expression<T>, T extends Type> extends ExprOrOperator<E, T> {
+    public Operation op;
+
+    public OperatorVariant(Operation op) {
+      this.op = op;
+    }
   }
 
 }
