@@ -25,13 +25,13 @@ public class ConvertedOperationBuffer<E extends Expression<T>, T extends Type> {
     return Optional.ofNullable(this.converted.get(op));
   }
 
-  public E operationToExpr(TypeInferenceSolver<ExprOrOperator<E>, E, T> engine, Operation op,
+  public E operationToExpr(TypeInferenceSolver<ExprOrOperator<E, T>, E, T> engine, Operation op,
       TypeDialectConverterRegistry registry, Class<E> clazz) {
     var buffered = this.get(op);
 
     var exprConverted = buffered.orElseGet(() -> {
       @SuppressWarnings("unchecked")
-      ConverterFunction<ExprOrOperator<E>, E, T> converter = (ConverterFunction<ExprOrOperator<E>, E, T>) registry
+      ConverterFunction<ExprOrOperator<E, T>, E, T> converter = (ConverterFunction<ExprOrOperator<E, T>, E, T>) registry
           .getConverter(op.asOp().getClass());
       Expression<T> convertedExpr = converter.convertToExpression(op, engine);
 
