@@ -49,7 +49,7 @@ public class AlgorithmWTest {
     var x = Symbol.<Expr, AlgorithmWType>of(new Value());
     var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
-    // let const = \x -> \y -> x in const 42 true
+    // let const = \x -> \y -> x in (const 42 true, const true 42)
     Expr expr = new Expr.ExprLet(
         cnst,
         new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
@@ -59,7 +59,9 @@ public class AlgorithmWTest {
                 new Expr.ExprLit(new Literal.Int(42))),
             new Expr.ExprLit(new Literal.Bool(true))));
 
-    var result = solver.solve(expr);
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
+
     assert result instanceof AlgorithmWType;
     assert result instanceof LitType;
     assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
@@ -86,7 +88,8 @@ public class AlgorithmWTest {
                 new Expr.ExprLit(new Literal.Bool(true)))),
         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT));
 
-    var result = solver.solve(expr);
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof LitType;
     assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
@@ -128,7 +131,8 @@ public class AlgorithmWTest {
 
     );
 
-    var result = solver.solve(expr);
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
     assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
@@ -158,7 +162,8 @@ public class AlgorithmWTest {
             Pair.of(b, new Expr.ExprAbs(y, new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprVar(y))))),
         new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprLit(new Literal.Int(10))));
 
-    var result = solver.solve(expr);
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     System.out.println(result);
     assert result instanceof AlgorithmWType.LitType;
@@ -189,9 +194,9 @@ public class AlgorithmWTest {
             Pair.of(b, new Expr.ExprAbs(y, new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprVar(y))))),
         new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprLit(new Literal.Int(10))));
 
-    var result = solver.solve(expr);
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
-    System.out.println(result);
     assert result instanceof AlgorithmWType.LitType;
     assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
@@ -213,7 +218,8 @@ public class AlgorithmWTest {
         new Expr.ExprApp(new Expr.ExprVar(a),
             List.of(new Expr.ExprLit(new Literal.Int(10)), new Expr.ExprLit(new Literal.Bool(false)))));
 
-    var result = solver.solve(expr);
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     System.out.println(result);
     assert result instanceof AlgorithmWType.Tuple;

@@ -34,7 +34,7 @@ public final class ArithAlgoWConversion {
 
   public static Expr convertConstOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     ArithOps.ConstantOp constOp = (ArithOps.ConstantOp) op.asOp();
 
     return new Expr.ExprLit(new Literal.Generic(constOp.getResult()));
@@ -42,9 +42,9 @@ public final class ArithAlgoWConversion {
 
   public static Expr convertBinOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
 
-    InferFunction infFunc = (eng, env, data) -> {
+    InferFunction<Object> infFunc = (eng, env, data) -> {
       ArithOps.BinaryOp binOp = (ArithOps.BinaryOp) op.asOp();
 
        var lhs = Symbol.<Expr, AlgorithmWType>of(binOp.getLhs());
@@ -89,14 +89,14 @@ public final class ArithAlgoWConversion {
       return new InferFunctionResult(finalSubst, resultType);
     };
 
-    return new Expr.ExprCustom(null, infFunc);
+    return new Expr.ExprCustom<Object>(null, infFunc);
   }
 
   public static Expr convertUnaryOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
 
-    InferFunction infFunc = (eng, env, data) -> {
+    InferFunction<Object> infFunc = (eng, env, data) -> {
       ArithOps.UnaryOp unaryOp = (ArithOps.UnaryOp) op.asOp();
 
        var lhs = Symbol.<Expr, AlgorithmWType>of(unaryOp.getOperand());
@@ -132,19 +132,19 @@ public final class ArithAlgoWConversion {
       return new InferFunctionResult(finalSubst, resultType);
     };
 
-    return new Expr.ExprCustom(null, infFunc);
+    return new Expr.ExprCustom<Object>(null, infFunc);
   }
 
   public static Expr convertCastOp(
       Operation op,
-      TypeInferenceSolver<ExprOrOperator<Expr>, Expr, AlgorithmWType> engine) {
+      TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
 
-    InferFunction infFunc = (eng, env, data) -> {
+    InferFunction<Object> infFunc = (eng, env, data) -> {
       ArithOps.CastOp unaryOp = (ArithOps.CastOp) op.asOp();
       return new InferFunctionResult(Subst.newEmpty(), (AlgorithmWType) engine
           .generalNominalTypeToInferenceType(unaryOp.getTargetType().asParameterizedNominalType(), null).getLeft());
     };
 
-    return new Expr.ExprCustom(null, infFunc);
+    return new Expr.ExprCustom<Object>(null, infFunc);
   }
 }

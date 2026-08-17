@@ -13,9 +13,9 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<T>, E, T>, C extends ExprOrOperator<E>, E extends Expression<T>, T extends Type> {
+public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<T>, E, T>, C extends ExprOrOperator<E, T>, E extends Expression<T>, T extends Type> {
 
-  public abstract static class TypeInferenceSolver<EO extends ExprOrOperator<E>, E extends Expression<T>, T extends Type> {
+  public abstract static class TypeInferenceSolver<EO extends ExprOrOperator<E, T>, E extends Expression<T>, T extends Type> {
     protected TypeDialectConverterRegistry registry;
 
     public static interface ConversionContext<E, T> {
@@ -25,7 +25,7 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
       this.registry = registry;
     }
 
-    public abstract Type solve(EO expr);
+    public abstract Pair<Type, ExprOrOperator<E, T>> solve(EO expr);
 
     public abstract E generalBlockToInferenceExpr(GeneralBlock block);
 
