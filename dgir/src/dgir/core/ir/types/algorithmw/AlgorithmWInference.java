@@ -164,15 +164,76 @@ public final class AlgorithmWInference
         InferenceTree tree) implements InferResultMarker<AlgorithmWType> {
     }
 
+    /**
+     * Infer the type of the expression. This method MUST be implemented for every
+     * {@link Expr}.
+     * After inferring the type (the return value), the engine automatically stores
+     * the inferred type within the inferred expression.
+     *
+     * @param engine
+     * @param env
+     * @return the inferred {@link AlgorithmWType} and the resulting {@link Subst},
+     *         combined into an {@link InferenceTree}
+     */
     public abstract InferResult infer(TypeInference engine, Env env);
 
+    /**
+     * Collect a list of all child expressions. I.e. all expressions that are found
+     * to be children in the expression tree of the called on {@link Expr}.
+     *
+     * <p>
+     * This method is used to automatically recurse down the expression tree to
+     * build all polymorphic instances.
+     *
+     * @return the list of all children {@link ExprOrOperator}
+     */
     protected abstract List<ExprOrOperator<Expr, AlgorithmWType>> getChildren();
 
+    /**
+     * Instantiate the correct type instance for code generation.
+     * This instance is stored within the expression.
+     * Normally, a default implementation is provided,
+     * that just applies the solution {@link Subst} to to the previous inferred
+     * type.
+     * Some expressions, like {@link ExprAbs} or {@link ExprApp} need to implement a
+     * different
+     * version of `instantiateInner`.
+     * Especially {@link ExprAbs} needs to collect all fully instantiated instances.
+     *
+     * <p>
+     * The {@link InstEnv} will act as an {@link Env}, but does not store types but
+     * rather
+     * expressions.
+     * Additionally, the {@link InstEnv} will store all visited expressions in
+     * combination
+     * with the {@link Subst}.
+     * Hence further unified solutions will get applied to all Expressions in the
+     * tree,
+     * even though an expression was visited for a partial solution earlier.
+     *
+     * @param engine   the inference engine that provides useful helper methods,
+     *                 like `unify` and `asExpression`
+     * @param env      the instance env, collecting visited expressions and acting
+     *                 as a scope-like Env
+     * @param solution a partial of full solution that can be used to infer all
+     *                 types and instantiations
+     */
     protected void instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
       this.setInferredType(this.getInferredType().map(infType -> solution.apply(infType)));
       this.getChildren().forEach(child -> engine.asExpression(child).instantiate(engine, env, solution));
     }
 
+    /**
+     * Instantiate the full expression tree to find and store all instantiations.
+     * Additionally, every expression and its inferred type (determined during type
+     * inference)
+     * is substituted, resulting in a fully typed Expression tree.
+     *
+     * @param engine   the type inference engine used to infer all types
+     * @param env      a env storing all in scope expressions
+     * @param solution a solution Subst that may be extended with further
+     *                 instantioation Substs
+     */
     public final void instantiate(TypeInference engine, InstEnv env, Subst solution) {
       if (env.isVisisted(Pair.of(this, solution))) {
         return;
@@ -189,9 +250,9 @@ public final class AlgorithmWInference
 
       var referencedExpr = this.getReferencedVariable();
       if (referencedExpr.isPresent()) {
-        var referenced = env.get(this.getReferencedVariable().get());
-        if (referenced.isPresent()) {
-          var referencedExprAsExpr = engine.asExpression(referenced.get());
+        var referencedFromEnv = env.get(this.getReferencedVariable().get());
+        if (referencedFromEnv.isPresent()) {
+          var referencedExprAsExpr = engine.asExpression(referencedFromEnv.get());
           var referencedInferredType = referencedExprAsExpr.getInferredType();
 
           if (referencedInferredType.isPresent() && this.getInferredType().isPresent()) {
