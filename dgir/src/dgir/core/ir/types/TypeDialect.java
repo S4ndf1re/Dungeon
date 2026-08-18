@@ -1,5 +1,7 @@
 package dgir.core.ir.types;
 
+import dgir.core.ir.Operation;
+import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.InferOrTransformResult;
 import dgir.core.ir.types.compatibility.InferResultMarker;
@@ -18,6 +20,10 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
   public abstract static class TypeInferenceSolver<EO extends ExprOrOperator<E, T>, E extends Expression<T>, T extends Type> {
     protected TypeDialectConverterRegistry registry;
 
+    /**
+     * A simpler marker interface, marking all allowed contexts for conversion from
+     * GPNT to inference types.
+     */
     public static interface ConversionContext<E, T> {
     }
 
@@ -25,19 +31,66 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
       this.registry = registry;
     }
 
+    /**
+     * Solve the full expression tree by applying algorithm specific logic, like
+     * inference and unification.
+     * Different algorithms provide different mechanisms and different general
+     * logic.
+     *
+     * <p>
+     * NOTE: to be able to solve non-{@link Expression}
+     * trees containing some or all {@link Operation},
+     * conversion functions must be registered globalls using
+     * {@link ConverterRegistry}
+     * Those registered converter functions are tasked with converting
+     * {@link Operation} to inference specific {@link Expression}
+     *
+     * @param expr the {@link ExprOrOperator} to solve.
+     *
+     * @return a pair of the solved algorithm specific final type, and the fully
+     *         type annotated expression tree in original structure
+     */
     public abstract Pair<Type, ExprOrOperator<E, T>> solve(EO expr);
 
+    /**
+     * Convert a {@link GeneralBlock} to an algorithm specific {@link Expression}
+     *
+     * @param block the block to convert
+     * @return the converted {@link Expression}
+     */
     public abstract E generalBlockToInferenceExpr(GeneralBlock block);
 
+    /**
+     * Convert a {@link GeneralParameterizedNominalType} to an algorithm specific
+     * type.
+     *
+     * @param type    the GPNT type to convert
+     * @param context the algorithm specific context
+     * @return a pair of the algorithm specific type, and a potentially modified
+     *         context
+     */
     public abstract Pair<T, Optional<ConversionContext<E, T>>> generalNominalTypeToInferenceType(
         GeneralParameterizedNominalType type,
         Optional<ConversionContext<E, T>> context);
   }
 
+  /**
+   * Return the static instance of a specific type inference solver for a type
+   * system.
+   *
+   * @return the static instance of the algorithm specific
+   *         {@link TypeInferenceSolver}
+   */
   public abstract TypeInferenceSolver<C, E, T> getSolverInstance();
 
+  /**
+   * @return a list of allowed types to be used with the specific algorithm
+   */
   public abstract List<Class<? extends Type>> getAllowedTypes();
 
+  /**
+   * @return a list of allowed expressions to be used with the specific algorithm
+   */
   public abstract List<Class<? extends Expression<T>>> getAllowedExpressions();
 
   @SuppressWarnings("unchecked")
@@ -56,8 +109,8 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
           || (obj.getSuperclass().equals(abstractInterface));
     };
 
-    // This cast is inherently safe, but only when Expr actually extends from
-    // Expression! Hence a check is concluded before
+    // SAFETY: This cast is inherently safe when Expr actually extends
+    // Expression! Hence a check is concluded beforehand
     return possibleTypes
         .stream()
         .filter(classInheritsExpression)
@@ -79,8 +132,8 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
       return (obj.getSuperclass() != null && obj.getSuperclass().equals(abstractClass));
     };
 
-    // This cast is inherently safe, but only when Expr actually extends from
-    // Expression! Hence a check is concluded before
+    // SAFETY: This cast is inherently safe when Expr actually extends
+    // Expression! Hence a check is concluded beforehand.
     return possibleTypes
         .stream()
         .filter(classInheritsExpression)
