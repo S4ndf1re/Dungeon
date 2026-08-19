@@ -77,9 +77,11 @@ public final class AlgorithmWInference
       implements Expression<Expr, AlgorithmWType> {
 
     private Optional<AlgorithmWType> inferredType;
+    private HashSet<AlgorithmWType> instances;
 
     protected Expr() {
       this.inferredType = Optional.empty();
+      this.instances = new HashSet<>();
     }
 
     // Make sure, that exprs always equals via object reference (needed for in-set
@@ -143,19 +145,6 @@ public final class AlgorithmWInference
       return Optional.empty();
     }
 
-    /**
-     * Some Expressions, like Annotations ({@link ExprAnn}) are not actual
-     * expressions, but rather support structures that support the type inference
-     * process. To always find the correct origin expression (for example for
-     * function abstractions {@link ExprAbs}), this method is instantiated.
-     *
-     * @return by default, `this` is returned. If overwritten, an expression may
-     *         return the "shadowed" {@link Expr}
-     */
-    public ExprOrOperator<Expr, AlgorithmWType> getOriginExpression() {
-      return this;
-    }
-
     public static record InferResult(
         Subst subst,
         AlgorithmWType type,
@@ -206,6 +195,14 @@ public final class AlgorithmWInference
      */
     protected void instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
       this.setInferredType(this.getInferredType().map(infType -> solution.apply(infType)));
+
+      if (this.getInferredType().isPresent()) {
+        AlgorithmWType appliedType = solution.apply(this.getInferredType().get());
+        if (appliedType.isFullySpecified() && !this.instances.contains(appliedType)) {
+          this.instances.add(appliedType);
+        }
+      }
+
       this.getChildren().forEach(child -> engine.asExpression(child).instantiate(engine, env, solution));
     }
 
@@ -225,12 +222,6 @@ public final class AlgorithmWInference
         return;
       }
       env.visit(Pair.of(this, solution));
-
-      var shadowedExpr = this.getOriginExpression();
-      if (shadowedExpr != this) {
-        engine.asExpression(shadowedExpr).instantiate(engine, env, solution);
-        return;
-      }
 
       this.instantiateInner(engine, env, solution);
 
@@ -259,11 +250,6 @@ public final class AlgorithmWInference
       public ExprAnn(ExprOrOperator<Expr, AlgorithmWType> expr, AlgorithmWType type) {
         this.expr = expr;
         this.type = type;
-      }
-
-      @Override
-      public ExprOrOperator<Expr, AlgorithmWType> getOriginExpression() {
-        return this.expr;
       }
 
       @Override
@@ -417,22 +403,6 @@ public final class AlgorithmWInference
           throw new TypingException.UnknownVariable(name);
         }
       }
-
-      @Override
-      protected void instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
-        var referenced = env.get(this.getReferencedVariable().get());
-        if (referenced.isPresent()) {
-          var referencedInferredType = engine.asExpression(referenced.get()).getInferredType();
-          if (referencedInferredType.isPresent() && this.getInferredType().isPresent()) {
-            UnifyResult res = engine.unify(this.getInferredType().get(), referencedInferredType.get());
-            var finalSubst = res.subst.compose(solution);
-            super.instantiateInner(engine, env, finalSubst);
-            return;
-          }
-        }
-
-        super.instantiateInner(engine, env, solution);
-      }
     }
 
     public static final class ExprApp extends Expr {
@@ -555,18 +525,15 @@ public final class AlgorithmWInference
 
       private final List<Symbol<Expr, AlgorithmWType>> params;
       private final ExprOrOperator<Expr, AlgorithmWType> body;
-      private ArrayList<AlgorithmWType> instances;
 
       public ExprAbs(Symbol<Expr, AlgorithmWType> param, ExprOrOperator<Expr, AlgorithmWType> body) {
         this.params = List.of(param);
         this.body = body;
-        this.instances = new ArrayList<>();
       }
 
       public ExprAbs(List<Symbol<Expr, AlgorithmWType>> params, ExprOrOperator<Expr, AlgorithmWType> body) {
         this.params = List.copyOf(params);
         this.body = body;
-        this.instances = new ArrayList<>();
       }
 
       @Override
@@ -650,20 +617,6 @@ public final class AlgorithmWInference
                 input,
                 resultType.toString(),
                 List.of(res.tree)));
-      }
-
-      @Override
-      protected void instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
-        if (this.getInferredType().isEmpty()) {
-          throw new IllegalArgumentException("Inference must have resolved the current type already");
-        }
-
-        AlgorithmWType appliedType = solution.apply(this.getInferredType().get());
-        if (appliedType.isFullySpecified()) {
-          this.instances.add(appliedType);
-        }
-
-        super.instantiateInner(engine, env, solution);
       }
     }
 
