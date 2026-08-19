@@ -1079,4 +1079,19 @@ public final class Operation implements Serializable {
 
     return sb.toString();
   }
+
+  public void replaceValue(Value original, Value replacement) {
+    for (ValueOperand operand : this.operands) {
+      if (operand.getValue().isPresent() && operand.getValue().get().equals(original)) {
+        operand.setValue(replacement);
+      }
+    }
+
+    for (BlockOperand block : this.blockOperands) {
+      var blockValue = block.getValue();
+      if (blockValue.isPresent()) {
+        blockValue.get().getOperations().forEach(op -> op.replaceValue(original, replacement));
+      }
+    }
+  }
 }

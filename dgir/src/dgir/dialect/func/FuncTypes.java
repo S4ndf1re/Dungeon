@@ -97,6 +97,7 @@ public sealed interface FuncTypes {
 
           var gpnt = typeArg.getLeft();
           var params = gpnt.getTypedParameters();
+
           assert params.size() >= 1 : "a function must at least have its return type specified";
           assert !params.stream().anyMatch(param -> param.isUnknown() || param.isNumeric())
               : "cannot convert unknown or numeric types to concrete function type";
