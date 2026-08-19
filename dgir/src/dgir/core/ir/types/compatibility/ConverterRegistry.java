@@ -15,7 +15,7 @@ import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 public class ConverterRegistry {
 
   @FunctionalInterface
-  public static interface ConverterFunction<EO extends ExprOrOperator<E, T>, E extends Expression<T>, T extends Type> {
+  public static interface ConverterFunction<EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type> {
     E convertToExpression(
         Operation op,
         TypeInferenceSolver<EO, E, T> engine);
@@ -44,10 +44,10 @@ public class ConverterRegistry {
 
   // Holy hell what a type this is ............ All in the name of type safety.
   // Right?
-  private static HashMap<Class<? extends TypeDialect<?, ?, ?, ?>>, TypeDialectConverterRegistry> converters = new HashMap<>();
+  private static HashMap<Class<? extends TypeDialect<?, ?, ?>>, TypeDialectConverterRegistry> converters = new HashMap<>();
 
   public static void registerDialect(
-      Class<? extends TypeDialect<?, ?, ?, ?>> dialect) {
+      Class<? extends TypeDialect<?, ?, ?>> dialect) {
 
     if (converters.containsKey(dialect)) {
       return;
@@ -57,13 +57,13 @@ public class ConverterRegistry {
   }
 
   public static void deregisterDialect(
-      Class<? extends TypeDialect<?, ?, ?, ?>> dialect) {
+      Class<? extends TypeDialect<?, ?, ?>> dialect) {
     converters.remove(dialect);
   }
 
   @SafeVarargs
-  public static <E extends Expression<T>, T extends Type> void addOperatorsToDialect(
-      Class<? extends TypeDialect<?, ?, E, T>> dialect,
+  public static <E extends Expression<E, T>, T extends Type> void addOperatorsToDialect(
+      Class<? extends TypeDialect<?, E, T>> dialect,
       Pair<Class<? extends Op>, ConverterFunction<ExprOrOperator<E, T>, E, T>>... pairs) {
 
     var convertersForDialect = converters.get(dialect);
@@ -76,7 +76,7 @@ public class ConverterRegistry {
     }
   }
 
-  public static <D extends TypeDialect<?, ?, ?, ?>> Optional<TypeDialectConverterRegistry> getConverterForDialect(
+  public static <D extends TypeDialect<?, ?, ?>> Optional<TypeDialectConverterRegistry> getConverterForDialect(
       Class<D> dialect) {
     var dialectConverters = converters.get(dialect);
     if (dialectConverters == null) {

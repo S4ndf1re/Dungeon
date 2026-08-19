@@ -23,7 +23,7 @@ public class AlgorithmWTest {
     assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.NumericType.class);
     assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.Tuple.class);
 
-    List<Class<? extends dgir.core.ir.types.Expression<AlgorithmWType>>> allowedExpression = inference
+    List<Class<? extends dgir.core.ir.types.Expression<Expr, AlgorithmWType>>> allowedExpression = inference
         .getAllowedExpressions();
     assert allowedExpression.contains(AlgorithmWInference.Expr.ExprLit.class);
     assert allowedExpression.contains(AlgorithmWInference.Expr.ExprAbs.class);
