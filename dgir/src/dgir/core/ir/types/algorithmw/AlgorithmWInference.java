@@ -21,8 +21,6 @@ import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.Var;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.Arrow;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
-import dgir.core.ir.types.compatibility.InferOrTransformResult;
-import dgir.core.ir.types.compatibility.InferResultMarker;
 import dgir.core.ir.types.compatibility.Scope;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
@@ -44,7 +42,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 public final class AlgorithmWInference
     extends
-    TypeDialect<InferOrTransformResult<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr.InferResult, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType>, ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType>, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType> {
+    TypeDialect<ExprOrOperator<dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType>, dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr, dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType> {
 
   private static Optional<TypeInference> instance = Optional.empty();
 
@@ -71,12 +69,12 @@ public final class AlgorithmWInference
   }
 
   @Override
-  public List<Class<? extends Expression<AlgorithmWType>>> getAllowedExpressions() {
+  public List<Class<? extends Expression<Expr, AlgorithmWType>>> getAllowedExpressions() {
     return TypeDialect.extractExpressionsFromAbstract(Expr.class);
   }
 
   public static abstract class Expr extends ExprOrOperator<AlgorithmWInference.Expr, AlgorithmWType>
-      implements Expression<AlgorithmWType> {
+      implements Expression<Expr, AlgorithmWType> {
 
     private Optional<AlgorithmWType> inferredType;
 
@@ -161,7 +159,7 @@ public final class AlgorithmWInference
     public static record InferResult(
         Subst subst,
         AlgorithmWType type,
-        InferenceTree tree) implements InferResultMarker<AlgorithmWType> {
+        InferenceTree tree) {
     }
 
     /**
@@ -176,18 +174,6 @@ public final class AlgorithmWInference
      *         combined into an {@link InferenceTree}
      */
     public abstract InferResult infer(TypeInference engine, Env env);
-
-    /**
-     * Collect a list of all child expressions. I.e. all expressions that are found
-     * to be children in the expression tree of the called on {@link Expr}.
-     *
-     * <p>
-     * This method is used to automatically recurse down the expression tree to
-     * build all polymorphic instances.
-     *
-     * @return the list of all children {@link ExprOrOperator}
-     */
-    protected abstract List<ExprOrOperator<Expr, AlgorithmWType>> getChildren();
 
     /**
      * Instantiate the correct type instance for code generation.
@@ -258,7 +244,7 @@ public final class AlgorithmWInference
           if (referencedInferredType.isPresent() && this.getInferredType().isPresent()) {
             UnifyResult res = engine.unify(this.getInferredType().get(), referencedInferredType.get());
             var finalSubst = res.subst.compose(solution);
-            referencedExprAsExpr.instantiateInner(engine, env, finalSubst);
+            referencedExprAsExpr.instantiate(engine, env, finalSubst);
             return;
           }
         }
@@ -281,7 +267,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         return List.of(this.expr);
       }
 
@@ -318,7 +304,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         return List.of();
       }
 
@@ -356,7 +342,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         return List.copyOf(this.elements);
       }
 
@@ -408,7 +394,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         return List.of();
       }
 
@@ -481,7 +467,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         var list = new ArrayList<ExprOrOperator<Expr, AlgorithmWType>>();
         list.add(this.func);
         list.addAll(this.args);
@@ -595,7 +581,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         return List.of(this.body);
       }
 
@@ -722,7 +708,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         var list = new ArrayList<ExprOrOperator<Expr, AlgorithmWType>>();
         list.addAll(this.bindings.stream().map(bnd -> bnd.getRight()).toList());
         list.add(this.body);
@@ -794,7 +780,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         return List.of(this.value);
       }
 
@@ -865,7 +851,7 @@ public final class AlgorithmWInference
       }
 
       @Override
-      protected List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
+      public List<ExprOrOperator<Expr, AlgorithmWType>> getChildren() {
         if (this.getChildrenFn.isPresent()) {
           return this.getChildrenFn.get().getChildren(this.data);
         } else {
@@ -874,6 +860,9 @@ public final class AlgorithmWInference
       }
 
       protected void instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+        // TODO(jan): this contains logic bugs and there is no way to specify at what
+        // point to call the super method! Additionally, no solution changes can be
+        // forwarded
         super.instantiateInner(engine, env, solution);
         if (this.instFn.isPresent()) {
           this.instFn.get().instantiate(engine, env, solution, this.data);

@@ -2,13 +2,13 @@ package dgir.core.ir.types;
 
 import dgir.core.ir.Value;
 
-public sealed abstract class Symbol<E extends Expression<T>, T extends Type> {
+public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type> {
 
-  public static <E extends Expression<T>, T extends Type> Symbol<E, T> of(String name) {
+  public static <E extends Expression<E, T>, T extends Type> Symbol<E, T> of(String name) {
     return new Symbol.StringSymbol<E, T>(name);
   }
 
-  public static <E extends Expression<T>, T extends Type> Symbol<E, T> of(Value val) {
+  public static <E extends Expression<E, T>, T extends Type> Symbol<E, T> of(Value val) {
     return new Symbol.ValueSymbol<E, T>(val);
   }
 
@@ -40,7 +40,7 @@ public sealed abstract class Symbol<E extends Expression<T>, T extends Type> {
   @Override
   public abstract int hashCode();
 
-  public static final class ValueSymbol<E extends Expression<T>, T extends Type> extends Symbol<E, T> {
+  public static final class ValueSymbol<E extends Expression<E, T>, T extends Type> extends Symbol<E, T> {
     private final Value value;
 
     public ValueSymbol(Value value) {
@@ -62,7 +62,7 @@ public sealed abstract class Symbol<E extends Expression<T>, T extends Type> {
     }
   }
 
-  public static final class StringSymbol<E extends Expression<T>, T extends Type> extends Symbol<E, T> {
+  public static final class StringSymbol<E extends Expression<E, T>, T extends Type> extends Symbol<E, T> {
     private final String value;
 
     public StringSymbol(String value) {

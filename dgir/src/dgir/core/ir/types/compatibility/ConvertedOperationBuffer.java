@@ -10,7 +10,7 @@ import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 import dgir.core.ir.types.compatibility.ConverterRegistry.ConverterFunction;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
-public class ConvertedOperationBuffer<E extends Expression<T>, T extends Type> {
+public class ConvertedOperationBuffer<E extends Expression<E, T>, T extends Type> {
   private HashMap<Operation, E> converted;
 
   public ConvertedOperationBuffer() {
@@ -33,7 +33,7 @@ public class ConvertedOperationBuffer<E extends Expression<T>, T extends Type> {
       @SuppressWarnings("unchecked")
       ConverterFunction<ExprOrOperator<E, T>, E, T> converter = (ConverterFunction<ExprOrOperator<E, T>, E, T>) registry
           .getConverter(op.asOp().getClass());
-      Expression<T> convertedExpr = converter.convertToExpression(op, engine);
+      Expression<E, T> convertedExpr = converter.convertToExpression(op, engine);
 
       if (!(clazz.isInstance(convertedExpr))) {
         throw new RuntimeException("Expression is not of type SystemFInference.Expr");
