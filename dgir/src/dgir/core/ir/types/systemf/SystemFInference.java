@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -366,6 +367,10 @@ public final class SystemFInference
     @Override
     public void setInferredType(SystemFType inferredType) {
       this.inferredType = Optional.ofNullable(inferredType);
+    }
+
+    public void setInferredType(Optional<SystemFType> inferredType) {
+      this.inferredType = Optional.ofNullable(inferredType.orElse(null));
     }
 
     @Override
@@ -1051,7 +1056,12 @@ public final class SystemFInference
     }
 
     public Optional<Entry> find(Predicate<? super Entry> filterFunc) {
-      return this.entries.stream().filter(filterFunc).findFirst();
+      var filtered = this.entries.stream().filter(filterFunc).toList();
+      if (filtered.isEmpty()) {
+        return Optional.empty();
+      } else {
+        return Optional.ofNullable(filtered.getLast());
+      }
     }
 
     public Context copy() {
@@ -1068,9 +1078,14 @@ public final class SystemFInference
      *         half (everything after the found entry, exlucing the entry)
      */
     public Break3Result break3(Predicate<? super Entry> pred) {
-      var position = IntStream.range(0, this.entries.size())
+      var positions = IntStream.range(0, this.entries.size())
           .filter(i -> pred.test(this.entries.get(i)))
-          .findFirst();
+          .toArray();
+
+      OptionalInt position = OptionalInt.empty();
+      if (positions.length > 0) {
+        position = OptionalInt.of(positions[positions.length - 1]);
+      }
 
       if (position.isPresent()) {
         var firstPart = this.entries.subList(0, position.getAsInt());
@@ -1123,6 +1138,8 @@ public final class SystemFInference
         return new SystemFType.ForAll(
             forAll.boundVar,
             this.applyOnce(forAll.body));
+      } else if (type instanceof SystemFType.Lit lit) {
+        return new SystemFType.Lit(lit.ident, lit.parameters.stream().map(param -> this.applyOnce(param)).toList());
       }
       return type;
     }
@@ -1256,7 +1273,11 @@ public final class SystemFInference
     public Pair<Type, ExprOrOperator<Expr, SystemFType>> solve(ExprOrOperator<Expr, SystemFType> expr) {
       if (expr.isExpr()) {
         var res = this.infer(new Context(), expr);
-        return Pair.of((Type) res.ctx.apply(res.type), expr);
+        var solutionCtx = res.ctx.copy();
+
+        SystemFType finalType = solutionCtx.apply(res.type);
+
+        return Pair.of(finalType, expr);
       } else {
         throw new TypingException.UnsupportedExpression(
             TypingException.UnsupportedExpression.AlgorithmType.SystemF,
