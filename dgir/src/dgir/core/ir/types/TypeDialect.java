@@ -3,8 +3,6 @@ package dgir.core.ir.types;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
-import dgir.core.ir.types.compatibility.InferOrTransformResult;
-import dgir.core.ir.types.compatibility.InferResultMarker;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
 import java.util.Arrays;
@@ -15,9 +13,9 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-public abstract class TypeDialect<IR extends InferOrTransformResult<? extends InferResultMarker<T>, E, T>, C extends ExprOrOperator<E, T>, E extends Expression<T>, T extends Type> {
+public abstract class TypeDialect<C extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type> {
 
-  public abstract static class TypeInferenceSolver<EO extends ExprOrOperator<E, T>, E extends Expression<T>, T extends Type> {
+  public abstract static class TypeInferenceSolver<EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type> {
     protected TypeDialectConverterRegistry registry;
 
     /**
@@ -91,11 +89,11 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
   /**
    * @return a list of allowed expressions to be used with the specific algorithm
    */
-  public abstract List<Class<? extends Expression<T>>> getAllowedExpressions();
+  public abstract List<Class<? extends Expression<E, T>>> getAllowedExpressions();
 
   @SuppressWarnings("unchecked")
-  public static <T extends Type> List<Class<? extends Expression<T>>> extractExpressionsFromAbstract(
-      Class<? extends Expression<T>> abstractInterface) {
+  public static <E extends Expression<E, T>, T extends Type> List<Class<? extends Expression<E, T>>> extractExpressionsFromAbstract(
+      Class<? extends Expression<E, T>> abstractInterface) {
     if (!Arrays.asList(abstractInterface.getInterfaces()).contains(
         Expression.class)) {
       throw new IllegalStateException(
@@ -114,7 +112,7 @@ public abstract class TypeDialect<IR extends InferOrTransformResult<? extends In
     return possibleTypes
         .stream()
         .filter(classInheritsExpression)
-        .map(clazz -> (Class<? extends Expression<T>>) clazz)
+        .map(clazz -> (Class<? extends Expression<E, T>>) clazz)
         .collect(Collectors.toList());
   }
 
