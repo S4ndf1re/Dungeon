@@ -1,7 +1,9 @@
 package dgir.core.serialization;
 
 import dgir.core.debug.Location;
+import dgir.core.ir.NamedAttribute;
 import dgir.core.ir.Operation;
+import java.util.Comparator;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
@@ -30,18 +32,24 @@ public class OperationSerializer extends StdSerializer<Operation> {
     gen.writeStringProperty("ident", value.getDetails().ident());
     if (!value.getLocation().equals(Location.UNKNOWN))
       gen.writePOJOProperty("loc", value.getLocation());
-    if (!value.getOperands().isEmpty()) gen.writePOJOProperty("operands", value.getOperands());
+    if (!value.getOperands().isEmpty())
+      gen.writePOJOProperty("operands", value.getOperands());
     if (!value.getBlockOperands().isEmpty())
       gen.writePOJOProperty("successors", value.getBlockOperands());
     if (!value.getAttributesMap().isEmpty()) {
-      // Convert the map to a list of attributes.
-      gen.writePOJOProperty("attributes", value.getAttributesMap().values());
+      gen.writePOJOProperty("attributes", value.getAttributesMap().values().stream()
+          .sorted(Comparator.comparing(NamedAttribute::getName))
+          .toList());
     }
     if (!value.getDynamicAttributesMap().isEmpty()) {
-      gen.writePOJOProperty("dynamicAttributes", value.getDynamicAttributesMap().values());
+      gen.writePOJOProperty("dynamicAttributes", value.getDynamicAttributesMap().values().stream()
+          .sorted(Comparator.comparing(NamedAttribute::getName))
+          .toList());
     }
-    if (value.getOutput().isPresent()) gen.writePOJOProperty("output", value.getOutput());
-    if (!value.getRegions().isEmpty()) gen.writePOJOProperty("regions", value.getRegions());
+    if (value.getOutput().isPresent())
+      gen.writePOJOProperty("output", value.getOutput());
+    if (!value.getRegions().isEmpty())
+      gen.writePOJOProperty("regions", value.getRegions());
     gen.writeEndObject();
   }
 }

@@ -271,4 +271,84 @@ public class CoreTests {
 
     assertTrue(DgirTestUtils.testValidityAndSerialization(programOp));
   }
+
+  @Test
+  public void deepCopy() {
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    ProgramOp programOp = entry.getLeft();
+    FuncOp funcOp = entry.getRight();
+
+    Value c = new Value(IntegerT.INT64());
+
+    Block entryBlock = funcOp.getEntryBlock();
+    Block leftBlock = funcOp.addBlock(new Block());
+    Block rightBlock = funcOp.addBlock(new Block());
+    Block endBlock = funcOp.addBlock(new Block());
+
+    var a = entryBlock.addOperation(new ConstantOp(LOC, 47L));
+    var b = entryBlock.addOperation(new ConstantOp(LOC, 42L));
+    var cond = entryBlock.addOperation(new ConstantOp(LOC, true));
+    entryBlock.addOperation(new BranchCondOp(LOC, cond.getResult(), leftBlock, rightBlock));
+
+    leftBlock.addOperation(new ConstantOp(LOC, 1L)).setOutputValue(b.getResult());
+    leftBlock.addOperation(new ConstantOp(LOC, 5L)).setOutputValue(c);
+    leftBlock.addOperation(new BranchOp(LOC, endBlock));
+
+    rightBlock.addOperation(new ConstantOp(LOC, 2L)).setOutputValue(a.getResult());
+    rightBlock.addOperation(new ConstantOp(LOC, 10L)).setOutputValue(c);
+    rightBlock.addOperation(new BranchOp(LOC, endBlock));
+
+    endBlock.addOperation(
+        new ArithOps.BinaryOp(LOC, a.getResult(), c, ArithAttrs.BinModeAttr.BinMode.SUB));
+    endBlock.addOperation(new ReturnOp(LOC));
+
+    assertTrue(DgirTestUtils.testValidityAndSerialization(programOp));
+
+    Optional<ProgramOp> newProgram = new Operation(programOp.getOperation()).as(ProgramOp.class);
+    assert newProgram.isPresent();
+    var newProgramOp = newProgram.get();
+    newProgramOp.verify(true);
+    assertTrue(newProgramOp.verify(true));
+    assertTrue(DgirTestUtils.testValidityAndSerialization(newProgramOp));
+
+  }
+
+  @Test
+  public void dynamicAttributeSerializationRoundTripForDeepCopies() {
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    FuncOp funcOp = entry.getRight();
+
+    var constOp = funcOp.addOperation(new ConstantOp(LOC, 42), 0);
+    Operation operation = constOp.getOperation();
+    operation.addDynamicAttribute("tag", new BuiltinAttrs.SymbolRefAttribute("runtime"));
+    operation.addDynamicAttribute(
+        "priority", new BuiltinAttrs.IntegerAttribute(7, IntegerT.INT32()));
+
+    Operation newOp = new Operation(operation);
+
+    String json = mapper.writeValueAsString(newOp);
+    Operation roundTripped = mapper.readValue(json, Operation.class);
+
+    assertEquals("", DgirTestUtils.compareSerializedOperations(mapper, newOp, roundTripped));
+    assertTrue(
+        roundTripped
+            .getDynamicAttributeAs("tag", BuiltinAttrs.SymbolRefAttribute.class)
+            .isPresent());
+    assertEquals(
+        "runtime",
+        roundTripped
+            .getDynamicAttributeAsOrThrow("tag", BuiltinAttrs.SymbolRefAttribute.class)
+            .getValue());
+    assertEquals(
+        7,
+        roundTripped
+            .getDynamicAttributeAsOrThrow("priority", BuiltinAttrs.IntegerAttribute.class)
+            .getValue()
+            .intValue());
+    assertTrue(roundTripped.toString().contains("<dynamic ["));
+    assertTrue(IrToText.toText(roundTripped).contains("<dynamic["));
+
+    assertTrue(roundTripped.removeDynamicAttribute("tag").isPresent());
+    assertTrue(roundTripped.getDynamicAttribute("tag").isEmpty());
+  }
 }

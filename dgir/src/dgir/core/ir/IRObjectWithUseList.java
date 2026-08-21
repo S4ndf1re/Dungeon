@@ -2,22 +2,26 @@ package dgir.core.ir;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Base class for any IR object that maintains a use-list of {@link Operand}s referencing it.
+ * Base class for any IR object that maintains a use-list of {@link Operand}s
+ * referencing it.
  *
- * <p>Concrete examples are {@link Value} (referenced by {@link ValueOperand}s) and {@link Block}
+ * <p>
+ * Concrete examples are {@link Value} (referenced by {@link ValueOperand}s) and
+ * {@link Block}
  * (referenced by {@link BlockOperand}s).
  *
- * @param <DerivedValueT> The concrete subclass extending this class (e.g. {@code Value}).
- * @param <OperandT> The operand type that references {@code DerivedValueT}.
+ * @param <DerivedValueT> The concrete subclass extending this class (e.g.
+ *                        {@code Value}).
+ * @param <OperandT>      The operand type that references
+ *                        {@code DerivedValueT}.
  */
-public class IRObjectWithUseList<
-    DerivedValueT extends IRObjectWithUseList<DerivedValueT, OperandT>,
-    OperandT extends Operand<OperandT, DerivedValueT>> {
+public class IRObjectWithUseList<DerivedValueT extends IRObjectWithUseList<DerivedValueT, OperandT>, OperandT extends Operand<OperandT, DerivedValueT>> {
 
   // =========================================================================
   // Members
@@ -30,7 +34,8 @@ public class IRObjectWithUseList<
   // Constructors
   // =========================================================================
 
-  public IRObjectWithUseList() {}
+  public IRObjectWithUseList() {
+  }
 
   // =========================================================================
   // Use-list
@@ -60,7 +65,8 @@ public class IRObjectWithUseList<
   }
 
   /**
-   * Redirect every operand currently referencing this object to reference {@code newValue} instead,
+   * Redirect every operand currently referencing this object to reference
+   * {@code newValue} instead,
    * and update the use-lists of both objects accordingly.
    *
    * @param newValue The replacement value. Must not be {@code this}.
@@ -69,8 +75,29 @@ public class IRObjectWithUseList<
     assert newValue != this : "Cannot replace all uses with self.";
     // Pre-add all uses to the new value's use-set so they are visible immediately
     newValue.getUses().addAll(uses);
-    // Drain our own use-set via setValue, which handles the use-list bookkeeping per operand
+    // Drain our own use-set via setValue, which handles the use-list bookkeeping
+    // per operand
     while (!uses.isEmpty())
       uses.stream().findFirst().ifPresent(operandT -> operandT.setValue(newValue));
+  }
+
+  public void replaceAllUsesIn(@NotNull DerivedValueT newValue, Operation op) {
+    var copiedUses = List.copyOf(uses);
+    // Whereever possible, i.e. a operand is actually part of the the operation in
+    // question
+    // Replace with the new value
+    for (var use : copiedUses) {
+      use.setValueIn(op, newValue);
+    }
+  }
+
+  public void replaceAllUsesIn(@NotNull DerivedValueT newValue, Region region) {
+    var copiedUses = List.copyOf(uses);
+    // Whereever possible, i.e. a operand is actually part of the the operation in
+    // question
+    // Replace with the new value
+    for (var use : copiedUses) {
+      use.setValueIn(newValue, region);
+    }
   }
 }
