@@ -10,6 +10,7 @@ import dgir.dialect.builtin.BuiltinTypes;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -89,6 +90,13 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
 
   public Value(MaybeType type) {
     this.type = type;
+  }
+
+  public Value(MaybeType type, ValueDebugInfo info) {
+    this.type = type;
+    if(info != null) {
+      this.debugInfo = info;
+    }
   }
 
   @JsonCreator
@@ -188,13 +196,47 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
 
   @Override
   public void replaceAllUsesWith(@NotNull Value newValue) {
-    assert type.isKnown() : "Cannot replace with a value of an empty type";
-    assert newValue.getType().equals(type.getAsKnownOrThrow()) : "Cannot replace with a value of different type.";
+    if (this.type.isKnown() && newValue.type.isKnown()) {
+      assert newValue.getType().equals(type.getAsKnownOrThrow()) : "Cannot replace with a value of different type.";
+    } else {
+      assert type.isUnknown();
+      assert newValue.type.isUnknown();
+    }
     super.replaceAllUsesWith(newValue);
     // Make sure that all operation results defining this value define the new value
     // instead.
-    for (OperationResult result : definitions) {
+    for (OperationResult result : List.copyOf(definitions)) {
       result.setValue(newValue);
+    }
+  }
+
+  public void replaceAllUsesIn(@NotNull Value newValue, Operation op) {
+    if (this.type.isKnown() && newValue.type.isKnown()) {
+      assert newValue.getType().equals(type.getAsKnownOrThrow()) : "Cannot replace with a value of different type.";
+    } else {
+      assert type.isUnknown();
+      assert newValue.type.isUnknown();
+    }
+
+    super.replaceAllUsesIn(newValue, op);
+
+    for (OperationResult result : List.copyOf(definitions)) {
+      result.setValueIn(newValue, op);
+    }
+  }
+
+  public void replaceAllUsesIn(@NotNull Value newValue, Region region) {
+    if (this.type.isKnown() && newValue.type.isKnown()) {
+      assert newValue.getType().equals(type.getAsKnownOrThrow()) : "Cannot replace with a value of different type.";
+    } else {
+      assert type.isUnknown();
+      assert newValue.type.isUnknown();
+    }
+
+    super.replaceAllUsesIn(newValue, region);
+
+    for (OperationResult result : List.copyOf(definitions)) {
+      result.setValueIn(newValue, region);
     }
   }
 

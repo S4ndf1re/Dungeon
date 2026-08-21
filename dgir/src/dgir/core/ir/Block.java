@@ -17,15 +17,22 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.*;
 
 /**
- * A block containing an ordered list of {@link Operation}s. Blocks are always attached to a {@link
- * Region} and represent a sequence of operations with a single entry point and a terminating exit
+ * A block containing an ordered list of {@link Operation}s. Blocks are always
+ * attached to a {@link
+ * Region} and represent a sequence of operations with a single entry point and
+ * a terminating exit
  * operation.
  *
- * <p>The last operation in a block must be a terminator (see {@link ITerminator}), which defines
+ * <p>
+ * The last operation in a block must be a terminator (see {@link ITerminator}),
+ * which defines
  * control flow to successor blocks via branches, jumps, or returns.
  *
- * <p>Blocks maintain the parent-child relationship with their contained operations and with their
- * enclosing {@link Region}. They are fundamental to representing unstructured control flow (CFG
+ * <p>
+ * Blocks maintain the parent-child relationship with their contained operations
+ * and with their
+ * enclosing {@link Region}. They are fundamental to representing unstructured
+ * control flow (CFG
  * nodes) in the DGIR.
  *
  * <pre>{@code
@@ -48,20 +55,42 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   // Members
   // =========================================================================
 
-  /** Operations in this block, executed in order. The last must be a terminator. */
+  /**
+   * Operations in this block, executed in order. The last must be a terminator.
+   */
   private final @NotNull List<Operation> operations = new ArrayList<>();
 
-  @JsonIgnore private @Nullable Region parent;
+  @JsonIgnore
+  private @Nullable Region parent;
+
+  private Optional<Block> copyFrom;
 
   // =========================================================================
   // Constructors
   // =========================================================================
 
-  public Block() {}
+  public Block() {
+    this.copyFrom = Optional.empty();
+  }
 
   @JsonCreator
   public Block(@JsonProperty("operations") @Nullable List<Operation> operations) {
-    if (operations != null) for (Operation operation : operations) addOperation(operation);
+    if (operations != null)
+      for (Operation operation : operations)
+        addOperation(operation);
+    this.copyFrom = Optional.empty();
+  }
+
+  /**
+   * Deep copy of the block, by copying all operations. Keep the parent
+   */
+  public Block(Block other) {
+    if (other.operations != null) {
+      for (Operation operation : other.operations) {
+        addOperation(new Operation(operation));
+      }
+    }
+    this.copyFrom = Optional.ofNullable(other);
   }
 
   // =========================================================================
@@ -71,7 +100,9 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   /**
    * Returns the operations in this block in execution order.
    *
-   * <p>Modifying the returned list may cause undefined behavior. Use {@link #addOperation} and
+   * <p>
+   * Modifying the returned list may cause undefined behavior. Use
+   * {@link #addOperation} and
    * {@link #removeOperation} to modify the block's operations.
    *
    * @return the operations list.
@@ -95,7 +126,7 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   /**
    * Append a typed op to this block, using its backing operation.
    *
-   * @param op the op to add; must not already have a parent.
+   * @param op    the op to add; must not already have a parent.
    * @param <OpT> the op type.
    * @return {@code op}, for convenient chaining.
    */
@@ -119,9 +150,10 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Insert a typed op into this block at the given index, using its backing operation.
+   * Insert a typed op into this block at the given index, using its backing
+   * operation.
    *
-   * @param op the op to insert; must not already have a parent.
+   * @param op    the op to insert; must not already have a parent.
    * @param index the index to insert at.
    * @param <OpT> the op type.
    * @return {@code op}, for convenient chaining.
@@ -135,7 +167,7 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
    * Insert an operation into this block at the given index.
    *
    * @param operation the operation to insert; must not already have a parent.
-   * @param index the index to insert at.
+   * @param index     the index to insert at.
    * @return {@code operation}, for convenient chaining.
    */
   public @NotNull Operation addOperation(@NotNull Operation operation, int index) {
@@ -159,13 +191,15 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Returns {@code true} if this block is non-empty and its last operation is a terminator.
+   * Returns {@code true} if this block is non-empty and its last operation is a
+   * terminator.
    *
    * @return {@code true} if a terminator is present.
    */
   @Contract(pure = true)
   public boolean hasTerminator() {
-    if (operations.isEmpty()) return false;
+    if (operations.isEmpty())
+      return false;
     return operations.getLast().hasTrait(ITerminator.class);
   }
 
@@ -187,9 +221,11 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   // =========================================================================
 
   /**
-   * Get the successor blocks of this block as defined by the terminator operation.
+   * Get the successor blocks of this block as defined by the terminator
+   * operation.
    *
-   * @return The successors of this block, or an empty list if there is no terminator.
+   * @return The successors of this block, or an empty list if there is no
+   *         terminator.
    */
   @JsonIgnore
   @Contract(pure = true)
@@ -198,7 +234,8 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Get the predecessor blocks of this block via its use-list. A block B is a predecessor of this
+   * Get the predecessor blocks of this block via its use-list. A block B is a
+   * predecessor of this
    * block if some operation in B branches to this block.
    *
    * @return An unmodifiable set of predecessor blocks.
@@ -232,8 +269,9 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
    * Set the parent region of this block. May only be called from {@link Region}.
    *
    * @param parent the new parent region, or {@code null} to detach.
-   * @throws AssertionError if called from outside {@link Region}, or if this block already has a
-   *     non-null parent and the new value is also non-null.
+   * @throws AssertionError if called from outside {@link Region}, or if this
+   *                        block already has a
+   *                        non-null parent and the new value is also non-null.
    */
   public void setParent(@Nullable Region parent) {
     assert DgirCoreUtils.getCallingClass() == Region.class
@@ -260,7 +298,8 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   // =========================================================================
 
   /**
-   * Check whether operation {@code a} appears before operation {@code b} in this block.
+   * Check whether operation {@code a} appears before operation {@code b} in this
+   * block.
    *
    * @param a The first operation.
    * @param b The second operation.
@@ -280,14 +319,18 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Get the set of values defined by operations in this block. This includes all values returned by
-   * the operations in this block, including those of nested (and IsolatedFromAbove) regions.
+   * Get the set of values defined by operations in this block. This includes all
+   * values returned by
+   * the operations in this block, including those of nested (and
+   * IsolatedFromAbove) regions.
    *
-   * @param stopAtIsolation If true, do not traverse into nested regions that are isolated from
-   *     above.
+   * @param stopAtIsolation If true, do not traverse into nested regions that are
+   *                        isolated from
+   *                        above.
    * @return An unmodifiable set of values defined in this block.
-   * @implNote This is a potentially expensive operation that traverses all operations in the block
-   *     and their nested regions. Use with caution.
+   * @implNote This is a potentially expensive operation that traverses all
+   *           operations in the block
+   *           and their nested regions. Use with caution.
    */
   @Contract(pure = true)
   public @NotNull @Unmodifiable Set<Value> getDefinedValues(boolean stopAtIsolation) {
@@ -304,15 +347,19 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Get the set of values used by operations in this block. This includes all values used as
-   * operands by the operations in this block, including those of nested (and IsolatedFromAbove)
+   * Get the set of values used by operations in this block. This includes all
+   * values used as
+   * operands by the operations in this block, including those of nested (and
+   * IsolatedFromAbove)
    * regions.
    *
-   * @param stopAtIsolation If true, do not traverse into nested regions that are isolated from
-   *     above.
+   * @param stopAtIsolation If true, do not traverse into nested regions that are
+   *                        isolated from
+   *                        above.
    * @return An unmodifiable set of values used in this block.
-   * @implNote This is a potentially expensive operation that traverses all operations in the block
-   *     and their nested regions. Use with caution.
+   * @implNote This is a potentially expensive operation that traverses all
+   *           operations in the block
+   *           and their nested regions. Use with caution.
    */
   @Contract(pure = true)
   public @NotNull @Unmodifiable Set<@NotNull Value> getUsedValues(boolean stopAtIsolation) {
@@ -329,15 +376,20 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Check whether any of the given values are used by operations in this block or its nested
+   * Check whether any of the given values are used by operations in this block or
+   * its nested
    * regions.
    *
-   * @param values The values to check for usage.
-   * @param stopAtIsolation If true, do not traverse into nested regions that are isolated from
-   *     above. This is useful for checking whether values are used in the "current" block without
-   *     considering nested scopes that cannot access those values.
-   * @return True if any of the given values are used in this block or its nested regions, false
-   *     otherwise.
+   * @param values          The values to check for usage.
+   * @param stopAtIsolation If true, do not traverse into nested regions that are
+   *                        isolated from
+   *                        above. This is useful for checking whether values are
+   *                        used in the "current" block without
+   *                        considering nested scopes that cannot access those
+   *                        values.
+   * @return True if any of the given values are used in this block or its nested
+   *         regions, false
+   *         otherwise.
    */
   @Contract(pure = true)
   public boolean areValuesUsed(@NotNull Set<@NotNull Value> values, boolean stopAtIsolation) {
@@ -357,15 +409,20 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Check whether any of the given values are defined by operations in this block or its nested
+   * Check whether any of the given values are defined by operations in this block
+   * or its nested
    * regions.
    *
-   * @param values The values to check for definition.
-   * @param stopAtIsolation If true, do not traverse into nested regions that are isolated from
-   *     above. This is useful for checking whether values are defined in the "current" block
-   *     without considering nested scopes that cannot access those values.
-   * @return True if any of the given values are defined in this block or its nested regions, false
-   *     otherwise.
+   * @param values          The values to check for definition.
+   * @param stopAtIsolation If true, do not traverse into nested regions that are
+   *                        isolated from
+   *                        above. This is useful for checking whether values are
+   *                        defined in the "current" block
+   *                        without considering nested scopes that cannot access
+   *                        those values.
+   * @return True if any of the given values are defined in this block or its
+   *         nested regions, false
+   *         otherwise.
    */
   @Contract(pure = true)
   public boolean areValuesDefined(@NotNull Set<@NotNull Value> values, boolean stopAtIsolation) {
@@ -385,15 +442,20 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Check whether any of the given values are used or defined by operations in this block or its
+   * Check whether any of the given values are used or defined by operations in
+   * this block or its
    * nested regions.
    *
-   * @param values The values to check for usage or definition.
-   * @param stopAtIsolation If true, do not traverse into nested regions that are isolated from
-   *     above. This is useful for checking whether values are used or defined in the "current"
-   *     block without considering nested scopes that cannot access those values.
-   * @return True if any of the given values are used or defined in this block or its nested
-   *     regions, false otherwise.
+   * @param values          The values to check for usage or definition.
+   * @param stopAtIsolation If true, do not traverse into nested regions that are
+   *                        isolated from
+   *                        above. This is useful for checking whether values are
+   *                        used or defined in the "current"
+   *                        block without considering nested scopes that cannot
+   *                        access those values.
+   * @return True if any of the given values are used or defined in this block or
+   *         its nested
+   *         regions, false otherwise.
    */
   @Contract(pure = true)
   public boolean areValuesUsedOrDefined(
@@ -434,12 +496,15 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
-   * Walk the operations in this block and its nested regions, applying the given function to each
-   * block. The function can return CONTINUE to keep walking or STOP to terminate early. If
-   * stopAtIsolation is true, nested regions that are isolated from above will not be traversed.
+   * Walk the operations in this block and its nested regions, applying the given
+   * function to each
+   * block. The function can return CONTINUE to keep walking or STOP to terminate
+   * early. If
+   * stopAtIsolation is true, nested regions that are isolated from above will not
+   * be traversed.
    *
    * @param stopAtIsolation Whether to stop traversal at isolated regions.
-   * @param fn The function to apply to each block during the walk.
+   * @param fn              The function to apply to each block during the walk.
    */
   private void walkBlocks(boolean stopAtIsolation, @NotNull Function<Block, WalkResult> fn) {
     List<Block> workList = new ArrayList<>();
@@ -447,14 +512,16 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
     workList.add(this);
     while (!workList.isEmpty()) {
       Block block = workList.removeFirst();
-      if (visited.contains(block)) continue;
+      if (visited.contains(block))
+        continue;
       visited.add(block);
       WalkResult result = fn.apply(block);
       if (result == WalkResult.STOP) {
         return;
       } else if (result == WalkResult.CONTINUE) {
         for (Operation op : block.operations) {
-          if (stopAtIsolation && op.hasTrait(IIsolatedFromAbove.class)) continue;
+          if (stopAtIsolation && op.hasTrait(IIsolatedFromAbove.class))
+            continue;
           for (Region region : op.getRegions()) {
             workList.addAll(region.getBlocks());
           }

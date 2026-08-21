@@ -1,19 +1,24 @@
 package dgir.core.ir;
 
 import dgir.core.serialization.OperandSerializer;
+
 import java.util.Objects;
 import java.util.Optional;
+
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import tools.jackson.databind.annotation.JsonSerialize;
 
 /**
- * A reference to a value used as an operand to an {@link Operation}. Manages its own entry in the
+ * A reference to a value used as an operand to an {@link Operation}. Manages
+ * its own entry in the
  * referenced value's use-list.
  *
- * @param <ValueT> The type of value being referenced (e.g. {@link Value} or {@link Block}).
- * @param <DerivedT> The concrete operand subclass (for self-referential use-list typing).
+ * @param <ValueT>   The type of value being referenced (e.g. {@link Value} or
+ *                   {@link Block}).
+ * @param <DerivedT> The concrete operand subclass (for self-referential
+ *                   use-list typing).
  */
 @SuppressWarnings("unchecked")
 @JsonSerialize(using = OperandSerializer.class)
@@ -120,6 +125,21 @@ public abstract class Operand<
     insertIntoCurrentUseList();
   }
 
+  public void setValueIn(Operation op, ValueT newValue) {
+    if (this.owner.equals(op) || this.owner.getAllParentOperations().contains(op)) {
+      this.setValue(newValue);
+    }
+  }
+
+  public void setValueIn(ValueT newValue, Region region) {
+    var parentRegion = this.owner.getParentRegion();
+    var allParentRegions = this.owner.getAllParentRegions();
+    if (this.owner.getParentRegion().map(parent -> parent.equals(region)).orElse(false)
+        || this.owner.getAllParentRegions().contains(region)) {
+      this.setValue(newValue);
+    }
+  }
+
   // =========================================================================
   // Use-list Management
   // =========================================================================
@@ -133,11 +153,13 @@ public abstract class Operand<
 
   /** Remove this operand from the use-list of the currently referenced value. */
   private void removeFromCurrentUseList() {
-    if (value != null) value.getUses().remove((DerivedT) this);
+    if (value != null)
+      value.getUses().remove((DerivedT) this);
   }
 
   /**
-   * Drop this operand from the use-list and clear the reference. Should only be called by
+   * Drop this operand from the use-list and clear the reference. Should only be
+   * called by
    * subclasses during teardown.
    */
   protected void drop() {
