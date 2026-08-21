@@ -5,7 +5,8 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The single result value produced by an {@link Operation}. Wraps a {@link Value} and enforces
+ * The single result value produced by an {@link Operation}. Wraps a
+ * {@link Value} and enforces
  * type-consistency when the value is replaced.
  */
 public class OperationResult {
@@ -14,9 +15,12 @@ public class OperationResult {
   // Members
   // =========================================================================
 
-  @JsonIdentityReference @JsonValue private @NotNull Value value;
+  @JsonIdentityReference
+  @JsonValue
+  private @NotNull Value value;
 
-  @JsonIgnore private final @NotNull Operation parent;
+  @JsonIgnore
+  private final @NotNull Operation parent;
 
   // =========================================================================
   // Constructors
@@ -26,7 +30,7 @@ public class OperationResult {
    * Create a result wrapping an existing {@link Value}.
    *
    * @param parent the operation that produces this result.
-   * @param value the pre-existing value to wrap.
+   * @param value  the pre-existing value to wrap.
    */
   public OperationResult(@NotNull Operation parent, @NotNull Value value) {
     this.parent = parent;
@@ -39,7 +43,7 @@ public class OperationResult {
    * Create a result by allocating a fresh {@link Value} of the given type.
    *
    * @param parent the operation that produces this result.
-   * @param type the type of the new value.
+   * @param type   the type of the new value.
    */
   public OperationResult(@NotNull Operation parent, @NotNull MaybeType type) {
     this(parent, new Value(type));
@@ -62,7 +66,8 @@ public class OperationResult {
   /**
    * Replace the result value, enforcing that the type is unchanged.
    *
-   * @param value the new result value; its type must match the current result type.
+   * @param value the new result value; its type must match the current result
+   *              type.
    * @throws AssertionError if the types do not match.
    */
   public void setValue(@NotNull Value value) {
@@ -78,6 +83,19 @@ public class OperationResult {
     this.value = value;
     // Add this result to the definitions of the new value
     this.value.addDefiningOp(this);
+  }
+
+  public void setValueIn(@NotNull Value value, Operation op) {
+    if (this.parent.equals(op) && this.parent.getAllParentOperations().contains(op)) {
+      this.setValue(value);
+    }
+  }
+
+  public void setValueIn(@NotNull Value value, Region region) {
+    if (this.parent.getParentRegion().map(parent -> parent.equals(region)).orElse(false)
+        && this.parent.getAllParentRegions().contains(region)) {
+      this.setValue(value);
+    }
   }
 
   /**

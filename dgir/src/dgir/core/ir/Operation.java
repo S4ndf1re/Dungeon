@@ -40,7 +40,7 @@ import tools.jackson.databind.annotation.JsonSerialize;
  */
 @JsonSerialize(using = OperationSerializer.class)
 @JsonDeserialize(using = OperationDeserializer.class)
-public final class Operation implements Serializable {
+public final class Operation implements Serializable, Cloneable {
 
   // =========================================================================
   // Static Factory
@@ -168,7 +168,7 @@ public final class Operation implements Serializable {
   private final @Unmodifiable @NotNull List<@NotNull BlockOperand> blockOperands;
 
   /** The output of this operation. */
-  private final @Nullable OperationResult output;
+  private final Optional<OperationResult> output;
 
   /** The attributes of this operation. */
   private final @Unmodifiable @NotNull Map<@NotNull String, @NotNull NamedAttribute> attributes;
@@ -184,6 +184,9 @@ public final class Operation implements Serializable {
 
   /** The source location of this operation. */
   private final @NotNull Location location;
+
+  /** The original operation this operation is a copy from */
+  private final @NotNull Optional<Operation> copyFrom;
 
   // =========================================================================
   // Constructors
@@ -212,7 +215,7 @@ public final class Operation implements Serializable {
 
     this.details = details;
 
-    this.output = resultType != null ? new OperationResult(this, resultType) : null;
+    this.output = resultType != null ? Optional.of(new OperationResult(this, resultType)) : Optional.empty();
 
     this.dynamicAttributes = new HashMap<>();
 
@@ -235,6 +238,39 @@ public final class Operation implements Serializable {
       regionsList.add(new Region(this, regionValues, List.of(new Block())));
     }
     this.regions = Collections.unmodifiableList(regionsList);
+
+    this.copyFrom = Optional.empty();
+  }
+
+  public Operation(@NotNull Operation other) {
+    this.copyFrom = Optional.ofNullable(other);
+    this.location = other.location;
+    this.details = other.details;
+
+    // Copy the original value here. This will also add it to the use list! The
+    // region is then responsible for replacing this with an actual new value!
+    this.output = other.output.map(output -> new OperationResult(this, output.getValue()));
+
+    this.dynamicAttributes = new HashMap<>(other.dynamicAttributes);
+
+    // NOTE(jan): make sure to NOT copy the block and value operands values. It is
+    // important to keep them in place.
+    // After the parent region has finished copying all operations and blocks, the
+    // new output values and blocks are replaced within all child operations.
+    // Hence, by overwriting the blocks and value operands with copied values and
+    // blocks, the system looses track of the useage-lists and therefore will fail
+    // to correctly convert the operations
+    this.operands = other.operands.stream().map(operand -> new ValueOperand(this, operand.getValueOrThrow())).toList();
+    this.blockOperands = other.blockOperands.stream()
+        .map(operand -> new BlockOperand(this, operand.getValueOrThrow()))
+        .toList();
+
+    this.attributes = Map.copyOf(other.attributes);
+
+    // Since regions belong to the operation, all blocks also belong to the
+    // operation. Hence a full deep copy is ok
+    this.regions = other.regions.stream().map(region -> new Region(region, this)).toList();
+
   }
 
   // =========================================================================
@@ -446,7 +482,7 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull Optional<OperationResult> getOutput() {
-    return Optional.ofNullable(output);
+    return this.output;
   }
 
   /**
@@ -458,9 +494,9 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull OperationResult getOutputOrThrow() {
-    if (output == null)
+    if (output.isEmpty())
       throw new NoSuchElementException("Operation has no output: " + this);
-    return output;
+    return output.get();
   }
 
   /**
@@ -485,9 +521,9 @@ public final class Operation implements Serializable {
    */
   @Contract(pure = true)
   public @NotNull Value getOutputValueOrThrow() {
-    if (output == null)
+    if (output.isEmpty())
       throw new NoSuchElementException("Operation has no output: " + this);
-    return output.getValue();
+    return output.get().getValue();
   }
 
   /**
@@ -498,8 +534,8 @@ public final class Operation implements Serializable {
    * @throws AssertionError if this operation has no output.
    */
   public void setOutputValue(@NotNull Value value) {
-    assert this.output != null : "Trying to set output value of an operation that has no output.";
-    this.output.setValue(value);
+    assert this.output.isPresent() : "Trying to set output value of an operation that has no output.";
+    this.output.get().setValue(value);
   }
 
   // =========================================================================
@@ -842,6 +878,30 @@ public final class Operation implements Serializable {
     return getParentRegion().flatMap(Region::getParent);
   }
 
+  public List<Operation> getAllParentOperations() {
+    ArrayList<Operation> parents = new ArrayList<>();
+
+    var parent = this.getParentOperation();
+    while (parent.isPresent()) {
+      parents.add(parent.get());
+      parent = parent.get().getParentOperation();
+    }
+
+    return List.copyOf(parents);
+  }
+
+  public List<Region> getAllParentRegions() {
+    ArrayList<Region> parents = new ArrayList<>();
+
+    var parent = this.getParentRegion();
+    while (parent.isPresent()) {
+      parents.add(parent.get());
+      parent = parent.get().getParentRegion();
+    }
+
+    return List.copyOf(parents);
+  }
+
   /**
    * Returns the operation that owns the parent region of this operation, throwing
    * if absent.
@@ -1004,15 +1064,15 @@ public final class Operation implements Serializable {
   public @NotNull String toString() {
     StringBuilder sb = new StringBuilder();
 
-    if (output != null) {
+    if (output.isPresent()) {
       sb.append("%");
-      if (output.getValue().getDebugInfo().equals(ValueDebugInfo.UNKNOWN)) {
-        sb.append(output.getValue().getType());
+      if (output.get().getValue().getDebugInfo().equals(ValueDebugInfo.UNKNOWN)) {
+        sb.append(output.get().getValue().getType());
       } else {
-        sb.append(output.getValue().getDebugInfo().name());
+        sb.append(output.get().getValue().getDebugInfo().name());
       }
       sb.append(" :");
-      sb.append(output.getValue().getType());
+      sb.append(output.get().getValue().getType());
       sb.append(" = ");
     }
 
@@ -1026,8 +1086,8 @@ public final class Operation implements Serializable {
     sb.append(")");
 
     sb.append(" -> (");
-    if (output != null) {
-      sb.append(output.getValue());
+    if (output.isPresent()) {
+      sb.append(output.get().getValue());
     }
     sb.append(")");
 
@@ -1080,18 +1140,8 @@ public final class Operation implements Serializable {
     return sb.toString();
   }
 
-  public void replaceValue(Value original, Value replacement) {
-    for (ValueOperand operand : this.operands) {
-      if (operand.getValue().isPresent() && operand.getValue().get().equals(original)) {
-        operand.setValue(replacement);
-      }
-    }
-
-    for (BlockOperand block : this.blockOperands) {
-      var blockValue = block.getValue();
-      if (blockValue.isPresent()) {
-        blockValue.get().getOperations().forEach(op -> op.replaceValue(original, replacement));
-      }
-    }
+  public Optional<Operation> getCopyFrom() {
+    return this.copyFrom;
   }
+
 }
