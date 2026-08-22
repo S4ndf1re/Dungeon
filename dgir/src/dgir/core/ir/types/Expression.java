@@ -25,6 +25,6 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
    *
    * @return the list of all children {@link ExprOrOperator}
    */
-  public List<ExprOrOperator<E, T>> getChildren();
+  public List<E> getChildren();
 
 }

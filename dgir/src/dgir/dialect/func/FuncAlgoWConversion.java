@@ -11,8 +11,8 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr;
+import dgir.core.ir.types.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.algorithmw.Expr;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 
@@ -31,11 +31,11 @@ public final class FuncAlgoWConversion {
       TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     FuncOps.FuncOp funcOp = (FuncOps.FuncOp) op.asOp();
 
-     var i = 0;
-     ArrayList<Symbol<Expr, AlgorithmWType>> params = new ArrayList<>();
-     while (funcOp.getArgument(i).isPresent()) {
-       params.add(Symbol.<Expr, AlgorithmWType>of(funcOp.getArgument(i).get()));
-     }
+    var i = 0;
+    ArrayList<Symbol<Expr, AlgorithmWType>> params = new ArrayList<>();
+    while (funcOp.getArgument(i).isPresent()) {
+      params.add(Symbol.<Expr, AlgorithmWType>of(funcOp.getArgument(i).get()));
+    }
 
     var block = GeneralBlock.fromBlock(funcOp.getEntryBlock());
     var blockAsExpr = engine.generalBlockToInferenceExpr(block);
@@ -69,6 +69,6 @@ public final class FuncAlgoWConversion {
 
     return new Expr.ExprApp(new Expr.ExprVar(Symbol.of(callOp.getCallee())),
         callOp.getOperands().stream()
-            .map(operand -> (ExprOrOperator<Expr, AlgorithmWType>) new Expr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
+            .map(operand -> (Expr) new Expr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
   }
 }

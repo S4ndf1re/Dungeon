@@ -48,7 +48,7 @@ public abstract class TypeDialect<C extends ExprOrOperator<E, T>, E extends Expr
      * @return a pair of the solved algorithm specific final type, and the fully
      *         type annotated expression tree in original structure
      */
-    public abstract Pair<Type, ExprOrOperator<E, T>> solve(EO expr);
+    public abstract Pair<Type, E> solve(EO expr);
 
     /**
      * Convert a {@link GeneralBlock} to an algorithm specific {@link Expression}

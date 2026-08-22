@@ -5,6 +5,7 @@ import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
 
 public abstract class ExprOrOperator<E extends Expression<E, T>, T extends Type> {
+
   public static <E extends Expression<E, T>, T extends Type> ExprOrOperator<E, T> of(Operation op) {
     return new ExprOrOperator.OperatorVariant<>(op);
   }
