@@ -3,9 +3,10 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference.AlgorithmWType.LitType;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference.Expr;
+import dgir.core.ir.types.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.algorithmw.Expr;
+import dgir.core.ir.types.algorithmw.TypeInference;
+
 import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -17,27 +18,27 @@ public class AlgorithmWTest {
   public void algorithmWDialectTest() {
     AlgorithmWInference inference = new AlgorithmWInference();
     List<Class<? extends dgir.core.ir.types.Type>> allowedTypes = inference.getAllowedTypes();
-    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.LitType.class);
-    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.Arrow.class);
-    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.Var.class);
-    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.NumericType.class);
-    assert allowedTypes.contains(AlgorithmWInference.AlgorithmWType.Tuple.class);
+    assert allowedTypes.contains(AlgorithmWType.LitType.class);
+    assert allowedTypes.contains(AlgorithmWType.Arrow.class);
+    assert allowedTypes.contains(AlgorithmWType.Var.class);
+    assert allowedTypes.contains(AlgorithmWType.NumericType.class);
+    assert allowedTypes.contains(AlgorithmWType.Tuple.class);
 
     List<Class<? extends dgir.core.ir.types.Expression<Expr, AlgorithmWType>>> allowedExpression = inference
         .getAllowedExpressions();
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprLit.class);
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprAbs.class);
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprApp.class);
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprAnn.class);
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprTuple.class);
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprLet.class);
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprVar.class);
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprReturn.class);
-    assert allowedExpression.contains(AlgorithmWInference.Expr.ExprCustom.class);
+    assert allowedExpression.contains(Expr.ExprLit.class);
+    assert allowedExpression.contains(Expr.ExprAbs.class);
+    assert allowedExpression.contains(Expr.ExprApp.class);
+    assert allowedExpression.contains(Expr.ExprAnn.class);
+    assert allowedExpression.contains(Expr.ExprTuple.class);
+    assert allowedExpression.contains(Expr.ExprLet.class);
+    assert allowedExpression.contains(Expr.ExprVar.class);
+    assert allowedExpression.contains(Expr.ExprReturn.class);
+    assert allowedExpression.contains(Expr.ExprCustom.class);
 
     var solver = inference.getSolverInstance();
     assert solver != null;
-    assert solver.getClass().equals(AlgorithmWInference.TypeInference.class);
+    assert solver.getClass().equals(TypeInference.class);
   }
 
   @Test
@@ -63,8 +64,8 @@ public class AlgorithmWTest {
     var result = resultPair.getLeft();
 
     assert result instanceof AlgorithmWType;
-    assert result instanceof LitType;
-    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
+    assert result instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   @Test
@@ -91,8 +92,8 @@ public class AlgorithmWTest {
     var resultPair = solver.solve(expr);
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
-    assert result instanceof LitType;
-    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
+    assert result instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   /**
@@ -135,7 +136,7 @@ public class AlgorithmWTest {
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
-    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
+    assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   @Test
@@ -167,7 +168,7 @@ public class AlgorithmWTest {
     assert result instanceof AlgorithmWType;
     System.out.println(result);
     assert result instanceof AlgorithmWType.LitType;
-    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
+    assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   @Test
@@ -198,7 +199,7 @@ public class AlgorithmWTest {
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
-    assert ((LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
+    assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   @Test

@@ -1,6 +1,7 @@
 package dgir.core.ir.types;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Representation of a parameterized type of a nominal type system.
@@ -11,6 +12,13 @@ import java.util.List;
 public class GeneralParameterizedNominalType {
 
   public static sealed interface GeneralTypeParameter {
+
+    @Override
+    boolean equals(Object obj);
+
+    @Override
+    int hashCode();
+
     public default boolean isConcrete() {
       return this instanceof Concrete;
     }
@@ -80,4 +88,14 @@ public class GeneralParameterizedNominalType {
     return typedParameters;
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof GeneralParameterizedNominalType other && this.ident.equals(other.ident)
+        && this.typedParameters.equals(other.typedParameters);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.ident, this.typedParameters);
+  }
 }

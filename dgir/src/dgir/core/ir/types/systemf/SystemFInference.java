@@ -517,17 +517,17 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         return List.of();
       }
     }
 
     public static final class App extends Expr {
 
-      private final ExprOrOperator<Expr, SystemFType> fun;
-      private final ExprOrOperator<Expr, SystemFType> arg;
+      private final Expr fun;
+      private final Expr arg;
 
-      public App(ExprOrOperator<Expr, SystemFType> fun, ExprOrOperator<Expr, SystemFType> arg) {
+      public App(Expr fun, Expr arg) {
         this.fun = fun;
         this.arg = arg;
       }
@@ -605,7 +605,7 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         return List.of(this.arg, this.fun);
       }
     }
@@ -614,9 +614,9 @@ public final class SystemFInference
 
       private final Symbol<Expr, SystemFType> name;
       private final SystemFType type;
-      private final ExprOrOperator<Expr, SystemFType> body;
+      private final Expr body;
 
-      public Abs(Symbol<Expr, SystemFType> name, SystemFType type, ExprOrOperator<Expr, SystemFType> body) {
+      public Abs(Symbol<Expr, SystemFType> name, SystemFType type, Expr body) {
         this.name = name;
         this.type = type;
         this.body = body;
@@ -708,17 +708,17 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         return List.of(this.body);
       }
     }
 
     public static final class TApp extends Expr {
 
-      private final ExprOrOperator<Expr, SystemFType> func;
+      private final Expr func;
       private final SystemFType type;
 
-      public TApp(ExprOrOperator<Expr, SystemFType> func, SystemFType type) {
+      public TApp(Expr func, SystemFType type) {
         this.func = func;
         this.type = type;
       }
@@ -752,17 +752,17 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         return List.of(this.func);
       }
     }
 
     public static final class Ann extends Expr {
 
-      private final ExprOrOperator<Expr, SystemFType> expr;
+      private final Expr expr;
       private final SystemFType type;
 
-      public Ann(ExprOrOperator<Expr, SystemFType> expr, SystemFType type) {
+      public Ann(Expr expr, SystemFType type) {
         this.expr = expr;
         this.type = type;
       }
@@ -788,7 +788,7 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         return List.of(this.expr);
       }
     }
@@ -796,9 +796,9 @@ public final class SystemFInference
     public static final class TAbs extends Expr {
 
       private final TypeVar variable;
-      private final ExprOrOperator<Expr, SystemFType> body;
+      private final Expr body;
 
-      public TAbs(TypeVar variable, ExprOrOperator<Expr, SystemFType> body) {
+      public TAbs(TypeVar variable, Expr body) {
         this.variable = variable;
         this.body = body;
       }
@@ -846,7 +846,7 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         return List.of(this.body);
       }
     }
@@ -879,24 +879,24 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         return List.of();
       }
     }
 
     public static final class Let extends Expr {
 
-      private final List<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr, SystemFType>>> bindings;
-      private final ExprOrOperator<Expr, SystemFType> body;
+      private final List<Pair<Symbol<Expr, SystemFType>, Expr>> bindings;
+      private final Expr body;
 
-      public Let(Symbol<Expr, SystemFType> name, ExprOrOperator<Expr, SystemFType> value,
-          ExprOrOperator<Expr, SystemFType> body) {
+      public Let(Symbol<Expr, SystemFType> name, Expr value,
+          Expr body) {
         this.bindings = List.of(Pair.of(name, value));
         this.body = body;
       }
 
-      public Let(List<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr, SystemFType>>> bindings,
-          ExprOrOperator<Expr, SystemFType> body) {
+      public Let(List<Pair<Symbol<Expr, SystemFType>, Expr>> bindings,
+          Expr body) {
         this.bindings = List.copyOf(bindings);
         this.body = body;
       }
@@ -964,8 +964,8 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
-        ArrayList<ExprOrOperator<Expr, SystemFType>> list = new ArrayList<>();
+      public List<Expr> getChildren() {
+        ArrayList<Expr> list = new ArrayList<>();
         list.addAll(this.bindings.stream().map(elem -> elem.getRight()).toList());
         list.add(this.body);
         return List.copyOf(list);
@@ -987,9 +987,9 @@ public final class SystemFInference
 
     public final class Return extends Expr {
 
-      private ExprOrOperator<Expr, SystemFType> value;
+      private Expr value;
 
-      public Return(ExprOrOperator<Expr, SystemFType> value) {
+      public Return(Expr value) {
         this.value = value;
       }
 
@@ -1005,7 +1005,7 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         return List.of(this.value);
       }
     }
@@ -1024,7 +1024,7 @@ public final class SystemFInference
 
       @FunctionalInterface
       public interface GetChildrenFunction<D> {
-        List<ExprOrOperator<Expr, SystemFType>> getChildren(D data);
+        List<Expr> getChildren(D data);
       }
 
       private D data;
@@ -1062,7 +1062,7 @@ public final class SystemFInference
       }
 
       @Override
-      public List<ExprOrOperator<Expr, SystemFType>> getChildren() {
+      public List<Expr> getChildren() {
         if (this.getChildrenFn.isPresent()) {
           return this.getChildrenFn.get().getChildren(this.data);
         }
@@ -1371,14 +1371,14 @@ public final class SystemFInference
 
     @Override
     public Expr generalBlockToInferenceExpr(GeneralBlock block) {
-      ArrayList<Pair<Symbol<Expr, SystemFType>, ExprOrOperator<Expr, SystemFType>>> bindings = new ArrayList<>();
+      ArrayList<Pair<Symbol<Expr, SystemFType>, Expr>> bindings = new ArrayList<>();
       Optional<Symbol<Expr, SystemFType>> lastValue = Optional.empty();
 
       for (var op : block.getOperations()) {
         var opOutput = op.getOutput();
         if (opOutput.isPresent()) {
           Symbol<Expr, SystemFType> sym = Symbol.<Expr, SystemFType>of(opOutput.get().getValue());
-          bindings.add(Pair.of(sym, ExprOrOperator.of(op)));
+          bindings.add(Pair.of(sym, this.asExpression(ExprOrOperator.of(op))));
           lastValue = Optional.of(sym);
         } else {
           /*
@@ -1387,7 +1387,7 @@ public final class SystemFInference
            * each function and their parameters!
            */
           Symbol<Expr, SystemFType> val = Symbol.<Expr, SystemFType>of(new Value());
-          bindings.add(Pair.of(val, ExprOrOperator.of(op)));
+          bindings.add(Pair.of(val, this.asExpression(ExprOrOperator.of(op))));
           lastValue = Optional.of(val);
         }
       }
@@ -1400,7 +1400,7 @@ public final class SystemFInference
     }
 
     @Override
-    public Pair<Type, ExprOrOperator<Expr, SystemFType>> solve(ExprOrOperator<Expr, SystemFType> exprOrOp) {
+    public Pair<Type, Expr> solve(ExprOrOperator<Expr, SystemFType> exprOrOp) {
       var expr = this.asExpression(exprOrOp);
       var res = this.infer(new Context(), expr);
       var solutionCtx = res.ctx.copy();
