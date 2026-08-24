@@ -1,6 +1,7 @@
 package dgir.core.ir.types;
 
 import java.util.List;
+import java.util.Objects;
 
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
@@ -10,6 +11,12 @@ import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
  */
 public abstract class Literal {
   public abstract GeneralParameterizedNominalType toParameterizedNominalType();
+
+  @Override
+  public abstract boolean equals(Object obj);
+
+  @Override
+  public abstract int hashCode();
 
   public static class Unit extends Literal {
 
@@ -21,6 +28,16 @@ public abstract class Literal {
     @Override
     public GeneralParameterizedNominalType toParameterizedNominalType() {
       return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_UNIT);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Unit;
+    }
+
+    @Override
+    public int hashCode() {
+      return "unit".hashCode();
     }
 
   }
@@ -41,6 +58,16 @@ public abstract class Literal {
     public GeneralParameterizedNominalType toParameterizedNominalType() {
       return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_INT);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Int val && this.value == val.value;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(this.value);
+    }
   }
 
   public static class Bool extends Literal {
@@ -59,6 +86,16 @@ public abstract class Literal {
     public GeneralParameterizedNominalType toParameterizedNominalType() {
       return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_BOOL);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Bool b && this.value == b.value;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(this.value);
+    }
   }
 
   public static class MyList extends Literal {
@@ -75,6 +112,16 @@ public abstract class Literal {
     public GeneralParameterizedNominalType toParameterizedNominalType() {
       return new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_LIST,
           List.of(GeneralTypeParameter.of()));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof MyList;
+    }
+
+    @Override
+    public int hashCode() {
+      return "MyList".hashCode();
     }
 
   }
@@ -97,6 +144,16 @@ public abstract class Literal {
     @Override
     public GeneralParameterizedNominalType toParameterizedNominalType() {
       return this.type;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Generic gen && this.value.equals(gen.value);
+    }
+
+    @Override
+    public int hashCode() {
+      return this.value.hashCode();
     }
   }
 }
