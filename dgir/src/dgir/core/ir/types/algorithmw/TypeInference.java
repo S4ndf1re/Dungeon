@@ -10,6 +10,7 @@ import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
+import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
@@ -91,7 +92,7 @@ public final class TypeInference
       var finalType = res.subst().apply(res.type());
 
       // TODO: change return type here, to actually return something useful (tbd.)
-      expr.instantiate(this, new InstEnv(), res.subst());
+      expr.instantiate(this, new InstEnv<>(), res.subst());
 
       return Pair.of((Type) finalType, expr);
     }

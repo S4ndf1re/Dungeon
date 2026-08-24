@@ -2,6 +2,7 @@ package dgir.core.ir.types.systemf;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -56,6 +57,12 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
   public Expr getExpr() {
     return this;
   }
+
+  @Override
+  public abstract int hashCode();
+
+  @Override
+  public abstract boolean equals(Object obj);
 
   /**
    * When an {@link Expr} is a variable that is just a reference to another
@@ -188,6 +195,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Var other && this.name.equals(other.name);
+    }
+
+    @Override
+    public int hashCode() {
+      return this.name.hashCode();
+    }
+
+    @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       if (this.name.equals(original)) {
         return new Var(this, replacement);
@@ -287,6 +304,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     @Override
     public List<Expr> getChildren() {
       return List.of(this.arg, this.fun);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof App other && this.fun.equals(other.fun) && this.arg.equals(other.arg);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.fun, this.arg);
     }
 
     @Override
@@ -404,6 +431,17 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Abs other && this.name.equals(other.name) && this.type.equals(other.type)
+          && this.body.equals(other.body);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.name, this.type, this.body);
+    }
+
+    @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       return new Abs(this, this.name, this.type, this.body.replaceSymbol(original, replacement));
     }
@@ -458,6 +496,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean equals(Object obj) {
+      return obj instanceof TApp other && this.func.equals(other.func) && this.type.equals(other.type);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.func, this.type);
+    }
+
+    @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       return new TApp(this, this.func.replaceSymbol(original, replacement), this.type);
     }
@@ -501,6 +549,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     @Override
     public List<Expr> getChildren() {
       return List.of(this.expr);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Ann other && this.expr.equals(other.expr) && this.type.equals(other.type);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.expr, this.type);
     }
 
     @Override
@@ -572,6 +630,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean equals(Object obj) {
+      return obj instanceof TAbs other && this.variable.equals(other.variable) && this.body.equals(other.body);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.variable, this.body);
+    }
+
+    @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       return new TAbs(this, this.variable, this.body.replaceSymbol(original, replacement));
     }
@@ -607,6 +675,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     @Override
     public List<Expr> getChildren() {
       return List.of();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof LitExpr other && this.lit.equals(other.lit);
+    }
+
+    @Override
+    public int hashCode() {
+      return this.lit.hashCode();
     }
 
     @Override
@@ -709,6 +787,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Let other && this.bindings.equals(other.bindings) && this.body.equals(other.body);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.bindings, this.body);
+    }
+
+    @Override
     protected void instantiateInner(TypeInference engine, Context solution) {
       var newCtx = solution.copy();
       var mark = new Entry.Mark();
@@ -759,6 +847,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Return other && this.value.equals(other.value);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.value);
+    }
+
+    @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       return new Return(this.value.replaceSymbol(original, replacement));
     }
@@ -777,6 +875,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @FunctionalInterface
+    public interface InstantiateFunction<D> {
+      Expr instantiate(TypeInference engine, Context solution, D data);
+    }
+
+    @FunctionalInterface
     public interface GetChildrenFunction<D> {
       List<Expr> getChildren(D data);
     }
@@ -784,6 +887,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     private D data;
     private InferFunction<D> inferFn;
     private Optional<CheckFunction<D>> checkFn;
+    private Optional<InstantiateFunction<D>> instFn;
     private Optional<GetChildrenFunction<D>> getChildrenFn;
 
     public Custom(D data, InferFunction<D> inferFn) {
@@ -828,6 +932,20 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       // TODO Auto-generated method stub
       throw new UnsupportedOperationException("Unimplemented method 'replaceSymbol'");
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.data, this.inferFn, this.instFn, this.getChildrenFn);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Custom<?> other &&
+          this.data.equals(other.data) &&
+          this.inferFn.equals(other.inferFn) &&
+          this.instFn.equals(other.instFn) &&
+          this.getChildrenFn.equals(other.getChildrenFn);
     }
 
   }

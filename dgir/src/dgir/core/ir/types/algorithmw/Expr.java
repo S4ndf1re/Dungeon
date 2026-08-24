@@ -12,6 +12,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.InferenceTree;
+import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
@@ -122,7 +123,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
    * @param solution a partial of full solution that can be used to infer all
    *                 types and instantiations
    */
-  protected abstract Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution);
+  protected abstract Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution);
 
   /**
    * Instantiate the full expression tree to find and store all instantiations.
@@ -140,7 +141,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
    * @param solution a solution Subst that may be extended with further
    *                 instantioation Substs
    */
-  public final Expr instantiate(TypeInference engine, InstEnv env, Subst solution) {
+  public final Expr instantiate(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
     Expr expr = env.getConsed(this);
     if (env.isVisisted(Pair.of(expr, solution))) {
       return env.getConsed(expr);
@@ -251,7 +252,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       // Simply return the inner as fully instantiated!
       return this.expr.instantiate(engine, env, solution);
     }
@@ -314,7 +315,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       // Nothing to instanitate;
       return this;
     }
@@ -404,7 +405,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       return new ExprTuple(this, this.elements.stream().map(elem -> elem.instantiate(engine, env, solution)).toList());
     }
   }
@@ -486,7 +487,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       // Nothing to instantiate;
       return this;
     }
@@ -546,7 +547,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       this.inferredFunctionType = this.inferredFunctionType.map(fnTy -> solution.apply(fnTy));
 
       var funcExpr = engine.asExpression(this.func);
@@ -784,7 +785,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       return new ExprAbs(this, List.copyOf(this.params), this.body.instantiate(engine, env, solution));
     }
   }
@@ -835,8 +836,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
-      var newEnv = new InstEnv(env);
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+      var newEnv = new InstEnv<Expr, AlgorithmWType, Subst>(env);
       for (var bnd : this.bindings) {
         newEnv.put(bnd.getLeft(), bnd.getRight());
       }
@@ -993,7 +994,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       return new ExprReturn(this, this.value.instantiate(engine, env, solution));
     }
   }
@@ -1011,7 +1012,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @FunctionalInterface
     public interface InstantiateFunction<D> {
-      Expr instantiate(TypeInference engine, InstEnv env, Subst solution, D data);
+      Expr instantiate(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution, D data);
     }
 
     @FunctionalInterface
@@ -1065,7 +1066,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv env, Subst solution) {
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       // TODO(jan): this contains logic bugs and there is no way to specify at what
       // point to call the super method! Additionally, no solution changes can be
       // forwarded
