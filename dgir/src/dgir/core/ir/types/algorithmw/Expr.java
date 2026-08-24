@@ -75,20 +75,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
   public abstract Expr copy();
 
-  /**
-   * When an {@link Expr} is a variable that is just a reference to another
-   * {@link Symbol} within the {@link Env},
-   * this function is expected to return the {@link Symbol} to that reference.
-   *
-   * <p>
-   * For an {@link Expr} like {@link ExprVar}, this is a trivial {@link Env}
-   * lookup.
-   * However, custom
-   * {@link Expr}s may also provide this functionality in some way, and hence must
-   * expose the potentially referenced {@link Symbol}.
-   *
-   * @return `Some(var)` if `var` is a variable bound by this expression
-   */
+  @Override
   public Optional<Symbol<Expr, AlgorithmWType>> getReferencedVariable() {
     return Optional.empty();
   }
