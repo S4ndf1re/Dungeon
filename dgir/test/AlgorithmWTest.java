@@ -8,6 +8,7 @@ import dgir.core.ir.types.algorithmw.Expr;
 import dgir.core.ir.types.algorithmw.TypeInference;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
@@ -230,5 +231,74 @@ public class AlgorithmWTest {
 
     assert ((AlgorithmWType.LitType) resultTuple.elements.get(0)).tyName == TypeIdent.TYPE_IDENT_INT;
     assert ((AlgorithmWType.LitType) resultTuple.elements.get(1)).tyName == TypeIdent.TYPE_IDENT_BOOL;
+  }
+
+  @Test
+  public void letPolymorphism() {
+    var inference = new AlgorithmWInference();
+    var solver = inference.getSolverInstance();
+
+    var cnst = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var x = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var y = Symbol.<Expr, AlgorithmWType>of(new Value());
+
+    // let const = \x -> \y -> x in (const 42 true, const true 42, const 32 false)
+    Expr expr = new Expr.ExprLet(
+        cnst,
+        new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
+        new Expr.ExprTuple(new Expr.ExprApp(
+            new Expr.ExprApp(
+                new Expr.ExprVar(cnst),
+                new Expr.ExprLit(new Literal.Int(42))),
+            new Expr.ExprLit(new Literal.Bool(true))),
+            new Expr.ExprApp(
+                new Expr.ExprApp(
+                    new Expr.ExprVar(cnst),
+                    new Expr.ExprLit(new Literal.Bool(false))),
+                new Expr.ExprLit(new Literal.Int(24))),
+            new Expr.ExprApp(
+                new Expr.ExprApp(
+                    new Expr.ExprVar(cnst),
+                    new Expr.ExprLit(new Literal.Int(32))),
+                new Expr.ExprLit(new Literal.Bool(false)))));
+
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
+    var inferred = resultPair.getRight();
+
+    assert result instanceof AlgorithmWType;
+    assert result instanceof AlgorithmWType.Tuple;
+
+    assert inferred instanceof Expr.ExprLet;
+    var exprLet = (Expr.ExprLet) inferred;
+
+    assert exprLet.body instanceof Expr.ExprTuple;
+    var exprTuple = (Expr.ExprTuple) exprLet.body;
+
+    assert exprTuple.elements.size() == 3;
+    var first = exprTuple.elements.get(0);
+    var second = exprTuple.elements.get(1);
+    var third = exprTuple.elements.get(2);
+
+    Function<Expr, Expr> getInnerAbs = elem -> {
+      assert elem instanceof Expr.ExprApp;
+      var inner = ((Expr.ExprApp) elem).func;
+
+      assert inner instanceof Expr.ExprApp;
+
+      return ((Expr.ExprApp) inner).func;
+    };
+
+    // TODO: check the instantiation and if replacing Let and Abs bindings actually
+    // work. Otherwise the rebinding of let values must be deferered to later
+    // stages! One problem arises with the hash-consing of expressions
+    var firstAbs = getInnerAbs.apply(first);
+    var secondAbs = getInnerAbs.apply(second);
+    var thirdAbs = getInnerAbs.apply(third);
+
+    // By reference, check if hash consing worked
+    assert firstAbs == thirdAbs;
+    assert firstAbs != secondAbs;
+    assert thirdAbs != secondAbs;
   }
 }

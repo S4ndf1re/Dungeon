@@ -10,7 +10,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
 import dgir.core.ir.types.Expression;
-import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
@@ -40,10 +39,14 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
   // Make sure, that exprs always equals via object reference (needed for in-set
   // storage!)
   @Override
-  public abstract boolean equals(Object obj);
+  public boolean equals(Object obj) {
+    return obj instanceof Expr expr && this.inferredType.equals(expr.inferredType);
+  }
 
   @Override
-  public abstract int hashCode();
+  public int hashCode() {
+    return Objects.hash(this.inferredType.hashCode());
+  }
 
   @Override
   public void setInferredType(AlgorithmWType inferredType) {
@@ -73,8 +76,6 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
   public Expr getExpr() {
     return this;
   }
-
-  public abstract Expr copy();
 
   @Override
   public Optional<Symbol<Expr, AlgorithmWType>> getReferencedVariable() {
@@ -123,7 +124,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
    * @param solution a partial of full solution that can be used to infer all
    *                 types and instantiations
    */
-  protected abstract Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution);
+  protected abstract Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env,
+      Subst solution);
 
   /**
    * Instantiate the full expression tree to find and store all instantiations.
@@ -149,8 +151,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     env.visit(Pair.of(expr, solution));
 
-    expr.setInferredType(expr.getInferredType().map(ty -> solution.apply(ty)));
     Expr instantiated = expr.instantiateInner(engine, env, solution);
+    instantiated.setInferredType(instantiated.getInferredType().map(ty -> solution.apply(ty)));
     var instantiatedTarget = env.getConsed(instantiated);
 
     // The beta-reduction for variables.
@@ -198,13 +200,13 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     public ExprAnn(ExprAnn other) {
       super(other);
-      this.expr = other.expr.copy();
+      this.expr = other.expr;
       this.type = other.type;
     }
 
     public ExprAnn(ExprAnn other, Expr expr, AlgorithmWType type) {
       super(other);
-      this.expr = expr.copy();
+      this.expr = expr;
       this.type = type;
     }
 
@@ -233,17 +235,13 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprAnn ann && this.expr.equals(ann.expr) && this.type.equals(ann.type);
+      return obj instanceof ExprAnn ann && this.expr.equals(ann.expr) && this.type.equals(ann.type)
+          && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.expr, this.type);
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprAnn(this);
+      return Objects.hash(this.expr, this.type, super.hashCode());
     }
 
     @Override
@@ -260,12 +258,13 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
   public static final class ExprLit extends Expr {
 
-    private GeneralParameterizedNominalType value;
+    private Literal value;
 
     public ExprLit(Literal value) {
-      this.value = value.toParameterizedNominalType();
+      this.value = value;
     }
 
+    @SuppressWarnings("unused")
     private ExprLit(ExprLit other) {
       super(other);
       this.value = other.value;
@@ -283,7 +282,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public InferResult infer(TypeInference engine, Env env) {
-      var algoWType = engine.generalNominalTypeToInferenceType(value, null);
+      var algoWType = engine.generalNominalTypeToInferenceType(value.toParameterizedNominalType(), null);
       return new InferResult(
           Subst.newEmpty(),
           algoWType.getLeft(),
@@ -296,17 +295,12 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprLit lit && this.value.equals(lit.value);
+      return obj instanceof ExprLit lit && this.value.equals(lit.value) && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.value);
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprLit(this);
+      return Objects.hash(this.value, super.hashCode());
     }
 
     @Override
@@ -316,27 +310,35 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
-      // Nothing to instanitate;
       return this;
     }
   }
 
   public static final class ExprTuple extends Expr {
 
-    private List<Expr> elements;
+    public final List<Expr> elements;
 
     public ExprTuple(List<Expr> elements) {
       this.elements = elements;
     }
 
+    public ExprTuple(Expr... elements) {
+      ArrayList<Expr> elems = new ArrayList<>();
+      for (var elem : elements) {
+        elems.add(elem);
+      }
+
+      this.elements = List.copyOf(elems);
+    }
+
     public ExprTuple(ExprTuple other) {
       super(other);
-      this.elements = other.elements.stream().map(Expr::copy).toList();
+      this.elements = List.copyOf(other.elements);
     }
 
     public ExprTuple(ExprTuple other, List<Expr> elements) {
       super(other);
-      this.elements = elements.stream().map(Expr::copy).toList();
+      this.elements = List.copyOf(elements);
     }
 
     @Override
@@ -385,17 +387,12 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprTuple other && this.elements.equals(other.elements);
+      return obj instanceof ExprTuple other && this.elements.equals(other.elements) && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.elements);
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprTuple(this);
+      return Objects.hash(this.elements, super.hashCode());
     }
 
     @Override
@@ -418,6 +415,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       this.name = name;
     }
 
+    @SuppressWarnings("unused")
     private ExprVar(ExprVar other) {
       super(other);
       this.name = other.name;
@@ -465,17 +463,12 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprVar other && this.name.equals(other.name);
+      return obj instanceof ExprVar other && this.name.equals(other.name) && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return this.name.hashCode();
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprVar(this);
+      return Objects.hash(this.name, super.hashCode());
     }
 
     @Override
@@ -495,8 +488,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
   public static final class ExprApp extends Expr {
 
-    private final Expr func;
-    private final List<Expr> args;
+    public final Expr func;
+    public final List<Expr> args;
     private Optional<AlgorithmWType> inferredFunctionType;
 
     public ExprApp(
@@ -516,15 +509,15 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     public ExprApp(
         ExprApp other) {
       super(other);
-      this.func = other.func.copy();
-      this.args = other.args.stream().map(Expr::copy).toList();
+      this.func = other.func;
+      this.args = List.copyOf(other.args);
     }
 
     public ExprApp(ExprApp other, Expr func,
         List<Expr> args) {
       super(other);
-      this.func = func.copy();
-      this.args = args.stream().map(Expr::copy).toList();
+      this.func = func;
+      this.args = List.copyOf(args);
     }
 
     @Override
@@ -627,17 +620,13 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprApp other && this.func.equals(other.func) && this.args.equals(other.args);
+      return obj instanceof ExprApp other && this.func.equals(other.func) && this.args.equals(other.args)
+          && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.func, this.args);
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprApp(this);
+      return Objects.hash(this.func, this.args, super.hashCode());
     }
 
     @Override
@@ -645,8 +634,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       var newFunc = this.func.replaceSymbol(original, replacement);
       var newArgs = this.args.stream().map(arg -> arg.replaceSymbol(original, replacement)).toList();
 
-      var newApp = new ExprApp(newFunc, newArgs);
-      newApp.inferredFunctionType = Optional.ofNullable(this.inferredFunctionType.orElse(null));
+      var newApp = new ExprApp(this, newFunc, newArgs);
       return newApp;
     }
   }
@@ -669,13 +657,13 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     public ExprAbs(ExprAbs other) {
       super(other);
       this.params = List.copyOf(other.params);
-      this.body = other.body.copy();
+      this.body = other.body;
     }
 
     public ExprAbs(ExprAbs other, List<Symbol<Expr, AlgorithmWType>> params, Expr body) {
       super(other);
       this.params = List.copyOf(params);
-      this.body = body.copy();
+      this.body = body;
     }
 
     @Override
@@ -764,17 +752,13 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprAbs other && this.params.equals(other.params) && this.body.equals(other.body);
+      return obj instanceof ExprAbs other && this.params.equals(other.params) && this.body.equals(other.body)
+          && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.params, this.body);
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprAbs(this);
+      return Objects.hash(this.params, this.body, super.hashCode());
     }
 
     @Override
@@ -786,7 +770,16 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
-      return new ExprAbs(this, List.copyOf(this.params), this.body.instantiate(engine, env, solution));
+      // Instantiate body and replace all parameter values with original values.
+      // This is usefull for later Operation generation
+      var instBody = this.body.instantiate(engine, env, solution);
+      // var newParams = new ArrayList<Symbol<Expr, AlgorithmWType>>();
+      // for (var param : this.params) {
+      // var newParam = Symbol.<Expr, AlgorithmWType>of(new Value());
+      // instBody = instBody.replaceSymbol(param, newParam);
+      // newParams.add(param);
+      // }
+      return new ExprAbs(this, List.copyOf(this.params), instBody);
     }
   }
 
@@ -800,8 +793,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
    */
   public static final class ExprLet extends Expr {
 
-    private final List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings;
-    private final Expr body;
+    public final List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings;
+    public final Expr body;
 
     public ExprLet(Symbol<Expr, AlgorithmWType> param, Expr value,
         Expr body) {
@@ -817,9 +810,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     public ExprLet(ExprLet other) {
       super(other);
-      this.bindings = other.bindings.stream().map(binding -> Pair.of(binding.getLeft(), binding.getRight().copy()))
-          .toList();
-      this.body = other.body.copy();
+      this.bindings = List.copyOf(other.bindings);
+      this.body = other.body;
     }
 
     public ExprLet(ExprLet other, List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings,
@@ -837,13 +829,55 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+      // First, collect the bindings within the env.
       var newEnv = new InstEnv<Expr, AlgorithmWType, Subst>(env);
       for (var bnd : this.bindings) {
         newEnv.put(bnd.getLeft(), bnd.getRight());
       }
+
+      // // Then insantiate the body with the bound expressions, instantiating all
+      // uses
+      // // of the original expressions
+      // var instantiatedBody = this.body.instantiate(engine, newEnv, solution);
+      //
+      // // Then, replace all symbols, to finish instantiation.
+      // // NOTE: the bindings can refer to the original expressions and don't need to
+      // be
+      // // instantiated.
+      // // This is because the concrete usages of expressions within body are
+      // // instantiated non the less,
+      // // using variable lookup for all referenced usages
+      // ArrayList<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings = new
+      // ArrayList<>(this.bindings);
+      // ArrayList<Pair<Symbol<Expr, AlgorithmWType>, Symbol<Expr, AlgorithmWType>>>
+      // symbolReplacements = new ArrayList<>();
+      // for (var bnd : bindings) {
+      // symbolReplacements.add(Pair.of(bnd.getLeft(), Symbol.of(new Value())));
+      // }
+      //
+      // for (int i = 0; i < bindings.size(); i++) {
+      // var binding = bindings.get(i);
+      // var expr = binding.getRight();
+      // var replacement = symbolReplacements.get(i);
+      //
+      // for (var symReplacement : symbolReplacements) {
+      // expr = expr.replaceSymbol(symReplacement.getLeft(),
+      // symReplacement.getRight());
+      // }
+      //
+      // bindings.set(i, Pair.of(replacement.getRight(), expr));
+      // }
+      //
+      // for (var symReplacement : symbolReplacements) {
+      // instantiatedBody = instantiatedBody.replaceSymbol(symReplacement.getLeft(),
+      // symReplacement.getRight());
+      // }
+      //
+      // return new ExprLet(this, bindings, instantiatedBody);
       return new ExprLet(this,
           this.bindings.stream()
-              .map(bnd -> Pair.of(bnd.getLeft(), bnd.getRight().instantiate(engine, newEnv, solution))).toList(),
+              .map(bnd -> Pair.of(bnd.getLeft(), bnd.getRight().instantiate(engine, newEnv, solution)))
+              .toList(),
           this.body.instantiate(engine, newEnv, solution));
     }
 
@@ -908,17 +942,13 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprLet other && this.bindings.equals(other.bindings) && this.body.equals(other.body);
+      return obj instanceof ExprLet other && this.bindings.equals(other.bindings) && this.body.equals(other.body)
+          && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.bindings, this.body);
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprLet(this);
+      return Objects.hash(this.bindings, this.body, super.hashCode());
     }
 
     @Override
@@ -939,12 +969,12 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     public ExprReturn(ExprReturn other) {
       super(other);
-      this.value = other.value.copy();
+      this.value = other.value;
     }
 
     public ExprReturn(ExprReturn other, Expr value) {
       super(other);
-      this.value = value.copy();
+      this.value = value;
     }
 
     @Override
@@ -975,17 +1005,12 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprReturn other && this.value.equals(other.value);
+      return obj instanceof ExprReturn other && this.value.equals(other.value) && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.value);
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprReturn(this.value);
+      return Objects.hash(this.value, super.hashCode());
     }
 
     @Override
@@ -1090,17 +1115,13 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
           this.data.equals(other.data) &&
           this.inferFn.equals(other.inferFn) &&
           this.instFn.equals(other.instFn) &&
-          this.getChildrenFn.equals(other.getChildrenFn);
+          this.getChildrenFn.equals(other.getChildrenFn)
+          && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.data, this.inferFn, this.instFn, this.getChildrenFn);
-    }
-
-    @Override
-    public Expr copy() {
-      return new ExprCustom<>(this);
+      return Objects.hash(this.data, this.inferFn, this.instFn, this.getChildrenFn, super.hashCode());
     }
 
     @Override
