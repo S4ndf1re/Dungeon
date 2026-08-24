@@ -2,10 +2,9 @@ import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.systemf.Expr;
 import dgir.core.ir.types.systemf.SystemFInference;
-import dgir.core.ir.types.systemf.SystemFInference.Expr;
-import dgir.core.ir.types.systemf.SystemFInference.SystemFType.Lit;
-import dgir.core.ir.types.systemf.SystemFInference.SystemFType;
+import dgir.core.ir.types.systemf.SystemFType;
 
 import java.util.List;
 
@@ -165,7 +164,7 @@ public class SystemFTest {
     var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
     assert resType instanceof SystemFType.Lit;
-    assert ((Lit) resType).ident.equals(TypeIdent.TYPE_IDENT_INT);
+    assert ((SystemFType.Lit) resType).ident.equals(TypeIdent.TYPE_IDENT_INT);
   }
 
   @Test
@@ -200,6 +199,6 @@ public class SystemFTest {
     var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
     assert resType instanceof SystemFType.Lit;
-    assert ((Lit) resType).ident.equals(TypeIdent.TYPE_IDENT_INT);
+    assert ((SystemFType.Lit) resType).ident.equals(TypeIdent.TYPE_IDENT_INT);
   }
 }
