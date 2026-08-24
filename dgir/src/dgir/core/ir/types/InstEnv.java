@@ -16,6 +16,7 @@ public final class InstEnv<E extends Expression<E, T>, T extends Type, S> extend
   }
 
   public InstEnv(InstEnv<E, T, S> env) {
+    super(env);
     this.env = new HashMap<>(env.env);
     // This is not a copy, but a completely shared reference!
     this.visited = env.visited;
