@@ -27,4 +27,6 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
    */
   public List<E> getChildren();
 
+  public E replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
+
 }
