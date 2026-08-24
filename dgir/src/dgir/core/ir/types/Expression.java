@@ -27,6 +27,22 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
    */
   public List<E> getChildren();
 
+  /**
+   * When an {@link Expression} is a variable that is just a reference to another
+   * {@link Symbol} within the algorithm specific environment,
+   * this function is expected to return the {@link Symbol} to that reference.
+   *
+   * <p>
+   * For an {@link Expression} like {@link ExprVar}, this is a trivial {@link Env}
+   * lookup.
+   * However, custom
+   * {@link Expression}s may also provide this functionality in some way, and hence must
+   * expose the potentially referenced {@link Symbol}.
+   *
+   * @return `Some(var)` if `var` is a variable bound by this expression
+   */
+  public Optional<Symbol<E, T>> getReferencedVariable();
+
   public E replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
 
 }
