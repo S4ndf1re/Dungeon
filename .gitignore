@@ -69,3 +69,6 @@ replay_pid*
 # Executable binaries
 *.exe
 *.bin
+
+# Memory
+.memory/
