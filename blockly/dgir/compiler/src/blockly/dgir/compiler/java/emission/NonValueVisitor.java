@@ -23,6 +23,7 @@ import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
 import dgir.core.debug.Location;
 import dgir.core.ir.Block;
+import dgir.core.ir.MaybeType;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
 import dgir.core.serialization.Utils;
@@ -45,7 +46,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
     return INSTANCE;
   }
 
-  private record ParameterInfo(String name, Type type, ResolvedType resolvedType) {}
+  private record ParameterInfo(String name, Type type, ResolvedType resolvedType) {
+  }
 
   private EmitResult<ParameterInfo> resolveParameter(Parameter n, EmitContext context) {
     {
@@ -74,14 +76,12 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
     Optional<CompilerUtils.TypeInfo> typeInfo = resolveType(n.getType(), context);
     return typeInfo
         .map(
-            info ->
-                EmitResult.of(
-                    new ParameterInfo(
-                        n.getName().getIdentifier(), info.type(), info.resolvedType())))
+            info -> EmitResult.of(
+                new ParameterInfo(
+                    n.getName().getIdentifier(), info.type(), info.resolvedType())))
         .orElseGet(
-            () ->
-                EmitResult.failure(
-                    context, n, "Failed to resolve type of parameter " + n.getName()));
+            () -> EmitResult.failure(
+                context, n, "Failed to resolve type of parameter " + n.getName()));
   }
 
   @Override
@@ -93,21 +93,23 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
       try (var programInsertion = context.setInsertionPoint(program.getEntryBlock(), -1)) {
         {
           EmitResult<Boolean> result = visitNonValueNodeList(n.getImports(), context);
-          if (result.isFailure()) return EmitResult.failure(context, n, "Failed to emit imports");
+          if (result.isFailure())
+            return EmitResult.failure(context, n, "Failed to emit imports");
         }
         if (n.getModule().isPresent()) {
-          EmitResult<Boolean> result =
-              EmitResult.ofNullable(n.getModule().get().accept(this, context));
-          if (result.isFailure()) return result;
+          EmitResult<Boolean> result = EmitResult.ofNullable(n.getModule().get().accept(this, context));
+          if (result.isFailure())
+            return result;
         }
         if (n.getPackageDeclaration().isPresent()) {
-          EmitResult<Boolean> result =
-              EmitResult.ofNullable(n.getPackageDeclaration().get().accept(this, context));
-          if (result.isFailure()) return result;
+          EmitResult<Boolean> result = EmitResult.ofNullable(n.getPackageDeclaration().get().accept(this, context));
+          if (result.isFailure())
+            return result;
         }
         {
           EmitResult<Boolean> result = visitNonValueNodeList(n.getTypes(), context);
-          if (result.isFailure()) return EmitResult.failure();
+          if (result.isFailure())
+            return EmitResult.failure();
         }
         if (context.compilationSuccessful()) {
           context.program = program;
@@ -215,7 +217,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
 
     {
       EmitResult<Boolean> result = visitNonValueNodeList(n.getMembers(), context);
-      if (result.isFailure()) return EmitResult.failure();
+      if (result.isFailure())
+        return EmitResult.failure();
     }
 
     return EmitResult.success(true);
@@ -247,7 +250,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
     {
       for (Modifier modifier : n.getModifiers()) {
         switch (modifier.getKeyword()) {
-          case PUBLIC, PROTECTED, PRIVATE, STATIC -> {}
+          case PUBLIC, PROTECTED, PRIVATE, STATIC -> {
+          }
           default -> {
             return EmitResult.failure(
                 context,
@@ -298,11 +302,10 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
 
     List<ParameterInfo> parameterInfos;
     {
-      parameterInfos =
-          new ArrayList<>(
-              n.getParameters().stream()
-                  .map(parameter -> resolveParameter(parameter, context).orElse(null))
-                  .toList());
+      parameterInfos = new ArrayList<>(
+          n.getParameters().stream()
+              .map(parameter -> resolveParameter(parameter, context).orElse(null))
+              .toList());
       if (parameterInfos.stream().anyMatch(Objects::isNull)) {
         return EmitResult.failure();
       }
@@ -322,23 +325,23 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
       return EmitResult.failure();
     }
 
-    try (var methodInsertion =
-        context.setInsertionPoint(context.getProgramBlock().orElseThrow(), -1)) {
+    try (var methodInsertion = context.setInsertionPoint(context.getProgramBlock().orElseThrow(), -1)) {
 
       // Create the function op.
-      String fullyQualifiedMethodName =
-          "main".equals(n.getNameAsString()) ? "main" : resolvedN.get().getQualifiedSignature();
+      String fullyQualifiedMethodName = "main".equals(n.getNameAsString()) ? "main"
+          : resolvedN.get().getQualifiedSignature();
 
-      FuncOps.FuncOp funcOp =
-          context.insert(
-              new FuncOps.FuncOp(
-                  context.loc(n),
-                  fullyQualifiedMethodName,
-                  FuncTypes.FuncType.of(
-                      parameterInfos.stream().map(ParameterInfo::type).toList(), returnType)));
+      FuncOps.FuncOp funcOp = context.insert(
+          new FuncOps.FuncOp(
+              context.loc(n),
+              fullyQualifiedMethodName,
+              FuncTypes.FuncType.of(
+                  parameterInfos.stream().map(ParameterInfo::type).map(MaybeType::of).toList(), returnType)));
 
-      // Emit all statements in the method body. These will insert themselves into the function
-      // op. Also, put the function arguments in the symbol table so that they can be referenced
+      // Emit all statements in the method body. These will insert themselves into the
+      // function
+      // op. Also, put the function arguments in the symbol table so that they can be
+      // referenced
       // in the body.
       try (var funcBodyInsertion = context.setInsertionPoint(funcOp.getEntryBlock(), -1);
           var funcBodySymScope = new EmitContext.SymbolScope(context, true)) {
@@ -358,11 +361,13 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
                   + " has no body. Abstract methods are not supported.");
         }
 
-        // Make sure we have an implicit return in case the method has a void return type and the
+        // Make sure we have an implicit return in case the method has a void return
+        // type and the
         // last statement is not a return statement.
         funcOp.addImplicitTerminators();
 
-        if (result.isFailure()) return result;
+        if (result.isFailure())
+          return result;
       }
     }
 
@@ -374,13 +379,13 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
     EmitResult<Value> checkResult;
     {
       checkResult = EmitResult.ofNullable(n.getCheck().accept(RValueVisitor.get(), context));
-      if (checkResult.isFailure()) return EmitResult.failure(context, n, "Failed to emit check");
+      if (checkResult.isFailure())
+        return EmitResult.failure(context, n, "Failed to emit check");
     }
 
     EmitResult<Value> messageResult = null;
     if (n.getMessage().isPresent()) {
-      messageResult =
-          EmitResult.ofNullable(n.getMessage().get().accept(RValueVisitor.get(), context));
+      messageResult = EmitResult.ofNullable(n.getMessage().get().accept(RValueVisitor.get(), context));
       if (messageResult.isFailure())
         return EmitResult.failure(context, n, "Failed to emit message");
     }
@@ -398,7 +403,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
     EmitResult<Boolean> result;
     {
       result = visitNonValueNodeList(n.getStatements(), context);
-      if (result.isFailure()) return EmitResult.failure();
+      if (result.isFailure())
+        return EmitResult.failure();
     }
     return EmitResult.success(true);
   }
@@ -425,7 +431,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
     // Make sure the values defined by the condition do not spill outside stmt
     try (var scopeSymScope = new EmitContext.SymbolScope(context, false);
         var scopeInsertion = context.setInsertionPoint(scope.getEntryBlock(), -1)) {
-      // Same as while loop but body is placed in the condition region before the condition check
+      // Same as while loop but body is placed in the condition region before the
+      // condition check
       ScfOps.WhileOp whileOp = context.insert(new ScfOps.WhileOp(context.loc(n)));
       {
         try (var conditionRegionSymScope = new EmitContext.SymbolScope(context, false)) {
@@ -436,13 +443,13 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
           breakBlock.addOperation(new ScfOps.EndOp(context.loc(n.getCondition())));
 
           // Open the new scope and place the comparison expression in it.
-          try (var bodyInsertion =
-              context.setInsertionPoint(whileOp.getConditionRegion().getEntryBlock(), -1)) {
+          try (var bodyInsertion = context.setInsertionPoint(whileOp.getConditionRegion().getEntryBlock(), -1)) {
 
             EmitResult<Boolean> bodyResult;
             {
               bodyResult = EmitResult.ofNullable(n.getBody().accept(this, context));
-              if (bodyResult.isFailure()) return bodyResult;
+              if (bodyResult.isFailure())
+                return bodyResult;
             }
 
             // If there was a call to break or continue the skip and break flags are added
@@ -493,7 +500,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
   @Override
   public EmitResult<Boolean> visit(ExpressionStmt n, EmitContext context) {
     var result = EmitResult.ofNullable(n.getExpression().accept(RValueVisitor.get(), context));
-    if (result.isFailure()) return EmitResult.failure(context, n, "Failed to emit expression");
+    if (result.isFailure())
+      return EmitResult.failure(context, n, "Failed to emit expression");
     return EmitResult.success(true);
   }
 
@@ -513,25 +521,26 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
         EmitResult<List<Value>> initResult;
         {
           initResult = visitRValueNodeList(n.getInitialization(), context);
-          if (initResult.isFailure()) return EmitResult.failure();
+          if (initResult.isFailure())
+            return EmitResult.failure();
         }
       }
 
-      // We are using a while op so that we can support more complex update expressions.
+      // We are using a while op so that we can support more complex update
+      // expressions.
       ScfOps.WhileOp whileOp = context.insert(new ScfOps.WhileOp(context.loc(n)));
       {
         // Open the new scope and place the comparison expression in it.
         try (var conditionSymScope = new EmitContext.SymbolScope(context, false)) {
-          try (var conditionInsertion =
-              context.setInsertionPoint(whileOp.getConditionRegion().getEntryBlock(), -1)) {
+          try (var conditionInsertion = context.setInsertionPoint(whileOp.getConditionRegion().getEntryBlock(), -1)) {
             if (n.getCompare().isPresent()) {
               Block continueBlock = whileOp.getConditionRegion().addBlock(new Block());
               continueBlock.addOperation(new ScfOps.ContinueOp(context.loc(n)));
               Block breakBlock = whileOp.getConditionRegion().addBlock(new Block());
               breakBlock.addOperation(new ScfOps.EndOp(context.loc(n)));
 
-              EmitResult<Value> compareResult =
-                  EmitResult.ofNullable(n.getCompare().get().accept(RValueVisitor.get(), context));
+              EmitResult<Value> compareResult = EmitResult
+                  .ofNullable(n.getCompare().get().accept(RValueVisitor.get(), context));
               if (compareResult.isFailure()) {
                 return EmitResult.failure(context, n, "Failed to emit compare expression");
               }
@@ -549,10 +558,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
         // Open a new scope and place the body and update expressions inside it.
         try (var bodySymbolScope = new EmitContext.SymbolScope(context, false)) {
           // Create the body block.
-          try (var bodyInsertion =
-              context.setInsertionPoint(whileOp.getBodyRegion().getEntryBlock(), -1)) {
-            EmitResult<Boolean> bodyResult =
-                EmitResult.ofNullable(n.getBody().accept(this, context));
+          try (var bodyInsertion = context.setInsertionPoint(whileOp.getBodyRegion().getEntryBlock(), -1)) {
+            EmitResult<Boolean> bodyResult = EmitResult.ofNullable(n.getBody().accept(this, context));
             if (bodyResult.isFailure()) {
               return EmitResult.failure();
             }
@@ -562,7 +569,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
             // terminate condition
             // Otherwise, just emit the update result.
             if (containsLocalFlag(n.getBody(), "skip")) {
-              // Create the update block. This is only called if there are no break statements in
+              // Create the update block. This is only called if there are no break statements
+              // in
               // the loop
               // body.
               Block updateBlock = whileOp.getBodyRegion().addBlock(new Block());
@@ -590,7 +598,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
 
   private static void emitBreakHandling(
       ScfOps.WhileOp whileOp, EmitContext context, Block updateBlock, Node n) {
-    // Create the break block. This is called if there was a break statement in the loop
+    // Create the break block. This is called if there was a break statement in the
+    // loop
     // body.
     Block breakBlock = whileOp.getBodyRegion().addBlock(new Block());
     breakBlock.addOperation(new ScfOps.EndOp(context.loc(n)));
@@ -613,30 +622,28 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
         var scopeInsertion = context.setInsertionPoint(scope.getEntryBlock(), -1)) {
       EmitResult<Value> conditionResult;
       {
-        conditionResult =
-            EmitResult.ofNullable(n.getCondition().accept(RValueVisitor.get(), context));
+        conditionResult = EmitResult.ofNullable(n.getCondition().accept(RValueVisitor.get(), context));
         if (conditionResult.isFailure())
           return EmitResult.failure(context, n, "Failed to emit condition");
       }
-      var ifOp =
-          context.insert(new ScfOps.IfOp(context.loc(n), conditionResult.get(), n.hasElseBlock()));
+      var ifOp = context.insert(new ScfOps.IfOp(context.loc(n), conditionResult.get(), n.hasElseBlock()));
 
-      try (var thenInsertion =
-          context.setInsertionPoint(ifOp.getThenRegion().getEntryBlock(), -1)) {
+      try (var thenInsertion = context.setInsertionPoint(ifOp.getThenRegion().getEntryBlock(), -1)) {
         EmitResult<Boolean> thenResult;
         {
           thenResult = EmitResult.ofNullable(n.getThenStmt().accept(this, context));
-          if (thenResult.isFailure()) return thenResult;
+          if (thenResult.isFailure())
+            return thenResult;
         }
       }
 
       if (n.hasElseBlock())
-        try (var elseInsertion =
-            context.setInsertionPoint(ifOp.getElseRegion().orElseThrow().getEntryBlock(), -1)) {
+        try (var elseInsertion = context.setInsertionPoint(ifOp.getElseRegion().orElseThrow().getEntryBlock(), -1)) {
           EmitResult<Boolean> elseResult;
           if (n.getElseStmt().isPresent()) {
             elseResult = EmitResult.ofNullable(n.getElseStmt().get().accept(this, context));
-            if (elseResult.isFailure()) return elseResult;
+            if (elseResult.isFailure())
+              return elseResult;
           }
         }
 
@@ -664,16 +671,15 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
   @Override
   public EmitResult<Boolean> visit(ReturnStmt n, EmitContext context) {
     Location trueLocation = context.loc(n);
-    // Move the debug location one further down than the actual return statement, so we can step
+    // Move the debug location one further down than the actual return statement, so
+    // we can step
     // to the closing curly bracket of functions and inspect the values produced.
-    Location debugLocation =
-        new Location(
-            trueLocation.file(),
-            trueLocation.line() + (trueLocation.equals(Location.IGNORE) ? 0 : 1),
-            trueLocation.column());
+    Location debugLocation = new Location(
+        trueLocation.file(),
+        trueLocation.line() + (trueLocation.equals(Location.IGNORE) ? 0 : 1),
+        trueLocation.column());
     if (n.getExpression().isPresent()) {
-      EmitResult<Value> exprRes =
-          EmitResult.ofNullable(n.getExpression().get().accept(RValueVisitor.get(), context));
+      EmitResult<Value> exprRes = EmitResult.ofNullable(n.getExpression().get().accept(RValueVisitor.get(), context));
       if (exprRes.isFailure()) {
         return EmitResult.failure(
             context, n, "Failed to emit return expression of return statement");
@@ -720,8 +726,7 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
       {
         // Open the new scope and place the comparison expression in it.
         try (var conditionSymScope = new EmitContext.SymbolScope(context, false)) {
-          try (var conditionInsertion =
-              context.setInsertionPoint(whileOp.getConditionRegion().getEntryBlock(), -1)) {
+          try (var conditionInsertion = context.setInsertionPoint(whileOp.getConditionRegion().getEntryBlock(), -1)) {
             Block continueBlock = whileOp.getConditionRegion().addBlock(new Block());
             continueBlock.addOperation(new ScfOps.ContinueOp(context.loc(n)));
             Block breakBlock = whileOp.getConditionRegion().addBlock(new Block());
@@ -733,12 +738,12 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
         }
 
         try (var conditionSymScope = new EmitContext.SymbolScope(context, false)) {
-          try (var bodyInsertion =
-              context.setInsertionPoint(whileOp.getBodyRegion().getEntryBlock(), -1)) {
+          try (var bodyInsertion = context.setInsertionPoint(whileOp.getBodyRegion().getEntryBlock(), -1)) {
             EmitResult<Boolean> bodyResult;
             {
               bodyResult = EmitResult.ofNullable(n.getBody().accept(this, context));
-              if (bodyResult.isFailure()) return bodyResult;
+              if (bodyResult.isFailure())
+                return bodyResult;
             }
 
             // If there was a call to break or continue the skip and break flags are added
@@ -746,7 +751,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
             // terminate condition
             // Otherwise, just emit the update result.
             if (containsLocalFlag(n.getBody(), "skipBreak")) {
-              // Create the continue block. This is only called if there are no break statements
+              // Create the continue block. This is only called if there are no break
+              // statements
               // where hit.
               Block continueBlock = whileOp.getBodyRegion().addBlock(new Block());
               continueBlock.addOperation(new ScfOps.ContinueOp(context.loc(n)));
@@ -766,7 +772,8 @@ public class NonValueVisitor extends GenericVisitorAdapter<EmitResult<Boolean>, 
     EmitResult<Value> conditionResult;
     {
       conditionResult = EmitResult.ofNullable(condition.accept(RValueVisitor.get(), context));
-      if (conditionResult.isFailure()) return true;
+      if (conditionResult.isFailure())
+        return true;
       Value compareValue = conditionResult.get();
       context.insert(
           new CfOps.BranchCondOp(Location.IGNORE, compareValue, continueBlock, breakBlock));

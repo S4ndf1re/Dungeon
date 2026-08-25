@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
+import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.InstEnv;
@@ -24,16 +25,16 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     implements Expression<Expr, AlgorithmWType> {
 
   private Optional<AlgorithmWType> inferredType;
-  // private HashSet<AlgorithmWType> instances;
+  private Optional<Operation> underlyingOperation;
 
   protected Expr() {
     this.inferredType = Optional.empty();
-    // this.instances = new HashSet<>();
+    this.underlyingOperation = Optional.empty();
   }
 
   protected Expr(Expr other) {
     this.inferredType = Optional.ofNullable(other.inferredType.orElse(null));
-    // this.instances = new HashSet<>();
+    this.underlyingOperation = Optional.ofNullable(other.underlyingOperation.orElse(null));
   }
 
   // Make sure, that exprs always equals via object reference (needed for in-set
@@ -80,6 +81,17 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
   @Override
   public Optional<Symbol<Expr, AlgorithmWType>> getReferencedVariable() {
     return Optional.empty();
+  }
+
+  @Override
+  public void setUnderlyingOperation(Operation op) {
+    this.underlyingOperation = Optional.of(op);
+
+  }
+
+  @Override
+  public Optional<Operation> getUnderlyingOperation() {
+    return Optional.ofNullable(this.underlyingOperation.orElse(null));
   }
 
   /**
@@ -1136,7 +1148,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.data, this.inferFn, this.instFn, this.getChildrenFn, this.replaceSymbolFn, super.hashCode());
+      return Objects.hash(this.data, this.inferFn, this.instFn, this.getChildrenFn, this.replaceSymbolFn,
+          super.hashCode());
     }
 
     @Override

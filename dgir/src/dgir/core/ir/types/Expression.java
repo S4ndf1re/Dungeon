@@ -3,6 +3,7 @@ package dgir.core.ir.types;
 import java.util.List;
 import java.util.Optional;
 
+import dgir.core.ir.Operation;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 
 public interface Expression<E extends Expression<E, T>, T extends Type> {
@@ -36,7 +37,8 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
    * For an {@link Expression} like {@link ExprVar}, this is a trivial {@link Env}
    * lookup.
    * However, custom
-   * {@link Expression}s may also provide this functionality in some way, and hence must
+   * {@link Expression}s may also provide this functionality in some way, and
+   * hence must
    * expose the potentially referenced {@link Symbol}.
    *
    * @return `Some(var)` if `var` is a variable bound by this expression
@@ -44,5 +46,9 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
   public Optional<Symbol<E, T>> getReferencedVariable();
 
   public E replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
+
+  public void setUnderlyingOperation(Operation op);
+
+  public Optional<Operation> getUnderlyingOperation();
 
 }
