@@ -1,6 +1,7 @@
 package dgir.core.ir;
 
 import dgir.core.analysis.OperationVerifier;
+import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.debug.Location;
 import dgir.core.debug.ValueDebugInfo;
 import dgir.core.serialization.OperationDeserializer;
@@ -285,8 +286,8 @@ public final class Operation implements Serializable, Cloneable {
    * @return {@code true} if verification succeeds.
    */
   @Contract(pure = true)
-  public boolean verify(boolean recursive) {
-    return new OperationVerifier(recursive).verify(this);
+  public boolean verify(VerifyOptions verifyOptions) {
+    return new OperationVerifier(verifyOptions).verify(this);
   }
 
   // =========================================================================

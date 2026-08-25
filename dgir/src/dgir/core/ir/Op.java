@@ -1,5 +1,6 @@
 package dgir.core.ir;
 
+import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.debug.Location;
 import dgir.core.serialization.OpDeserializer;
 import dgir.core.serialization.OpSerializer;
@@ -19,11 +20,16 @@ import tools.jackson.databind.annotation.JsonSerialize;
 /**
  * Abstract base class for all operations in the DGIR.
  *
- * <p>Each subclass represents a specific operation kind and is responsible for defining its details
- * via the associated abstract functions. The actual operation state is held in a backing {@link
+ * <p>
+ * Each subclass represents a specific operation kind and is responsible for
+ * defining its details
+ * via the associated abstract functions. The actual operation state is held in
+ * a backing {@link
  * Operation} instance; this class is a semantic wrapper around that state.
  *
- * <p>The Op class itself is never serialized — the backing {@link Operation} carries all necessary
+ * <p>
+ * The Op class itself is never serialized — the backing {@link Operation}
+ * carries all necessary
  * information to recreate the operation.
  */
 @JsonSerialize(using = OpSerializer.class)
@@ -59,33 +65,40 @@ public abstract class Op {
    * Get the namespace of this dialect. Only available after dialect registration.
    *
    * @return the namespace of this dialect.
-   * @throws RuntimeException if the operation is not set and the op not registered.
+   * @throws RuntimeException if the operation is not set and the op not
+   *                          registered.
    */
   @Contract(pure = true)
   public @NotNull String getNamespace() {
-    if (operation != null) return operation.getDetails().namespace();
+    if (operation != null)
+      return operation.getDetails().namespace();
     return OperationDetails.lookup(getClass()).orElseThrow().namespace();
   }
 
   /**
-   * Get a list of all default attributes for this operation. These attributes are populated on the
-   * operation when it is created, and can be used to provide default values for attributes that are
+   * Get a list of all default attributes for this operation. These attributes are
+   * populated on the
+   * operation when it is created, and can be used to provide default values for
+   * attributes that are
    * not explicitly set by the user.
    *
-   * <p>All attributes need to be defined at this point since it is a immutable property of the
+   * <p>
+   * All attributes need to be defined at this point since it is a immutable
+   * property of the
    * operation.
    *
    * @return a list of all default attributes for this operation.
    */
   @Contract(pure = true)
-  public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>>
-      defaultAttributes() {
+  public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
     return List::of;
   }
 
   /**
-   * Get a verifier function for this operation. This function is called during the verification
-   * phase of the operation, and is used to check that the operation is well-formed. The function
+   * Get a verifier function for this operation. This function is called during
+   * the verification
+   * phase of the operation, and is used to check that the operation is
+   * well-formed. The function
    * should return true if the operation is well-formed, and false otherwise.
    *
    * @return a verifier function for this operation.
@@ -93,11 +106,14 @@ public abstract class Op {
   public abstract @NotNull Function<@NotNull Operation, @NotNull Boolean> getVerifier();
 
   /**
-   * Get a factory function that creates an instance of this operation from a backing {@link
-   * Operation}. This is used during deserialization to reconstruct the Op instance from the
+   * Get a factory function that creates an instance of this operation from a
+   * backing {@link
+   * Operation}. This is used during deserialization to reconstruct the Op
+   * instance from the
    * serialized Operation state.
    *
-   * @return a factory function that creates an instance of this operation from a backing Operation.
+   * @return a factory function that creates an instance of this operation from a
+   *         backing Operation.
    */
   public abstract @NotNull Function<@NotNull Operation, @NotNull Op> getOpFactory();
 
@@ -105,7 +121,9 @@ public abstract class Op {
   // Constructors
   // =========================================================================
 
-  /** Every op must be default-constructible (used during dialect registration). */
+  /**
+   * Every op must be default-constructible (used during dialect registration).
+   */
   public Op() {
     this.operation = null;
   }
@@ -149,8 +167,8 @@ public abstract class Op {
   // =========================================================================
 
   @Contract(pure = true)
-  public boolean verify(boolean recursive) {
-    return getOperation().verify(recursive);
+  public boolean verify(VerifyOptions verifyOptions) {
+    return getOperation().verify(verifyOptions);
   }
 
   // =========================================================================
@@ -168,7 +186,8 @@ public abstract class Op {
   }
 
   /**
-   * Return this op as an instance of {@code clazz} if it matches, otherwise empty.
+   * Return this op as an instance of {@code clazz} if it matches, otherwise
+   * empty.
    *
    * @see Operation#as(Class)
    */
@@ -352,7 +371,8 @@ public abstract class Op {
   }
 
   /**
-   * Walks the parent chain and returns the first parent that implements the given trait.
+   * Walks the parent chain and returns the first parent that implements the given
+   * trait.
    *
    * @see Operation#getParentWithTrait(Class)
    */
@@ -424,7 +444,9 @@ public abstract class Op {
   // Object
   // =========================================================================
 
-  /** Equality is based on the backing operation — Op is only a semantic wrapper. */
+  /**
+   * Equality is based on the backing operation — Op is only a semantic wrapper.
+   */
   @Override
   public boolean equals(@Nullable Object obj) {
     return obj instanceof Op other && this.getOperation().equals(other.getOperation());
@@ -432,7 +454,8 @@ public abstract class Op {
 
   @Override
   public int hashCode() {
-    if (operation == null) return 0;
+    if (operation == null)
+      return 0;
     return operation.hashCode();
   }
 }
