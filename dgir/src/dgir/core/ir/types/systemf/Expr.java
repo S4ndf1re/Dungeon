@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
+import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
@@ -24,9 +25,16 @@ import dgir.core.ir.types.compatibility.Scope;
  */
 public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements Expression<Expr, SystemFType> {
   private Optional<SystemFType> inferredType;
+  private Optional<Operation> underlyingOperation;
 
   public Expr() {
     this.inferredType = Optional.empty();
+    this.underlyingOperation = Optional.empty();
+  }
+
+  public Expr(Expr other) {
+    this.inferredType = Optional.ofNullable(other.inferredType.orElse(null));
+    this.underlyingOperation = Optional.ofNullable(other.underlyingOperation.orElse(null));
   }
 
   @Override
@@ -80,6 +88,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
    */
   public Optional<Symbol<Expr, SystemFType>> getReferencedVariable() {
     return Optional.empty();
+  }
+
+  @Override
+  public void setUnderlyingOperation(Operation op) {
+    this.underlyingOperation = Optional.ofNullable(op);
+  }
+
+  @Override
+  public Optional<Operation> getUnderlyingOperation() {
+    return Optional.ofNullable(this.underlyingOperation.orElse(null));
   }
 
   protected void instantiateInner(TypeInference engine, Context solution) {
