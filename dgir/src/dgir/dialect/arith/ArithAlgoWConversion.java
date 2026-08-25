@@ -47,8 +47,8 @@ public final class ArithAlgoWConversion {
     InferFunction<Object> infFunc = (eng, env, data) -> {
       ArithOps.BinaryOp binOp = (ArithOps.BinaryOp) op.asOp();
 
-       var lhs = Symbol.<Expr, AlgorithmWType>of(binOp.getLhs());
-       var rhs = Symbol.<Expr, AlgorithmWType>of(binOp.getRhs());
+      var lhs = Symbol.<Expr, AlgorithmWType>of(binOp.getLhs());
+      var rhs = Symbol.<Expr, AlgorithmWType>of(binOp.getRhs());
       var binMode = binOp.getMode();
 
       InferResult resLhs = eng.infer(new Expr.ExprVar(lhs), env);
@@ -89,7 +89,9 @@ public final class ArithAlgoWConversion {
       return new InferFunctionResult(finalSubst, resultType);
     };
 
-    return new Expr.ExprCustom<Object>(null, infFunc);
+    var result = new Expr.ExprCustom<Object>(null, infFunc);
+    result.setUnderlyingOperation(op);
+    return result;
   }
 
   public static Expr convertUnaryOp(
@@ -99,7 +101,7 @@ public final class ArithAlgoWConversion {
     InferFunction<Object> infFunc = (eng, env, data) -> {
       ArithOps.UnaryOp unaryOp = (ArithOps.UnaryOp) op.asOp();
 
-       var lhs = Symbol.<Expr, AlgorithmWType>of(unaryOp.getOperand());
+      var lhs = Symbol.<Expr, AlgorithmWType>of(unaryOp.getOperand());
       var unaryMode = unaryOp.getMode();
 
       InferResult resLhs = eng.infer(new Expr.ExprVar(lhs), env);
@@ -132,7 +134,9 @@ public final class ArithAlgoWConversion {
       return new InferFunctionResult(finalSubst, resultType);
     };
 
-    return new Expr.ExprCustom<Object>(null, infFunc);
+    var result = new Expr.ExprCustom<Object>(null, infFunc);
+    result.setUnderlyingOperation(op);
+    return result;
   }
 
   public static Expr convertCastOp(
@@ -145,6 +149,8 @@ public final class ArithAlgoWConversion {
           .generalNominalTypeToInferenceType(unaryOp.getTargetType().asParameterizedNominalType(), null).getLeft());
     };
 
-    return new Expr.ExprCustom<Object>(null, infFunc);
+    var result = new Expr.ExprCustom<Object>(null, infFunc);
+    result.setUnderlyingOperation(op);
+    return result;
   }
 }

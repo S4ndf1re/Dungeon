@@ -44,7 +44,9 @@ public final class FuncAlgoWConversion {
       throw new IllegalArgumentException("Invalid, as the engine is not of type algorithm w");
     }
 
-    return new Expr.ExprAbs(List.copyOf(params), (Expr) blockAsExpr);
+    var expr = new Expr.ExprAbs(List.copyOf(params), (Expr) blockAsExpr);
+    expr.setUnderlyingOperation(op);
+    return expr;
   }
 
   public static Expr convertReturnOp(
@@ -59,6 +61,7 @@ public final class FuncAlgoWConversion {
       result = new Expr.ExprReturn(new Expr.ExprLit(new Literal.Unit()));
     }
 
+    result.setUnderlyingOperation(op);
     return result;
   }
 
@@ -67,8 +70,11 @@ public final class FuncAlgoWConversion {
       TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
 
-    return new Expr.ExprApp(new Expr.ExprVar(Symbol.of(callOp.getCallee())),
+    var result = new Expr.ExprApp(new Expr.ExprVar(Symbol.of(callOp.getCallee())),
         callOp.getOperands().stream()
             .map(operand -> (Expr) new Expr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
+    result.setUnderlyingOperation(op);
+
+    return result;
   }
 }
