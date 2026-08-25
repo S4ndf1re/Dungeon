@@ -1045,27 +1045,40 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       List<Expr> getChildren(D data);
     }
 
+    @FunctionalInterface
+    public interface ReplaceSymbolFunction<D> {
+      Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement, D data);
+    }
+
     private D data;
     private InferFunction<D> inferFn;
     private Optional<InstantiateFunction<D>> instFn;
     private Optional<GetChildrenFunction<D>> getChildrenFn;
+    private Optional<ReplaceSymbolFunction<D>> replaceSymbolFn;
 
     public ExprCustom(
         D data, InferFunction<D> inferFn) {
-      this(data, inferFn, null, null);
+      this(data, inferFn, null, null, null);
     }
 
     public ExprCustom(
         D data, InferFunction<D> inferFn, InstantiateFunction<D> instFn) {
-      this(data, inferFn, instFn, null);
+      this(data, inferFn, instFn, null, null);
     }
 
     public ExprCustom(
         D data, InferFunction<D> inferFn, InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn) {
+      this(data, inferFn, instFn, getChildrenFn, null);
+    }
+
+    public ExprCustom(
+        D data, InferFunction<D> inferFn, InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
+        ReplaceSymbolFunction<D> replaceSymbolFn) {
       this.data = data;
       this.inferFn = inferFn;
       this.instFn = Optional.ofNullable(instFn);
       this.getChildrenFn = Optional.ofNullable(getChildrenFn);
+      this.replaceSymbolFn = Optional.ofNullable(replaceSymbolFn);
     }
 
     public ExprCustom(ExprCustom<D> other) {
@@ -1074,6 +1087,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       this.inferFn = other.inferFn;
       this.instFn = other.instFn;
       this.getChildrenFn = other.getChildrenFn;
+      this.replaceSymbolFn = other.replaceSymbolFn;
     }
 
     @Override
@@ -1115,19 +1129,22 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
           this.data.equals(other.data) &&
           this.inferFn.equals(other.inferFn) &&
           this.instFn.equals(other.instFn) &&
-          this.getChildrenFn.equals(other.getChildrenFn)
+          this.getChildrenFn.equals(other.getChildrenFn) &&
+          this.replaceSymbolFn.equals(other.replaceSymbolFn)
           && super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.data, this.inferFn, this.instFn, this.getChildrenFn, super.hashCode());
+      return Objects.hash(this.data, this.inferFn, this.instFn, this.getChildrenFn, this.replaceSymbolFn, super.hashCode());
     }
 
     @Override
     public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-      // TODO Auto-generated method stub
-      throw new UnsupportedOperationException("Unimplemented method 'replaceSymbol'");
+      if (this.replaceSymbolFn.isPresent()) {
+        return this.replaceSymbolFn.get().replaceSymbol(original, replacement, this.data);
+      }
+      return this;
     }
   }
 }
