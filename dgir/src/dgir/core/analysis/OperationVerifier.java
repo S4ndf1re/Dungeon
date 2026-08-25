@@ -33,11 +33,33 @@ import org.jetbrains.annotations.Nullable;
  */
 public class OperationVerifier {
 
+  public static enum VerifyStructureOption {
+    WITH_OP_VERIFY,
+    ONLY_STRUCTURE;
+  }
+
+  public static enum VerifyDepthOption {
+    RECURSIVE,
+    ONLY_ONE;
+  }
+
+  public static record VerifyOptions(VerifyDepthOption depthOptions, VerifyStructureOption verifyStructure) {
+    public static final VerifyOptions FULL_VERIFICATION = new VerifyOptions(VerifyDepthOption.RECURSIVE, VerifyStructureOption.WITH_OP_VERIFY);
+
+    public boolean isRecursive() {
+      return this.depthOptions == VerifyDepthOption.RECURSIVE;
+    }
+
+    public boolean shouldVerifyOp() {
+      return this.verifyStructure == VerifyStructureOption.WITH_OP_VERIFY;
+    }
+  }
+
   // =========================================================================
   // Members
   // =========================================================================
 
-  private final boolean recursive;
+  private final VerifyOptions options;
 
   // =========================================================================
   // Constructors
@@ -48,8 +70,8 @@ public class OperationVerifier {
    *                  to verify only the
    *                  top-level operation and its immediate structure.
    */
-  public OperationVerifier(boolean recursive) {
-    this.recursive = recursive;
+  public OperationVerifier(VerifyOptions options) {
+    this.options = options;
   }
 
   // =========================================================================
@@ -157,7 +179,7 @@ public class OperationVerifier {
       // For operations: enqueue all blocks of all regions in reverse order so they
       // are
       // processed in forward order when popped from the stack
-      if (recursive && top.op != null) {
+      if (this.options.isRecursive() && top.op != null) {
         for (Region region : top.op.getRegions().reversed())
           for (Block block : region.getBlocks().reversed())
             workList.add(new WorkItem(block));
@@ -307,7 +329,8 @@ public class OperationVerifier {
     // Verify traits first, then the operation's own verify()
     if (!details.get().verifyTraits(operation))
       return false;
-    if (!details.get().verify(operation)) {
+
+    if (this.options.shouldVerifyOp() && !details.get().verify(operation)) {
       operation.emitError("Operation failed verification through registered details.");
       return false;
     }
@@ -337,7 +360,7 @@ public class OperationVerifier {
   boolean verifyOnExit(@NotNull Operation op) {
     // Collect and re-verify all isolated-from-above child operations in parallel
     List<Operation> isolatedOps = new ArrayList<>();
-    if (recursive)
+    if (this.options.isRecursive())
       for (Region region : op.getRegions())
         for (Block block : region.getBlocks())
           for (Operation o : block.getOperations())
