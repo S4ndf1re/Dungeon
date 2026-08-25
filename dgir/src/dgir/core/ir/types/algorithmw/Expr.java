@@ -190,8 +190,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
   public static final class ExprAnn extends Expr {
 
-    private final Expr expr;
-    private final AlgorithmWType type;
+    public final Expr expr;
+    public final AlgorithmWType type;
 
     public ExprAnn(Expr expr, AlgorithmWType type) {
       this.expr = expr;
@@ -258,7 +258,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
   public static final class ExprLit extends Expr {
 
-    private Literal value;
+    public Literal value;
 
     public ExprLit(Literal value) {
       this.value = value;
@@ -409,7 +409,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
   public static final class ExprVar extends Expr {
 
-    private final Symbol<Expr, AlgorithmWType> name;
+    public final Symbol<Expr, AlgorithmWType> name;
 
     public ExprVar(Symbol<Expr, AlgorithmWType> name) {
       this.name = name;
@@ -641,8 +641,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
   public static final class ExprAbs extends Expr {
 
-    private final List<Symbol<Expr, AlgorithmWType>> params;
-    private final Expr body;
+    public final List<Symbol<Expr, AlgorithmWType>> params;
+    public final Expr body;
 
     public ExprAbs(Symbol<Expr, AlgorithmWType> param, Expr body) {
       this.params = List.of(param);
@@ -961,7 +961,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
   }
 
   public static class ExprReturn extends Expr {
-    private Expr value;
+    public Expr value;
 
     public ExprReturn(Expr value) {
       this.value = value;
