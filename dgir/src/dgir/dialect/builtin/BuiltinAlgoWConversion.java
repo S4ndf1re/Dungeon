@@ -37,6 +37,8 @@ public final class BuiltinAlgoWConversion {
 
     var generalBlock = new GeneralBlock();
     for (var fnOp : fnOps) {
+      // TODO: change generalBlock to allow for assumed types!
+      // Specifically for main, this might be needed to always assume () -> () types
       generalBlock.addOperation(fnOp);
     }
 
@@ -46,6 +48,7 @@ public final class BuiltinAlgoWConversion {
 
     generalBlock.addOperation(new FuncOps.CallOp(Location.UNKNOWN, "main", FuncTypes.FuncType.empty()).getOperation());
     var convertedBlock = engine.generalBlockToInferenceExpr(generalBlock);
+    convertedBlock.setUnderlyingOperation(op);
 
     return convertedBlock;
   }
@@ -55,8 +58,8 @@ public final class BuiltinAlgoWConversion {
       TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> engine) {
     BuiltinOps.IdOp idOp = (BuiltinOps.IdOp) op.asOp();
 
-     var param = Symbol.<Expr, AlgorithmWType>of(idOp.getOperand());
-     var anonParam = Symbol.<Expr, AlgorithmWType>of(idOp.getResult());
+    var param = Symbol.<Expr, AlgorithmWType>of(idOp.getOperand());
+    var anonParam = Symbol.<Expr, AlgorithmWType>of(idOp.getResult());
 
     return new Expr.ExprApp(new Expr.ExprAbs(anonParam, new Expr.ExprVar(anonParam)), new Expr.ExprVar(param));
   }
