@@ -275,6 +275,36 @@ public final class Operation implements Serializable, Cloneable {
   }
 
   // =========================================================================
+  // Helper for Operation instantiation after type system infer
+  // =========================================================================
+
+  public Optional<Value> reinstantiateOutputValue() {
+    if (this.getOutput().isPresent()) {
+      var oldValue = this.getOutput().get().getValue();
+      var newValue = new Value(oldValue.getType(), oldValue.getDebugInfo());
+      this.getOutput().get().setValue(newValue);
+      return Optional.ofNullable(newValue);
+    }
+    return Optional.empty();
+  }
+
+  public void setInputValues(List<Value> values) {
+    assert this.getOperands().size() == values.size();
+
+    for (int i = 0; i < values.size(); i++) {
+      this.getOperands().get(i).setValue(values.get(i));
+    }
+  }
+
+  public void setInputBlocks(List<Block> blocks) {
+    assert this.getBlockOperands().size() == blocks.size();
+
+    for (int i = 0; i < blocks.size(); i++) {
+      this.getBlockOperands().get(i).setValue(blocks.get(i));
+    }
+  }
+
+  // =========================================================================
   // Verification
   // =========================================================================
 
