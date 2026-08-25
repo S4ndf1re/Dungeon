@@ -9,6 +9,7 @@ import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.io.IoOps.PrintOp;
 import static org.junit.jupiter.api.Assertions.*;
 
+import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.debug.Location;
 import dgir.core.ir.*;
 import dgir.core.serialization.Utils;
@@ -307,8 +308,6 @@ public class CoreTests {
     Optional<ProgramOp> newProgram = new Operation(programOp.getOperation()).as(ProgramOp.class);
     assert newProgram.isPresent();
     var newProgramOp = newProgram.get();
-    newProgramOp.verify(true);
-    assertTrue(newProgramOp.verify(true));
     assertTrue(DgirTestUtils.testValidityAndSerialization(newProgramOp));
 
   }

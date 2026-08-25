@@ -1,6 +1,7 @@
 import static dgir.dialect.arith.ArithOps.ConstantOp;
 import static dgir.dialect.scf.ScfOps.*;
 
+import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.debug.Location;
 import dgir.core.ir.Dialect;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,7 +21,8 @@ public class SimpleScfTest {
     ScopeOp scopeOp = new ScopeOp(LOC);
     scopeOp.getRegion().getEntryBlock().addOperation(new ContinueOp(LOC));
 
-    System.out.println("Scope verify: " + scopeOp.verify(true));
+    System.out.println("Scope verify: "
+        + scopeOp.verify(VerifyOptions.FULL_VERIFICATION));
     System.out.println("Has terminator: " + scopeOp.getRegion().getEntryBlock().hasTerminator());
   }
 
@@ -31,8 +33,8 @@ public class SimpleScfTest {
 
     ifOp.getThenRegion().getEntryBlock().addOperation(new ContinueOp(LOC));
 
-    System.out.println("ConstOp verify: " + condOp.verify(true));
-    System.out.println("If verify: " + ifOp.verify(true));
+    System.out.println("ConstOp verify: " + condOp.verify(VerifyOptions.FULL_VERIFICATION));
+    System.out.println("If verify: " + ifOp.verify(VerifyOptions.FULL_VERIFICATION));
     System.out.println(
         "Then has terminator: " + ifOp.getThenRegion().getEntryBlock().hasTerminator());
   }
@@ -44,17 +46,16 @@ public class SimpleScfTest {
     var upperBound = new ConstantOp(LOC, 10);
     var step = new ConstantOp(LOC, 1);
 
-    ForOp forOp =
-        new ForOp(
-            LOC,
-            initValue.getResult(),
-            lowerBound.getResult(),
-            upperBound.getResult(),
-            step.getResult());
+    ForOp forOp = new ForOp(
+        LOC,
+        initValue.getResult(),
+        lowerBound.getResult(),
+        upperBound.getResult(),
+        step.getResult());
 
     forOp.getRegion().getEntryBlock().addOperation(new ContinueOp(LOC));
 
-    System.out.println("For verify: " + forOp.verify(true));
+    System.out.println("For verify: " + forOp.verify(VerifyOptions.FULL_VERIFICATION));
     System.out.println("Has induction value: " + true);
     System.out.println("For has terminator: " + forOp.getRegion().getEntryBlock().hasTerminator());
   }

@@ -4,6 +4,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import dgir.core.analysis.DotCFG;
+import dgir.core.analysis.OperationVerifier.VerifyDepthOption;
+import dgir.core.analysis.OperationVerifier.VerifyOptions;
+import dgir.core.analysis.OperationVerifier.VerifyStructureOption;
 import dgir.core.debug.Location;
 import dgir.core.ir.Op;
 import dgir.core.ir.Operation;
@@ -36,31 +39,28 @@ public class DgirTestUtils {
   // The file path for saved files (cfg and image)
   public static String savePath = "test_results/";
 
-  private static final Pattern UUID_PATTERN =
-      Pattern.compile(
-          "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+  private static final Pattern UUID_PATTERN = Pattern.compile(
+      "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
   public static boolean testValidityAndSerialization(Op op) {
     String result = mapper.writeValueAsString(op);
-    if (printResult) System.out.println(result);
+    if (printResult)
+      System.out.println(result);
 
     assertEquals(
         "",
         DgirTestUtils.compareSerializedOperations(mapper, op.getOperation(), result),
         "Serialization mismatch for op: " + op.getClass().getSimpleName());
 
-    String callerName =
-        DgirCoreUtils.STACK_WALKER.walk(
-            stream ->
-                stream
-                    .skip(1)
-                    .findFirst()
-                    .map(
-                        stackFrame ->
-                            stackFrame.getDeclaringClass().getSimpleName()
-                                + "."
-                                + stackFrame.getMethodName())
-                    .orElse("unknown"));
+    String callerName = DgirCoreUtils.STACK_WALKER.walk(
+        stream -> stream
+            .skip(1)
+            .findFirst()
+            .map(
+                stackFrame -> stackFrame.getDeclaringClass().getSimpleName()
+                    + "."
+                    + stackFrame.getMethodName())
+            .orElse("unknown"));
 
     // Ensure the output directory exists before writing files
     try {
@@ -82,7 +82,7 @@ public class DgirTestUtils {
     }
 
     // Check that this is a valid op, otherwise we can't generate a cfg
-    if (!op.verify(true)) {
+    if (!op.verify( VerifyOptions.FULL_VERIFICATION)) {
       System.out.println(
           "Skipping cfg generation for invalid op: "
               + op.getClass().getSimpleName()
@@ -95,7 +95,8 @@ public class DgirTestUtils {
       DotCFG.Cluster cfg = DotCFG.buildCfgCluster(op.getOperation());
 
       // Print the cfg to console
-      if (printCfg) System.out.println(cfg);
+      if (printCfg)
+        System.out.println(cfg);
 
       // Save the cfg to a file with the caller name as the file name
       if (saveCfg) {
@@ -110,7 +111,8 @@ public class DgirTestUtils {
         }
       }
 
-      // Generate an image of the cfg and save it to a file with the caller name as the file name
+      // Generate an image of the cfg and save it to a file with the caller name as
+      // the file name
       if (saveCfgImage) {
         String filePath = savePath + callerName + ".png";
         try {
@@ -157,8 +159,7 @@ public class DgirTestUtils {
     StringBuffer sb = new StringBuffer();
     while (matcher.find()) {
       UUID uuid = UUID.fromString(matcher.group());
-      String replacement =
-          uuidMap.computeIfAbsent(uuid, u -> "UUID_" + uuidCounter.getAndIncrement());
+      String replacement = uuidMap.computeIfAbsent(uuid, u -> "UUID_" + uuidCounter.getAndIncrement());
       matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
     }
     matcher.appendTail(sb);
@@ -166,11 +167,13 @@ public class DgirTestUtils {
   }
 
   /**
-   * Create a new string based on the initial string. The string is printed in whole and line by
-   * line the difference is printed next to the original line if there is a difference. The
+   * Create a new string based on the initial string. The string is printed in
+   * whole and line by
+   * line the difference is printed next to the original line if there is a
+   * difference. The
    * difference is separated by a " | " symbol.
    *
-   * @param base The original string
+   * @param base     The original string
    * @param modified The modified string
    * @return the diff string
    */
@@ -188,7 +191,8 @@ public class DgirTestUtils {
     for (int i = 0; i < maxLines; i++) {
       String baseLine = i < baseLines.length ? baseLines[i] : "";
       String modifiedLine = i < modifiedLines.length ? modifiedLines[i] : "";
-      // Pad the base line to the maximum length of the base lines for better alignment.
+      // Pad the base line to the maximum length of the base lines for better
+      // alignment.
       diff.append(String.format("%-" + maxBaseLength + "s", baseLine));
       diff.append(" | ");
       if (!baseLine.trim().equals(modifiedLine.trim())) {
@@ -204,7 +208,8 @@ public class DgirTestUtils {
   /**
    * Create a new ProgramOp with a func.func op inside with the symbol_name "main"
    *
-   * @return a pair of the created ProgramOp and the block contained in the func.func op
+   * @return a pair of the created ProgramOp and the block contained in the
+   *         func.func op
    */
   public static Pair<ProgramOp, FuncOp> createProgramOpWithEntryFunc() {
     ProgramOp programOp = new ProgramOp(Location.UNKNOWN);
