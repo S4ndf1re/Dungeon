@@ -132,8 +132,6 @@ public abstract class Operand<
   }
 
   public void setValueIn(ValueT newValue, Region region) {
-    var parentRegion = this.owner.getParentRegion();
-    var allParentRegions = this.owner.getAllParentRegions();
     if (this.owner.getParentRegion().map(parent -> parent.equals(region)).orElse(false)
         || this.owner.getAllParentRegions().contains(region)) {
       this.setValue(newValue);

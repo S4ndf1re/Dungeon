@@ -2,6 +2,7 @@ package dgir.vm.api;
 
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 
+import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
@@ -118,7 +119,7 @@ public class VM {
   }
 
   public void init(@NotNull ProgramOp program) {
-    assert program.verify(true) : "Program is invalid.";
+    assert program.verify(VerifyOptions.FULL_VERIFICATION) : "Program is invalid.";
     this.program = program;
     state = new State();
   }

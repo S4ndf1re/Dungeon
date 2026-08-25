@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import blockly.dgir.compiler.java.CompilationResult;
 import blockly.dgir.compiler.java.JavaCompiler;
 import blockly.dgir.vm.dialect.dg.DungeonDialectRunner;
+import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.serialization.Utils;
 import dgir.core.utility.DgirCoreUtils;
 import dgir.core.utility.IrToText;
@@ -51,13 +52,13 @@ public class CompilerTestBase {
       System.out.println("Failed to create output directory '" + savePath + "': " + e);
     }
 
-    CompilationResult compilationResult =
-        JavaCompiler.compileSource(formatedCode, callerName + ".java");
+    CompilationResult compilationResult = JavaCompiler.compileSource(formatedCode, callerName + ".java");
     assert compilationResult instanceof CompilationResult.Success
         : "Compilation failed" + compilationResult;
     BuiltinOps.ProgramOp program = ((CompilationResult.Success) compilationResult).program();
 
-    if (printSource) System.out.println(formatedCode);
+    if (printSource)
+      System.out.println(formatedCode);
     if (saveSource) {
       String filePath = savePath + callerName + ".java";
       try {
@@ -72,7 +73,8 @@ public class CompilerTestBase {
 
     String result = Utils.getMapper(true).writeValueAsString(program);
 
-    if (printJsonResult) System.out.println(result);
+    if (printJsonResult)
+      System.out.println(result);
     if (saveJsonResult) {
       String filePath = savePath + callerName + ".json";
       try {
@@ -85,7 +87,8 @@ public class CompilerTestBase {
       }
     }
 
-    if (printDgirResult) System.out.println(IrToText.toText(program.getOperation()));
+    if (printDgirResult)
+      System.out.println(IrToText.toText(program.getOperation()));
     if (saveDgirResult) {
       String filePath = savePath + callerName + ".dgir";
       try {
@@ -99,9 +102,11 @@ public class CompilerTestBase {
     }
 
     assertTrue(
-        program.verify(true), "Verification failed for " + callerName + ":\n" + result + "\n");
+        program.verify(VerifyOptions.FULL_VERIFICATION),
+        "Verification failed for " + callerName + ":\n" + result + "\n");
 
-    if (!run) return;
+    if (!run)
+      return;
 
     vm.init(program);
     try {
