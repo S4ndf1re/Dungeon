@@ -8,8 +8,9 @@ import dgir.core.ir.types.compatibility.ExprOrOperator;
 
 public interface Expression<E extends Expression<E, T>, T extends Type> {
 
-  public interface SolutionContext<T extends Type> {
-    T apply(T type);
+  @FunctionalInterface
+  public interface InstantiateOperation {
+    public Operation instantiate();
   }
 
   public void setInferredType(T inferredType);
@@ -50,5 +51,9 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
   public void setUnderlyingOperation(Operation op);
 
   public Optional<Operation> getUnderlyingOperation();
+
+  public void setInstantiateOperationCallback(InstantiateOperation callback);
+
+  public Optional<InstantiateOperation> getInstantiateOperationCallback();
 
 }
