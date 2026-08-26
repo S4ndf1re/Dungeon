@@ -788,22 +788,25 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-      // Oly replace in the body, as the functions parameters are always the same
+      // TODO: maybe, it is actually smarter to replace the parameters as well, as
+      // those might need replacement when instantiating the operations from the
+      // expressions!
+      //
+      // If the symbol is shadowed by one of the bound values, don't replace in the
+      // body!
+      if (this.params.stream().anyMatch(param -> param.equals(original))) {
+        return this;
+      }
+
+      // Only replace in the body, as the functions parameters are always the same
       // value!
       return new ExprAbs(this, this.params, body.replaceSymbol(original, replacement));
     }
 
     @Override
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
-      // Instantiate body and replace all parameter values with original values.
-      // This is usefull for later Operation generation
       var instBody = this.body.instantiate(engine, env, solution);
-      // var newParams = new ArrayList<Symbol<Expr, AlgorithmWType>>();
-      // for (var param : this.params) {
-      // var newParam = Symbol.<Expr, AlgorithmWType>of(new Value());
-      // instBody = instBody.replaceSymbol(param, newParam);
-      // newParams.add(param);
-      // }
+
       return new ExprAbs(this, List.copyOf(this.params), instBody);
     }
   }
@@ -978,6 +981,12 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+      // If symbol is shadowed by the env created by this let binding, do not
+      // overwrite the value!
+      if (this.bindings.stream().anyMatch(bnd -> bnd.getLeft().equals(original))) {
+        return this;
+      }
+
       var newBody = this.body.replaceSymbol(original, replacement);
       var newBindings = this.bindings.stream()
           .map(binding -> Pair.of(binding.getLeft(), binding.getRight().replaceSymbol(original, replacement))).toList();
