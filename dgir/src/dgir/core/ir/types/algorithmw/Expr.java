@@ -26,15 +26,18 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
   private Optional<AlgorithmWType> inferredType;
   private Optional<Operation> underlyingOperation;
+  private Optional<InstantiateOperation> instOp;
 
   protected Expr() {
     this.inferredType = Optional.empty();
     this.underlyingOperation = Optional.empty();
+    this.instOp = Optional.empty();
   }
 
   protected Expr(Expr other) {
     this.inferredType = Optional.ofNullable(other.inferredType.orElse(null));
     this.underlyingOperation = Optional.ofNullable(other.underlyingOperation.orElse(null));
+    this.instOp = Optional.ofNullable(this.instOp.orElse(null));
   }
 
   // Make sure, that exprs always equals via object reference (needed for in-set
@@ -92,6 +95,16 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
   @Override
   public Optional<Operation> getUnderlyingOperation() {
     return Optional.ofNullable(this.underlyingOperation.orElse(null));
+  }
+
+  @Override
+  public void setInstantiateOperationCallback(InstantiateOperation callback) {
+    this.instOp = Optional.ofNullable(callback);
+  }
+
+  @Override
+  public Optional<InstantiateOperation> getInstantiateOperationCallback() {
+    return Optional.ofNullable(this.instOp.orElse(null));
   }
 
   /**
