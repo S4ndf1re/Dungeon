@@ -26,15 +26,18 @@ import dgir.core.ir.types.compatibility.Scope;
 public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements Expression<Expr, SystemFType> {
   private Optional<SystemFType> inferredType;
   private Optional<Operation> underlyingOperation;
+  private Optional<InstantiateOperation> instOp;
 
   public Expr() {
     this.inferredType = Optional.empty();
     this.underlyingOperation = Optional.empty();
+    this.instOp = Optional.empty();
   }
 
   public Expr(Expr other) {
     this.inferredType = Optional.ofNullable(other.inferredType.orElse(null));
     this.underlyingOperation = Optional.ofNullable(other.underlyingOperation.orElse(null));
+    this.instOp = Optional.ofNullable(this.instOp.orElse(null));
   }
 
   @Override
@@ -98,6 +101,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
   @Override
   public Optional<Operation> getUnderlyingOperation() {
     return Optional.ofNullable(this.underlyingOperation.orElse(null));
+  }
+
+  @Override
+  public void setInstantiateOperationCallback(InstantiateOperation callback) {
+    this.instOp = Optional.ofNullable(callback);
+  }
+
+  @Override
+  public Optional<InstantiateOperation> getInstantiateOperationCallback() {
+    return Optional.ofNullable(this.instOp.orElse(null));
   }
 
   protected void instantiateInner(TypeInference engine, Context solution) {
