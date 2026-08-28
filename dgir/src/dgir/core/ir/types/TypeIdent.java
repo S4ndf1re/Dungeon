@@ -5,10 +5,11 @@ import java.util.HashMap;
 public class TypeIdent {
 
   private static HashMap<String, TypeIdent> uniquedTypes = new HashMap<>();
-  public static TypeIdent TYPE_IDENT_UNIT = TypeIdent.from("Unit");
-  public static TypeIdent TYPE_IDENT_INT = TypeIdent.from("Int");
-  public static TypeIdent TYPE_IDENT_BOOL = TypeIdent.from("Bool");
-  public static TypeIdent TYPE_IDENT_LIST = TypeIdent.from("List");
+  public static TypeIdent TYPE_IDENT_UNIT = TypeIdent.from("unit");
+  public static TypeIdent TYPE_IDENT_INT = TypeIdent.from("int32");
+  public static TypeIdent TYPE_IDENT_BOOL = TypeIdent.from("bool");
+  public static TypeIdent TYPE_IDENT_LIST = TypeIdent.from("list");
+  public static TypeIdent TYPE_IDENT_FUNC = TypeIdent.from("func.func");
 
   private final String ident;
 

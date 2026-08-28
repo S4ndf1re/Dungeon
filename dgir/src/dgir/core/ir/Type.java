@@ -317,9 +317,10 @@ public abstract class Type extends MaybeType {
   }
 
   public static Type fromGeneralParameterizedNominalType(GeneralParameterizedNominalType nominalType) {
-    return TypeDetails.get(nominalType.getIdent().asStringIdent()).map(details -> {
+    var type = TypeDetails.get(nominalType.getIdent().asStringIdent()).map(details -> {
       return details.generalParameterizedNominalTypeFactory().apply(Pair.of(nominalType, details));
-    }).orElseThrow();
+    });
+    return type.orElseThrow();
   }
 
   /**

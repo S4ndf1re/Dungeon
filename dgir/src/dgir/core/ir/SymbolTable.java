@@ -63,6 +63,7 @@ public class SymbolTable {
         return op;
       }
     }
+
     return null;
   }
 

@@ -96,20 +96,28 @@ public sealed interface FuncTypes {
               : "func.func was expected, but received" + typeArg.getLeft().getIdent();
 
           var gpnt = typeArg.getLeft();
+
           var params = gpnt.getTypedParameters();
 
-          assert params.size() >= 1 : "a function must at least have its return type specified";
+          assert gpnt.getIdent() == TypeIdent.TYPE_IDENT_FUNC;
+          assert params.size() >= 2 : "a function must at least have type Unit -> Unit";
           assert !params.stream().anyMatch(param -> param.isUnknown() || param.isNumeric())
               : "cannot convert unknown or numeric types to concrete function type";
 
+          // Only collect inputs, if the function actually takes a parameter at all!
+          // I.e. if the parameter type is known and of type 'unit' and there are only one
+          // input and one output parameter!
           ArrayList<MaybeType> inputs = new ArrayList<>();
-          // Select all parameters that are not the return type
-          for (var param : params.subList(0, params.size() - 1)) {
-            if (param.isUnknown()) {
-              throw new IllegalArgumentException(
-                  "parameter is of type Unknown, which is not parseable. This was already checked without success");
+          if (!params.get(0).isConcrete() || params.get(0).getConcrete().getIdent() != TypeIdent.TYPE_IDENT_UNIT
+              || params.size() > 2) {
+            // Select all parameters that are not the return type
+            for (var param : params.subList(0, params.size() - 1)) {
+              if (param.isUnknown()) {
+                throw new IllegalArgumentException(
+                    "parameter is of type Unknown, which is not parseable. This was already checked without success");
+              }
+              inputs.add(MaybeType.of(Type.fromGeneralParameterizedNominalType(param.getConcrete())));
             }
-            inputs.add(MaybeType.of(Type.fromGeneralParameterizedNominalType(param.getConcrete())));
           }
 
           // This will always return a non-null value!
@@ -207,6 +215,10 @@ public sealed interface FuncTypes {
       }
 
       ArrayList<GeneralParameterizedNominalType.GeneralTypeParameter> typeParams = new ArrayList<>(collectedInputs);
+      // Add the unit type as the parameter value!
+      if (typeParams.isEmpty()) {
+        typeParams.add(GeneralTypeParameter.of(new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_UNIT)));
+      }
       typeParams.add(output);
       return new GeneralParameterizedNominalType(TypeIdent.from(this.getIdent()), List.copyOf(typeParams));
     }

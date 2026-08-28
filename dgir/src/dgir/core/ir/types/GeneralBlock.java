@@ -9,9 +9,6 @@ import dgir.core.ir.Operation;
 /**
  * A general list of {@link Operation}s that will be transformed into a nested
  * structure of let bindings.
- * FIXME: Large blocks could potentially lead to stack overflows within the
- * typechecking algorithm! This can be mitigated using let* expressions by
- * default (both SystemF and AlgorithmW use them in the default implementation)
  */
 public class GeneralBlock {
   private ArrayList<Operation> operations;

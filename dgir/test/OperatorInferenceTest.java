@@ -34,7 +34,27 @@ public class OperatorInferenceTest {
   }
 
   @Test
-  public void simpleFunctionInference() {
+  public void simpleFunctionInference1() {
+    var inference = new AlgorithmWInference();
+    var solver = inference.getSolverInstance();
+
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    ProgramOp programOp = entry.getLeft();
+    FuncOp funcMainOp = entry.getRight();
+
+    var numberOp = funcMainOp.addOperation(new ConstantOp(LOC, 42), 0);
+    var idOp = funcMainOp.addOperation(new IdOp(LOC, numberOp.getResult()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC, idOp.getResult()), 0);
+
+    var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    var solved = solvedPair.getLeft();
+    assert solved instanceof AlgorithmWType;
+    assert solved instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("int32"));
+  }
+
+  @Test
+  public void simpleFunctionInference2() {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
 
