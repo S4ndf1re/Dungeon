@@ -180,6 +180,14 @@ public final class Operation implements Serializable, Cloneable {
   /** The regions of this operation. */
   private final @NotNull @Unmodifiable List<@NotNull Region> regions;
 
+  /**
+   * A temporary region buffer, that may hold any number of blocks. Those blocks
+   * actually belong to different operations, but are not yet assignable to the
+   * target region. This could be because the operation is instantiated bottom up,
+   * as common in the Expr -> Operation conversion in type systems.
+   */
+  private final @NotNull @Unmodifiable Region temporaryRegion;
+
   /** The block containing this operation. */
   private @Nullable Block parent = null;
 
@@ -241,6 +249,8 @@ public final class Operation implements Serializable, Cloneable {
     this.regions = Collections.unmodifiableList(regionsList);
 
     this.copyFrom = Optional.empty();
+
+    this.temporaryRegion = new Region(this, List.of(), List.of());
   }
 
   public Operation(@NotNull Operation other) {
@@ -272,6 +282,7 @@ public final class Operation implements Serializable, Cloneable {
     // operation. Hence a full deep copy is ok
     this.regions = other.regions.stream().map(region -> new Region(region, this)).toList();
 
+    this.temporaryRegion = new Region(other.temporaryRegion, this);
   }
 
   // =========================================================================
@@ -843,6 +854,19 @@ public final class Operation implements Serializable, Cloneable {
     if (regions.isEmpty())
       throw new NoSuchElementException("Operation has no regions: " + this);
     return regions.getFirst();
+  }
+
+  public void appendTemporaryBlocksToOtherRegion(Region other) {
+    var temporaryBlocks = this.temporaryRegion.getBlocks();
+
+    for (var block : temporaryBlocks) {
+      this.temporaryRegion.removeBlock(block);
+      other.addBlock(block);
+    }
+  }
+
+  public Region getTemporaryRegion() {
+    return this.temporaryRegion;
   }
 
   // =========================================================================
