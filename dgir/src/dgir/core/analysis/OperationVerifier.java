@@ -44,7 +44,8 @@ public class OperationVerifier {
   }
 
   public static record VerifyOptions(VerifyDepthOption depthOptions, VerifyStructureOption verifyStructure) {
-    public static final VerifyOptions FULL_VERIFICATION = new VerifyOptions(VerifyDepthOption.RECURSIVE, VerifyStructureOption.WITH_OP_VERIFY);
+    public static final VerifyOptions FULL_VERIFICATION = new VerifyOptions(VerifyDepthOption.RECURSIVE,
+        VerifyStructureOption.WITH_OP_VERIFY);
 
     public boolean isRecursive() {
       return this.depthOptions == VerifyDepthOption.RECURSIVE;
@@ -212,6 +213,12 @@ public class OperationVerifier {
         operation.emitError("Operation has operand with null value");
         return false;
       }
+    }
+
+    // The operations temporary region must have no blocks!
+    if (!operation.getTemporaryRegion().getBlocks().isEmpty()) {
+      operation.emitError("Operation must not contain blocks in the temporary region");
+      return false;
     }
 
     {
