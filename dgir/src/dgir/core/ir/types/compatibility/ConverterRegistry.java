@@ -15,16 +15,16 @@ import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 public class ConverterRegistry {
 
   @FunctionalInterface
-  public static interface ConverterFunction<EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type> {
+  public static interface ConverterFunction<EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<EO, E, T>> {
     E convertToExpression(
         Operation op,
-        TypeInferenceSolver<EO, E, T> engine);
+        SolverT engine);
   }
 
   public static final class TypeDialectConverterRegistry {
-    private HashMap<Class<? extends Op>, ConverterFunction<?, ?, ?>> converters = new HashMap<>();
+    private HashMap<Class<? extends Op>, ConverterFunction<?, ?, ?, ?>> converters = new HashMap<>();
 
-    public void addOpConverter(Class<? extends Op> op, ConverterFunction<?, ?, ?> fn) {
+    public void addOpConverter(Class<? extends Op> op, ConverterFunction<?, ?, ?, ?> fn) {
       this.converters.put(op, fn);
     }
 
@@ -32,7 +32,7 @@ public class ConverterRegistry {
       this.converters.remove(op);
     }
 
-    public ConverterFunction<?, ?, ?> getConverter(Class<? extends Op> op) {
+    public ConverterFunction<?, ?, ?, ?> getConverter(Class<? extends Op> op) {
       var converter = this.converters.get(op);
       if (converter == null) {
         throw new RuntimeException("Op " + op + " is not registered");
@@ -62,9 +62,9 @@ public class ConverterRegistry {
   }
 
   @SafeVarargs
-  public static <E extends Expression<E, T>, T extends Type> void addOperatorsToDialect(
-      Class<? extends TypeDialect<?, E, T>> dialect,
-      Pair<Class<? extends Op>, ConverterFunction<ExprOrOperator<E, T>, E, T>>... pairs) {
+  public static <EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<EO, E, T>> void addOperatorsToDialect(
+      Class<? extends TypeDialect<EO, E, T>> dialect,
+      Pair<Class<? extends Op>, ConverterFunction<EO, E, T, SolverT>>... pairs) {
 
     var convertersForDialect = converters.get(dialect);
     if (convertersForDialect == null) {

@@ -26,7 +26,7 @@ import dgir.core.ir.types.compatibility.Scope;
 public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements Expression<Expr, SystemFType> {
   private Optional<SystemFType> inferredType;
   private Optional<Operation> underlyingOperation;
-  private Optional<InstantiateOperation> instOp;
+  private Optional<InstantiateOperation<Expr, SystemFType>> instOp;
 
   public Expr() {
     this.inferredType = Optional.empty();
@@ -104,12 +104,22 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
   }
 
   @Override
-  public void setInstantiateOperationCallback(InstantiateOperation callback) {
+  public Optional<Integer> getParentScopePosition() {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<Expr> getParentScopeExpr() {
+    return Optional.empty();
+  }
+
+  @Override
+  public void setInstantiateOperationCallback(InstantiateOperation<Expr, SystemFType> callback) {
     this.instOp = Optional.ofNullable(callback);
   }
 
   @Override
-  public Optional<InstantiateOperation> getInstantiateOperationCallback() {
+  public Optional<InstantiateOperation<Expr, SystemFType>> getInstantiateOperationCallback() {
     return Optional.ofNullable(this.instOp.orElse(null));
   }
 

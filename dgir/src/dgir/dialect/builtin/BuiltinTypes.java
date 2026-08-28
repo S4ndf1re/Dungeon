@@ -656,6 +656,10 @@ public sealed interface BuiltinTypes {
     public void initDefaultTypeInstances() {
     }
 
+    static @NotNull @Unmodifiable List<TypeDescriptor> getDescriptors() {
+      return List.of(new UnitTypeDescriptor());
+    }
+
   }
 
   final class UnitType extends Type implements BuiltinTypes {
