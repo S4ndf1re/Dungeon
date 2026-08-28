@@ -1,3 +1,4 @@
+import dgir.core.ir.Dialect;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
@@ -11,9 +12,15 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class AlgorithmWTest {
+
+  @BeforeEach
+  public void setup() {
+    Dialect.registerAllDialects();
+  }
 
   @Test
   public void algorithmWDialectTest() {
@@ -32,7 +39,7 @@ public class AlgorithmWTest {
     assert allowedExpression.contains(Expr.ExprApp.class);
     assert allowedExpression.contains(Expr.ExprAnn.class);
     assert allowedExpression.contains(Expr.ExprTuple.class);
-    assert allowedExpression.contains(Expr.ExprLet.class);
+    assert allowedExpression.contains(Expr.ExprLetRec.class);
     assert allowedExpression.contains(Expr.ExprVar.class);
     assert allowedExpression.contains(Expr.ExprReturn.class);
     assert allowedExpression.contains(Expr.ExprCustom.class);
@@ -52,7 +59,7 @@ public class AlgorithmWTest {
     var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in (const 42 true, const true 42)
-    Expr expr = new Expr.ExprLet(
+    Expr expr = new Expr.ExprLetRec(
         cnst,
         new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
         new Expr.ExprApp(
@@ -80,7 +87,7 @@ public class AlgorithmWTest {
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprAnn(
-        new Expr.ExprLet(
+        new Expr.ExprLetRec(
             cnst,
             new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
             new Expr.ExprApp(
@@ -111,7 +118,7 @@ public class AlgorithmWTest {
 
     // let const = \x -> \y -> x in const 42 true
     Expr expr = new Expr.ExprAnn(
-        new Expr.ExprLet(
+        new Expr.ExprLetRec(
             cnst,
             new Expr.ExprAnn(
                 new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
@@ -154,7 +161,7 @@ public class AlgorithmWTest {
     // b = \y.(a y)
     // in (a 10)
 
-    Expr expr = new Expr.ExprLet(
+    Expr expr = new Expr.ExprLetRec(
         List.of(
             Pair.of(a,
                 new Expr.ExprAnn(new Expr.ExprAbs(x, new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprVar(x))),
@@ -186,7 +193,7 @@ public class AlgorithmWTest {
     // b = \y.(a y)
     // in (b 10)
 
-    Expr expr = new Expr.ExprLet(
+    Expr expr = new Expr.ExprLetRec(
         List.of(
             Pair.of(a,
                 new Expr.ExprAnn(new Expr.ExprAbs(x, new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprVar(x))),
@@ -215,7 +222,7 @@ public class AlgorithmWTest {
     // let a = \(x,y).(x, y)
     // in (a 10 false)
 
-    Expr expr = new Expr.ExprLet(a,
+    Expr expr = new Expr.ExprLetRec(a,
         new Expr.ExprAbs(List.of(x, y), new Expr.ExprTuple(List.of(new Expr.ExprVar(x), new Expr.ExprVar(y)))),
         new Expr.ExprApp(new Expr.ExprVar(a),
             List.of(new Expr.ExprLit(new Literal.Int(10)), new Expr.ExprLit(new Literal.Bool(false)))));
@@ -243,7 +250,7 @@ public class AlgorithmWTest {
     var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in (const 42 true, const true 42, const 32 false)
-    Expr expr = new Expr.ExprLet(
+    Expr expr = new Expr.ExprLetRec(
         cnst,
         new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
         new Expr.ExprTuple(new Expr.ExprApp(
@@ -269,11 +276,11 @@ public class AlgorithmWTest {
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.Tuple;
 
-    assert inferred instanceof Expr.ExprLet;
-    var exprLet = (Expr.ExprLet) inferred;
+    assert inferred instanceof Expr.ExprLetRec;
+    var exprLet = (Expr.ExprLetRec) inferred;
 
-    assert exprLet.body instanceof Expr.ExprTuple;
-    var exprTuple = (Expr.ExprTuple) exprLet.body;
+    assert exprLet.body() instanceof Expr.ExprTuple;
+    var exprTuple = (Expr.ExprTuple) exprLet.body();
 
     assert exprTuple.elements.size() == 3;
     var first = exprTuple.elements.get(0);

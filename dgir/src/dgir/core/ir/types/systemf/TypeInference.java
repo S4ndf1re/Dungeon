@@ -26,7 +26,7 @@ import dgir.core.ir.types.compatibility.ExprOrOperator;
 public final class TypeInference
     extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType> {
 
-  private ConvertedOperationBuffer<Expr, SystemFType> operationToExprBuffer;
+  private ConvertedOperationBuffer<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType, TypeInference> operationToExprBuffer;
 
   public TypeInference() {
     this(new TypeDialectConverterRegistry());
