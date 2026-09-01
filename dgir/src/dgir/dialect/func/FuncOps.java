@@ -10,6 +10,9 @@ import dgir.core.ir.*;
 import dgir.core.ir.Dialect;
 import dgir.core.ir.SymbolTable;
 import dgir.core.traits.*;
+import dgir.core.traits.ISymbol.SymbolTableSymbol;
+import dgir.dialect.builtin.BuiltinAttrs;
+
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
@@ -97,10 +100,11 @@ public sealed interface FuncOps {
         CallOp callOp = operation.as(CallOp.class).orElseThrow();
 
         // Make sure that the callee function exists in the nearest symbol table
-        Optional<FuncOp> callee = SymbolTable.lookupSymbolInNearestTableAsOp(operation, callOp.getCallee(),
+        Optional<FuncOp> callee = SymbolTable.lookupSymbolInNearestTableAsOp(operation, callOp.getCalleeName(),
+            callOp.getCalleeType(),
             FuncOp.class);
         if (callee.isEmpty()) {
-          operation.emitError("Could not find function " + callOp.getCallee());
+          operation.emitError("Could not find function " + callOp.getCalleeName());
           return false;
         }
 
@@ -112,7 +116,7 @@ public sealed interface FuncOps {
               .getOperation()
               .emitError(
                   "Function type does not match call site type for function "
-                      + callOp.getCallee()
+                      + callOp.getCalleeName()
                       + ": "
                       + calleeType.getParameterizedIdent()
                       + " != "
@@ -131,7 +135,8 @@ public sealed interface FuncOps {
     @Contract(pure = true)
     @Override
     public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
-      return () -> List.of(new NamedAttribute(getCalleeAttributeName(), new SymbolRefAttribute("foo")));
+      return () -> List.of(new NamedAttribute(getCalleeAttributeName(), new SymbolRefAttribute("foo")),
+          new NamedAttribute(getCalleeTypeAttributeName(), new TypeAttribute(FuncType.of(List.of(), Type.of()))));
     }
 
     /**
@@ -141,7 +146,17 @@ public sealed interface FuncOps {
      */
     @Contract(pure = true)
     public static @NotNull String getCalleeAttributeName() {
-      return "callee";
+      return "callee_ident";
+    }
+
+    /**
+     * Returns the attribute name used to store the callee symbol reference.
+     *
+     * @return {@code "callee"}
+     */
+    @Contract(pure = true)
+    public static @NotNull String getCalleeTypeAttributeName() {
+      return "callee_type";
     }
 
     // =========================================================================
@@ -165,7 +180,7 @@ public sealed interface FuncOps {
         @NotNull List<Value> operands,
         @NotNull FuncType calleeType) {
       setOperation(Operation.Create(location, this, operands, null, calleeType.getOutputAsNullable()));
-      setCallee(name);
+      setCallee(name, calleeType);
     }
 
     /**
@@ -181,8 +196,9 @@ public sealed interface FuncOps {
         @NotNull String name,
         @NotNull List<Value> operands,
         @Nullable Type returnType) {
+      var funcType = FuncType.of(operands.stream().map(Value::getType).toList(), MaybeType.of(returnType));
       setOperation(Operation.Create(location, this, operands, null, returnType));
-      setCallee(name);
+      setCallee(name, funcType);
     }
 
     /**
@@ -211,7 +227,7 @@ public sealed interface FuncOps {
     public CallOp(
         @NotNull Location location, @NotNull FuncOp funcOp, @NotNull List<Value> operands) {
       setOperation(Operation.Create(location, this, operands, null, funcOp.getType().getOutputAsNullable()));
-      setCallee(funcOp.getFuncName());
+      setCallee(funcOp.getFuncName(), funcOp.getType());
     }
 
     /**
@@ -235,7 +251,7 @@ public sealed interface FuncOps {
      * @return the callee symbol name.
      */
     @Contract(pure = true)
-    public @NotNull String getCallee() {
+    public @NotNull String getCalleeName() {
       return Objects.requireNonNull(
           getAttributeAs(getCalleeAttributeName(), SymbolRefAttribute.class)
               .orElseThrow(() -> new AssertionError("No callee attribute found"))
@@ -243,8 +259,30 @@ public sealed interface FuncOps {
           "Callee symbol name must not be null");
     }
 
-    private void setCallee(@NotNull String name) {
+    /**
+     * Returns the symbol name of the callee function.
+     *
+     * @return the callee symbol name.
+     */
+    @Contract(pure = true)
+    public @NotNull Type getCalleeType() {
+      return Objects.requireNonNull(
+          getAttributeAs(getCalleeTypeAttributeName(), BuiltinAttrs.TypeAttribute.class)
+              .orElseThrow(() -> new AssertionError("No callee attribute found"))
+              .getType(),
+          "Callee type name must not be null");
+    }
+
+    @Contract(pure = true)
+    public @NotNull SymbolTableSymbol getCallee() {
+      var name = this.getCalleeName();
+      var type = this.getCalleeType();
+      return new SymbolTableSymbol(name, type);
+    }
+
+    private void setCallee(@NotNull String name, @NotNull Type type) {
       getSymbolRefAttribute().setValue(name);
+      getSymbolTypeAttribute().setType(type);
     }
 
     /**
@@ -265,6 +303,13 @@ public sealed interface FuncOps {
     @Override
     public @NotNull SymbolRefAttribute getSymbolRefAttribute() {
       return getAttributeAs(getCalleeAttributeName(), SymbolRefAttribute.class)
+          .orElseThrow(() -> new RuntimeException("No symbol attribute found"));
+    }
+
+    @Contract(pure = true)
+    @Override
+    public @NotNull TypeAttribute getSymbolTypeAttribute() {
+      return getAttributeAs(getCalleeTypeAttributeName(), TypeAttribute.class)
           .orElseThrow(() -> new RuntimeException("No symbol attribute found"));
     }
   }
@@ -333,6 +378,8 @@ public sealed interface FuncOps {
     public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
       return () -> List.of(
           new NamedAttribute(SymbolTable.getSymbolAttributeName(), new StringAttribute("foo")),
+          new NamedAttribute(SymbolTable.getSymbolTypeAttributeName(),
+              new TypeAttribute((Type) FuncType.of(List.of(), Type.of()))),
           new NamedAttribute("type", new TypeAttribute(FuncType.empty())));
     }
 
@@ -373,6 +420,7 @@ public sealed interface FuncOps {
     public FuncOp(@NotNull Location location, @NotNull String name, @NotNull FuncType type) {
       setOperation(Operation.Create(location, this, null, null, null, type.getInputs()));
       getFuncNameAttribute().setValue(name);
+      getFuncTypeAttribute().setType(type);
       getTypeAttribute().setType(type);
     }
 
@@ -389,6 +437,18 @@ public sealed interface FuncOps {
     @Contract(pure = true)
     public @NotNull StringAttribute getFuncNameAttribute() {
       return getAttributeAs(SymbolTable.getSymbolAttributeName(), StringAttribute.class)
+          .orElseThrow(() -> new RuntimeException("Symbol attribute not found"));
+    }
+
+    /**
+     * Returns the {@link StringAttribute} that holds the function's symbol name.
+     *
+     * @return the symbol name attribute.
+     * @throws RuntimeException if the attribute is absent.
+     */
+    @Contract(pure = true)
+    public @NotNull TypeAttribute getFuncTypeAttribute() {
+      return getAttributeAs(SymbolTable.getSymbolTypeAttributeName(), TypeAttribute.class)
           .orElseThrow(() -> new RuntimeException("Symbol attribute not found"));
     }
 

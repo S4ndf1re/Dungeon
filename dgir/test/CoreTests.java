@@ -9,7 +9,6 @@ import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.io.IoOps.PrintOp;
 import static org.junit.jupiter.api.Assertions.*;
 
-import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.debug.Location;
 import dgir.core.ir.*;
 import dgir.core.serialization.Utils;

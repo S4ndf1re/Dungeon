@@ -1,11 +1,12 @@
 package dgir.core.ir.types;
 
 import dgir.core.ir.Value;
+import dgir.core.traits.ISymbol.SymbolTableSymbol;
 
 public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type> {
 
-  public static <E extends Expression<E, T>, T extends Type> Symbol<E, T> of(String name) {
-    return new Symbol.StringSymbol<E, T>(name);
+  public static <E extends Expression<E, T>, T extends Type> Symbol<E, T> of(SymbolTableSymbol name) {
+    return new Symbol.TableSymbol<E, T>(name);
   }
 
   public static <E extends Expression<E, T>, T extends Type> Symbol<E, T> of(Value val) {
@@ -23,13 +24,13 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type> 
     throw new RuntimeException("Symbol is not of type Value");
   }
 
-  public boolean isString() {
-    return this instanceof StringSymbol;
+  public boolean isTableSymbol() {
+    return this instanceof TableSymbol;
   }
 
-  public String getString() {
-    if (this.isString()) {
-      return ((StringSymbol<E, T>) this).value;
+  public SymbolTableSymbol getTableSymbol() {
+    if (this.isTableSymbol()) {
+      return ((TableSymbol<E, T>) this).value;
     }
     throw new RuntimeException("Symbol is not of type String");
   }
@@ -62,14 +63,14 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type> 
     }
   }
 
-  public static final class StringSymbol<E extends Expression<E, T>, T extends Type> extends Symbol<E, T> {
-    private final String value;
+  public static final class TableSymbol<E extends Expression<E, T>, T extends Type> extends Symbol<E, T> {
+    private final SymbolTableSymbol value;
 
-    public StringSymbol(String value) {
+    public TableSymbol(SymbolTableSymbol value) {
       this.value = value;
     }
 
-    public String get() {
+    public SymbolTableSymbol get() {
       return this.value;
     }
 
@@ -80,7 +81,7 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type> 
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof StringSymbol sym && this.value.equals(sym.value);
+      return obj instanceof TableSymbol sym && this.value.equals(sym.value);
     }
 
   }

@@ -2,6 +2,7 @@ package dgir.core.traits;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.SymbolTable;
+import dgir.core.ir.Type;
 import dgir.dialect.builtin.BuiltinOps;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -41,8 +42,8 @@ public interface ISymbolTable extends IOpTrait {
    * @return the resolved operation, or {@code null} if not found.
    */
   @Contract(pure = true)
-  static @Nullable Operation lookupSymbol(Operation op, String name) {
-    return SymbolTable.lookupSymbolIn(op, name);
+  static @Nullable Operation lookupSymbol(Operation op, String name, Type type) {
+    return SymbolTable.lookupSymbolIn(op, name, type);
   }
 
   /**
@@ -52,7 +53,7 @@ public interface ISymbolTable extends IOpTrait {
    * @return the resolved operation, or {@code null} if not found.
    */
   @Contract(pure = true)
-  default @Nullable Operation lookupSymbol(String name) {
-    return lookupSymbol(getOperation(), name);
+  default @Nullable Operation lookupSymbol(String name, Type type) {
+    return lookupSymbol(getOperation(), name, type);
   }
 }
