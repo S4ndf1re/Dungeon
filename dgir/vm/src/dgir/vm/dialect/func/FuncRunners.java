@@ -2,6 +2,7 @@ package dgir.vm.dialect.func;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.SymbolTable;
+import dgir.core.traits.ISymbol.SymbolTableSymbol;
 import dgir.dialect.builtin.BuiltinAttrs;
 import dgir.dialect.func.FuncOps;
 import dgir.vm.api.Action;
@@ -12,7 +13,7 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
 public sealed interface FuncRunners {
-  Map<String, Operation> calleeCache = new HashMap<>();
+  Map<SymbolTableSymbol, Operation> calleeCache = new HashMap<>();
 
   final class FuncRunner extends OpRunner implements FuncRunners {
     public FuncRunner() {
@@ -42,13 +43,12 @@ public sealed interface FuncRunners {
         args[i] = state.getValueOrThrow(op.getOperandOrThrow(i));
       }
 
-      Operation calleeOp =
-          calleeCache.computeIfAbsent(
-              op.getAttributeAsOrThrow("callee", BuiltinAttrs.SymbolRefAttribute.class).getValue(),
-              calleeName ->
-                  SymbolTable.lookupSymbolInNearestTable(op, calleeName)
-                      .orElseThrow(
-                          () -> new AssertionError("Callee " + calleeName + " not found.")));
+      Operation calleeOp = calleeCache.computeIfAbsent(
+          new SymbolTableSymbol(op.getAttributeAsOrThrow("callee", BuiltinAttrs.SymbolRefAttribute.class).getValue(),
+              op.getAttributeAsOrThrow("callee", BuiltinAttrs.TypeAttribute.class).getType()),
+          calleeName -> SymbolTable.lookupSymbolInNearestTable(op, calleeName.ident(), calleeName.type())
+              .orElseThrow(
+                  () -> new AssertionError("Callee " + calleeName + " not found.")));
 
       return Action.Call(calleeOp, args);
     }
@@ -75,13 +75,13 @@ public sealed interface FuncRunners {
 
     @Override
     protected @NotNull Action runImpl(@NotNull Operation op, @NotNull State state) {
-      Operation calleeOp =
-          calleeCache.computeIfAbsent(
-              op.getAttributeAsOrThrow("callee", BuiltinAttrs.SymbolRefAttribute.class).getValue(),
-              calleeName ->
-                  SymbolTable.lookupSymbolInNearestTable(op, calleeName)
-                      .orElseThrow(
-                          () -> new AssertionError("Callee " + calleeName + " not found.")));
+      Operation calleeOp = calleeCache.computeIfAbsent(
+          new SymbolTableSymbol(op.getAttributeAsOrThrow("callee", BuiltinAttrs.SymbolRefAttribute.class).getValue(),
+              op.getAttributeAsOrThrow("callee", BuiltinAttrs.TypeAttribute.class).getType()),
+          calleeName -> SymbolTable.lookupSymbolInNearestTable(op, calleeName.ident(), calleeName.type())
+              .orElseThrow(
+                  () -> new AssertionError("Callee " + calleeName + " not found.")));
+
       state.setValueForOutput(op, calleeOp);
       return Action.Next();
     }
