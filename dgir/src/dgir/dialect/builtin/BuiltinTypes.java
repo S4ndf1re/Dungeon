@@ -6,6 +6,7 @@ import dgir.core.ir.MaybeType;
 import dgir.core.ir.Type;
 import dgir.core.ir.TypeDescriptor;
 import dgir.core.ir.TypeDetails;
+import dgir.core.ir.TypeUniquer;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 
 import java.util.List;
@@ -615,4 +616,52 @@ public sealed interface BuiltinTypes {
       default -> throw new IllegalArgumentException("Invalid integer width: " + width);
     };
   }
+
+  final class UnitTypeDescriptor implements BuiltinTypeDescriptor {
+
+    @Override
+    public @NotNull Class<? extends Type> getTypeClass() {
+      return UnitType.class;
+    }
+
+    @Override
+    public @NotNull String getIdent() {
+      return "unit";
+    }
+
+    @Override
+    public @NotNull Function<Object, Boolean> getValidator() {
+      return obj -> false;
+    }
+
+    @Override
+    public @NotNull Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type> getParameterizedIdentFactory() {
+      return parameterizedType -> {
+        return TypeUniquer.uniqueInstance(new UnitType());
+      };
+    }
+
+    @Override
+    public @NotNull Function<@NotNull Pair<@NotNull GeneralParameterizedNominalType, @NotNull TypeDetails>, @NotNull Type> getGeneralParameterizedNominalTypeFactory() {
+      return parameterizedType -> {
+        var gpnt = parameterizedType.getLeft();
+
+        assert gpnt.getTypedParameters().isEmpty();
+
+        return TypeUniquer.uniqueInstance(new UnitType());
+      };
+    }
+
+    @Override
+    public void initDefaultTypeInstances() {
+    }
+
+  }
+
+  final class UnitType extends Type implements BuiltinTypes {
+    public UnitType() {
+      super("unit");
+    }
+  }
+
 }
