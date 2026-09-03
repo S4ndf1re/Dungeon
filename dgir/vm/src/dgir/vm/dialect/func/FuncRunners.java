@@ -44,8 +44,8 @@ public sealed interface FuncRunners {
       }
 
       Operation calleeOp = calleeCache.computeIfAbsent(
-          new SymbolTableSymbol(op.getAttributeAsOrThrow("callee", BuiltinAttrs.SymbolRefAttribute.class).getValue(),
-              op.getAttributeAsOrThrow("callee", BuiltinAttrs.TypeAttribute.class).getType()),
+          new SymbolTableSymbol(op.getAttributeAsOrThrow("callee_ident", BuiltinAttrs.SymbolRefAttribute.class).getValue(),
+              op.getAttributeAsOrThrow("callee_type", BuiltinAttrs.TypeAttribute.class).getType()),
           calleeName -> SymbolTable.lookupSymbolInNearestTable(op, calleeName.ident(), calleeName.type())
               .orElseThrow(
                   () -> new AssertionError("Callee " + calleeName + " not found.")));
@@ -76,8 +76,8 @@ public sealed interface FuncRunners {
     @Override
     protected @NotNull Action runImpl(@NotNull Operation op, @NotNull State state) {
       Operation calleeOp = calleeCache.computeIfAbsent(
-          new SymbolTableSymbol(op.getAttributeAsOrThrow("callee", BuiltinAttrs.SymbolRefAttribute.class).getValue(),
-              op.getAttributeAsOrThrow("callee", BuiltinAttrs.TypeAttribute.class).getType()),
+          new SymbolTableSymbol(op.getAttributeAsOrThrow("callee_ident", BuiltinAttrs.SymbolRefAttribute.class).getValue(),
+              op.getAttributeAsOrThrow("callee_type", BuiltinAttrs.TypeAttribute.class).getType()),
           calleeName -> SymbolTable.lookupSymbolInNearestTable(op, calleeName.ident(), calleeName.type())
               .orElseThrow(
                   () -> new AssertionError("Callee " + calleeName + " not found.")));

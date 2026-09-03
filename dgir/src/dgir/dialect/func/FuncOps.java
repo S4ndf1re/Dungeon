@@ -12,6 +12,7 @@ import dgir.core.ir.SymbolTable;
 import dgir.core.traits.*;
 import dgir.core.traits.ISymbol.SymbolTableSymbol;
 import dgir.dialect.builtin.BuiltinAttrs;
+import dgir.dialect.builtin.BuiltinTypes;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -652,7 +653,8 @@ public sealed interface FuncOps {
 
     @Override
     public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
-      return () -> List.of(new NamedAttribute("callee", new SymbolRefAttribute("foo")));
+      return () -> List.of(new NamedAttribute("callee_ident", new SymbolRefAttribute("foo")),
+          new NamedAttribute("callee_type", new TypeAttribute(new BuiltinTypes.UnitType())));
     }
 
     private ConstantOp() {
@@ -661,7 +663,8 @@ public sealed interface FuncOps {
     public ConstantOp(
         @NotNull Location location, @NotNull String name, @NotNull FuncType funcType) {
       setOperation(Operation.Create(location, this, null, null, funcType));
-      getAttributeAs("callee", SymbolRefAttribute.class).orElseThrow().setValue(name);
+      getAttributeAs("callee_ident", SymbolRefAttribute.class).orElseThrow().setValue(name);
+      getAttributeAs("callee_type", TypeAttribute.class).orElseThrow().setType(funcType);
     }
 
     public ConstantOp(@NotNull Location location, @NotNull FuncOp funcOp) {
