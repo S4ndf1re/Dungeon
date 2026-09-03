@@ -312,6 +312,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return this.expr.containsSymbol(symbol);
+    }
+
+    @Override
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       // Simply return the inner as fully instantiated!
       return this.expr.instantiate(engine, env, solution);
@@ -340,6 +345,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     @Override
     public List<Expr> getChildren() {
       return List.of();
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return false;
     }
 
     @Override
@@ -417,6 +427,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     @Override
     public List<Expr> getChildren() {
       return this.elements.stream().map(ExprOrOperator::getExpr).toList();
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return this.elements.stream().anyMatch(elem -> elem.containsSymbol(symbol));
     }
 
     @Override
@@ -501,6 +516,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     @Override
     public List<Expr> getChildren() {
       return List.of();
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return this.name.equals(symbol);
     }
 
     @Override
@@ -603,6 +623,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       list.add(this.func.getExpr());
       this.args.forEach(arg -> list.add(arg.getExpr()));
       return List.copyOf(list);
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return this.func.containsSymbol(symbol) || this.args.stream().anyMatch(arg -> arg.containsSymbol(symbol));
     }
 
     @Override
@@ -760,6 +785,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     @Override
     public List<Expr> getChildren() {
       return List.of(this.body.getExpr());
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return this.params.stream().anyMatch(param -> param.equals(symbol)) || this.body.containsSymbol(symbol);
     }
 
     @Override
@@ -996,6 +1026,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return this.bindings.stream().anyMatch(bnd -> bnd.getLeft().equals(symbol)) || this.body.containsSymbol(symbol);
+    }
+
+    @Override
     public List<Expr> getInstantiableChildren() {
       return List.of(this.body);
     }
@@ -1157,6 +1192,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return this.bindings.stream().anyMatch(bnd -> bnd.getLeft().equals(symbol)) || this.body.containsSymbol(symbol);
+    }
+
+    @Override
     public List<Expr> getInstantiableChildren() {
       return List.of(this.body);
     }
@@ -1264,6 +1304,11 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     @Override
     public List<Expr> getChildren() {
       return List.of(this.value.getExpr());
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      return this.value.containsSymbol(symbol);
     }
 
     @Override
@@ -1396,6 +1441,14 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       } else {
         return List.of();
       }
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
+      // NOTE: for the expr custom, this safety check may not work correctly, hence it
+      // just returns false.
+      // This also implies that this Expr requires careful handling!
+      return false;
     }
 
     @Override

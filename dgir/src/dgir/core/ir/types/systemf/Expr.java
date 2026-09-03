@@ -236,6 +236,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.name.equals(symbol);
+    }
+
+    @Override
     public boolean equals(Object obj) {
       return obj instanceof Var other && this.name.equals(other.name);
     }
@@ -345,6 +350,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     @Override
     public List<Expr> getChildren() {
       return List.of(this.arg, this.fun);
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.fun.containsSymbol(symbol) || this.arg.containsSymbol(symbol);
     }
 
     @Override
@@ -472,6 +482,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.name.equals(symbol) || this.body.containsSymbol(symbol);
+    }
+
+    @Override
     public boolean equals(Object obj) {
       return obj instanceof Abs other && this.name.equals(other.name) && this.type.equals(other.type)
           && this.body.equals(other.body);
@@ -537,6 +552,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.func.containsSymbol(symbol);
+    }
+
+    @Override
     public boolean equals(Object obj) {
       return obj instanceof TApp other && this.func.equals(other.func) && this.type.equals(other.type);
     }
@@ -590,6 +610,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     @Override
     public List<Expr> getChildren() {
       return List.of(this.expr);
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.expr.containsSymbol(symbol);
     }
 
     @Override
@@ -671,6 +696,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.body.containsSymbol(symbol);
+    }
+
+    @Override
     public boolean equals(Object obj) {
       return obj instanceof TAbs other && this.variable.equals(other.variable) && this.body.equals(other.body);
     }
@@ -716,6 +746,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     @Override
     public List<Expr> getChildren() {
       return List.of();
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return false;
     }
 
     @Override
@@ -828,6 +863,12 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.body.containsSymbol(symbol) || this.bindings.stream()
+          .anyMatch(bnd -> bnd.getLeft().equals(symbol) || bnd.getRight().containsSymbol(symbol));
+    }
+
+    @Override
     public boolean equals(Object obj) {
       return obj instanceof Let other && this.bindings.equals(other.bindings) && this.body.equals(other.body);
     }
@@ -885,6 +926,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     @Override
     public List<Expr> getChildren() {
       return List.of(this.value);
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.value.containsSymbol(symbol);
     }
 
     @Override
@@ -967,6 +1013,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       }
 
       return List.of();
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return false;
     }
 
     @Override

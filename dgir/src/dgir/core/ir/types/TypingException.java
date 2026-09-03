@@ -65,6 +65,18 @@ public abstract sealed class TypingException extends RuntimeException {
     }
   }
 
+  public static final class CyclicSymbolAssignment extends TypingException {
+
+    public final Symbol<?, ?> symbol;
+    public final Expression<?, ?> expr;
+
+    public CyclicSymbolAssignment(Symbol<?, ?> symbol, Expression<?, ?> expr) {
+      super("Cyclic Symbol assignment was found. Symbol " + symbol + " was found within " + expr);
+      this.symbol = symbol;
+      this.expr = expr;
+    }
+  }
+
   public static final class OccursCheckFailed extends TypingException {
 
     public final Type type;
