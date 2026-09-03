@@ -70,6 +70,8 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
 
   public E replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
 
+  public boolean containsSymbol(Symbol<E, T> symbol);
+
   public void setUnderlyingOperation(Operation op);
 
   public Optional<Operation> getUnderlyingOperation();
@@ -145,7 +147,7 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
         }
 
         List<E> children = null;
-        if(this.getChildrenOption == VisitGetChildrenOption.ALL_CHILDREN) {
+        if (this.getChildrenOption == VisitGetChildrenOption.ALL_CHILDREN) {
           children = root.getChildren();
         } else {
           children = root.getInstantiableChildren();
@@ -174,7 +176,7 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
         // parent scope already
         state.enter(root);
         List<E> children = null;
-        if(this.getChildrenOption == VisitGetChildrenOption.ALL_CHILDREN) {
+        if (this.getChildrenOption == VisitGetChildrenOption.ALL_CHILDREN) {
           children = root.getChildren();
         } else {
           children = root.getInstantiableChildren();

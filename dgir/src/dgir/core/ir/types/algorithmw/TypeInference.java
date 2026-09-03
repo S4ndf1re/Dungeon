@@ -18,6 +18,7 @@ import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
 import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.Expression.ExpressionVisitor;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
@@ -62,6 +63,10 @@ public final class TypeInference
       var opOutput = op.getOutput();
       if (opOutput.isPresent()) {
         var sym = Symbol.<Expr, AlgorithmWType>of(opOutput.get().getValue());
+        var expr = this.asExpression(ExprOrOperator.of(op));
+        if (expr.containsSymbol(sym)) {
+          throw new TypingException.CyclicSymbolAssignment(sym, expr);
+        }
         bindings.add(Pair.of(sym, this.asExpression(ExprOrOperator.of(op))));
         lastValue = Optional.of(sym);
       } else {
@@ -77,7 +82,11 @@ public final class TypeInference
           var val = new Value();
           sym = Symbol.<Expr, AlgorithmWType>of(val);
         }
-        bindings.add(Pair.of(sym, this.asExpression(ExprOrOperator.of(op))));
+        var expr = this.asExpression(ExprOrOperator.of(op));
+        if (expr.containsSymbol(sym)) {
+          throw new TypingException.CyclicSymbolAssignment(sym, expr);
+        }
+        bindings.add(Pair.of(sym, expr));
         lastValue = Optional.of(sym);
       }
     }
