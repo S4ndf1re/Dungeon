@@ -8,6 +8,7 @@ import java.util.Set;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
+import dgir.core.ir.types.traits.IExpressionCell;
 
 public interface Expression<E extends Expression<E, T>, T extends Type> {
 
@@ -83,6 +84,26 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
   public void setInstantiateOperationCallback(InstantiateOperation<E, T> callback);
 
   public Optional<InstantiateOperation<E, T>> getInstantiateOperationCallback();
+
+  @SuppressWarnings("unchecked")
+  public default E unwrapOrThis() {
+    if (this instanceof IExpressionCell) {
+      return ((IExpressionCell<E, T>) this).unwrap();
+    }
+    return (E) this;
+  }
+
+  /**
+   * Creates a shallow copy of this expression: a new instance of the same
+   * concrete type that references the SAME child expressions (not copies) and
+   * carries the same state (inferred type, parent scope, underlying operation,
+   * callbacks) as this expression. Only the node itself is duplicated.
+   *
+   * @return a new shallow copy of this expression node
+   */
+  public default E copy() {
+    throw new UnsupportedOperationException("copy() is not implemented for this expression type");
+  }
 
   public class ExpressionVisitor<E extends Expression<E, T>, T extends Type> {
     private Set<E> visited;

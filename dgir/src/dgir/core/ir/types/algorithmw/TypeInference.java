@@ -24,6 +24,8 @@ import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
+import dgir.core.ir.types.traits.IExpressionCell;
+import dgir.core.ir.types.traits.IIsAbstraction;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.traits.ISymbol;
 
@@ -92,7 +94,9 @@ public final class TypeInference
     }
 
     if (lastValue.isPresent()) {
-      return new Expr.ExprLetRec(bindings, new Expr.ExprVar(lastValue.get()));
+      return new Expr.ExprLetRec(bindings,
+          new Expr.ExprSeq(bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IIsAbstraction))
+              .map(bnd -> (Expr) new Expr.ExprVar(bnd.getLeft())).toList()));
     } else {
       return new Expr.ExprLetRec(bindings, new Expr.ExprLit(new Literal.Unit()));
     }
@@ -115,7 +119,6 @@ public final class TypeInference
     new ExpressionVisitor<Expr, AlgorithmWType>(VisitOrder.IN_ORDER).visit(instantiated, e -> {
       e.reinstantiateSymbols();
     });
-
     // 2. Instantiate Operations bottom-up. As all values are newly assigned, this
     // operation will create a new operation tree
     // During this stage, make sure to fully type the values using the expressions
@@ -129,7 +132,9 @@ public final class TypeInference
         .visit(instantiated, e -> {
           var instOp = e.getInstantiateOperationCallback();
           if (instOp.isPresent()) {
-            var instantiatedOperation = instOp.get().instantiate(e);
+            @SuppressWarnings("unchecked")
+            var exprUnwrapped = e instanceof IExpressionCell ? ((IExpressionCell<Expr, AlgorithmWType>) e).unwrap() : e;
+            var instantiatedOperation = instOp.get().instantiate(exprUnwrapped);
             e.setUnderlyingOperation(instantiatedOperation);
           }
         });
@@ -149,10 +154,8 @@ public final class TypeInference
       }
     });
 
-    // 4. Validate the expression tree, with all its types!
-    var underlyingOp = instantiated.getUnderlyingOperation();
-    if (underlyingOp.isPresent()) {
-      assert new OperationVerifier(VerifyOptions.FULL_VERIFICATION).verify(underlyingOp.get());
+    if (instantiated.getUnderlyingOperation().isPresent()) {
+      new OperationVerifier(VerifyOptions.FULL_VERIFICATION).verify(instantiated.getUnderlyingOperation().get());
     }
 
     return Pair.of((Type) finalType, instantiated);

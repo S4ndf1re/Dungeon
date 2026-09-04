@@ -29,6 +29,11 @@ public abstract class TypeDialect<C extends ExprOrOperator<E, T>, E extends Expr
       this.registry = registry;
     }
 
+    /** Returns the converter registry this solver was bound to. */
+    public TypeDialectConverterRegistry getRegistry() {
+      return registry;
+    }
+
     /**
      * Solve the full expression tree by applying algorithm specific logic, like
      * inference and unification.
