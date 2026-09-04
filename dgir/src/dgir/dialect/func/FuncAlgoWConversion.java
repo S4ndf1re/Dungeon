@@ -8,6 +8,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
+import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.OperationExprConversionUtils;
@@ -19,7 +20,8 @@ import dgir.core.ir.types.algorithmw.Expr;
 import dgir.core.ir.types.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
-import dgir.core.traits.IHasResult;
+import dgir.core.traits.ISymbol.SymbolTableSymbol;
+import dgir.dialect.func.FuncOps.CallIndirectOp;
 import dgir.dialect.func.FuncOps.CallOp;
 import dgir.dialect.func.FuncTypes.FuncType;
 
@@ -31,7 +33,9 @@ public final class FuncAlgoWConversion {
         AlgorithmWInference.class,
         Pair.of(FuncOps.FuncOp.class, FuncAlgoWConversion::convertFuncOp),
         Pair.of(FuncOps.ReturnOp.class, FuncAlgoWConversion::convertReturnOp),
-        Pair.of(FuncOps.CallOp.class, FuncAlgoWConversion::convertCallOp));
+        Pair.of(FuncOps.CallOp.class, FuncAlgoWConversion::convertCallOp),
+        Pair.of(FuncOps.CallIndirectOp.class, FuncAlgoWConversion::convertCallIndirectOp),
+        Pair.of(FuncOps.ConstantOp.class, FuncAlgoWConversion::convertConstantOp));
   }
 
   public static Expr convertFuncOp(
@@ -57,7 +61,7 @@ public final class FuncAlgoWConversion {
 
       assert instantiatedExpr instanceof Expr.ExprAbs;
       var abs = (Expr.ExprAbs) instantiatedExpr;
-      var body = abs.body;
+      var body = abs.body();
       assert body instanceof Expr.ExprLetRec;
 
       var let = (Expr.ExprLetRec) body;
@@ -89,7 +93,7 @@ public final class FuncAlgoWConversion {
         var newValue = newRegion.getRegionValue(i);
 
         if (oldParam.isValue() && newValue.isPresent()) {
-          oldParam.getValue().replaceAllUsesWith(newValue.get());
+          oldParam.getValue().replaceAllUsesIn(newValue.get(), newRegion);
         }
       }
 
@@ -129,7 +133,7 @@ public final class FuncAlgoWConversion {
         // require application beta reduction!
         // That means, that the value might actually be a raw value and not an
         // operation. A helper method is needed to fix this!
-        var valueSymbol = OperationExprConversionUtils.getOutputSymbol(retExpr.value);
+        var valueSymbol = OperationExprConversionUtils.getOutputSymbol(retExpr.value());
 
         assert valueSymbol.isPresent();
         assert valueSymbol.get() instanceof Symbol.ValueSymbol<Expr, AlgorithmWType>;
@@ -165,14 +169,12 @@ public final class FuncAlgoWConversion {
 
       var applicationArgs = OperationExprConversionUtils.getAllApplicationParameters(app);
       assert applicationArgs.stream().allMatch(arg -> arg.getUnderlyingOperation().isPresent()
-          && arg.getUnderlyingOperation().get().asOp() instanceof IHasResult);
+          && arg.getUnderlyingOperation().get().getOutput().isPresent());
 
       var parameterOperations = applicationArgs.stream()
           .map(Expr::getUnderlyingOperation)
           .map(Optional::get)
-          .map(Operation::asOp)
-          .map(arg -> (IHasResult) arg)
-          .map(arg -> arg.getResult())
+          .map(Operation::getOutputValueOrThrow)
           .toList();
 
       return new CallOp(op.getLocation(), callOp.getCalleeName(), parameterOperations, (FuncTypes.FuncType) irType)
@@ -181,4 +183,87 @@ public final class FuncAlgoWConversion {
 
     return result;
   }
+
+  public static Expr convertCallIndirectOp(
+      Operation op,
+      TypeInference engine) {
+    FuncOps.CallIndirectOp callOp = (FuncOps.CallIndirectOp) op.asOp();
+
+    var functionValue = callOp.getOperandValue(0).get();
+    var params = callOp.getOperands().subList(1, callOp.getOperands().size());
+
+    var result = new Expr.ExprApp(new Expr.ExprVar(Symbol.of(functionValue)),
+        params.stream()
+            .map(operand -> (Expr) new Expr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
+
+    result.setInstantiateOperationCallback(instantiatedExpr -> {
+      assert instantiatedExpr instanceof Expr.ExprApp;
+
+      var app = (Expr.ExprApp) instantiatedExpr;
+
+      var applicationArgs = OperationExprConversionUtils.getAllApplicationParameters(app);
+      assert applicationArgs.stream().allMatch(arg -> arg.getUnderlyingOperation().isPresent()
+          && arg.getUnderlyingOperation().get().getOutput().isPresent());
+
+      var parameterOperations = applicationArgs.stream()
+          .map(Expr::getUnderlyingOperation)
+          .map(Optional::get)
+          .map(Operation::getOutputValueOrThrow)
+          .toList();
+
+      var funcOp = app.func().getUnderlyingOperation();
+      assert funcOp.isPresent();
+      assert funcOp.get().asOp() instanceof FuncOps.ConstantOp;
+
+      var constFunc = (FuncOps.ConstantOp) funcOp.get().asOp();
+
+      return new CallIndirectOp(op.getLocation(), constFunc.getResult(), parameterOperations)
+          .getOperation();
+    });
+
+    return result;
+  }
+
+  public static Expr convertConstantOp(
+      Operation op,
+      TypeInference engine) {
+    FuncOps.ConstantOp constOp = (FuncOps.ConstantOp) op.asOp();
+
+    var funcName = constOp.getFuncName();
+    assert constOp.getFuncType() instanceof FuncType;
+    var funcType = (FuncType) constOp.getFuncType();
+
+    var values = new ArrayList<Symbol<Expr, AlgorithmWType>>(funcType.getInputs().size());
+
+    for (@SuppressWarnings("unused")
+    var input : funcType.getInputs()) {
+      values.add(Symbol.of(new Value()));
+    }
+
+    var result = new Expr.ExprAbs(List.copyOf(values),
+        new Expr.ExprApp(new Expr.ExprVar(Symbol.of(new SymbolTableSymbol(funcName, funcType))),
+            values.stream().map(arg -> (Expr) new Expr.ExprVar(arg)).toList()));
+
+    result.setInstantiateOperationCallback(instantiatedExpr -> {
+      assert instantiatedExpr instanceof Expr.ExprAbs;
+
+      var abs = (Expr.ExprAbs) instantiatedExpr;
+
+      assert abs.body() instanceof Expr.ExprApp;
+      var app = (Expr.ExprApp) abs.body();
+
+      var newFuncType = app.getInferredFunctionType();
+      assert newFuncType.isPresent();
+      assert newFuncType.get() instanceof AlgorithmWType.Arrow;
+
+      var irType = Type.fromGeneralParameterizedNominalType(newFuncType.get().asTypeParameter().getConcrete());
+      assert irType instanceof FuncTypes.FuncType;
+
+      return new FuncOps.ConstantOp(op.getLocation(), funcName, (FuncTypes.FuncType) irType)
+          .getOperation();
+    });
+
+    return result;
+  }
+
 }
