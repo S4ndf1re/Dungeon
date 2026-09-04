@@ -857,11 +857,12 @@ public final class Operation implements Serializable, Cloneable {
   }
 
   public void appendTemporaryBlocksToOtherRegion(Region other) {
-    var temporaryBlocks = this.temporaryRegion.getBlocks();
-
-    for (var block : temporaryBlocks) {
+    List<Block> blocks = List.copyOf(this.temporaryRegion.getBlocks());
+    for (var block : blocks) {
       this.temporaryRegion.removeBlock(block);
-      other.addBlock(block);
+      if (!block.getOperations().isEmpty()) {
+        other.addBlock(block);
+      }
     }
   }
 

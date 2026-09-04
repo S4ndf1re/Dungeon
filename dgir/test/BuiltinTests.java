@@ -137,7 +137,7 @@ public class BuiltinTests {
     assertEquals("int8", narrowed.getType().getParameterizedIdent());
     assertEquals(44, narrowed.getValue().byteValue());
 
-    assertEquals("int1", normalizedBool.getType().getParameterizedIdent());
+    assertEquals("bool", normalizedBool.getType().getParameterizedIdent());
     assertEquals(1, normalizedBool.getValue().byteValue());
   }
 }

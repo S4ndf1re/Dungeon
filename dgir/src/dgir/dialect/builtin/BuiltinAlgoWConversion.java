@@ -15,7 +15,6 @@ import dgir.core.ir.types.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.traits.IGlobal;
-import dgir.core.traits.IHasResult;
 import dgir.dialect.builtin.BuiltinOps.IdOp;
 import dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import dgir.dialect.func.FuncOps;
@@ -37,18 +36,22 @@ public final class BuiltinAlgoWConversion {
     BuiltinOps.ProgramOp programOp = (BuiltinOps.ProgramOp) op.asOp();
     var ops = programOp.getEntryBlock().getOperations();
 
-    var fnOps = ops.stream().filter(o -> o.asOp() instanceof FuncOps.FuncOp).toList();
-    var nonFnOps = ops.stream().filter(o -> !(o.asOp() instanceof FuncOps.FuncOp)).toList();
-
     var generalBlock = new GeneralBlock();
-    for (var fnOp : fnOps) {
-      // TODO: change generalBlock to allow for assumed types!
-      // Specifically for main, this might be needed to always assume () -> () types
-      generalBlock.addOperation(fnOp);
+
+    // Add Operations in two phases: first functions
+    for (var o : ops) {
+      if (o.asOp() instanceof FuncOps.FuncOp) {
+        // TODO: change generalBlock to allow for assumed types!
+        // Specifically for main, this might be needed to always assume () -> () types
+        generalBlock.addOperation(o);
+      }
     }
 
-    for (var nonFnOp : nonFnOps) {
-      generalBlock.addOperation(nonFnOp);
+    // Then non-functions
+    for (var o : ops) {
+      if (!(o.asOp() instanceof FuncOps.FuncOp)) {
+        generalBlock.addOperation(o);
+      }
     }
 
     generalBlock.addOperation(new FuncOps.CallOp(Location.UNKNOWN, "main", FuncTypes.FuncType.empty()).getOperation());
@@ -102,11 +105,10 @@ public final class BuiltinAlgoWConversion {
       var returnType = app.getInferredType();
       assert returnType.isPresent() && returnType.get().isFullySpecified();
 
-      var appParam = app.args.get(0);
+      var appParam = app.args().get(0);
       assert appParam != null && appParam.getUnderlyingOperation().isPresent();
 
       var paramOp = appParam.getUnderlyingOperation().get();
-      assert paramOp.asOp() instanceof IHasResult;
 
       assert paramOp.getOutputOrThrow().getType().isKnown();
       assert paramOp.getOutputOrThrow().getType().getAsKnownOrThrow().asParameterizedNominalType()

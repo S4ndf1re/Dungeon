@@ -189,7 +189,7 @@ public class AlgorithmWTest {
     Symbol<Expr, AlgorithmWType> x = Symbol.<Expr, AlgorithmWType>of(new Value());
     Symbol<Expr, AlgorithmWType> y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
-    // let a : Int -> Int = \x.(b x)
+   // let a : Int -> Int = \x.(b x)
     // b = \y.(a y)
     // in (b 10)
 
@@ -202,6 +202,34 @@ public class AlgorithmWTest {
                         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)))),
             Pair.of(b, new Expr.ExprAbs(y, new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprVar(y))))),
         new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprLit(new Literal.Int(10))));
+
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
+    assert result instanceof AlgorithmWType;
+    assert result instanceof AlgorithmWType.LitType;
+    assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
+  }
+
+  @Test
+  public void recursiveFunctionUse() {
+    var inference = new AlgorithmWInference();
+    var solver = inference.getSolverInstance();
+
+    Symbol<Expr, AlgorithmWType> f = Symbol.<Expr, AlgorithmWType>of(new Value());
+    Symbol<Expr, AlgorithmWType> x = Symbol.<Expr, AlgorithmWType>of(new Value());
+
+    // let f : Int -> Int = \x.(f x)
+    // in (f 10)
+    //
+    // Directly self-recursive: instantiating the application in the body of f
+    // re-enters the instantiation of f itself while it is still in progress.
+    Expr expr = new Expr.ExprLetRec(
+        f,
+        new Expr.ExprAnn(new Expr.ExprAbs(x, new Expr.ExprApp(new Expr.ExprVar(f), new Expr.ExprVar(x))),
+            new AlgorithmWType.Arrow(
+                new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT),
+                new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT))),
+        new Expr.ExprApp(new Expr.ExprVar(f), new Expr.ExprLit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
     var result = resultPair.getLeft();
@@ -230,7 +258,6 @@ public class AlgorithmWTest {
     var resultPair = solver.solve(expr);
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
-    System.out.println(result);
     assert result instanceof AlgorithmWType.Tuple;
     var resultTuple = (AlgorithmWType.Tuple) result;
     assert resultTuple.elements.get(0) instanceof AlgorithmWType.LitType;
@@ -282,18 +309,18 @@ public class AlgorithmWTest {
     assert exprLet.body() instanceof Expr.ExprTuple;
     var exprTuple = (Expr.ExprTuple) exprLet.body();
 
-    assert exprTuple.elements.size() == 3;
-    var first = exprTuple.elements.get(0);
-    var second = exprTuple.elements.get(1);
-    var third = exprTuple.elements.get(2);
+    assert exprTuple.elements().size() == 3;
+    var first = exprTuple.elements().get(0);
+    var second = exprTuple.elements().get(1);
+    var third = exprTuple.elements().get(2);
 
     Function<Expr, Expr> getInnerAbs = elem -> {
       assert elem instanceof Expr.ExprApp;
-      var inner = ((Expr.ExprApp) elem).func;
+      var inner = ((Expr.ExprApp) elem).func();
 
       assert inner instanceof Expr.ExprApp;
 
-      return ((Expr.ExprApp) inner).func;
+      return ((Expr.ExprApp) inner).func();
     };
 
     // TODO: check the instantiation and if replacing Let and Abs bindings actually

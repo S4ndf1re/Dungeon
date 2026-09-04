@@ -9,10 +9,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import dgir.core.ir.Value;
+import dgir.core.ir.types.algorithmw.Expr;
+
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.traits.IIsAbstraction;
 import dgir.core.ir.types.traits.IIsApplication;
-import dgir.core.traits.IHasResult;
 
 public class OperationExprConversionUtils {
 
@@ -20,7 +22,7 @@ public class OperationExprConversionUtils {
     var assignedOp = expr.getUnderlyingOperation();
     var referencedSymbol = expr.getReferencedVariable();
 
-    if (assignedOp.isPresent() && assignedOp.get().asOp() instanceof IHasResult) {
+    if (assignedOp.isPresent() && assignedOp.get().getOutput().isPresent()) {
       return Optional.of(Symbol.of(assignedOp.get().getOutputValueOrThrow()));
     }
 
@@ -118,5 +120,32 @@ public class OperationExprConversionUtils {
     for (int i = chunk.size() - 1; i >= 0; i--) {
       deque.addFirst(chunk.get(i));
     }
+  }
+
+  /**
+   * Returns the value of the expression's output symbol. Prefers the underlying
+   * operation's result value and falls back to the referenced variable's symbol.
+   *
+   * @param expr the expression whose symbol value should be resolved.
+   * @return the resolved value.
+   */
+  public static <E extends Expression<E, T>, T extends Type> Value getSymbolValue(E expr) {
+    var symbol = getOutputSymbol(expr);
+    assert symbol.isPresent();
+    return symbol.get().getValue();
+  }
+
+  /**
+   * Converts the fully specified inferred type of the given expression into its
+   * concrete IR type representation.
+   *
+   * @param expr the expression whose inferred type should be converted.
+   * @return the concrete IR type.
+   */
+  public static dgir.core.ir.Type inferredTypeToIrType(Expr expr) {
+    var inferredType = expr.getInferredType();
+    assert inferredType.isPresent();
+    assert inferredType.get().isFullySpecified();
+    return dgir.core.ir.Type.fromGeneralParameterizedNominalType(inferredType.get().asTypeParameter().getConcrete());
   }
 }
