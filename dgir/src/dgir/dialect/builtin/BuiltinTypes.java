@@ -117,7 +117,7 @@ public sealed interface BuiltinTypes {
       public void initDefaultTypeInstances() {
         if (IntegerT.integerTypeCache[0] != null)
           return; // already populated
-        if (TypeDetails.get("int1").isEmpty()) {
+        if (TypeDetails.get("bool").isEmpty()) {
           throw new IllegalStateException(
               "IntegerT cache must be populated after type registration. Ensure that BuiltinDialect is registered before any types are accessed.");
         }
@@ -198,7 +198,7 @@ public sealed interface BuiltinTypes {
       public void initDefaultTypeInstances() {
         if (FloatT.floatTypeCache[0] != null)
           return; // already populated
-        if (TypeDetails.get("int1").isEmpty()) {
+        if (TypeDetails.get("bool").isEmpty()) {
           throw new IllegalStateException(
               "FloatT cache must be populated after type registration. Ensure that BuiltinDialect is registered before any types are accessed.");
         }
@@ -313,6 +313,9 @@ public sealed interface BuiltinTypes {
     }
 
     public static String identFromWidthAndSign(int width, boolean isSigned) {
+      if (width == 1) {
+        return "bool";
+      }
       return (isSigned ? "" : "u") + "int" + width;
     }
 

@@ -17,19 +17,26 @@ public final class AlgorithmWInference
 
   @Override
   public TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> getSolverInstance() {
-    if (AlgorithmWInference.instance.isPresent()) {
-      return AlgorithmWInference.instance.get();
-    } else {
-      TypeInference solver = null;
-      var converterRegistry = ConverterRegistry.getConverterForDialect(AlgorithmWInference.class);
-      if (converterRegistry.isPresent()) {
-        solver = new TypeInference(converterRegistry.get());
-      } else {
-        solver = new TypeInference();
-      }
-      AlgorithmWInference.instance = Optional.of(solver);
-      return solver;
+    var converterRegistry = ConverterRegistry.getConverterForDialect(AlgorithmWInference.class);
+
+    // The solver binds to the converter registry at creation time. If converters
+    // were registered after a default solver was cached, rebuild it so the
+    // registered converters become visible.
+    if (instance.isPresent()
+        && converterRegistry.isPresent()
+        && instance.get().getRegistry() != converterRegistry.get()) {
+      instance = Optional.empty();
     }
+
+    if (instance.isPresent()) {
+      return instance.get();
+    }
+
+    TypeInference solver = converterRegistry.isPresent()
+        ? new TypeInference(converterRegistry.get())
+        : new TypeInference();
+    AlgorithmWInference.instance = Optional.of(solver);
+    return solver;
   }
 
   @Override

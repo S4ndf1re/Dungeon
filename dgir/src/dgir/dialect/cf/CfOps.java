@@ -137,6 +137,18 @@ public sealed interface CfOps {
       assert condition.getType().equals(BuiltinTypes.IntegerT.BOOL())
           : "Condition must be of type bool/int1.";
     }
+
+    public Value getCond() {
+      return this.getOperandValue(0).orElseThrow();
+    }
+
+    public Block getCondTrueBlock() {
+      return this.getSuccessors().get(0);
+    }
+
+    public Block getCondFalseBlock() {
+      return this.getSuccessors().get(1);
+    }
   }
 
   /**
@@ -276,6 +288,14 @@ public sealed interface CfOps {
 
     public AssertOp(@NotNull Location location, @NotNull Value condition, @NotNull Value message) {
       setOperation(Operation.Create(location, this, List.of(condition, message), null, null));
+    }
+
+    public Value getCond() {
+      return this.getOperandValue(0).orElseThrow();
+    }
+
+    public Optional<Value> getMessage() {
+      return this.getOperandValue(1);
     }
   }
 }

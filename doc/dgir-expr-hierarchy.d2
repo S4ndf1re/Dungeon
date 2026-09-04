@@ -1,0 +1,143 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: down
+
+Expression: {
+  shape: rectangle
+  label: "Expression<I, T> (interface)\n—————————————\nunwrapOrThis(): E\ncopy(): E (shallow)\ngetChildren() / getInstantiableChildren()\ngetReferencedVariable(): Optional<Symbol>\ngetParentScopeExpr() / getParentScopePosition()\nreplaceSymbol() / containsSymbol()\nget/setUnderlyingOperation()\nget/setInstantiateOperationCallback()\n—— inner ——\nExpressionVisitor (identity visited-set, cycle-tolerant)\nVisitOrder: IN_ORDER | POST_ORDER\nOption: ALL_CHILDREN | ONLY_INSTANTIATED"
+}
+
+ExprOrOperator: {
+  shape: rectangle
+  label: "ExprOrOperator<E, T> (abstract)\n—————————————\nisExpr() / isOperator() / getExpr()\nExpressionVariant { expr: E }"
+}
+
+Expr: {
+  shape: rectangle
+  label: "Expr (abstract)\n—————————————\nstate:\n  parentScopeExpression: Optional<Expr>\n  parentScopePosition: Optional<Integer>\n  inferredType: Optional<AlgorithmWType>\n  underlyingOperation: Optional<Operation>\n  instOp: InstantiateOperation callback\n—————————————\ninfer(engine, env): InferResult (abstract)\ninstantiate(engine, env, subst): Expr (final)\n  1. getConsed(this)\n  2. visited? -> cached solution | ExprCell\n  3. instantiateInner(...) (abstract)\n  4. apply solution to inferred type\n  5. cells.forEach replaceIfMatches\n  6. beta-reduce: copy() binding, set parent scope, recurse"
+}
+
+ExprNodes: {
+  direction: right
+
+  ExprAnn: "expr: Expr | type: AlgorithmWType"
+  ExprLit: "value: Literal"
+  ExprTuple: "elements: List<Expr>"
+  ExprVar: "name: Symbol (referenced variable)"
+  ExprApp: "func: Expr | args: List<Expr>"
+  ExprAbs: "params: List<Symbol> | body: Expr"
+  ExprLetSeq: "bindings: List<(Symbol, Expr)> | body | sequential scope"
+  ExprLetRec: "bindings: List<(Symbol, Expr)> | body | global/recursive scope"
+  ExprSeq: "expressions: List<Expr>"
+  ExprReturn: "value: Expr"
+  ExprCustom: "data: D (opaque) | inferFn | instFn | getChildrenFn | replaceSymbolFn | copyFn"
+  ExprCell: {
+    label: "ExprCell (private inner)\n———————————\nreference: Expr\ncellValue: Expr (MUTABLE, may be cyclic)\nequals/hashCode: IDENTITY (cycle-safe)\nunwrap() / replaceIfMatches()\ncopy(): shares cellValue, no recursion"
+    style.fill: mistyrose
+  }
+}
+
+Traits: {
+  direction: right
+  IExpressionCell: {
+    shape: rectangle
+    label: "IExpressionCell\nunwrap(): E\nreplaceIfMatches(ref, repl)"
+  }
+  IIsApplication: {
+    shape: rectangle
+    label: "IIsApplication\ngetFunction(): Expr\ngetApplications(): List<Expr>"
+  }
+  IIsAbstraction: {
+    shape: rectangle
+    label: "IIsAbstraction\ngetAbstractionBody(): Expr\ngetAbstractionsOverSymbols(): List<Symbol>"
+  }
+}
+
+Infrastructure: {
+  direction: right
+
+  HashConsing: {
+    shape: rectangle
+    label: "HashConsing\n—————————\nhashConsedExprs: HashMap<E, E>\n(value-keyed, shared down env chain)\ngetConsed(expr): E"
+  }
+
+  InstEnv: {
+    shape: rectangle
+    label: "InstEnv<E, T, S>\n—————————\nparentEnv: Optional<InstEnv> (scope chain, per let)\nbindingExpression: E (the defining let = scope)\nenv: HashMap<Symbol, (Expr, position)>\nvisited/solutions: HashMap<(Expr, Subst), Optional<Expr>>\n  (SHARED reference across the whole chain)\nmemoryCells: IdentityHashMap<Expr, List<Cell>>"
+  }
+
+  ConvertedOperationBuffer: {
+    shape: rectangle
+    label: "ConvertedOperationBuffer\n—————————\nconverted: HashMap<Operation, Expr>\nONE Expr instance per IR Operation,\nreused across ALL use sites"
+    style.fill: "#FFF3CD"
+  }
+
+  TypeInference: {
+    shape: rectangle
+    label: "TypeInference\n—————————\nsolve():\n  1. infer(expr, env)\n  2. expr.instantiate(...)\n  3. visitor: reinstantiateSymbols()\n  4. visitor: InstantiateOperation callbacks -> new Operations\n  5. move temporary blocks into parent regions\n  6. OperationVerifier (FULL_VERIFICATION)\nasExpression(): buffered Operation->Expr conversion"
+  }
+}
+
+# ---- hierarchy edges ----
+ExprOrOperator -> Expr: extends
+Expression -> Expr: implements
+Expression -> ExprNodes.ExprAnn: implements
+Expression -> ExprNodes.ExprLit: implements
+Expression -> ExprNodes.ExprTuple: implements
+Expression -> ExprNodes.ExprVar: implements
+Expression -> ExprNodes.ExprApp: implements
+Expression -> ExprNodes.ExprAbs: implements
+Expression -> ExprNodes.ExprLetSeq: implements
+Expression -> ExprNodes.ExprLetRec: implements
+Expression -> ExprNodes.ExprSeq: implements
+Expression -> ExprNodes.ExprReturn: implements
+Expression -> ExprNodes.ExprCustom: implements
+Expr -> ExprNodes.ExprAnn: extends
+Expr -> ExprNodes.ExprLit: extends
+Expr -> ExprNodes.ExprTuple: extends
+Expr -> ExprNodes.ExprVar: extends
+Expr -> ExprNodes.ExprApp: extends
+Expr -> ExprNodes.ExprAbs: extends
+Expr -> ExprNodes.ExprLetSeq: extends
+Expr -> ExprNodes.ExprLetRec: extends
+Expr -> ExprNodes.ExprSeq: extends
+Expr -> ExprNodes.ExprReturn: extends
+Expr -> ExprNodes.ExprCustom: extends
+Expr -> ExprNodes.ExprCell: "private inner class"
+
+Traits.IExpressionCell -> ExprNodes.ExprCell: implements
+Traits.IIsApplication -> ExprNodes.ExprApp: implements
+Traits.IIsAbstraction -> ExprNodes.ExprAbs: implements
+
+# ---- runtime connections ----
+ExprNodes.ExprCell -> ExprNodes.ExprCell: "cellValue may point into a tree containing the cell (recursive binding)" {
+  style.stroke: red
+  style.stroke-width: 2
+}
+
+ExprNodes.ExprLetSeq -> Infrastructure.InstEnv: "instantiateInner: new InstEnv(env, newLetExpr) — child scope"
+ExprNodes.ExprLetRec -> Infrastructure.InstEnv: "instantiateInner: new InstEnv(env, newLetExpr) — child scope"
+Infrastructure.InstEnv -> Infrastructure.HashConsing: extends
+
+Infrastructure.TypeInference -> Infrastructure.ConvertedOperationBuffer: "asExpression(): same Expr object reused across ALL use sites" {
+  style.stroke: orange
+  style.stroke-width: 2
+}
+Infrastructure.TypeInference -> Expr: "solve(): infer + instantiate + op reconstruction"
+Infrastructure.TypeInference -> Infrastructure.InstEnv: "creates root env"
+Expr -> Expression.ExpressionVisitor: "traversal"
+
+ExprNodes.ExprLetRec -> ExprNodes.ExprCell: "recursive bindings materialize as cells" {
+  style.stroke: red
+  style.stroke-dash: 3
+}
+
+hotspots: {
+  label: "Known hot spots\n① buffered Operation->Expr: same Expr shared across scopes (return/scope bug)\n② mutable keys: Expr fields (inferredType, parentScope) mutate after insertion into hashConsedExprs / visited\n③ ExprCell cycle vs structural hashCode/equals — fixed via identity\n④ subclass hashCode recurses full tree depth"
+  shape: text
+  style.font-color: darkred
+}

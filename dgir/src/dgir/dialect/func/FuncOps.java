@@ -670,6 +670,14 @@ public sealed interface FuncOps {
     public ConstantOp(@NotNull Location location, @NotNull FuncOp funcOp) {
       this(location, funcOp.getFuncName(), funcOp.getType());
     }
+
+    public String getFuncName() {
+      return this.getAttributeAs("callee_ident", SymbolRefAttribute.class).orElseThrow().getValue();
+    }
+
+    public Type getFuncType() {
+      return this.getAttributeAs("callee_type", TypeAttribute.class).orElseThrow().getType();
+    }
   }
 
   final class CallIndirectOp extends FuncBaseOp implements FuncOps {
