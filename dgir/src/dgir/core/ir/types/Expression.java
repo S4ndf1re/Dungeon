@@ -101,9 +101,7 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
    *
    * @return a new shallow copy of this expression node
    */
-  public default E copy() {
-    throw new UnsupportedOperationException("copy() is not implemented for this expression type");
-  }
+  public E copy();
 
   public class ExpressionVisitor<E extends Expression<E, T>, T extends Type> {
     private Set<E> visited;

@@ -56,7 +56,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
   @Override
   public boolean equals(Object obj) {
     return obj instanceof Expr expr && this.inferredType.equals(expr.inferredType)
-        && this.parentScopeExpression.orElse(null) == expr.parentScopeExpression.orElse(null);
+        && this.parentScopeExpression.orElse(null) == expr.parentScopeExpression.orElse(null)
+        && this.parentScopePosition.equals(expr.parentScopePosition);
   }
 
   @Override
@@ -217,6 +218,10 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       }
     }
 
+    // FIXME: this actually will hog a lot of memory in the long term, depending on
+    // the expression size!
+    // A possible solution would be to filter the subst to only occuring type
+    // variables! And removing all already applied solutions!
     env.visit(expr, solution);
 
     Expr instantiated;
@@ -231,11 +236,6 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     // expression with the referenced instantiated Expr instance.
     // This will not work for abstract ExprAbs parameters,
     // as those are not bound to concrete expressions.
-    // Sometimes, function application arguments are
-    // further applied using beta reduction,
-    // to result in a more normalized instantiation tree.
-    // This will not be possible due to the nature of the
-    // Operation conversion that will run later.
     //
     // FUTURE_WORK(jan): return a fully beta-reduced expression tree
     var referencedExpr = instantiatedTarget.getReferencedVariable();
@@ -251,8 +251,6 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
           UnifyResult res = engine.unify(instantiatedTarget.getInferredType().get(), referencedInferredType.get());
           var finalSubst = res.subst().compose(solution);
 
-          // FIXME: this will lead to huge memory usage! Typ incorparating hashConsing
-          // into the copy???
           var copiedExpr = referencedExprAsExpr.copy();
           copiedExpr.setParentScopeExpression(scopeExpression.get(), referencedFromEnv.get().getRight());
 
@@ -467,7 +465,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprAnn(this, this.expr, this.type);
+      return new ExprAnn(this);
     }
 
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
@@ -558,7 +556,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprTuple(this, this.elements);
+      return new ExprTuple(this);
     }
 
     public ExprTuple(List<Expr> elements) {
@@ -744,7 +742,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprVar(this, this.name);
+      return new ExprVar(this);
     }
   }
 
@@ -848,7 +846,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprApp(this, this.func, this.args);
+      return new ExprApp(this);
     }
 
     @Override
@@ -1141,8 +1139,9 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprAbs(this, List.copyOf(this.params), this.body);
+      return new ExprAbs(this);
     }
+
   }
 
   /**
@@ -1227,7 +1226,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprLetSeq(this, List.copyOf(this.bindings), this.body);
+      return new ExprLetSeq(this);
     }
 
     @Override
@@ -1393,7 +1392,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprLetRec(this, List.copyOf(this.bindings), this.body);
+      return new ExprLetRec(this);
     }
 
     @Override
@@ -1569,8 +1568,9 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprSeq(this, this.expressions);
+      return new ExprSeq(this);
     }
+
   }
 
   public static class ExprReturn extends Expr {
@@ -1647,7 +1647,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprReturn(this, this.value);
+      return new ExprReturn(this);
     }
   }
 
@@ -1679,27 +1679,20 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
           Symbol<Expr, AlgorithmWType> replacement, D data);
     }
 
-    @FunctionalInterface
-    public interface CopyFunction<D> {
-      D copy(D data);
-    }
-
     private D data;
     private InferFunction<D> inferFn;
     private Optional<InstantiateFunction<D>> instFn;
     private Optional<GetChildrenFunction<D>> getChildrenFn;
     private Optional<ReplaceSymbolFunction<D>> replaceSymbolFn;
-    private Optional<CopyFunction<D>> copyFn;
 
     public ExprCustom(
         D data, InferFunction<D> inferFn, InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
-        ReplaceSymbolFunction<D> replaceSymbolFn, CopyFunction<D> copyFn) {
+        ReplaceSymbolFunction<D> replaceSymbolFn) {
       this.data = data;
       this.inferFn = inferFn;
       this.instFn = Optional.ofNullable(instFn);
       this.getChildrenFn = Optional.ofNullable(getChildrenFn);
       this.replaceSymbolFn = Optional.ofNullable(replaceSymbolFn);
-      this.copyFn = Optional.ofNullable(copyFn);
     }
 
     public ExprCustom(ExprCustom<D> other) {
@@ -1709,7 +1702,6 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       this.instFn = other.instFn;
       this.getChildrenFn = other.getChildrenFn;
       this.replaceSymbolFn = other.replaceSymbolFn;
-      this.copyFn = other.copyFn;
     }
 
     public ExprCustom(ExprCustom<D> other, D newData) {
@@ -1719,7 +1711,6 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
       this.instFn = other.instFn;
       this.getChildrenFn = other.getChildrenFn;
       this.replaceSymbolFn = other.replaceSymbolFn;
-      this.copyFn = other.copyFn;
     }
 
     public D getData() {
@@ -1791,7 +1782,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public Expr copy() {
-      return new ExprCustom<>(this, this.copyFn.isPresent() ? this.copyFn.get().copy(this.data) : this.data);
+      return new ExprCustom<>(this);
     }
   }
 }

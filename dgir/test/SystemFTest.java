@@ -6,7 +6,10 @@ import dgir.core.ir.types.systemf.Expr;
 import dgir.core.ir.types.systemf.SystemFInference;
 import dgir.core.ir.types.systemf.SystemFType;
 
+import dgir.core.ir.types.TypeVar;
+
 import java.util.List;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
@@ -200,5 +203,100 @@ public class SystemFTest {
     assert resType instanceof SystemFType;
     assert resType instanceof SystemFType.Lit;
     assert ((SystemFType.Lit) resType).ident.equals(TypeIdent.TYPE_IDENT_INT);
+  }
+
+  @Test
+  public void polymorphicConst() {
+    var inference = new SystemFInference();
+    var solver = inference.getSolverInstance();
+
+    var a = new TypeVar();
+    var b = new TypeVar();
+    var x = Symbol.<Expr, SystemFType>of(new Value());
+    var y = Symbol.<Expr, SystemFType>of(new Value());
+
+    var cnst = new Expr.TAbs(a,
+        new Expr.TAbs(b,
+            new Expr.Abs(x, new SystemFType.Var(a),
+                new Expr.Abs(y, new SystemFType.Var(b), new Expr.Var(x)))));
+
+    var expr = new Expr.App(
+        new Expr.App(
+            new Expr.TApp(
+                new Expr.TApp(cnst,
+                    new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT)),
+                new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL)),
+            new Expr.LitExpr(new Literal.Int(42))),
+        new Expr.LitExpr(new Literal.Bool(true)));
+
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
+
+    assert result.equals(new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT));
+  }
+
+  @Test
+  public void polymorphicUses() {
+    var inference = new SystemFInference();
+    var solver = inference.getSolverInstance();
+
+    var a = new TypeVar();
+    var b = new TypeVar();
+    var x = Symbol.<Expr, SystemFType>of(new Value());
+    var y = Symbol.<Expr, SystemFType>of(new Value());
+
+    var t = new Expr.TAbs(a,
+        new Expr.TAbs(b,
+            new Expr.Abs(x, new SystemFType.Var(a),
+                new Expr.Abs(y, new SystemFType.Var(b), new Expr.Var(x)))));
+
+    var intTy = new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT);
+    var boolTy = new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL);
+
+    var use1 = new Expr.App(
+        new Expr.App(new Expr.TApp(new Expr.TApp(t, intTy), boolTy),
+            new Expr.LitExpr(new Literal.Int(42))),
+        new Expr.LitExpr(new Literal.Bool(true)));
+    var use2 = new Expr.App(
+        new Expr.App(new Expr.TApp(new Expr.TApp(t, boolTy), intTy),
+            new Expr.LitExpr(new Literal.Bool(true))),
+        new Expr.LitExpr(new Literal.Int(42)));
+    var use3 = new Expr.App(
+        new Expr.App(new Expr.TApp(new Expr.TApp(t, intTy), boolTy),
+            new Expr.LitExpr(new Literal.Int(32))),
+        new Expr.LitExpr(new Literal.Bool(false)));
+
+    var expr = new Expr.Tuple(use1, use2, use3);
+
+    var resultPair = solver.solve(expr);
+    var result = resultPair.getLeft();
+
+    assert result instanceof SystemFType.Tuple;
+    var resultTuple = (SystemFType.Tuple) result;
+    assert resultTuple.elements.size() == 3;
+    assert resultTuple.elements.get(0).equals(intTy);
+    assert resultTuple.elements.get(1).equals(boolTy);
+    assert resultTuple.elements.get(2).equals(intTy);
+
+    var instantiated = resultPair.getRight();
+    assert instantiated instanceof Expr.Tuple;
+    var tupleExpr = (Expr.Tuple) instantiated;
+    assert tupleExpr.elements().size() == 3;
+
+    Function<Expr, Expr> getInnerAbs = elem -> {
+      assert elem instanceof Expr.App;
+      var inner = ((Expr.App) elem).fun();
+      assert inner instanceof Expr.App;
+      return ((Expr.App) inner).fun();
+    };
+
+    var firstAbs = getInnerAbs.apply(tupleExpr.elements().get(0));
+    var secondAbs = getInnerAbs.apply(tupleExpr.elements().get(1));
+    var thirdAbs = getInnerAbs.apply(tupleExpr.elements().get(2));
+
+    // By reference, check if hash consing worked
+    assert firstAbs == thirdAbs;
+    assert firstAbs != secondAbs;
+    assert thirdAbs != secondAbs;
   }
 }

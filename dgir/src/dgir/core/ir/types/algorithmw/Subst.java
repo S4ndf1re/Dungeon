@@ -34,11 +34,7 @@ public final record Subst(HashMap<TypeVar, AlgorithmWType> types) {
     if (type instanceof AlgorithmWType.Var var) {
       var t = types.get(var.tyVar);
       if (t != null) {
-        // In the case that a substitution for a type is found, make sure to inform a
-        // possibly present value that this substitution was performed and a type is
-        // possibly solved.
         var resType = apply(t);
-        var.tyVar.provideSolution(resType);
         return resType;
       } else {
         return type;
