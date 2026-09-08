@@ -58,6 +58,9 @@ public class ScfInferenceTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+        DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
+        DgirTestUtils.saveDotExpr(solvedPair.getRight());
+        DgirTestUtils.saveDotType(solvedPair.getLeft());
 
     // Collect every operation that made it into the reconstructed tree.
     List<Operation> ops = new ArrayList<>();
