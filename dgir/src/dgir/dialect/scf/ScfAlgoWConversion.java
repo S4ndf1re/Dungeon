@@ -114,8 +114,7 @@ public final class ScfAlgoWConversion {
           data.elseCase().map(elseExpr -> elseExpr.replaceSymbol(original, replacement))));
     };
 
-    var result = new Expr.ExprCustom<IfData>(ifData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new IfData(d.cond.copy(), d.thenCase.copy(), d.elseCase.map(e -> e.copy())));
+    var result = new Expr.ExprCustom<IfData>(ifData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;
@@ -274,8 +273,7 @@ public final class ScfAlgoWConversion {
           data.cond().replaceSymbol(original, replacement), data.body().replaceSymbol(original, replacement)));
     };
 
-    var result = new Expr.ExprCustom<WhileData>(whileData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new WhileData(d.cond.copy(), d.body.copy()));
+    var result = new Expr.ExprCustom<WhileData>(whileData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;
@@ -352,8 +350,7 @@ public final class ScfAlgoWConversion {
           data.falseVal().replaceSymbol(original, replacement)));
     };
 
-    var result = new Expr.ExprCustom<SelectData>(selectData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new SelectData(d.cond.copy(), d.trueVal.copy(), d.falseVal.copy()));
+    var result = new Expr.ExprCustom<SelectData>(selectData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;
@@ -406,8 +403,7 @@ public final class ScfAlgoWConversion {
           data.value.replaceSymbol(original, replacement)));
     };
 
-    var result = new Expr.ExprCustom<YieldData>(selectData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new YieldData(d.value.copy()));
+    var result = new Expr.ExprCustom<YieldData>(selectData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;
@@ -433,7 +429,7 @@ public final class ScfAlgoWConversion {
     InferFunction<JumpData> infFunc = (eng, env, data) -> new InferFunctionResult(
         Subst.newEmpty(), new AlgorithmWType.Var(new TypeVar()));
 
-    var result = new Expr.ExprCustom<JumpData>(new JumpData(), infFunc, null, null, null, d -> d);
+    var result = new Expr.ExprCustom<JumpData>(new JumpData(), infFunc, null, null, null);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> new ScfOps.ContinueOp(op.getLocation()).getOperation());
 
@@ -450,7 +446,7 @@ public final class ScfAlgoWConversion {
     InferFunction<EndData> infFunc = (eng, env, data) -> new InferFunctionResult(
         Subst.newEmpty(), new AlgorithmWType.Var(new TypeVar()));
 
-    var result = new Expr.ExprCustom<EndData>(new EndData(), infFunc, null, null, null, d -> d);
+    var result = new Expr.ExprCustom<EndData>(new EndData(), infFunc, null, null, null);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> new ScfOps.EndOp(op.getLocation()).getOperation());
 

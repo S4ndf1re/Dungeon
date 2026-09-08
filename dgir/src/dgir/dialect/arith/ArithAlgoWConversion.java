@@ -133,8 +133,7 @@ public final class ArithAlgoWConversion {
           data.rhs.replaceSymbol(original, replacement), data.binMode));
     };
 
-    var result = new Expr.ExprCustom<BinOpData>(binOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new BinOpData(d.lhs.copy(), d.rhs.copy(), d.binMode));
+    var result = new Expr.ExprCustom<BinOpData>(binOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;
 
@@ -215,8 +214,7 @@ public final class ArithAlgoWConversion {
           data.unaryMode));
     };
 
-    var result = new Expr.ExprCustom<UnaryData>(unaryOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new UnaryData(d.lhs.copy(), d.unaryMode));
+    var result = new Expr.ExprCustom<UnaryData>(unaryOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;
@@ -296,8 +294,7 @@ public final class ArithAlgoWConversion {
           data.targetType));
     };
 
-    var result = new Expr.ExprCustom<CastData>(unaryOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new CastData(d.value.copy(), d.targetType));
+    var result = new Expr.ExprCustom<CastData>(unaryOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;

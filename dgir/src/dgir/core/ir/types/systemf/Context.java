@@ -50,7 +50,6 @@ public class Context extends ScopeLike<SystemFType>
         "}");
   }
 
-
   public void push(Entry entry) {
     this.entries.add(entry);
   }
@@ -70,6 +69,16 @@ public class Context extends ScopeLike<SystemFType>
 
   public Context copy() {
     return new Context(this);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Context other && this.entries.equals(other.entries);
+  }
+
+  @Override
+  public int hashCode() {
+    return this.entries.hashCode();
   }
 
   /**
@@ -129,7 +138,16 @@ public class Context extends ScopeLike<SystemFType>
               bnd.tyVar().equals(etVar.tyVar));
       if (filterRes.isPresent()) {
         var solvedEtVar = (Entry.SETVarBnd) filterRes.get();
-        solvedEtVar.tyVar().provideSolution(solvedEtVar.type());
+        return this.applyOnce(solvedEtVar.type());
+      } else {
+        return type;
+      }
+    } else if (type instanceof SystemFType.Var tVar) {
+      var filterRes = this.find(
+          entry -> entry instanceof Entry.SVarBnd bnd &&
+              bnd.tyVar().equals(tVar.tyVar));
+      if (filterRes.isPresent()) {
+        var solvedEtVar = (Entry.SVarBnd) filterRes.get();
         return this.applyOnce(solvedEtVar.type());
       } else {
         return type;
@@ -144,6 +162,8 @@ public class Context extends ScopeLike<SystemFType>
           this.applyOnce(forAll.body));
     } else if (type instanceof SystemFType.Lit lit) {
       return new SystemFType.Lit(lit.ident, lit.parameters.stream().map(param -> this.applyOnce(param)).toList());
+    } else if (type instanceof SystemFType.Tuple tuple) {
+      return new SystemFType.Tuple(tuple.elements.stream().map(this::applyOnce).toList());
     }
     return type;
   }

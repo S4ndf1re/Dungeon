@@ -3,9 +3,6 @@ package dgir.core.ir.types;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-
-import dgir.core.ir.Value;
 
 /**
  * Marker class representing a unique type variable.
@@ -25,8 +22,6 @@ import dgir.core.ir.Value;
  * analysis purposes.
  */
 public class TypeVar {
-
-  private final Optional<Value> boundValue;
 
   /**
    * A scope for tracking type variables created within a logical context.
@@ -112,11 +107,6 @@ public class TypeVar {
 
   public <E extends Expression<E, T>, T extends Type> TypeVar(Symbol<E, T> value) {
     this.idx = TypeVar.counter++;
-    if (value != null && value.isValue()) {
-      this.boundValue = Optional.ofNullable(value.getValue());
-    } else {
-      this.boundValue = Optional.empty();
-    }
     openScopes.forEach(scope -> scope.addCreated(this));
   }
 
@@ -175,13 +165,6 @@ public class TypeVar {
    */
   public static void removeScope(TypeVarScope scope) {
     openScopes.remove(scope);
-  }
-
-  public void provideSolution(Type type) {
-    if (this.boundValue.isPresent()) {
-      // TODO(jan): set type here
-      // this.boundValue.get().setType(type);
-    }
   }
 
 }
