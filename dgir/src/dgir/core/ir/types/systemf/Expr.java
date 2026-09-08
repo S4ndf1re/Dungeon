@@ -489,11 +489,16 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
   public static final class App extends Expr {
 
     private final Expr fun;
-    private final Expr arg;
+    private final Optional<Expr> arg;
+
+    public App(Expr fun) {
+      this.fun = fun;
+      this.arg = Optional.empty();
+    }
 
     public App(Expr fun, Expr arg) {
       this.fun = fun;
-      this.arg = arg;
+      this.arg = Optional.of(arg);
     }
 
     public App(App other) {
@@ -502,7 +507,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       this.arg = other.arg;
     }
 
-    public App(App other, Expr fun, Expr arg) {
+    public App(App other, Expr fun, Optional<Expr> arg) {
       super(other);
       this.fun = fun;
       this.arg = arg;
@@ -512,15 +517,14 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       return this.fun.unwrapOrThis();
     }
 
-    public Expr arg() {
-      return this.arg.unwrapOrThis();
+    public Optional<Expr> arg() {
+      return this.arg.map(Expr::unwrapOrThis);
     }
 
     @Override
     public final String toString() {
-      return fun + " " + arg;
+      return this.arg.isPresent() ? fun + " " + this.arg.get() : fun + " ()";
     }
-
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
       var input = ctx + " |- " + this;
@@ -529,40 +533,67 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
 
       TypeResult result;
       if (funcTypeApplied instanceof SystemFType.Arrow arrow) {
-        var paramTy = arrow.from;
         var resultTy = arrow.to;
+        var currentCtx = funcInferred.ctx();
+        if (this.arg.isPresent()) {
+          var paramCheck = engine.check(currentCtx, this.arg.get(), arrow.from);
+          currentCtx = paramCheck.ctx();
+        } else {
+          // Zero argument application: the unit input placeholder is supplied
+          // implicitly!
+          var placeholderCheck = engine.subtype(currentCtx,
+              new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT), arrow.from);
+          currentCtx = placeholderCheck.ctx();
+        }
 
-        var paramCheck = engine.check(funcInferred.ctx(), this.arg, paramTy);
         result = new TypeResult(
             resultTy,
-            paramCheck.ctx(),
+            currentCtx,
             new InferenceTree(
                 "InfAppArr",
                 input,
-                input + " =>=> " + resultTy + paramCheck.ctx(),
-                List.of(paramCheck.tree())));
+                input + " =>=> " + resultTy + currentCtx,
+                List.of()));
       } else if (funcTypeApplied instanceof SystemFType.EtVar etvar) {
         var a = etvar.tyVar;
 
-        var a1 = new TypeVar();
         var a2 = new TypeVar();
 
         var breakRes = funcInferred.ctx().break3(
             entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
-        var arrowType = new SystemFType.Arrow(
-            new SystemFType.EtVar(a1),
-            new SystemFType.EtVar(a2));
 
         var newCtx = new Context(breakRes.left(), funcInferred.ctx());
-        newCtx.push(new Entry.SETVarBnd(a, arrowType));
-        newCtx.push(new Entry.ETVarBnd(a1));
-        newCtx.push(new Entry.ETVarBnd(a2));
-        newCtx.extend(breakRes.right());
+        CheckResult checkRes;
+        if (this.arg.isPresent()) {
+          var a1 = new TypeVar();
+          var arrowType = new SystemFType.Arrow(
+              new SystemFType.EtVar(a1),
+              new SystemFType.EtVar(a2));
 
-        var checkRes = engine.check(
-            newCtx,
-            this.arg,
-            new SystemFType.EtVar(a1));
+          newCtx.push(new Entry.SETVarBnd(a, arrowType));
+          newCtx.push(new Entry.ETVarBnd(a1));
+          newCtx.push(new Entry.ETVarBnd(a2));
+          newCtx.extend(breakRes.right());
+
+          checkRes = engine.check(
+              newCtx,
+              this.arg.get(),
+              new SystemFType.EtVar(a1));
+        } else {
+          // Zero argument application: the unit input placeholder is supplied
+          // implicitly!
+          var arrowType = new SystemFType.Arrow(
+              new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT),
+              new SystemFType.EtVar(a2));
+
+          newCtx.push(new Entry.SETVarBnd(a, arrowType));
+          newCtx.push(new Entry.ETVarBnd(a2));
+          newCtx.extend(breakRes.right());
+
+          checkRes = new CheckResult(
+              newCtx,
+              new InferenceTree("InfAppETVarNone", input, input, List.of()));
+        }
 
         var output = input + " =>=> ^" + a2 + " -| " + checkRes.ctx();
         result = new TypeResult(
@@ -576,7 +607,6 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       } else {
         throw new TypingException.ApplicationTypeError();
       }
-
       var output = input + " => " + result.type() + " -| " + result.ctx();
       return new TypeResult(
           result.type(),
@@ -588,52 +618,57 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
               List.of(funcInferred.tree(), result.tree())));
     }
 
-    @Override
     public List<Expr> getChildren() {
-      return List.of(this.arg, this.fun);
+      var children = new ArrayList<Expr>();
+      children.add(this.fun);
+      this.arg.ifPresent(children::add);
+      return List.copyOf(children);
     }
 
-    @Override
     public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.fun.containsSymbol(symbol) || this.arg.containsSymbol(symbol);
+      return this.fun.containsSymbol(symbol) || this.arg.map(arg -> arg.containsSymbol(symbol)).orElse(false);
     }
 
-    @Override
     public boolean equals(Object obj) {
       return obj instanceof App other && this.fun.equals(other.fun) && this.arg.equals(other.arg)
           && super.equals(obj);
     }
 
-    @Override
     public int hashCode() {
       return Objects.hash(this.fun, this.arg, super.hashCode());
     }
 
-    @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return new App(this.fun.replaceSymbol(original, replacement), this.arg.replaceSymbol(original, replacement));
+      var newArg = this.arg.map(arg -> arg.replaceSymbol(original, replacement));
+      return new App(this, this.fun.replaceSymbol(original, replacement), newArg);
     }
 
-    @Override
     public Expr copy() {
       return new App(this);
     }
 
-    @Override
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return new App(this, this.fun.instantiate(engine, env, solution),
-          this.arg.instantiate(engine, env, solution));
+          this.arg.map(arg -> arg.instantiate(engine, env, solution)));
     }
   }
 
   public static final class Abs extends Expr implements IIsAbstraction<Expr, SystemFType> {
 
-    private final Symbol<Expr, SystemFType> name;
-    private final SystemFType type;
+    private final Optional<Symbol<Expr, SystemFType>> name;
+    private final Optional<SystemFType> type;
     private final Expr body;
 
     public Abs(Symbol<Expr, SystemFType> name, SystemFType type, Expr body) {
+      this(Optional.of(name), Optional.of(type), body);
+    }
+
+    public Abs(Expr body) {
+      this(Optional.empty(), Optional.empty(), body);
+    }
+
+    private Abs(Optional<Symbol<Expr, SystemFType>> name, Optional<SystemFType> type, Expr body) {
       this.name = name;
       this.type = type;
       this.body = body;
@@ -646,7 +681,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       this.body = other.body;
     }
 
-    public Abs(Abs other, Symbol<Expr, SystemFType> name, SystemFType type, Expr body) {
+    public Abs(Abs other, Optional<Symbol<Expr, SystemFType>> name, Optional<SystemFType> type, Expr body) {
       super(other);
       this.name = name;
       this.type = type;
@@ -655,7 +690,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
 
     @Override
     public final String toString() {
-      return "λ" + name + ": " + type + ". " + body;
+      return "λ" + name.map(Object::toString).orElse("") + type.map(t -> ": " + t).orElse("") + ". " + body;
     }
 
     @Override
@@ -668,7 +703,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       var mark = new Entry.Mark();
       newCtx.push(mark);
 
-      newCtx.push(new Entry.VarBnd(this.name, this.type));
+      this.name.ifPresent(name -> newCtx.push(new Entry.VarBnd(name, this.type.get())));
       newCtx.push(new Entry.ETVarBnd(b));
 
       var c1 = engine.check(newCtx, this.body, new SystemFType.EtVar(b));
@@ -694,8 +729,9 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
           .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
 
       var finalCtx = new Context(solvedFinalCtxEntries, furtherCtx);
+      // A zero parameter abstraction is a function taking the unit placeholder!
       var resType = new SystemFType.Arrow(
-          this.type,
+          this.type.orElseGet(() -> new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT)),
           resultType);
 
       return new TypeResult(
@@ -717,8 +753,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       if (ty instanceof SystemFType.Arrow arrow) {
         var newCtx = ctx.copy();
         var mark = new Entry.Mark();
-        newCtx.push(mark);
-        newCtx.push(new Entry.VarBnd(this.name, arrow.from));
+        this.name.ifPresent(name -> newCtx.push(new Entry.VarBnd(name, arrow.from)));
 
         var bodyCheck = engine.check(newCtx, this.body, arrow.to);
         var break3Result = bodyCheck.ctx().break3(
@@ -745,7 +780,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
 
     @Override
     public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.name.equals(symbol) || this.body.containsSymbol(symbol);
+      return this.name.map(name -> name.equals(symbol)).orElse(false) || this.body.containsSymbol(symbol);
     }
 
     @Override
@@ -761,18 +796,27 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
 
     @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return new Abs(this, this.name, this.type, this.body.replaceSymbol(original, replacement));
+      var newName = this.name.equals(Optional.of(original)) ? Optional.of(replacement) : this.name;
+      return new Abs(this, newName, this.type, this.body.replaceSymbol(original, replacement));
     }
 
     @Override
     public List<Symbol<Expr, SystemFType>> getAbstractionsOverSymbols() {
-      return List.of(this.name);
+      if (this.name.isPresent()) {
+        return List.of(this.name.get());
+      }
+      return List.of();
     }
 
     @Override
     public Expr getAbstractionBody() {
       return this.body;
     }
+
+    public Expr body() {
+      return this.body.unwrapOrThis();
+    }
+
 
     @Override
     public Expr copy() {
@@ -1288,11 +1332,6 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
         var typeVar = binding.getMiddle();
         var expr = binding.getRight();
         var valueInferred = engine.check(newCtx, expr, newCtx.apply(new SystemFType.EtVar(typeVar)));
-        // NOTE: this is a workaround. Normally, the infer method sets the inferred
-        // type. In this case however, as the correct type for `typeVar` is just stored
-        // within the context and no direct inference call is performed, the inference
-        // result must be stored here!
-        engine.asExpression(expr).setInferredType(new SystemFType.EtVar(typeVar));
         newCtx = valueInferred.ctx().copy();
 
         trees.add(valueInferred.tree());
@@ -1366,6 +1405,22 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
+    public Expr copy() {
+      return new Let(this);
+    }
+
+    @Override
+    public List<Expr> getInstantiableChildren() {
+      // Bindings are instantiated indirectly via beta-reduction of the
+      // referencing variables in the body, never directly!
+      return List.of(this.body);
+    }
+
+    public Expr body() {
+      return this.body.unwrapOrThis();
+    }
+
+    @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       return new Let(this,
           this.bindings.stream()
@@ -1373,13 +1428,9 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
           this.body.replaceSymbol(original, replacement));
     }
 
-    @Override
-    public Expr copy() {
-      return new Let(this);
-    }
   }
 
-  public final class Return extends Expr {
+  public static final class Return extends Expr {
 
     private Expr value;
 
@@ -1397,12 +1448,15 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       this.value = value;
     }
 
+    public Expr value() {
+      return this.value.unwrapOrThis();
+    }
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
       var input = ctx + " |- " + this;
-
       TypeResult res = engine.infer(ctx, this.value);
       SystemFType resultType = res.ctx().apply(res.type());
+
 
       var output = input + " => Bool -| " + res.ctx();
       return new TypeResult(resultType, res.ctx(), new InferenceTree("InfRet", input, output, List.of(res.tree())));
@@ -1552,7 +1606,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
   }
 
-  public final class Custom<D> extends Expr {
+  public static final class Custom<D> extends Expr {
 
     @FunctionalInterface
     public interface InferFunction<D> {
@@ -1566,7 +1620,8 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
 
     @FunctionalInterface
     public interface InstantiateFunction<D> {
-      Expr instantiate(TypeInference engine, Context solution, D data);
+      Expr instantiate(Custom<D> toInstantiate, TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+          Context solution, D data);
     }
 
     @FunctionalInterface
@@ -1581,17 +1636,19 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     private Optional<GetChildrenFunction<D>> getChildrenFn;
 
     public Custom(D data, InferFunction<D> inferFn) {
-      this(data, inferFn, null, null);
+      this(data, inferFn, null, null, null);
     }
 
     public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn) {
-      this(data, inferFn, checkFn, null);
+      this(data, inferFn, checkFn, null, null);
     }
 
-    public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn, GetChildrenFunction<D> getChildrenFn) {
+    public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn,
+        InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn) {
       this.data = data;
       this.inferFn = inferFn;
       this.checkFn = Optional.ofNullable(checkFn);
+      this.instFn = Optional.ofNullable(instFn);
       this.getChildrenFn = Optional.ofNullable(getChildrenFn);
     }
 
@@ -1602,6 +1659,19 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       this.checkFn = other.checkFn;
       this.instFn = other.instFn;
       this.getChildrenFn = other.getChildrenFn;
+    }
+
+    public Custom(Custom<D> other, D newData) {
+      super(other);
+      this.data = newData;
+      this.inferFn = other.inferFn;
+      this.checkFn = other.checkFn;
+      this.instFn = other.instFn;
+      this.getChildrenFn = other.getChildrenFn;
+    }
+
+    public D getData() {
+      return this.data;
     }
 
     @Override
@@ -1618,6 +1688,12 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       }
     }
 
+
+    @Override
+    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      // TODO Auto-generated method stub
+      throw new UnsupportedOperationException("Unimplemented method 'replaceSymbol'");
+    }
     @Override
     public List<Expr> getChildren() {
       if (this.getChildrenFn.isPresent()) {
@@ -1627,29 +1703,25 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       return List.of();
     }
 
+
     @Override
     public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
       return false;
     }
-
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      // TODO Auto-generated method stub
-      throw new UnsupportedOperationException("Unimplemented method 'replaceSymbol'");
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+        Context solution) {
+      if (this.instFn.isPresent()) {
+        // The rebuilt node (created via the copy constructor) inherits the
+        // scope link and the operation reconstruction callback of the original!
+        return this.instFn.get().instantiate(this, engine, env, solution, this.data);
+      }
+      return this;
     }
 
     @Override
     public Expr copy() {
       return new Custom<>(this);
-    }
-
-    @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
-        Context solution) {
-      if (this.instFn != null && this.instFn.isPresent()) {
-        return this.instFn.get().instantiate(engine, solution, this.data);
-      }
-      return this;
     }
 
     @Override
