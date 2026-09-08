@@ -37,6 +37,14 @@ import dgir.core.ir.types.compatibility.ExprOrOperator;
         return tyVar + " : " + type;
       }
     }
+    public final record SVarBnd(
+        TypeVar tyVar,
+        SystemFType type) implements Entry {
+      @Override
+      public final String toString() {
+        return tyVar + " : " + type;
+      }
+    }
 
     /**
      * NOTE: this MUST be a class and not a record, as the equality to identify
