@@ -69,7 +69,7 @@ public final class TypeInference
         if (expr.containsSymbol(sym)) {
           throw new TypingException.CyclicSymbolAssignment(sym, expr);
         }
-        bindings.add(Pair.of(sym, this.asExpression(ExprOrOperator.of(op))));
+        bindings.add(Pair.of(sym, expr));
         lastValue = Optional.of(sym);
       } else {
         /*

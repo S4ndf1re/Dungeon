@@ -2,6 +2,7 @@ package dgir.core.ir.types.systemf;
 
 import java.util.ArrayList;
 import dgir.core.ir.types.InstEnv;
+import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.traits.IExpressionCell;
 
 import java.util.List;
@@ -1441,6 +1442,113 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return new Return(this, this.value.instantiate(engine, env, solution));
+    }
+  }
+
+  /**
+   * Seq is a sequence of expressions that infers all expressions sequentially,
+   * where the type of the last expression is the type of the whole sequence.
+   *
+   * <p>
+   * This is mainly considered to be useful with sequential definitions, i.e.
+   * normal blocks, mirroring the {@code ExprSeq} of the Algorithm W dialect.
+   */
+  public static final class Seq extends Expr {
+
+    private List<Expr> expressions;
+
+    public Seq(Expr expr) {
+      this.expressions = List.of(expr);
+    }
+
+    public Seq(List<Expr> exprs) {
+      this.expressions = List.copyOf(exprs);
+    }
+
+    public Seq(Expr... exprs) {
+      this.expressions = List.of(exprs);
+    }
+
+    public Seq(Seq other) {
+      super(other);
+      this.expressions = List.copyOf(other.expressions);
+    }
+
+    public Seq(Seq other, List<Expr> exprs) {
+      super(other);
+      this.expressions = List.copyOf(exprs);
+    }
+
+    public List<Expr> expressions() {
+      return this.expressions.stream().map(Expr::unwrapOrThis).toList();
+    }
+
+    @Override
+    public final String toString() {
+      return "(" +
+          this.expressions.stream().map(Object::toString).collect(Collectors.joining("; ")) +
+          ")";
+    }
+
+    @Override
+    public List<Expr> getChildren() {
+      return List.copyOf(this.expressions);
+    }
+
+    @Override
+    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
+      return this.expressions.stream().anyMatch(e -> e.containsSymbol(symbol));
+    }
+
+    @Override
+    public TypeResult infer(TypeInference engine, Context ctx) {
+      var input = ctx + " |- " + this;
+
+      var trees = new ArrayList<InferenceTree>();
+      var currentCtx = ctx.copy();
+      SystemFType lastType = new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT);
+
+      for (var expr : this.expressions) {
+        var infRes = engine.infer(currentCtx, expr);
+        currentCtx = infRes.ctx();
+        lastType = currentCtx.apply(infRes.type());
+        trees.add(infRes.tree());
+      }
+
+      return new TypeResult(
+          lastType,
+          currentCtx,
+          new InferenceTree(
+              "InfSeq",
+              input,
+              lastType.toString(),
+              List.copyOf(trees)));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Seq other && this.expressions.equals(other.expressions) && super.equals(obj);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.expressions, super.hashCode());
+    }
+
+    @Override
+    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      return new Seq(this, this.expressions.stream().map(e -> e.replaceSymbol(original, replacement)).toList());
+    }
+
+    @Override
+    public Expr copy() {
+      return new Seq(this);
+    }
+
+    @Override
+    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+        Context solution) {
+      return new Seq(this, this.expressions.stream().map(e -> e.instantiate(engine, env, solution)).toList());
     }
   }
 

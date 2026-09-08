@@ -29,6 +29,8 @@ import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.traits.IExpressionCell;
+import dgir.core.ir.types.traits.IIsAbstraction;
+import dgir.core.traits.ISymbol;
 
 public final class TypeInference
     extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType> {
@@ -93,7 +95,11 @@ public final class TypeInference
       var opOutput = op.getOutput();
       if (opOutput.isPresent()) {
         Symbol<Expr, SystemFType> sym = Symbol.<Expr, SystemFType>of(opOutput.get().getValue());
-        bindings.add(Pair.of(sym, this.asExpression(ExprOrOperator.of(op))));
+        var expr = this.asExpression(ExprOrOperator.of(op));
+        if (expr.containsSymbol(sym)) {
+          throw new TypingException.CyclicSymbolAssignment(sym, expr);
+        }
+        bindings.add(Pair.of(sym, expr));
         lastValue = Optional.of(sym);
       } else {
         /*
@@ -101,14 +107,25 @@ public final class TypeInference
          * function is not actually a expression! This is done to correctly typecheck
          * each function and their parameters!
          */
-        Symbol<Expr, SystemFType> val = Symbol.<Expr, SystemFType>of(new Value());
-        bindings.add(Pair.of(val, this.asExpression(ExprOrOperator.of(op))));
-        lastValue = Optional.of(val);
+        Symbol<Expr, SystemFType> sym = null;
+        if (op.asOp() instanceof ISymbol isym) {
+          sym = Symbol.of(isym.getSymbol());
+        } else {
+          sym = Symbol.of(new Value());
+        }
+        var expr = this.asExpression(ExprOrOperator.of(op));
+        if (expr.containsSymbol(sym)) {
+          throw new TypingException.CyclicSymbolAssignment(sym, expr);
+        }
+        bindings.add(Pair.of(sym, expr));
+        lastValue = Optional.of(sym);
       }
     }
 
     if (lastValue.isPresent()) {
-      return new Expr.Let(bindings, new Expr.Var(lastValue.get()));
+      return new Expr.Let(bindings,
+          new Expr.Seq(bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IIsAbstraction))
+              .map(bnd -> (Expr) new Expr.Var(bnd.getLeft())).toList()));
     } else {
       return new Expr.Let(bindings, new Expr.LitExpr(new Literal.Unit()));
     }
