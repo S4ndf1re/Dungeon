@@ -191,7 +191,7 @@ public final class TypeInference
     return Pair.of((Type) finalType, instantiated);
   }
 
-  SystemFType substType(
+  public SystemFType substType(
       TypeVar tyVar,
       SystemFType replacement,
       SystemFType target) {

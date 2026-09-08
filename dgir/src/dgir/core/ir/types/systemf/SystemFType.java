@@ -1,13 +1,15 @@
 package dgir.core.ir.types.systemf;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import dgir.core.ir.types.TypeVar;
 
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeIdent;
-import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 
 public abstract sealed class SystemFType extends Type {
@@ -17,6 +19,7 @@ public abstract sealed class SystemFType extends Type {
     throw new RuntimeException("The type cannot be converted to parameterized type, as it is not fully specified");
   }
 
+  public abstract boolean isFullySpecified();
   public abstract boolean isMono();
 
   public abstract Set<TypeVar> freeVariables();
@@ -70,6 +73,11 @@ public abstract sealed class SystemFType extends Type {
         return this;
       }
     }
+
+    @Override
+    public boolean isFullySpecified() {
+      return false;
+    }
   }
 
   public static final class EtVar extends SystemFType {
@@ -112,6 +120,11 @@ public abstract sealed class SystemFType extends Type {
       } else {
         return this;
       }
+    }
+
+    @Override
+    public boolean isFullySpecified() {
+      return false;
     }
   }
 
@@ -162,6 +175,29 @@ public abstract sealed class SystemFType extends Type {
       return new SystemFType.Arrow(
           this.from.substType(tyVar, replacement),
           this.to.substType(tyVar, replacement));
+    }
+
+    @Override
+    public GeneralTypeParameter asTypeParameter() {
+      assert this.isFullySpecified();
+
+      ArrayList<SystemFType> types = new ArrayList<>();
+
+      SystemFType current = this;
+      while (current instanceof SystemFType.Arrow) {
+        var arrow = (SystemFType.Arrow) current;
+        types.add(arrow.from);
+        current = arrow.to;
+      }
+      types.add(current);
+
+      return GeneralTypeParameter.of(new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_FUNC,
+          types.stream().map(Type::asTypeParameter).toList()));
+    }
+
+    @Override
+    public boolean isFullySpecified() {
+      return this.from.isFullySpecified() && this.to.isFullySpecified();
     }
   }
 
@@ -216,6 +252,11 @@ public abstract sealed class SystemFType extends Type {
             this.body.substType(tyVar, replacement));
       }
     }
+
+    @Override
+    public boolean isFullySpecified() {
+      return false;
+    }
   }
 
   public static final class Lit extends SystemFType {
@@ -265,6 +306,19 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
+    public GeneralTypeParameter asTypeParameter() {
+      assert this.isFullySpecified() : "the type must be fully specified to be convertable to a general type";
+
+      return GeneralTypeParameter.of(new GeneralParameterizedNominalType(this.ident,
+          this.parameters.stream().map(SystemFType::asTypeParameter).toList()));
+    }
+
+    @Override
+    public boolean isFullySpecified() {
+      return this.parameters.stream().allMatch(SystemFType::isFullySpecified);
+    }
+
+    @Override
     public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
       return new Lit(this.ident, this.parameters.stream().map(param -> param.substType(tyVar, replacement)).toList());
     }
@@ -291,7 +345,19 @@ public abstract sealed class SystemFType extends Type {
     public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
       return new NumericType(this.size);
     }
+
+    @Override
+    public GeneralTypeParameter asTypeParameter() {
+      assert this.isFullySpecified();
+      return GeneralTypeParameter.of(this.size);
+    }
+
+    @Override
+    public boolean isFullySpecified() {
+      return true;
+    }
   }
+
   public static final class Tuple extends SystemFType {
 
     public final List<SystemFType> elements;
@@ -327,6 +393,12 @@ public abstract sealed class SystemFType extends Type {
       var set = new HashSet<TypeVar>();
       this.elements.forEach(elem -> set.addAll(elem.freeVariables()));
       return Set.copyOf(set);
+    }
+
+
+    @Override
+    public boolean isFullySpecified() {
+      return this.elements.stream().allMatch(SystemFType::isFullySpecified);
     }
 
     @Override
