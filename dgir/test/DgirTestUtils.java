@@ -1,24 +1,35 @@
+import static dgir.core.utility.DgirCoreUtils.STACK_WALKER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import static dgir.dialect.func.FuncOps.FuncOp;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import dgir.core.analysis.DotExpression;
+import dgir.core.analysis.DotType;
 
 import dgir.core.analysis.DotCFG;
 import dgir.core.analysis.OperationVerifier.VerifyDepthOption;
 import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.analysis.OperationVerifier.VerifyStructureOption;
-import dgir.core.debug.Location;
-import dgir.core.ir.Op;
-import dgir.core.ir.Operation;
-import dgir.core.serialization.Utils;
 import dgir.core.utility.DgirCoreUtils;
+import dgir.core.ir.Op;
+import dgir.core.debug.Location;
+import dgir.core.ir.Operation;
+import dgir.core.ir.types.GeneralParameterizedNominalType;
+import dgir.core.serialization.Utils;
+import dgir.core.ir.types.Expression;
+import dgir.core.ir.types.Type;
 import guru.nidi.graphviz.engine.Engine;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Set;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -128,9 +139,124 @@ public class DgirTestUtils {
     return true;
   }
 
+  /**
+   * Save a DOT rendering of the given expression tree (with inferred types),
+   * following only instantiable children so stale pre-inference subtrees are
+   * not drawn. Also renders a PNG image. The file name is derived from the
+   * calling test method via the stack walker and suffixed with {@code .expr}.
+   */
+  public static <E extends Expression<E, T>, T extends Type> void saveDotExpr(E expr) {
+    saveDotAndPng(".expr", DotExpression.toDot(expr, DotExpression.VisitGetChildrenOption.ONLY_INSTANTIATED));
+  }
+
+  /**
+   * Save a DOT rendering of the given type tree alongside its rendered PNG
+   * image. The file name is derived from the calling test method via the stack
+   * walker and suffixed with {@code .type}.
+   */
+  public static void saveDotType(Type type) {
+    saveDotAndPng(".type", DotType.toDot(type));
+  }
+
+
+  /**
+   * Save the given dot string and its rendered PNG image in
+   * {@link #savePath}, named after the calling test method ({@code
+   * <TestClass>.<testMethod><suffix>.dot/.png}). Helper frames (e.g. shared
+   * {@code solve} methods) are skipped so the file name always refers to the
+   * actual unit test.
+   */
+  public static void saveDotAndPng(String suffix, String dot) {
+    Set<String> helperMethods = Set.of(
+        "setup", "solve", "solveAlgoW", "solveSystemF", "assertParity", "countOps");
+    String callerName = DgirCoreUtils.STACK_WALKER.walk(
+        stream -> stream
+            .skip(1)
+            .filter(
+                frame -> frame.getDeclaringClass().getSimpleName().endsWith("Test")
+                    && !helperMethods.contains(frame.getMethodName()))
+            .findFirst()
+            .map(
+                stackFrame -> stackFrame.getDeclaringClass().getSimpleName()
+                    + "."
+                    + stackFrame.getMethodName())
+            .orElse("unknown"));
+
+    // Ensure the output directory exists before writing files
+    try {
+      Files.createDirectories(Paths.get(savePath));
+    } catch (IOException e) {
+      System.out.println("Failed to create output directory '" + savePath + "': " + e);
+    }
+    Path dotFile = Paths.get(savePath + callerName + suffix + ".dot");
+    try (BufferedWriter writer = Files.newBufferedWriter(dotFile, StandardCharsets.UTF_8)) {
+      writer.write(dot);
+      System.out.println("Saved dot to " + dotFile);
+    } catch (IOException e) {
+      System.out.println("Failed to save dot to " + dotFile + ": " + e.getMessage());
+    }
+
+    Path pngFile = Paths.get(savePath + callerName + suffix + ".png");
+    try {
+      Graphviz.fromString(dot).engine(Engine.DOT).render(Format.PNG).toFile(pngFile.toFile());
+      System.out.println("Saved image to " + pngFile);
+    } catch (IOException e) {
+      System.out.println("Failed to save image to " + pngFile + ": " + e.getMessage());
+    }
+  }
+
   public static String compareSerializedOperations(
       ObjectMapper mapper, Operation op1, String op2Json) {
     return compareSerializedOperations(mapper, op1, mapper.readValue(op2Json, Operation.class));
+  }
+
+  /**
+   * Save the DOT CFG of the given operation hierarchy alongside its rendered
+   * PNG image, using the given file name suffix. Does nothing if {@code
+   * rootOp} is {@code null}.
+   */
+  public static void saveDotCfg(String suffix, Operation rootOp) {
+    if (rootOp == null) {
+      System.out.println("Skipping cfg export for '" + suffix + "': no root operation found");
+      return;
+    }
+    saveDotAndPng(suffix, DotCFG.buildCfgCluster(rootOp).toString());
+  }
+
+  /**
+   * Find the root of a reconstructed operation tree: prefer the rebuilt
+   * program op, otherwise the first operation without a parent.
+   *
+   * @return the root operation, or {@code null} if none could be determined.
+   */
+  public static Operation findRebuiltRoot(List<Operation> ops) {
+    return ops.stream()
+        .filter(op -> op.asOp() instanceof ProgramOp)
+        .findFirst()
+        .orElseGet(() -> ops.stream()
+            .filter(op -> op.getParentOperation().isEmpty())
+            .findFirst()
+            .orElse(null));
+  }
+
+  /**
+   * Export the operation-side artifacts of a type inference run: the original
+   * operation tree that preceded the inference ({@code .input.cfg}) and the
+   * reconstructed operation tree that postcedes it ({@code .output.cfg}).
+   *
+   * @param stagePrefix prefix for the file name suffixes (e.g. {@code
+   *                    "algoW"}), may be empty.
+   */
+  public static <E extends Expression<E, T>, T extends Type> void saveInferenceCfg(
+      String stagePrefix, Operation inputOp, E solvedExpr) {
+    saveDotCfg(stagePrefix + ".input.cfg", inputOp);
+
+    List<Operation> ops = new ArrayList<>();
+    new Expression.ExpressionVisitor<E, T>(
+        Expression.ExpressionVisitor.VisitOrder.POST_ORDER,
+        Expression.ExpressionVisitor.VisitGetChildrenOption.ALL_CHILDREN)
+        .visit(solvedExpr, e -> e.getUnderlyingOperation().ifPresent(ops::add));
+    saveDotCfg(stagePrefix + ".output.cfg", findRebuiltRoot(ops));
   }
 
   public static String compareSerializedOperations(

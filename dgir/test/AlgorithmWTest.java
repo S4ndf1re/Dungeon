@@ -69,6 +69,8 @@ public class AlgorithmWTest {
             new Expr.ExprLit(new Literal.Bool(true))));
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
 
     assert result instanceof AlgorithmWType;
@@ -98,6 +100,8 @@ public class AlgorithmWTest {
         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT));
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
@@ -141,6 +145,8 @@ public class AlgorithmWTest {
     );
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
@@ -172,6 +178,8 @@ public class AlgorithmWTest {
         new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprLit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     System.out.println(result);
@@ -204,6 +212,8 @@ public class AlgorithmWTest {
         new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprLit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
@@ -232,6 +242,8 @@ public class AlgorithmWTest {
         new Expr.ExprApp(new Expr.ExprVar(f), new Expr.ExprLit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
@@ -256,6 +268,8 @@ public class AlgorithmWTest {
             List.of(new Expr.ExprLit(new Literal.Int(10)), new Expr.ExprLit(new Literal.Bool(false)))));
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.Tuple;
@@ -297,6 +311,8 @@ public class AlgorithmWTest {
                 new Expr.ExprLit(new Literal.Bool(false)))));
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
     var inferred = resultPair.getRight();
 

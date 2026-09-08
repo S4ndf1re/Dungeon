@@ -47,6 +47,9 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new ReturnOp(LOC, idOp.getResult()), 0);
 
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+        DgirTestUtils.saveDotExpr(solvedPair.getRight());
+            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
+        DgirTestUtils.saveDotType(solvedPair.getLeft());
     var solved = solvedPair.getLeft();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
@@ -69,6 +72,9 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new ReturnOp(LOC, idOp.getResult()), 0);
 
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+        DgirTestUtils.saveDotExpr(solvedPair.getRight());
+            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
+        DgirTestUtils.saveDotType(solvedPair.getLeft());
     var solved = solvedPair.getLeft();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
@@ -91,6 +97,9 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new ReturnOp(LOC, addOp.getResult()), 0);
 
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+        DgirTestUtils.saveDotExpr(solvedPair.getRight());
+            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
+        DgirTestUtils.saveDotType(solvedPair.getLeft());
     var solved = solvedPair.getLeft();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
@@ -113,6 +122,9 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new ReturnOp(LOC, addOp.getResult()), 0);
 
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+        DgirTestUtils.saveDotExpr(solvedPair.getRight());
+            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
+        DgirTestUtils.saveDotType(solvedPair.getLeft());
     var solved = solvedPair.getLeft();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;

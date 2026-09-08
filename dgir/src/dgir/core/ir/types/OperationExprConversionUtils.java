@@ -13,21 +13,22 @@ import dgir.core.ir.Value;
 import dgir.core.ir.types.algorithmw.Expr;
 
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
-import dgir.core.ir.types.traits.IIsAbstraction;
-import dgir.core.ir.types.traits.IIsApplication;
+import dgir.core.ir.types.traits.IAbstraction;
+import dgir.core.ir.types.traits.IApplication;
+import dgir.core.ir.types.traits.IVariable;
 
 public class OperationExprConversionUtils {
 
+  @SuppressWarnings("unchecked")
   public static <E extends Expression<E, T>, T extends Type> Optional<Symbol<E, T>> getOutputSymbol(E expr) {
     var assignedOp = expr.getUnderlyingOperation();
-    var referencedSymbol = expr.getReferencedVariable();
 
     if (assignedOp.isPresent() && assignedOp.get().getOutput().isPresent()) {
       return Optional.of(Symbol.of(assignedOp.get().getOutputValueOrThrow()));
     }
 
-    if (referencedSymbol.isPresent()) {
-      return Optional.of(referencedSymbol.get());
+    if (expr instanceof IVariable) {
+      return Optional.of(((IVariable<E, T>) expr).getReferencedVariable());
     }
 
     return Optional.empty();
@@ -56,12 +57,12 @@ public class OperationExprConversionUtils {
   }
 
   @SuppressWarnings("unchecked")
-  public static <AbsT extends IIsAbstraction<E, T>, E extends Expression<E, T>, T extends Type> List<Symbol<E, T>> getAllAbstractedParamters(
+  public static <AbsT extends IAbstraction<E, T>, E extends Expression<E, T>, T extends Type> List<Symbol<E, T>> getAllAbstractedParamters(
       AbsT expr) {
 
     ArrayList<Symbol<E, T>> params = new ArrayList<>();
 
-    IIsAbstraction<E, T> current = expr;
+    IAbstraction<E, T> current = expr;
 
     while (true) {
       var abstractedOver = current.getAbstractionsOverSymbols();
@@ -74,8 +75,8 @@ public class OperationExprConversionUtils {
 
       var body = current.getAbstractionBody();
 
-      if (body instanceof IIsAbstraction) {
-        current = (IIsAbstraction<E, T>) body;
+      if (body instanceof IAbstraction) {
+        current = (IAbstraction<E, T>) body;
       } else {
         break;
       }
@@ -85,12 +86,12 @@ public class OperationExprConversionUtils {
   }
 
   @SuppressWarnings("unchecked")
-  public static <AppT extends IIsApplication<E, T>, E extends Expression<E, T>, T extends Type> List<E> getAllApplicationParameters(
-      IIsApplication<E, T> expr) {
+  public static <AppT extends IApplication<E, T>, E extends Expression<E, T>, T extends Type> List<E> getAllApplicationParameters(
+      IApplication<E, T> expr) {
 
     ArrayDeque<E> params = new ArrayDeque<>();
 
-    IIsApplication<E, T> current = expr;
+    IApplication<E, T> current = expr;
 
     while (true) {
 
@@ -106,8 +107,8 @@ public class OperationExprConversionUtils {
       prependAll(params, applicationParams);
 
       var func = current.getFunction();
-      if (func instanceof IIsApplication) {
-        current = (IIsApplication<E, T>) func;
+      if (func instanceof IApplication) {
+        current = (IApplication<E, T>) func;
       } else {
         break;
       }

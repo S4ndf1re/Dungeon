@@ -51,6 +51,9 @@ public class StrAlgoWConversionTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+        DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
+        DgirTestUtils.saveDotExpr(solvedPair.getRight());
+        DgirTestUtils.saveDotType(solvedPair.getLeft());
 
     List<Operation> ops = new ArrayList<>();
     new ExpressionVisitor<Expr, AlgorithmWType>(VisitOrder.POST_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
