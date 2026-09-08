@@ -19,6 +19,8 @@ import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.SystemFConversionUtils;
+import dgir.core.analysis.DotExpression;
+import dgir.core.analysis.DotType;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.Expr;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
@@ -73,6 +75,9 @@ public class ConversionParityTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    DgirTestUtils.saveInferenceCfg("algoW", programOp.getOperation(), solvedPair.getRight());
+    DgirTestUtils.saveDotAndPng(".algoW.expr", DotExpression.toDot(solvedPair.getRight()));
+    DgirTestUtils.saveDotAndPng(".algoW.type", DotType.toDot(solvedPair.getLeft()));
 
     List<Operation> ops = new ArrayList<>();
     new ExpressionVisitor<Expr, dgir.core.ir.types.algorithmw.AlgorithmWType>(
@@ -87,6 +92,9 @@ public class ConversionParityTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    DgirTestUtils.saveInferenceCfg("systemF", programOp.getOperation(), solvedPair.getRight());
+    DgirTestUtils.saveDotAndPng(".systemF.expr", DotExpression.toDot(solvedPair.getRight()));
+    DgirTestUtils.saveDotAndPng(".systemF.type", DotType.toDot(solvedPair.getLeft()));
 
     List<Operation> ops = new ArrayList<>();
     new ExpressionVisitor<dgir.core.ir.types.systemf.Expr, SystemFType>(
