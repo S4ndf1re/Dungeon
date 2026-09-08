@@ -25,7 +25,7 @@ import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.traits.IExpressionCell;
-import dgir.core.ir.types.traits.IIsAbstraction;
+import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.traits.ISymbol;
 
@@ -95,7 +95,7 @@ public final class TypeInference
 
     if (lastValue.isPresent()) {
       return new Expr.ExprLetRec(bindings,
-          new Expr.ExprSeq(bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IIsAbstraction))
+          new Expr.ExprSeq(bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IAbstraction))
               .map(bnd -> (Expr) new Expr.ExprVar(bnd.getLeft())).toList()));
     } else {
       return new Expr.ExprLetRec(bindings, new Expr.ExprLit(new Literal.Unit()));

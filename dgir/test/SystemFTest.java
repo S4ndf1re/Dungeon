@@ -29,6 +29,8 @@ public class SystemFTest {
         new Expr.Var(x));
 
     var resTypePair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resTypePair.getRight());
+        DgirTestUtils.saveDotType(resTypePair.getLeft());
     var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
 
@@ -61,6 +63,8 @@ public class SystemFTest {
             new Expr.LitExpr(new Literal.Int(2))));
 
     var resTypePair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resTypePair.getRight());
+        DgirTestUtils.saveDotType(resTypePair.getLeft());
     var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
 
@@ -90,6 +94,8 @@ public class SystemFTest {
         new SystemFType.Lit(TypeIdent.TYPE_IDENT_LIST, List.of(new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL))));
 
     var resTypePair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resTypePair.getRight());
+        DgirTestUtils.saveDotType(resTypePair.getLeft());
     var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
 
@@ -129,6 +135,8 @@ public class SystemFTest {
             new Expr.Var(b)));
 
     var resTypePair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resTypePair.getRight());
+        DgirTestUtils.saveDotType(resTypePair.getLeft());
     var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
 
@@ -164,6 +172,8 @@ public class SystemFTest {
         new Expr.App(new Expr.Var(a), new Expr.LitExpr(new Literal.Int(10))));
 
     var resTypePair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resTypePair.getRight());
+        DgirTestUtils.saveDotType(resTypePair.getLeft());
     var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
     assert resType instanceof SystemFType.Lit;
@@ -199,6 +209,8 @@ public class SystemFTest {
         new Expr.App(new Expr.Var(b), new Expr.LitExpr(new Literal.Int(10))));
 
     var resTypePair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resTypePair.getRight());
+        DgirTestUtils.saveDotType(resTypePair.getLeft());
     var resType = resTypePair.getLeft();
     assert resType instanceof SystemFType;
     assert resType instanceof SystemFType.Lit;
@@ -230,6 +242,8 @@ public class SystemFTest {
         new Expr.LitExpr(new Literal.Bool(true)));
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
 
     assert result.equals(new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT));
@@ -269,6 +283,8 @@ public class SystemFTest {
     var expr = new Expr.Tuple(use1, use2, use3);
 
     var resultPair = solver.solve(expr);
+        DgirTestUtils.saveDotExpr(resultPair.getRight());
+        DgirTestUtils.saveDotType(resultPair.getLeft());
     var result = resultPair.getLeft();
 
     assert result instanceof SystemFType.Tuple;
