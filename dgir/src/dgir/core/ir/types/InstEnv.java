@@ -69,34 +69,34 @@ public final class InstEnv<E extends Expression<E, T>, T extends Type, S> extend
     return Optional.empty();
   }
 
-  public void visit(E expr, S env) {
-    this.visited.put(Pair.of(expr, env), Optional.empty());
+  public void visit(E expr, S solution) {
+    this.visited.put(Pair.of(expr, solution), Optional.empty());
   }
 
-  public boolean isVisisted(E expr, S env) {
-    return this.visited.containsKey(Pair.of(expr, env));
+  public boolean isVisisted(E expr, S solution) {
+    return this.visited.containsKey(Pair.of(expr, solution));
   }
 
-  public void setSolution(E expr, S env, E solution) {
-    var key = Pair.of(expr, env);
-    this.visited.compute(key, (k, v) -> Optional.of(solution));
+  public void setSolution(E expr, S solution, E result) {
+    var key = Pair.of(expr, solution);
+    this.visited.compute(key, (k, v) -> Optional.of(result));
   }
 
-  public boolean hasSolution(E expr, S env) {
-    var key = Pair.of(expr, env);
+  public boolean hasSolution(E expr, S solution) {
+    var key = Pair.of(expr, solution);
     return this.visited.containsKey(key) && this.visited.get(key).isPresent();
   }
 
-  public E getSolutionOrThrow(E expr, S env) {
-    if (!this.hasSolution(expr, env)) {
-      throw new RuntimeException("" + expr + ":" + env + " must have  a solution");
+  public E getSolutionOrThrow(E expr, S solution) {
+    if (!this.hasSolution(expr, solution)) {
+      throw new RuntimeException("" + expr + " must have  a solution");
     }
-    var key = Pair.of(expr, env);
+    var key = Pair.of(expr, solution);
     return this.visited.get(key).get();
   }
 
-  public Optional<E> getSolution(E expr, S env) {
-    var key = Pair.of(expr, env);
+  public Optional<E> getSolution(E expr, S solution) {
+    var key = Pair.of(expr, solution);
     if (this.visited.containsKey(key)) {
       return this.visited.get(key);
     } else {

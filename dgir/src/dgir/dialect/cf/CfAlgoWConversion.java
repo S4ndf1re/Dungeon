@@ -69,8 +69,7 @@ public final class CfAlgoWConversion {
       return new Expr.ExprCustom<BranchData>(oldExpr, new BranchData(data.body.replaceSymbol(original, replacement)));
     };
 
-    var result = new Expr.ExprCustom<BranchData>(branchOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new BranchData(d.body.copy()));
+    var result = new Expr.ExprCustom<BranchData>(branchOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;
@@ -153,8 +152,7 @@ public final class CfAlgoWConversion {
           data.thenCase.replaceSymbol(original, replacement), data.elseCase.replaceSymbol(original, replacement)));
     };
 
-    var result = new Expr.ExprCustom<BranchData>(branchOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new BranchData(d.cond.copy(), d.thenCase.copy(), d.elseCase.copy()));
+    var result = new Expr.ExprCustom<BranchData>(branchOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;
@@ -256,8 +254,7 @@ public final class CfAlgoWConversion {
           data.message.map(msg -> msg.replaceSymbol(original, replacement))));
     };
 
-    var result = new Expr.ExprCustom<AssertData>(assertData, infFunc, instFn, getChildrenFn, replaceSymbolFn,
-        d -> new AssertData(d.cond.copy(), d.message.map(m -> m.copy())));
+    var result = new Expr.ExprCustom<AssertData>(assertData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprCustom;

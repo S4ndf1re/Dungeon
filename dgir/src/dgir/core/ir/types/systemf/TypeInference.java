@@ -7,11 +7,14 @@ import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Value;
+import dgir.core.analysis.OperationVerifier;
+import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InferenceTree;
+import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
@@ -19,9 +22,13 @@ import dgir.core.ir.types.TypeDialect;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypeVar.TypeVarScope;
 import dgir.core.ir.types.TypingException;
+import dgir.core.ir.types.Expression.ExpressionVisitor;
+import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
+import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
+import dgir.core.ir.types.traits.IExpressionCell;
 
 public final class TypeInference
     extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType> {
@@ -109,14 +116,62 @@ public final class TypeInference
 
   @Override
   public Pair<Type, Expr> solve(ExprOrOperator<Expr, SystemFType> exprOrOp) {
+    var context = new Context();
     var expr = this.asExpression(exprOrOp);
-    var res = this.infer(new Context(), expr);
+    var res = this.infer(context, expr);
     var solutionCtx = res.ctx().copy();
-
     SystemFType finalType = solutionCtx.apply(res.type());
-    expr.instantiate(this, solutionCtx);
 
-    return Pair.of(finalType, expr);
+    var instantiated = expr.instantiate(this, new InstEnv<>(expr), solutionCtx);
+
+    // 1. Replace values in Let and Abs expressions with new values
+    // As Exprs are already hash-consed, this will visit every relevant expression
+    // only once!
+    // Additionally, function parameters are also unique Values, i.e. they cannot
+    // get destroy hash-consing uniqueness!
+    new ExpressionVisitor<Expr, SystemFType>(VisitOrder.IN_ORDER).visit(instantiated, e -> {
+      e.reinstantiateSymbols();
+    });
+    // 2. Instantiate Operations bottom-up. As all values are newly assigned, this
+    // operation will create a new operation tree
+    // During this stage, make sure to fully type the values using the expressions
+    // inferred types! The types are normally fully qualified, due to hash consing
+    // and solution
+    // applicaiton! In cases where the type is not fully qualified, throw a typing
+    // error, as annotations may be needed to fully infer typing.
+    // A few problems may arise in reconstructing the blocks and regions.
+    // The new expression tree is actually a sea-of-nodes like Expression tree
+    new ExpressionVisitor<Expr, SystemFType>(VisitOrder.POST_ORDER, VisitGetChildrenOption.ONLY_INSTANTIATED)
+        .visit(instantiated, e -> {
+          var instOp = e.getInstantiateOperationCallback();
+          if (instOp.isPresent()) {
+            @SuppressWarnings("unchecked")
+            var exprUnwrapped = e instanceof IExpressionCell ? ((IExpressionCell<Expr, SystemFType>) e).unwrap() : e;
+            var instantiatedOperation = instOp.get().instantiate(exprUnwrapped);
+            e.setUnderlyingOperation(instantiatedOperation);
+          }
+        });
+
+    // 3. Post-Process and move all temporary blocks to their operations parent
+    // region!
+    new ExpressionVisitor<Expr, SystemFType>(VisitOrder.POST_ORDER).visit(instantiated, e -> {
+      var op = e.getUnderlyingOperation();
+      if (op.isPresent() && !op.get().getTemporaryRegion().getBlocks().isEmpty()) {
+        // Only try to move when the operation has its temporary region filled!
+        // In case the parent region does not exist, it is invalid to move the child
+        // blocks
+        // to any position up the operation chain, hence, temporary region resolution is
+        // invalid!
+        var parentRegion = op.get().getParentRegionOrThrow();
+        op.get().appendTemporaryBlocksToOtherRegion(parentRegion);
+      }
+    });
+
+    if (instantiated.getUnderlyingOperation().isPresent()) {
+      new OperationVerifier(VerifyOptions.FULL_VERIFICATION).verify(instantiated.getUnderlyingOperation().get());
+    }
+
+    return Pair.of((Type) finalType, instantiated);
   }
 
   SystemFType substType(
@@ -234,6 +289,22 @@ public final class TypeInference
               input,
               "" + covRes.ctx(),
               List.of(covArg.tree(), covRes.tree())));
+    } else if (ty1 instanceof SystemFType.Tuple t1 && ty2 instanceof SystemFType.Tuple t2) {
+      if (t1.elements.size() != t2.elements.size()) {
+        throw new TypingException.SubtypingFailed(ty1, ty2);
+      }
+
+      var context = ctx.copy();
+      var trees = new ArrayList<InferenceTree>();
+      for (int i = 0; i < t1.elements.size(); i++) {
+        var subRes = this.subtype(context, t1.elements.get(i), t2.elements.get(i));
+        context = subRes.ctx();
+        trees.add(subRes.tree());
+      }
+
+      return new SubtypeResult(
+          context,
+          new InferenceTree("SubTuple", input, "" + context, List.copyOf(trees)));
     } else if (ty2 instanceof SystemFType.ForAll forall) {
       Context newCtx = ctx.copy();
       newCtx.push(new Entry.TVarBnd(forall.boundVar));
@@ -359,6 +430,36 @@ public final class TypeInference
               input,
               "" + instLRes.ctx(),
               List.of(instRRes.tree(), instLRes.tree())));
+    } else if (ty instanceof SystemFType.Tuple tuple) {
+      try (var scope = TypeVar.addScope()) {
+        var tupleType = new SystemFType.Tuple(
+            tuple.elements.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar())).toList());
+
+        List<TypeVar> existentials = scope.createdVars();
+
+        var breakRes = ctx.break3(entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
+
+        Context newCtx = new Context(breakRes.left(), ctx);
+        newCtx.push(new Entry.SETVarBnd(a, tupleType));
+        for (var ext : existentials) {
+          newCtx.push(new Entry.ETVarBnd(ext));
+        }
+        newCtx.extend(breakRes.right());
+
+        ArrayList<InferenceTree> trees = new ArrayList<>();
+
+        for (int i = 0; i < existentials.size(); i++) {
+          var ext = existentials.get(i);
+          var paramApplied = newCtx.apply(tuple.elements.get(i));
+          var instLRes = this.instL(newCtx, ext, paramApplied);
+          newCtx = instLRes.ctx();
+          trees.add(instLRes.tree());
+        }
+
+        return new InstResult(newCtx, new InferenceTree("InstLTuple", input, "" + newCtx, List.copyOf(trees)));
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     } else if (ty instanceof SystemFType.ForAll forall) {
       var newCtx = ctx.copy();
       newCtx.push(new Entry.TVarBnd(forall.boundVar));
@@ -465,6 +566,36 @@ public final class TypeInference
               input,
               "" + instLRes.ctx(),
               List.of(instRRes.tree(), instLRes.tree())));
+    } else if (ty instanceof SystemFType.Tuple tuple) {
+      try (var scope = TypeVar.addScope()) {
+        var tupleType = new SystemFType.Tuple(
+            tuple.elements.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar())).toList());
+
+        List<TypeVar> existentials = scope.createdVars();
+
+        var breakRes = ctx.break3(entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
+
+        Context newCtx = new Context(breakRes.left(), ctx);
+        newCtx.push(new Entry.SETVarBnd(a, tupleType));
+        for (var ext : existentials) {
+          newCtx.push(new Entry.ETVarBnd(ext));
+        }
+        newCtx.extend(breakRes.right());
+
+        ArrayList<InferenceTree> trees = new ArrayList<>();
+
+        for (int i = 0; i < existentials.size(); i++) {
+          var ext = existentials.get(i);
+          var paramApplied = newCtx.apply(tuple.elements.get(i));
+          var instRRes = this.instR(newCtx, paramApplied, ext);
+          newCtx = instRRes.ctx();
+          trees.add(instRRes.tree());
+        }
+
+        return new InstResult(newCtx, new InferenceTree("InstRTuple", input, "" + newCtx, List.copyOf(trees)));
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     } else if (ty instanceof SystemFType.ForAll forall) {
       var substT = this.substType(
           forall.boundVar,

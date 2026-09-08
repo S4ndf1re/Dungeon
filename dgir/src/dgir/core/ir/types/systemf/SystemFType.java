@@ -292,5 +292,49 @@ public abstract sealed class SystemFType extends Type {
       return new NumericType(this.size);
     }
   }
+  public static final class Tuple extends SystemFType {
+
+    public final List<SystemFType> elements;
+
+    public Tuple(List<SystemFType> elements) {
+      this.elements = List.copyOf(elements);
+    }
+
+    @Override
+    public String toString() {
+      return "(" +
+          this.elements.stream().map(Object::toString).collect(Collectors.joining(", ")) +
+          ")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Tuple other && this.elements.equals(other.elements);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode();
+    }
+
+    @Override
+    public boolean isMono() {
+      return this.elements.stream().allMatch(SystemFType::isMono);
+    }
+
+    @Override
+    public Set<TypeVar> freeVariables() {
+      var set = new HashSet<TypeVar>();
+      this.elements.forEach(elem -> set.addAll(elem.freeVariables()));
+      return Set.copyOf(set);
+    }
+
+    @Override
+    public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+      return new SystemFType.Tuple(
+          this.elements.stream().map(elem -> elem.substType(tyVar, replacement)).toList());
+    }
+  }
+
 
 }
