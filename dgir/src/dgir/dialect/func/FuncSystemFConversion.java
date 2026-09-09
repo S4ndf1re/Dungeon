@@ -57,7 +57,10 @@ public final class FuncSystemFConversion {
    * implicitly.
    */
   private static Expr buildApplication(Expr fun, List<Expr> args) {
-    var app = new Expr.App(fun);
+    if (args.isEmpty()) {
+      return new Expr.App(fun);
+    }
+    Expr app = fun;
     for (var arg : args) {
       app = new Expr.App(app, arg);
     }
