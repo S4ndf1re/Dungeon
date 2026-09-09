@@ -1,4 +1,3 @@
-import static dgir.core.utility.DgirCoreUtils.STACK_WALKER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import static dgir.dialect.func.FuncOps.FuncOp;
@@ -7,14 +6,11 @@ import dgir.core.analysis.DotExpression;
 import dgir.core.analysis.DotType;
 
 import dgir.core.analysis.DotCFG;
-import dgir.core.analysis.OperationVerifier.VerifyDepthOption;
 import dgir.core.analysis.OperationVerifier.VerifyOptions;
-import dgir.core.analysis.OperationVerifier.VerifyStructureOption;
 import dgir.core.utility.DgirCoreUtils;
 import dgir.core.ir.Op;
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
-import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.serialization.Utils;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
