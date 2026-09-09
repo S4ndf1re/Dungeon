@@ -23,8 +23,9 @@ import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.Scope;
 import dgir.core.ir.types.traits.IExpressionCell;
-import dgir.core.ir.types.traits.IIsAbstraction;
-import dgir.core.ir.types.traits.IIsApplication;
+import dgir.core.ir.types.traits.IVariable;
+import dgir.core.ir.types.traits.IAbstraction;
+import dgir.core.ir.types.traits.IApplication;
 
 public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     implements Expression<Expr, AlgorithmWType> {
@@ -94,11 +95,6 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
   @Override
   public Expr getExpr() {
     return this;
-  }
-
-  @Override
-  public Optional<Symbol<Expr, AlgorithmWType>> getReferencedVariable() {
-    return Optional.empty();
   }
 
   @Override
@@ -206,7 +202,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     Expr expr = env.getConsed(this);
     // Variables must always be visited, while other epxressions must be
     // instantiated, as long as its not a recursive instantiation.
-    if (expr.getReferencedVariable().isEmpty() && env.isVisisted(expr, solution)) {
+    if (!(expr instanceof IVariable) && env.isVisisted(expr, solution)) {
       // In sequential soltuions, this call works, as the soltuion is already
       // registered! hash cons again, just in case!
       if (env.hasSolution(expr, solution)) {
@@ -238,11 +234,12 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     // as those are not bound to concrete expressions.
     //
     // FUTURE_WORK(jan): return a fully beta-reduced expression tree
-    var referencedExpr = instantiatedTarget.getReferencedVariable();
-    if (referencedExpr.isPresent()) {
-      var referencedFromEnv = env.getExprAndPosition(instantiatedTarget.getReferencedVariable().get());
+    if (instantiatedTarget instanceof IVariable) {
+      @SuppressWarnings("unchecked")
+      var instantiatedVariable = (IVariable<Expr, AlgorithmWType>) instantiatedTarget;
+      var referencedFromEnv = env.getExprAndPosition(instantiatedVariable.getReferencedVariable());
       if (referencedFromEnv.isPresent()) {
-        var scopeExpression = env.getScopeExpression(instantiatedTarget.getReferencedVariable().get());
+        var scopeExpression = env.getScopeExpression(instantiatedVariable.getReferencedVariable());
 
         var referencedExprAsExpr = engine.asExpression(referencedFromEnv.get().getLeft());
         var referencedInferredType = referencedExprAsExpr.getInferredType();
@@ -653,7 +650,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
   }
 
-  public static final class ExprVar extends Expr {
+  public static final class ExprVar extends Expr implements IVariable<Expr, AlgorithmWType> {
 
     private final Symbol<Expr, AlgorithmWType> name;
 
@@ -682,8 +679,8 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    public Optional<Symbol<Expr, AlgorithmWType>> getReferencedVariable() {
-      return Optional.of(this.name);
+    public Symbol<Expr, AlgorithmWType> getReferencedVariable() {
+      return this.name;
     }
 
     @Override
@@ -746,7 +743,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
   }
 
-  public static final class ExprApp extends Expr implements IIsApplication<Expr, AlgorithmWType> {
+  public static final class ExprApp extends Expr implements IApplication<Expr, AlgorithmWType> {
 
     private final Expr func;
     private final List<Expr> args;
@@ -936,7 +933,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
   }
 
-  public static final class ExprAbs extends Expr implements IIsAbstraction<Expr, AlgorithmWType> {
+  public static final class ExprAbs extends Expr implements IAbstraction<Expr, AlgorithmWType> {
 
     private List<Symbol<Expr, AlgorithmWType>> params;
     private Expr body;
