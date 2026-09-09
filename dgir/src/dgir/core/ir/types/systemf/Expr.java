@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.traits.IExpressionCell;
+import dgir.core.ir.types.traits.IVariable;
 
 import java.util.List;
 import java.util.Objects;
@@ -22,7 +23,7 @@ import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.Scope;
-import dgir.core.ir.types.traits.IIsAbstraction;
+import dgir.core.ir.types.traits.IAbstraction;
 
 /**
  * Expressions that are valid for the SytemF Type System. All needed methods for
@@ -96,24 +97,6 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
         this.parentScopePosition);
   }
 
-  /**
-   * When an {@link Expr} is a variable that is just a reference to another
-   * {@link Symbol} within the {@link Env},
-   * this function is expected to return the {@link Symbol} to that reference.
-   *
-   * <p>
-   * For an {@link Expr} like {@link ExprVar}, this is a trivial {@link Env}
-   * lookup.
-   * However, custom
-   * {@link Expr}s may also provide this functionality in some way, and hence must
-   * expose the potentially referenced {@link Symbol}.
-   *
-   * @return `Some(var)` if `var` is a variable bound by this expression
-   */
-  public Optional<Symbol<Expr, SystemFType>> getReferencedVariable() {
-    return Optional.empty();
-  }
-
   @Override
   public void setUnderlyingOperation(Operation op) {
     this.underlyingOperation = Optional.ofNullable(op);
@@ -169,7 +152,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     Expr expr = env.getConsed(this);
     // Variables must always be visited, while other expressions must be
     // instantiated, as long as its not a recursive instantiation.
-    if (expr.getReferencedVariable().isEmpty() && env.isVisisted(expr, solution)) {
+    if (!(expr instanceof IVariable) && env.isVisisted(expr, solution)) {
       // In sequential solutions, this call works, as the solution is already
       // registered! hash cons again, just in case!
       if (env.hasSolution(expr, solution)) {
@@ -203,11 +186,12 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     // NOTE: in contrast to Algorithm W, System F has no unification.
     // The variable lookup can never generalize anything, hence it can also not
     // contribute to the type solution application.
-    var referencedExpr = instantiatedTarget.getReferencedVariable();
-    if (referencedExpr.isPresent()) {
-      var referencedFromEnv = env.getExprAndPosition(instantiatedTarget.getReferencedVariable().get());
+    if (instantiatedTarget instanceof IVariable) {
+      @SuppressWarnings("unchecked")
+      var instantiatedVariable = (IVariable<Expr, SystemFType>) instantiatedTarget;
+      var referencedFromEnv = env.getExprAndPosition(instantiatedVariable.getReferencedVariable());
       if (referencedFromEnv.isPresent()) {
-        var scopeExpression = env.getScopeExpression(instantiatedTarget.getReferencedVariable().get());
+        var scopeExpression = env.getScopeExpression(instantiatedVariable.getReferencedVariable());
 
         var referencedExprAsExpr = engine.asExpression(referencedFromEnv.get().getLeft());
         var referencedInferredType = referencedExprAsExpr.getInferredType();
@@ -395,7 +379,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
             List.of(inferred.tree(), subtyped.tree())));
   }
 
-  public static final class Var extends Expr {
+  public static final class Var extends Expr implements IVariable<Expr, SystemFType> {
 
     private final Symbol<Expr, SystemFType> name;
 
@@ -474,8 +458,8 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
-    public Optional<Symbol<Expr, SystemFType>> getReferencedVariable() {
-      return Optional.of(this.name);
+    public Symbol<Expr, SystemFType> getReferencedVariable() {
+      return this.name;
     }
 
     @Override
@@ -525,6 +509,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     public final String toString() {
       return this.arg.isPresent() ? fun + " " + this.arg.get() : fun + " ()";
     }
+
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
       var input = ctx + " |- " + this;
@@ -654,7 +639,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
   }
 
-  public static final class Abs extends Expr implements IIsAbstraction<Expr, SystemFType> {
+  public static final class Abs extends Expr implements IAbstraction<Expr, SystemFType> {
 
     private final Optional<Symbol<Expr, SystemFType>> name;
     private final Optional<SystemFType> type;
@@ -816,7 +801,6 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     public Expr body() {
       return this.body.unwrapOrThis();
     }
-
 
     @Override
     public Expr copy() {
@@ -1451,12 +1435,12 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     public Expr value() {
       return this.value.unwrapOrThis();
     }
+
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
       var input = ctx + " |- " + this;
       TypeResult res = engine.infer(ctx, this.value);
       SystemFType resultType = res.ctx().apply(res.type());
-
 
       var output = input + " => Bool -| " + res.ctx();
       return new TypeResult(resultType, res.ctx(), new InferenceTree("InfRet", input, output, List.of(res.tree())));
@@ -1688,12 +1672,12 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       }
     }
 
-
     @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       // TODO Auto-generated method stub
       throw new UnsupportedOperationException("Unimplemented method 'replaceSymbol'");
     }
+
     @Override
     public List<Expr> getChildren() {
       if (this.getChildrenFn.isPresent()) {
@@ -1703,11 +1687,11 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
       return List.of();
     }
 
-
     @Override
     public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
       return false;
     }
+
     @Override
     protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
