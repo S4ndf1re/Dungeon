@@ -132,7 +132,7 @@ public final class TypeInference
   }
 
   @Override
-  public Pair<Type, Expr> solve(ExprOrOperator<Expr, SystemFType> exprOrOp) {
+  public SolveResult<Expr> solve(ExprOrOperator<Expr, SystemFType> exprOrOp) {
     var context = new Context();
     var expr = this.asExpression(exprOrOp);
     var res = this.infer(context, expr);
@@ -188,7 +188,7 @@ public final class TypeInference
       new OperationVerifier(VerifyOptions.FULL_VERIFICATION).verify(instantiated.getUnderlyingOperation().get());
     }
 
-    return Pair.of((Type) finalType, instantiated);
+    return new SolveResult<>((Type) finalType, expr, instantiated);
   }
 
   public SystemFType substType(

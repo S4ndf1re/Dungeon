@@ -17,6 +17,13 @@ public abstract class TypeDialect<C extends ExprOrOperator<E, T>, E extends Expr
 
   public abstract static class TypeInferenceSolver<EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type> {
     protected TypeDialectConverterRegistry registry;
+    /**
+     * Result of a full solve: the final type, the expression tree after
+     * inference but before instantiation, and the instantiated tree.
+     */
+    public static record SolveResult<E>(Type type, E preInstantiation, E instantiated) {
+    }
+
 
     /**
      * A simpler marker interface, marking all allowed contexts for conversion from
@@ -50,11 +57,10 @@ public abstract class TypeDialect<C extends ExprOrOperator<E, T>, E extends Expr
      *
      * @param expr the {@link ExprOrOperator} to solve.
      *
-     * @return a pair of the solved algorithm specific final type, and the fully
-     *         type annotated expression tree in original structure
+     * @return a {@link SolveResult} of the final type, the pre-instantiation
+     *         expression tree, and the fully type annotated instantiated tree
      */
-    public abstract Pair<Type, E> solve(EO expr);
-
+    public abstract SolveResult<E> solve(EO expr);
     /**
      * Convert a {@link GeneralBlock} to an algorithm specific {@link Expression}
      *
