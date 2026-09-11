@@ -109,7 +109,6 @@ public final class TypeInference
     InferResult res = this.infer(expr, env);
     var finalType = res.subst().apply(res.type());
 
-
     var instantiated = expr.instantiate(this, new InstEnv<>(expr), res.subst());
     // 1. Replace values in Let and Abs expressions with new values
     // As Exprs are already hash-consed, this will visit every relevant expression
@@ -172,7 +171,7 @@ public final class TypeInference
    */
   public InferResult infer(Expr expr, Env env) {
     InferResult res = expr.infer(this, env);
-    expr.setInferredType(res.type());
+    expr.setInferredType(Optional.ofNullable(res.type()));
     return res;
   }
 
