@@ -128,11 +128,6 @@ public final class FuncAlgoWConversion {
         var newOp = new FuncOps.ReturnOp(returnOp.getLocation());
         return newOp.getOperation();
       } else {
-
-        // TODO(jan): here, some variables cannot get beta reduced, as this would
-        // require application beta reduction!
-        // That means, that the value might actually be a raw value and not an
-        // operation. A helper method is needed to fix this!
         var valueSymbol = OperationExprConversionUtils.getOutputSymbol(retExpr.value());
 
         assert valueSymbol.isPresent();

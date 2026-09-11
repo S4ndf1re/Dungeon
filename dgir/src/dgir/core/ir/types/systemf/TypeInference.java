@@ -200,7 +200,7 @@ public final class TypeInference
 
   public TypeResult infer(Context ctx, Expr expr) {
     var inferredResult = expr.infer(this, ctx);
-    expr.setInferredType(inferredResult.ctx().apply(inferredResult.type()));
+    expr.setInferredType(Optional.ofNullable(inferredResult.ctx().apply(inferredResult.type())));
     return inferredResult;
   }
 

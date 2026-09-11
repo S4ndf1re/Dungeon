@@ -106,7 +106,7 @@ public abstract class TypeDialect<C extends ExprOrOperator<E, T>, E extends Expr
   public static <E extends Expression<E, T>, T extends Type> List<Class<? extends Expression<E, T>>> extractExpressionsFromAbstract(
       Class<? extends Expression<E, T>> abstractInterface) {
     if (!Arrays.asList(abstractInterface.getInterfaces()).contains(
-        Expression.class)) {
+        Expression.class) && !abstractInterface.getSuperclass().equals(Expression.class)) {
       throw new IllegalStateException(
           "Expr must extend dgir.core.ir.types.Expression");
     }

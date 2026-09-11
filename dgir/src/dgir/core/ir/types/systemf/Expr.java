@@ -29,107 +29,26 @@ import dgir.core.ir.types.traits.IAbstraction;
  * Expressions that are valid for the SytemF Type System. All needed methods for
  * inference and type checking are implemented here
  */
-public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements Expression<Expr, SystemFType> {
-  private Optional<SystemFType> inferredType;
-  private Optional<Operation> underlyingOperation;
-  private Optional<InstantiateOperation<Expr, SystemFType>> instOp;
-  private Optional<Expr> parentScopeExpr;
-  private Optional<Integer> parentScopePosition;
+public abstract class Expr extends Expression<Expr, SystemFType> {
 
   public Expr() {
-    this.inferredType = Optional.empty();
-    this.underlyingOperation = Optional.empty();
-    this.instOp = Optional.empty();
-    this.parentScopeExpr = Optional.empty();
-    this.parentScopePosition = Optional.empty();
+    super();
   }
 
   public Expr(Expr other) {
-    this.inferredType = Optional.ofNullable(other.inferredType.orElse(null));
-    this.underlyingOperation = Optional.ofNullable(other.underlyingOperation.orElse(null));
-    this.instOp = Optional.ofNullable(other.instOp.orElse(null));
-    this.parentScopeExpr = other.parentScopeExpr;
-    this.parentScopePosition = other.parentScopePosition;
-  }
-
-  @Override
-  public void setInferredType(SystemFType inferredType) {
-    this.inferredType = Optional.ofNullable(inferredType);
-  }
-
-  public void setInferredType(Optional<SystemFType> inferredType) {
-    this.inferredType = Optional.ofNullable(inferredType.orElse(null));
-  }
-
-  @Override
-  public Optional<SystemFType> getInferredType() {
-    return this.inferredType;
-  }
-
-  @Override
-  public boolean isExpr() {
-    return true;
-  }
-
-  @Override
-  public boolean isOperator() {
-    return false;
-  }
-
-  @Override
-  public Expr getExpr() {
-    return this;
+    super(other);
   }
 
   // Make sure, that exprs always equals via object reference (needed for in-set
   // storage!)
   @Override
   public boolean equals(Object obj) {
-    return obj instanceof Expr expr && this.inferredType.equals(expr.inferredType)
-        && this.parentScopeExpr.orElse(null) == expr.parentScopeExpr.orElse(null)
-        && this.parentScopePosition.equals(expr.parentScopePosition);
+    return obj instanceof Expr && super.equals(obj);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.inferredType,
-        this.parentScopeExpr.isPresent() ? System.identityHashCode(this.parentScopeExpr.get()) : 0,
-        this.parentScopePosition);
-  }
-
-  @Override
-  public void setUnderlyingOperation(Operation op) {
-    this.underlyingOperation = Optional.ofNullable(op);
-  }
-
-  @Override
-  public Optional<Operation> getUnderlyingOperation() {
-    return Optional.ofNullable(this.underlyingOperation.orElse(null));
-  }
-
-  @Override
-  public Optional<Integer> getParentScopePosition() {
-    return this.parentScopePosition;
-  }
-
-  @Override
-  public Optional<Expr> getParentScopeExpr() {
-    return this.parentScopeExpr;
-  }
-
-  public void setParentScopeExpr(Expr parent, int position) {
-    this.parentScopePosition = Optional.of(position);
-    this.parentScopeExpr = Optional.ofNullable(parent);
-  }
-
-  @Override
-  public void setInstantiateOperationCallback(InstantiateOperation<Expr, SystemFType> callback) {
-    this.instOp = Optional.ofNullable(callback);
-  }
-
-  @Override
-  public Optional<InstantiateOperation<Expr, SystemFType>> getInstantiateOperationCallback() {
-    return Optional.ofNullable(this.instOp.orElse(null));
+    return super.hashCode();
   }
 
   /**
@@ -198,7 +117,7 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
 
         if (referencedInferredType.isPresent() && instantiatedTarget.getInferredType().isPresent()) {
           var copiedExpr = referencedExprAsExpr.copy();
-          copiedExpr.setParentScopeExpr(scopeExpression.get(), referencedFromEnv.get().getRight());
+          copiedExpr.setParentScopeExpression(scopeExpression, referencedFromEnv.map(e -> e.getRight()));
 
           Expr instantiatedReferenced = copiedExpr.instantiate(engine, env, solution);
 
@@ -277,13 +196,13 @@ public abstract class Expr extends ExprOrOperator<Expr, SystemFType> implements 
     }
 
     @Override
-    public void setInferredType(SystemFType inferredType) {
+    public void setInferredType(Optional<SystemFType> inferredType) {
       cellValue.setInferredType(inferredType);
     }
 
     @Override
-    public void setInferredType(Optional<SystemFType> inferredType) {
-      cellValue.setInferredType(inferredType);
+    public void setParentScopeExpression(Optional<Expr> expr, Optional<Integer> position) {
+      this.cellValue.setParentScopeExpression(expr, position);
     }
 
     @Override
