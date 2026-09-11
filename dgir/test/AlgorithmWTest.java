@@ -69,9 +69,11 @@ public class AlgorithmWTest {
             new Expr.ExprLit(new Literal.Bool(true))));
 
     var resultPair = solver.solve(expr);
-        DgirTestUtils.saveDotExpr(resultPair.getRight());
-        DgirTestUtils.saveDotType(resultPair.getLeft());
-    var result = resultPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(resultPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(resultPair.instantiated());
+        DgirTestUtils.saveDotType(resultPair.type());
+    var result = resultPair.type();
 
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
@@ -100,9 +102,11 @@ public class AlgorithmWTest {
         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT));
 
     var resultPair = solver.solve(expr);
-        DgirTestUtils.saveDotExpr(resultPair.getRight());
-        DgirTestUtils.saveDotType(resultPair.getLeft());
-    var result = resultPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(resultPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(resultPair.instantiated());
+        DgirTestUtils.saveDotType(resultPair.type());
+    var result = resultPair.type();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
@@ -145,9 +149,11 @@ public class AlgorithmWTest {
     );
 
     var resultPair = solver.solve(expr);
-        DgirTestUtils.saveDotExpr(resultPair.getRight());
-        DgirTestUtils.saveDotType(resultPair.getLeft());
-    var result = resultPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(resultPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(resultPair.instantiated());
+        DgirTestUtils.saveDotType(resultPair.type());
+    var result = resultPair.type();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
@@ -178,9 +184,11 @@ public class AlgorithmWTest {
         new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprLit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
-        DgirTestUtils.saveDotExpr(resultPair.getRight());
-        DgirTestUtils.saveDotType(resultPair.getLeft());
-    var result = resultPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(resultPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(resultPair.instantiated());
+        DgirTestUtils.saveDotType(resultPair.type());
+    var result = resultPair.type();
     assert result instanceof AlgorithmWType;
     System.out.println(result);
     assert result instanceof AlgorithmWType.LitType;
@@ -212,9 +220,11 @@ public class AlgorithmWTest {
         new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprLit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
-        DgirTestUtils.saveDotExpr(resultPair.getRight());
-        DgirTestUtils.saveDotType(resultPair.getLeft());
-    var result = resultPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(resultPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(resultPair.instantiated());
+        DgirTestUtils.saveDotType(resultPair.type());
+    var result = resultPair.type();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
@@ -242,9 +252,11 @@ public class AlgorithmWTest {
         new Expr.ExprApp(new Expr.ExprVar(f), new Expr.ExprLit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
-        DgirTestUtils.saveDotExpr(resultPair.getRight());
-        DgirTestUtils.saveDotType(resultPair.getLeft());
-    var result = resultPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(resultPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(resultPair.instantiated());
+        DgirTestUtils.saveDotType(resultPair.type());
+    var result = resultPair.type();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) result).tyName.equals(TypeIdent.TYPE_IDENT_INT);
@@ -268,9 +280,11 @@ public class AlgorithmWTest {
             List.of(new Expr.ExprLit(new Literal.Int(10)), new Expr.ExprLit(new Literal.Bool(false)))));
 
     var resultPair = solver.solve(expr);
-        DgirTestUtils.saveDotExpr(resultPair.getRight());
-        DgirTestUtils.saveDotType(resultPair.getLeft());
-    var result = resultPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(resultPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(resultPair.instantiated());
+        DgirTestUtils.saveDotType(resultPair.type());
+    var result = resultPair.type();
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.Tuple;
     var resultTuple = (AlgorithmWType.Tuple) result;
@@ -311,10 +325,12 @@ public class AlgorithmWTest {
                 new Expr.ExprLit(new Literal.Bool(false)))));
 
     var resultPair = solver.solve(expr);
-        DgirTestUtils.saveDotExpr(resultPair.getRight());
-        DgirTestUtils.saveDotType(resultPair.getLeft());
-    var result = resultPair.getLeft();
-    var inferred = resultPair.getRight();
+        DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(resultPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(resultPair.instantiated());
+        DgirTestUtils.saveDotType(resultPair.type());
+    var result = resultPair.type();
+    var inferred = resultPair.instantiated();
 
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.Tuple;

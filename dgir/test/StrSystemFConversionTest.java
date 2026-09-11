@@ -51,16 +51,18 @@ public class StrSystemFConversionTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-    DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
-    DgirTestUtils.saveDotExpr(solvedPair.getRight());
-    DgirTestUtils.saveDotType(solvedPair.getLeft());
+        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+    DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
+    DgirTestUtils.saveDotExpr(solvedPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
+    DgirTestUtils.saveDotType(solvedPair.type());
 
     List<Operation> ops = new ArrayList<>();
     new ExpressionVisitor<Expr, SystemFType>(VisitOrder.POST_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
-        .visit(solvedPair.getRight(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
+        .visit(solvedPair.instantiated(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
 
 
-    return Pair.of(solvedPair.getLeft(), ops);
+    return Pair.of(solvedPair.type(), ops);
   }
 
   private static long countOps(List<Operation> ops, Class<? extends dgir.core.ir.Op> clazz) {

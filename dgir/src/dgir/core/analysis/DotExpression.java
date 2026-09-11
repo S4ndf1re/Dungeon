@@ -4,6 +4,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 
 import dgir.core.ir.types.Expression;
+
+import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.Type;
 
 /**
@@ -13,7 +15,12 @@ import dgir.core.ir.types.Type;
  * Mirrors {@link DotCFG}: instead of the operation/region/block hierarchy, this
  * walks the expression tree and emits one DOT node per (identity-distinct)
  * expression, labeled with the expression's concrete kind and its inferred type
- * (when present). Edges connect a parent expression to each of its children.
+ * (when present).
+ * <p>
+ * Edges are drawn in data-flow direction: child (value) -> parent (usage),
+ * drawn dotted. Scope-forming expressions (abstractions and let bindings) are
+ * the exception: their edges are drawn solid parent -> child, since they
+ * create sub bodies rather than consume values.
  *
  * <p>
  * The DOT node id is the expression's {@link System#identityHashCode(Object)
@@ -75,7 +82,58 @@ public class DotExpression {
 
     if (root != null) {
       IdentityHashMap<Expression<E, T>, String> emitted = new IdentityHashMap<>();
-      appendExpression(dot, root, emitted, getChildrenOption);
+      appendExpression(dot, root, emitted, getChildrenOption, false, null, null);
+    }
+
+    dot.append("}\n");
+    return dot.toString();
+  }
+
+  /**
+   * Build the DOT graph string for the expression tree rooted at {@code root},
+   * drawing the bounding scope of each expression as a dashed Graphviz cluster
+   * box. A node belongs to the cluster of its
+   * {@link Expression#getParentScopeExpr() bounding scope expression}; its
+   * {@link Expression#getParentScopePosition() position} within that scope is
+   * added to the node label.
+   *
+   * @param root the expression to start from.
+   * @param <E>  the concrete expression type.
+   * @param <T>  the concrete type attached to the expressions.
+   * @return a DOT digraph string with one cluster per bounding scope.
+   */
+  public static <E extends Expression<E, T>, T extends Type> String toDotWithScopes(E root) {
+    return toDotWithScopes(root, VisitGetChildrenOption.ALL_CHILDREN);
+  }
+
+  /**
+   * See {@link #toDotWithScopes(Expression)}.
+   *
+   * @param root              the expression to start from.
+   * @param getChildrenOption whether to follow all children or only the
+   *                          instantiable ones.
+   */
+  public static <E extends Expression<E, T>, T extends Type> String toDotWithScopes(
+      E root,
+      VisitGetChildrenOption getChildrenOption) {
+    StringBuilder dot = new StringBuilder();
+    dot.append("digraph expr {\n");
+    dot.append("\tnode [shape=box];\n");
+
+    if (root != null) {
+      IdentityHashMap<Expression<E, T>, String> emitted = new IdentityHashMap<>();
+      IdentityHashMap<Expression<E, T>, StringBuilder> clusters = new IdentityHashMap<>();
+      StringBuilder freeNodes = new StringBuilder();
+      appendExpression(dot, root, emitted, getChildrenOption, true, clusters, freeNodes);
+
+      clusters.forEach((scope, cluster) -> {
+        dot.append("\tsubgraph cluster_n").append(System.identityHashCode(scope)).append(" {\n");
+        dot.append("\t\tlabel=\"scope: ").append(scope.getClass().getSimpleName()).append("\";\n");
+        dot.append("\t\tstyle=dashed;\n");
+        dot.append(cluster);
+        dot.append("\t}\n");
+      });
+      dot.append(freeNodes);
     }
 
     dot.append("}\n");
@@ -86,7 +144,10 @@ public class DotExpression {
       StringBuilder dot,
       E expr,
       IdentityHashMap<Expression<E, T>, String> emitted,
-      VisitGetChildrenOption getChildrenOption) {
+      VisitGetChildrenOption getChildrenOption,
+      boolean withScopes,
+      IdentityHashMap<Expression<E, T>, StringBuilder> clusters,
+      StringBuilder freeNodes) {
     String id = emitted.get(expr);
     if (id != null) {
       // Already emitted (shared subexpression); only the caller adds the edge.
@@ -100,17 +161,41 @@ public class DotExpression {
 
     expr.getInferredType().ifPresent(ty -> label.append("\\n: ").append(escape(ty.toString())));
 
+    if (withScopes) {
+      expr.getParentScopePosition().ifPresent(pos -> label.append("\\n#").append(pos));
+    }
+
     expr.getUnderlyingOperation()
         .ifPresent(op -> label.append("\\n[").append(escape(op.getDetails().ident())).append("]"));
 
-    dot.append("\t").append(id).append(" [label=\"").append(label).append("\"];\n");
+    String nodeLine = "\t" + id + " [label=\"" + label + "\"];\n";
+    if (withScopes) {
+      var scope = expr.getParentScopeExpr().orElse(null);
+      if (scope != null) {
+        clusters.computeIfAbsent(scope, s -> new StringBuilder()).append(nodeLine);
+      } else {
+        freeNodes.append(nodeLine);
+      }
+    } else {
+      dot.append(nodeLine);
+    }
 
+    boolean parentToChild = expr instanceof IAbstraction<?, ?>
+        || expr.getClass().getSimpleName().contains("Let");
     List<E> children = getChildrenOption == VisitGetChildrenOption.ALL_CHILDREN
         ? expr.getChildren()
         : expr.getInstantiableChildren();
     for (E child : children) {
-      String childId = appendExpression(dot, child, emitted, getChildrenOption);
-      dot.append("\t").append(id).append(" -> ").append(childId).append(";\n");
+      String childId = appendExpression(dot, child, emitted, getChildrenOption, withScopes,
+          clusters, freeNodes);
+      if (parentToChild) {
+        // Scope-forming edge (sub body): solid.
+        dot.append("\t").append(id).append(" -> ").append(childId).append(";\n");
+      } else {
+        // Usage edge (value flows into consumer): dotted.
+        dot.append("\t").append(childId).append(" -> ").append(id)
+            .append(" [style=dotted];\n");
+      }
     }
 
     return id;
