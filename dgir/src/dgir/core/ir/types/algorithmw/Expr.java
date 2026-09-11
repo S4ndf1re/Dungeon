@@ -27,114 +27,25 @@ import dgir.core.ir.types.traits.IVariable;
 import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.traits.IApplication;
 
-public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
-    implements Expression<Expr, AlgorithmWType> {
-
-  private Optional<Expr> parentScopeExpression;
-  private Optional<Integer> parentScopePosition;
-  private Optional<AlgorithmWType> inferredType;
-  private Optional<Operation> underlyingOperation;
-  private Optional<InstantiateOperation<Expr, AlgorithmWType>> instOp;
+public abstract class Expr extends Expression<Expr, AlgorithmWType> {
 
   protected Expr() {
-    this.parentScopeExpression = Optional.empty();
-    this.parentScopePosition = Optional.empty();
-    this.inferredType = Optional.empty();
-    this.underlyingOperation = Optional.empty();
-    this.instOp = Optional.empty();
   }
 
   protected Expr(Expr other) {
-    this.parentScopeExpression = Optional.ofNullable(other.parentScopeExpression.orElse(null));
-    this.parentScopePosition = Optional.ofNullable(other.parentScopePosition.orElse(null));
-    this.inferredType = Optional.ofNullable(other.inferredType.orElse(null));
-    this.underlyingOperation = Optional.ofNullable(other.underlyingOperation.orElse(null));
-    this.instOp = Optional.ofNullable(other.instOp.orElse(null));
+    super(other);
   }
 
   // Make sure, that exprs always equals via object reference (needed for in-set
   // storage!)
   @Override
   public boolean equals(Object obj) {
-    return obj instanceof Expr expr && this.inferredType.equals(expr.inferredType)
-        && this.parentScopeExpression.orElse(null) == expr.parentScopeExpression.orElse(null)
-        && this.parentScopePosition.equals(expr.parentScopePosition);
+    return obj instanceof Expr && super.equals(obj);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.inferredType,
-        this.parentScopeExpression.isPresent() ? System.identityHashCode(this.parentScopeExpression.get()) : 0,
-        this.parentScopePosition);
-  }
-
-  @Override
-  public void setInferredType(AlgorithmWType inferredType) {
-    this.inferredType = Optional.ofNullable(inferredType);
-  }
-
-  public void setInferredType(Optional<AlgorithmWType> inferredType) {
-    this.inferredType = Optional.ofNullable(inferredType.orElse(null));
-  }
-
-  @Override
-  public Optional<AlgorithmWType> getInferredType() {
-    return this.inferredType;
-  }
-
-  @Override
-  public boolean isExpr() {
-    return true;
-  }
-
-  @Override
-  public boolean isOperator() {
-    return false;
-  }
-
-  @Override
-  public Expr getExpr() {
-    return this;
-  }
-
-  @Override
-  public void setUnderlyingOperation(Operation op) {
-    this.underlyingOperation = Optional.of(op);
-  }
-
-  @Override
-  public Optional<Operation> getUnderlyingOperation() {
-    return Optional.ofNullable(this.underlyingOperation.orElse(null));
-  }
-
-  @Override
-  public void setInstantiateOperationCallback(InstantiateOperation<Expr, AlgorithmWType> callback) {
-    this.instOp = Optional.ofNullable(callback);
-  }
-
-  @Override
-  public Optional<InstantiateOperation<Expr, AlgorithmWType>> getInstantiateOperationCallback() {
-    return Optional.ofNullable(this.instOp.orElse(null));
-  }
-
-  public void setParentScopeExpression(Expr expr, int position) {
-    this.parentScopeExpression = Optional.ofNullable(expr);
-    this.parentScopePosition = Optional.of(position);
-  }
-
-  public void setParentScopeExpression(Optional<Expr> expr, Optional<Integer> position) {
-    this.parentScopeExpression = expr;
-    this.parentScopePosition = position;
-  }
-
-  @Override
-  public Optional<Expr> getParentScopeExpr() {
-    return Optional.ofNullable(this.parentScopeExpression.orElse(null));
-  }
-
-  @Override
-  public Optional<Integer> getParentScopePosition() {
-    return Optional.ofNullable(this.parentScopePosition.orElse(null));
+    return super.hashCode();
   }
 
   /**
@@ -249,7 +160,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
           var finalSubst = res.subst().compose(solution);
 
           var copiedExpr = referencedExprAsExpr.copy();
-          copiedExpr.setParentScopeExpression(scopeExpression.get(), referencedFromEnv.get().getRight());
+          copiedExpr.setParentScopeExpression(scopeExpression, referencedFromEnv.map(e -> e.getRight()));
 
           Expr instantiatedReferenced = copiedExpr.instantiate(engine, env, finalSubst);
 
@@ -314,7 +225,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
 
     @Override
     public void setInferredType(Optional<AlgorithmWType> inferredType) {
-      cellValue.getInferredType();
+      cellValue.setInferredType(inferredType);
     }
 
     @Override
@@ -323,7 +234,7 @@ public abstract class Expr extends ExprOrOperator<Expr, AlgorithmWType>
     }
 
     @Override
-    public void setParentScopeExpression(Expr expr, int position) {
+    public void setParentScopeExpression(Optional<Expr> expr, Optional<Integer> position) {
       this.cellValue.setParentScopeExpression(expr, position);
     }
 

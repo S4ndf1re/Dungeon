@@ -3,6 +3,7 @@ package dgir.core.ir.types;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -10,16 +11,72 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.traits.IExpressionCell;
 
-public interface Expression<E extends Expression<E, T>, T extends Type> {
+public abstract class Expression<E extends Expression<E, T>, T extends Type> extends ExprOrOperator<E, T> {
+  public Optional<T> inferredType;
+  public Optional<Operation> underlyingOperation;
+  public Optional<E> parentScopeExpression;
+  public Optional<Integer> parentScopePosition;
+  public Optional<InstantiateOperation<E, T>> instantiationCallback;
+
+  public Expression() {
+    this.inferredType = Optional.empty();
+    this.underlyingOperation = Optional.empty();
+    this.parentScopeExpression = Optional.empty();
+    this.parentScopePosition = Optional.empty();
+    this.instantiationCallback = Optional.empty();
+  }
+
+  public Expression(Expression<E, T> other) {
+    this.inferredType = other.inferredType;
+    this.underlyingOperation = other.underlyingOperation;
+    this.parentScopeExpression = other.parentScopeExpression;
+    this.parentScopePosition = other.parentScopePosition;
+    this.instantiationCallback = other.instantiationCallback;
+  }
 
   @FunctionalInterface
   public interface InstantiateOperation<E extends Expression<E, T>, T extends Type> {
     public Operation instantiate(E expr);
   }
 
-  public void setInferredType(T inferredType);
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.inferredType,
+        this.parentScopeExpression.isPresent() ? System.identityHashCode(this.parentScopeExpression.get()) : 0,
+        this.parentScopePosition);
+  }
 
-  public Optional<T> getInferredType();
+  @SuppressWarnings("unchecked")
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Expression expr && this.inferredType.equals(expr.inferredType)
+        && this.parentScopeExpression.orElse(null) == expr.parentScopeExpression.orElse(null)
+        && this.parentScopePosition.equals(expr.parentScopePosition);
+  }
+
+  @Override
+  public boolean isExpr() {
+    return true;
+  }
+
+  @Override
+  public boolean isOperator() {
+    return false;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public E getExpr() {
+    return (E) this;
+  }
+
+  public void setInferredType(Optional<T> inferredType) {
+    this.inferredType = Optional.ofNullable(inferredType.orElse(null));
+  }
+
+  public Optional<T> getInferredType() {
+    return this.inferredType;
+  }
 
   /**
    * Collect a list of all child expressions. I.e. all expressions that are found
@@ -31,7 +88,7 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
    *
    * @return the list of all children {@link ExprOrOperator}
    */
-  public List<E> getChildren();
+  public abstract List<E> getChildren();
 
   /**
    * Some operations, like Let expressions don't really instantiate all bindings.
@@ -45,33 +102,48 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
    * @return the list of all children that would be instantiated on Expression
    *         instantiation
    */
-  public default List<E> getInstantiableChildren() {
+  public List<E> getInstantiableChildren() {
     return this.getChildren();
   }
 
-
-
-  public default void reinstantiateSymbols() {
+  public void reinstantiateSymbols() {
   }
 
-  public E replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
+  public abstract E replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
 
-  public boolean containsSymbol(Symbol<E, T> symbol);
+  public abstract boolean containsSymbol(Symbol<E, T> symbol);
 
-  public void setUnderlyingOperation(Operation op);
+  public void setUnderlyingOperation(Operation op) {
+    this.underlyingOperation = Optional.ofNullable(op);
+  }
 
-  public Optional<Operation> getUnderlyingOperation();
+  public Optional<Operation> getUnderlyingOperation() {
+    return this.underlyingOperation;
+  }
 
-  public Optional<E> getParentScopeExpr();
+  public Optional<E> getParentScopeExpr() {
+    return this.parentScopeExpression;
+  }
 
-  public Optional<Integer> getParentScopePosition();
+  public Optional<Integer> getParentScopePosition() {
+    return this.parentScopePosition;
+  }
 
-  public void setInstantiateOperationCallback(InstantiateOperation<E, T> callback);
+  public void setParentScopeExpression(Optional<E> expr, Optional<Integer> position) {
+    this.parentScopeExpression = expr;
+    this.parentScopePosition = position;
+  }
 
-  public Optional<InstantiateOperation<E, T>> getInstantiateOperationCallback();
+  public void setInstantiateOperationCallback(InstantiateOperation<E, T> callback) {
+    this.instantiationCallback = Optional.ofNullable(callback);
+  }
+
+  public Optional<InstantiateOperation<E, T>> getInstantiateOperationCallback() {
+    return this.instantiationCallback;
+  }
 
   @SuppressWarnings("unchecked")
-  public default E unwrapOrThis() {
+  public E unwrapOrThis() {
     if (this instanceof IExpressionCell) {
       return ((IExpressionCell<E, T>) this).unwrap();
     }
@@ -86,9 +158,9 @@ public interface Expression<E extends Expression<E, T>, T extends Type> {
    *
    * @return a new shallow copy of this expression node
    */
-  public E copy();
+  public abstract E copy();
 
-  public class ExpressionVisitor<E extends Expression<E, T>, T extends Type> {
+  public static class ExpressionVisitor<E extends Expression<E, T>, T extends Type> {
     private Set<E> visited;
     private VisitOrder order;
     private VisitGetChildrenOption getChildrenOption;
