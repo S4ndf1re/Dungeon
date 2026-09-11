@@ -72,16 +72,17 @@ public class ConversionParityTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-    DgirTestUtils.saveInferenceCfg("algoW", programOp.getOperation(), solvedPair.getRight());
-    DgirTestUtils.saveDotAndPng(".algoW.expr", DotExpression.toDot(solvedPair.getRight()));
-    DgirTestUtils.saveDotAndPng(".algoW.type", DotType.toDot(solvedPair.getLeft()));
+        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+    DgirTestUtils.saveInferenceCfg("algoW", programOp.getOperation(), solvedPair.instantiated());
+    DgirTestUtils.saveDotAndPng(".algoW.expr", DotExpression.toDot(solvedPair.instantiated()));
+    DgirTestUtils.saveDotAndPng(".algoW.type", DotType.toDot(solvedPair.type()));
 
     List<Operation> ops = new ArrayList<>();
     new ExpressionVisitor<Expr, dgir.core.ir.types.algorithmw.AlgorithmWType>(
         VisitOrder.POST_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
-        .visit(solvedPair.getRight(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
+        .visit(solvedPair.instantiated(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
 
-    var gpnt = solvedPair.getLeft().asTypeParameter().getConcrete();
+    var gpnt = solvedPair.type().asTypeParameter().getConcrete();
     return new SolvedResult(gpnt.toString(), countOps(ops));
   }
 
@@ -89,16 +90,17 @@ public class ConversionParityTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-    DgirTestUtils.saveInferenceCfg("systemF", programOp.getOperation(), solvedPair.getRight());
-    DgirTestUtils.saveDotAndPng(".systemF.expr", DotExpression.toDot(solvedPair.getRight()));
-    DgirTestUtils.saveDotAndPng(".systemF.type", DotType.toDot(solvedPair.getLeft()));
+        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+    DgirTestUtils.saveInferenceCfg("systemF", programOp.getOperation(), solvedPair.instantiated());
+    DgirTestUtils.saveDotAndPng(".systemF.expr", DotExpression.toDot(solvedPair.instantiated()));
+    DgirTestUtils.saveDotAndPng(".systemF.type", DotType.toDot(solvedPair.type()));
 
     List<Operation> ops = new ArrayList<>();
     new ExpressionVisitor<dgir.core.ir.types.systemf.Expr, SystemFType>(
         VisitOrder.POST_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
-        .visit(solvedPair.getRight(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
+        .visit(solvedPair.instantiated(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
 
-    var solvedType = solvedPair.getLeft();
+    var solvedType = solvedPair.type();
     GeneralParameterizedNominalType gpnt = null;
     if (solvedType instanceof SystemFType.Lit) {
       gpnt = SystemFConversionUtils.systemFTypeToGeneralNominal((SystemFType) solvedType);
