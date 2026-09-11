@@ -47,10 +47,12 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new ReturnOp(LOC, idOp.getResult()), 0);
 
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-        DgirTestUtils.saveDotExpr(solvedPair.getRight());
-            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
-        DgirTestUtils.saveDotType(solvedPair.getLeft());
-    var solved = solvedPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(solvedPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
+            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
+        DgirTestUtils.saveDotType(solvedPair.type());
+    var solved = solvedPair.type();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("int32"));
@@ -72,10 +74,12 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new ReturnOp(LOC, idOp.getResult()), 0);
 
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-        DgirTestUtils.saveDotExpr(solvedPair.getRight());
-            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
-        DgirTestUtils.saveDotType(solvedPair.getLeft());
-    var solved = solvedPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(solvedPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
+            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
+        DgirTestUtils.saveDotType(solvedPair.type());
+    var solved = solvedPair.type();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("string"));
@@ -97,10 +101,12 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new ReturnOp(LOC, addOp.getResult()), 0);
 
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-        DgirTestUtils.saveDotExpr(solvedPair.getRight());
-            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
-        DgirTestUtils.saveDotType(solvedPair.getLeft());
-    var solved = solvedPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(solvedPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
+            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
+        DgirTestUtils.saveDotType(solvedPair.type());
+    var solved = solvedPair.type();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("int32"));
@@ -122,10 +128,12 @@ public class OperatorInferenceTest {
     funcMainOp.addOperation(new ReturnOp(LOC, addOp.getResult()), 0);
 
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-        DgirTestUtils.saveDotExpr(solvedPair.getRight());
-            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.getRight());
-        DgirTestUtils.saveDotType(solvedPair.getLeft());
-    var solved = solvedPair.getLeft();
+        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+        DgirTestUtils.saveDotExpr(solvedPair.instantiated());
+        DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
+            DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
+        DgirTestUtils.saveDotType(solvedPair.type());
+    var solved = solvedPair.type();
     assert solved instanceof AlgorithmWType;
     assert solved instanceof AlgorithmWType.LitType;
     assert ((AlgorithmWType.LitType) solved).tyName.equals(TypeIdent.from("int64"));

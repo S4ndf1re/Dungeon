@@ -146,6 +146,27 @@ public class DgirTestUtils {
   }
 
   /**
+   * Save a DOT rendering of the pre-instantiation expression tree (after
+   * inference, before instantiation), following all children. Also renders a
+   * PNG image. The file name is derived from the calling test method via the
+   * stack walker and suffixed with {@code .expr.preinst}.
+   */
+  public static <E extends Expression<E, T>, T extends Type> void saveDotExprPreInstantiation(E expr) {
+    saveDotAndPng(".expr.preinst", DotExpression.toDot(expr, DotExpression.VisitGetChildrenOption.ALL_CHILDREN));
+  }
+
+  /**
+   * Save a DOT rendering of the expression tree with bounding scope clusters
+   * (dashed boxes per {@link Expression#getParentScopeExpr() bounding scope},
+   * position numbers in node labels). Also renders a PNG image. The file name
+   * is derived from the calling test method via the stack walker and suffixed
+   * with {@code .expr.scopes}.
+   */
+  public static <E extends Expression<E, T>, T extends Type> void saveDotExprScopes(E expr) {
+    saveDotAndPng(".expr.scopes", DotExpression.toDotWithScopes(expr, DotExpression.VisitGetChildrenOption.ONLY_INSTANTIATED));
+  }
+
+  /**
    * Save a DOT rendering of the given type tree alongside its rendered PNG
    * image. The file name is derived from the calling test method via the stack
    * walker and suffixed with {@code .type}.

@@ -1,0 +1,177 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: down
+
+# ============================================================
+# Dialect layer (TypeDialect + solver contract)
+# ============================================================
+
+TypeDialect: {
+  shape: rectangle
+  label: "TypeDialect<C, E, T> (abstract)\n——————————————————\nextractTypesFromAbstract(Class): List<Class<Type>>\nextractExpressionsFromAbstract(Class): List<Class<Expression>>"
+
+  TypeInferenceSolver: {
+    shape: rectangle
+    label: "TypeInferenceSolver<EO, E, T> (abstract inner)\n——————————————————\nregistry: TypeDialectConverterRegistry\nsolve(EO): SolveResult<E> (abstract)\ngeneralBlockToInferenceExpr(GeneralBlock): E\ngpntToInferenceType(...): (T, Context)"
+  }
+
+  SolveResult: {
+    shape: rectangle
+    label: "SolveResult<E> (record)\n—————————\ntype(): Type\npreInstantiation(): E (after inference, before instantiation)\ninstantiated(): E"
+    style.fill: honeydew
+  }
+
+  ConversionContext: {
+    shape: rectangle
+    label: "ConversionContext<E, T> (marker interface)"
+    style.fill: honeydew
+  }
+}
+
+ConverterRegistry: {
+  shape: rectangle
+  label: "ConverterRegistry\n——————————————————\nregisterDialect(Class)\naddOperatorsToDialect(dialect, (OpClass, converter)...)\ngetConverterForDialect(Class): Optional<TypeDialectConverterRegistry>"
+
+  TypeDialectConverterRegistry: {
+    shape: rectangle
+    label: "TypeDialectConverterRegistry\n—————————\nop converters: OpClass -> Operation->Expr converter"
+    style.fill: honeydew
+  }
+}
+
+ExprOrOperator: {
+  shape: rectangle
+  label: "ExprOrOperator<E, T> (abstract)\n—————————\nof(Operation) | isExpr() / isOperator() / getExpr()"
+}
+
+Expression: {
+  shape: rectangle
+  label: "Expression<E, T> (interface)\n—————————\ngetChildren() / getInstantiableChildren()\nget/setInferredType(T)\ngetParentScopeExpr() / getParentScopePosition()"
+  style.stroke-dash: 3
+}
+
+# ============================================================
+# Algorithm W dialect
+# ============================================================
+
+AlgorithmWInference: {
+  shape: rectangle
+  label: "AlgorithmWInference (final)\n——————————————————\ngetSolverInstance(): cached static Optional<TypeInference>,\nrebuilt if registry changed\ngetAllowedTypes(): from AlgorithmWType\ngetAllowedExpressions(): from Expr"
+  style.fill: lavender
+}
+
+AlgoWSolver: {
+  shape: rectangle
+  label: "AlgorithmW: TypeInference (final)\n——————————————————\nsolve(EO): SolveResult<Expr>\n  1. infer(expr, env); finalType = subst.apply(type)\n  2. expr.instantiate(this, InstEnv, subst)\n  3. visitor: reinstantiateSymbols()\n  4. visitor ONLY_INSTANTIATED: instantiateOperation callbacks\n  5. visitor: move temporary blocks to parent region\n  6. OperationVerifier (FULL_VERIFICATION)\ninfer(expr, env): InferResult -> setInferredType(res.type())\nasExpression(EO): buffered via ConvertedOperationBuffer\nunify(left, right): UnifyResult"
+}
+
+AlgoWBuffer: {
+  shape: rectangle
+  label: "ConvertedOperationBuffer\n(same Expr reused across ALL use sites)"
+  style.fill: honeydew
+}
+
+AlgoWTypes: {
+  shape: rectangle
+  label: "AlgorithmWType (abstract)"
+
+  Var: "Var\n———\ntyVar: TypeVar"
+  Arrow: "Arrow\n———\nfrom: AlgorithmWType\nto: AlgorithmWType"
+  LitType: "LitType\n———\ntyName: TypeIdent"
+  NumericType: "NumericType\n———\nnumeric lattice"
+  Tuple: "Tuple\n———\nelements: List<AlgorithmWType>"
+
+  Subst: {
+    shape: rectangle
+    label: "Subst\n—————————\ntypes: Map<TypeVar, AlgorithmWType>\napply(t): resolve chains recursively\ncompose(other)"
+  }
+  Env: {
+    shape: rectangle
+    label: "Env\n—————————\nenv: Map<Symbol, Scheme>\napply(Subst) | lookup"
+  }
+  Scheme: {
+    shape: rectangle
+    label: "Scheme\n—————————\nvars: List<TypeVar> (quantified)\ntype: AlgorithmWType | originExpr\napply(Subst): quantified vars filtered out"
+  }
+  InferResult: {
+    shape: rectangle
+    label: "InferResult\n———\ntype | subst | tree"
+  }
+  UnifyResult: {
+    shape: rectangle
+    label: "UnifyResult\n———\ntype | subst | tree"
+  }
+}
+
+# ============================================================
+# System F dialect
+# ============================================================
+
+SystemFInference: {
+  shape: rectangle
+  label: "SystemFInference (final)\n——————————————————\ngetSolverInstance(): cached static Optional<TypeInference>\ngetAllowedTypes(): from SystemFType\ngetAllowedExpressions(): from Expr"
+  style.fill: lavender
+}
+
+SystemFSolver: {
+  shape: rectangle
+  label: "SystemF: TypeInference (final)\n——————————————————\nsolve(EO): SolveResult<Expr>\n  1. infer(ctx, expr); finalType = ctx.apply(type)\n  2. expr.instantiate(this, InstEnv, solutionCtx)\n  3. visitor: reinstantiateSymbols()\n  4. visitor ONLY_INSTANTIATED: instantiateOperation callbacks\n  5. visitor: move temporary blocks to parent region\ninfer(ctx, expr): setInferredType(ctx.apply(type))\ncheck(ctx, expr, ty): ChkAll / ChkSub\nsubtype(ctx, a, b) / instL / instR (existential instantiation)"
+}
+
+SystemFTypes: {
+  shape: rectangle
+  label: "SystemFType (abstract)"
+
+  Var: "Var\n———\ntyVar: TypeVar"
+  EtVar: "EtVar\n———\nexistential type var"
+  Arrow: "Arrow\n———\nfrom | to"
+  ForAll: "ForAll\n———\nboundVar | body"
+  Lit: "Lit\n———\ntyName: TypeIdent"
+  NumericType: "NumericType"
+  Tuple: "Tuple\n———\nelements"
+
+  Context: {
+    shape: rectangle
+    label: "Context\n—————————\nentries: VarBnd | TVarBnd | ETVarBnd | Mark\napply(t): walk substitution chain\nbreak3(pred), copy(), push()"
+  }
+  Results: {
+    shape: rectangle
+    label: "TypeResult | CheckResult | SubtypeResult\n(Algorithm W InferResult/UnifyResult analogues)"
+  }
+}
+
+# ============================================================
+# Relations
+# ============================================================
+
+AlgorithmWInference -> TypeDialect: extends
+SystemFInference -> TypeDialect: extends
+AlgoWSolver -> TypeDialect.TypeInferenceSolver: extends
+SystemFSolver -> TypeDialect.TypeInferenceSolver: extends
+
+AlgorithmWInference -> AlgoWSolver: getSolverInstance()
+SystemFInference -> SystemFSolver: getSolverInstance()
+
+AlgorithmWInference -> ConverterRegistry: getConverterForDialect(this)
+SystemFInference -> ConverterRegistry: getConverterForDialect(this)
+AlgoWSolver -> ConverterRegistry.TypeDialectConverterRegistry: "bound at construction"
+SystemFSolver -> ConverterRegistry.TypeDialectConverterRegistry: "bound at construction"
+
+TypeDialect.TypeInferenceSolver -> ExprOrOperator: "solve input EO"
+TypeDialect.TypeInferenceSolver -> Expression: "E : Expression<E, T>"
+TypeDialect.TypeInferenceSolver -> TypeDialect.SolveResult: returns
+TypeDialect.TypeInferenceSolver -> TypeDialect.ConversionContext: "context marker"
+
+AlgoWSolver -> AlgoWTypes.Subst: "unify/infer substitutions"
+AlgoWSolver -> AlgoWTypes.Env: "symbol -> Scheme env"
+AlgoWTypes.Env -> AlgoWTypes.Scheme: stores
+AlgoWSolver -> AlgoWTypes.InferResult: produces
+AlgoWSolver -> AlgoWTypes.UnifyResult: produces
+AlgoWSolver -> AlgoWBuffer: uses
+
+SystemFSolver -> SystemFTypes.Context: "ordered substitution context"
+SystemFSolver -> SystemFTypes.Results: produces

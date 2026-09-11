@@ -103,14 +103,14 @@ public final class TypeInference
   }
 
   @Override
-  public Pair<Type, Expr> solve(ExprOrOperator<Expr, AlgorithmWType> exprOrOp) {
+  public SolveResult<Expr> solve(ExprOrOperator<Expr, AlgorithmWType> exprOrOp) {
     Env env = new Env();
     Expr expr = this.asExpression(exprOrOp);
     InferResult res = this.infer(expr, env);
     var finalType = res.subst().apply(res.type());
 
-    var instantiated = expr.instantiate(this, new InstEnv<>(expr), res.subst());
 
+    var instantiated = expr.instantiate(this, new InstEnv<>(expr), res.subst());
     // 1. Replace values in Let and Abs expressions with new values
     // As Exprs are already hash-consed, this will visit every relevant expression
     // only once!
@@ -158,7 +158,7 @@ public final class TypeInference
       new OperationVerifier(VerifyOptions.FULL_VERIFICATION).verify(instantiated.getUnderlyingOperation().get());
     }
 
-    return Pair.of((Type) finalType, instantiated);
+    return new SolveResult<>((Type) finalType, expr, instantiated);
   }
 
   /**
