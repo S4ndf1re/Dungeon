@@ -5,11 +5,8 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
-import dgir.core.ir.Region;
 import dgir.core.ir.Value;
-import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
@@ -54,8 +51,9 @@ public final class ScfAlgoWConversion {
     ScfOps.IfOp ifOp = (ScfOps.IfOp) op.asOp();
 
     var condExpr = new Expr.ExprVar(Symbol.of(ifOp.getOperandValue(0).orElseThrow()));
-    var thenCase = regionToExpr(engine, ifOp.getThenRegion());
-    Optional<Expr> elseCase = ifOp.getElseRegion().map(region -> regionToExpr(engine, region));
+    var thenCase = OperationExprConversionUtils.regionToExpr(engine, ifOp.getThenRegion());
+    Optional<Expr> elseCase = ifOp.getElseRegion()
+        .map(region -> OperationExprConversionUtils.regionToExpr(engine, region));
     var ifData = new IfData(condExpr, thenCase, elseCase);
 
     InferFunction<IfData> infFunc = (eng, env, data) -> {
@@ -122,7 +120,7 @@ public final class ScfAlgoWConversion {
       var custExpr = (Expr.ExprCustom<IfData>) instantiatedExpr;
       var data = custExpr.getData();
 
-      var condValue = OperationExprConversionUtils.getSymbolValue(data.cond());
+      var condValue = OperationExprConversionUtils.getOutputValue(data.cond());
       boolean withElse = data.elseCase().isPresent();
 
       ScfOps.IfOp newIf;
@@ -134,9 +132,9 @@ public final class ScfAlgoWConversion {
       }
       var newOp = newIf.getOperation();
 
-      fillRegionBlock(newOp, 0, data.thenCase());
+      OperationExprConversionUtils.fillOpScoped(newOp, 0, data.thenCase);
       if (withElse) {
-        fillRegionBlock(newOp, 1, data.elseCase().get());
+        OperationExprConversionUtils.fillOpScoped(newOp, 1, data.elseCase.get());
       }
 
       return newOp;
@@ -151,13 +149,13 @@ public final class ScfAlgoWConversion {
 
     ScfOps.ScopeOp scopeOp = (ScfOps.ScopeOp) op.asOp();
 
-    var body = regionToExpr(engine, scopeOp.getRegion());
+    var body = OperationExprConversionUtils.regionToExpr(engine, scopeOp.getRegion());
 
     body.setInstantiateOperationCallback(instantiatedExpr -> {
       var newScope = new ScfOps.ScopeOp(op.getLocation());
       var newOp = newScope.getOperation();
 
-      fillRegionBlock(newOp, 0, instantiatedExpr);
+      OperationExprConversionUtils.fillOpScoped(newOp, 0, instantiatedExpr);
 
       return newOp;
     });
@@ -183,7 +181,7 @@ public final class ScfAlgoWConversion {
         Symbol.of(forOp.getInductionValue()));
 
     var result = new Expr.ExprApp(
-        new Expr.ExprAbs(params, regionToExpr(engine, forOp.getRegion())),
+        new Expr.ExprAbs(params, OperationExprConversionUtils.regionToExpr(engine, forOp.getRegion())),
         List.of(
             new Expr.ExprVar(Symbol.of(forOp.getInitialValue())),
             new Expr.ExprVar(Symbol.of(forOp.getLowerBound())),
@@ -197,7 +195,7 @@ public final class ScfAlgoWConversion {
       assert app.args().size() == 4;
 
       List<Value> argResults = app.args().stream()
-          .map(OperationExprConversionUtils::<Expr, AlgorithmWType>getSymbolValue).toList();
+          .map(OperationExprConversionUtils::<Expr, AlgorithmWType>getOutputValue).toList();
 
       var newForOp = new ScfOps.ForOp(op.getLocation(), argResults.get(0), argResults.get(1), argResults.get(2),
           argResults.get(3));
@@ -205,7 +203,7 @@ public final class ScfAlgoWConversion {
 
       assert app.func() instanceof Expr.ExprAbs;
       var instantiatedAbs = (Expr.ExprAbs) app.func();
-      fillRegionBlock(newOp, 0, instantiatedAbs.body());
+      OperationExprConversionUtils.fillOpScoped(newOp, 0, instantiatedAbs.body());
 
       var newRegion = newForOp.getRegion();
       if (forOp.getInductionValue() != newForOp.getInductionValue()) {
@@ -236,8 +234,8 @@ public final class ScfAlgoWConversion {
     ScfOps.WhileOp whileOp = (ScfOps.WhileOp) op.asOp();
 
     var whileData = new WhileData(
-        regionToExpr(engine, whileOp.getConditionRegion()),
-        regionToExpr(engine, whileOp.getBodyRegion()));
+        OperationExprConversionUtils.regionToExpr(engine, whileOp.getConditionRegion()),
+        OperationExprConversionUtils.regionToExpr(engine, whileOp.getBodyRegion()));
 
     InferFunction<WhileData> infFunc = (eng, env, data) -> {
 
@@ -284,8 +282,8 @@ public final class ScfAlgoWConversion {
       var newWhile = new ScfOps.WhileOp(op.getLocation());
       var newOp = newWhile.getOperation();
 
-      fillRegionBlock(newOp, 0, data.cond());
-      fillRegionBlock(newOp, 1, data.body());
+      OperationExprConversionUtils.fillOpScoped(newOp, 0, data.cond());
+      OperationExprConversionUtils.fillOpScoped(newOp, 1, data.body());
 
       return newOp;
     });
@@ -359,9 +357,9 @@ public final class ScfAlgoWConversion {
       var data = custExpr.getData();
 
       return new ScfOps.SelectOp(op.getLocation(),
-          OperationExprConversionUtils.getSymbolValue(data.cond()),
-          OperationExprConversionUtils.getSymbolValue(data.trueVal()),
-          OperationExprConversionUtils.getSymbolValue(data.falseVal())).getOperation();
+          OperationExprConversionUtils.getOutputValue(data.cond()),
+          OperationExprConversionUtils.getOutputValue(data.trueVal()),
+          OperationExprConversionUtils.getOutputValue(data.falseVal())).getOperation();
     });
 
     return result;
@@ -412,7 +410,7 @@ public final class ScfAlgoWConversion {
       var data = custExpr.getData();
 
       return new ScfOps.YieldOp(op.getLocation(),
-          OperationExprConversionUtils.getSymbolValue(data.value())).getOperation();
+          OperationExprConversionUtils.getOutputValue(data.value())).getOperation();
     });
 
     return result;
@@ -450,59 +448,5 @@ public final class ScfAlgoWConversion {
     result.setInstantiateOperationCallback(instantiatedExpr -> new ScfOps.EndOp(op.getLocation()).getOperation());
 
     return result;
-  }
-
-  // =========================================================================
-  // Helpers
-  // =========================================================================
-
-  /**
-   * Lowers a single region body into a let-rec expression. All operations —
-   * including terminators — are converted to terms: the terminator is the
-   * region's last binding, so a yield types the region with its value's type,
-   * and jump terminators (continue/end) infer as fresh type variables that
-   * never shadow the region's trailing value type.
-   */
-  private static Expr regionToExpr(TypeInference engine, Region region) {
-    GeneralBlock generalBlock = new GeneralBlock();
-
-    for (Operation o : region.getBlocks().getFirst().getOperations()) {
-      generalBlock.addOperation(o);
-    }
-
-    return engine.generalBlockToInferenceExpr(generalBlock);
-  }
-
-  /**
-   * Rebuilds the instantiated operations of a lowered region expression and adds
-   * them to the given region index of {@code newOp}.
-   */
-  private static void fillRegionBlock(Operation newOp, int regionIndex, Expr regionExpr) {
-    assert regionExpr instanceof Expr.ExprLetRec;
-    var letRec = (Expr.ExprLetRec) regionExpr;
-
-    var exprsForBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(letRec, letRec.body());
-    assert exprsForBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
-
-    Block block = newOp.getRegion(regionIndex).orElseThrow().getEntryBlock();
-
-    for (var e : exprsForBlock) {
-      // SAFETY: already asserted, that the underlying operation is actually present.
-      block.addOperation(e.getUnderlyingOperation().get());
-    }
-
-  }
-
-  /**
-   *
-   * Returns the value the given let-rec scope expression evaluates to, i.e. the
-   * value of its body expression's output symbol.
-   *
-   * @param regionExpr the let-rec expression of a lowered region body.
-   * @return the body value.
-   */
-  public static Value getLetRecBodyValue(Expr regionExpr) {
-    assert regionExpr instanceof Expr.ExprLetRec;
-    return OperationExprConversionUtils.getSymbolValue(((Expr.ExprLetRec) regionExpr).body());
   }
 }

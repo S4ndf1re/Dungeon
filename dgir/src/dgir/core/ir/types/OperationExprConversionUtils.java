@@ -9,10 +9,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import dgir.core.ir.Block;
+import dgir.core.ir.Operation;
+import dgir.core.ir.Region;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.algorithmw.Expr;
 
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
+import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.traits.IApplication;
 import dgir.core.ir.types.traits.IVariable;
@@ -130,7 +134,7 @@ public class OperationExprConversionUtils {
    * @param expr the expression whose symbol value should be resolved.
    * @return the resolved value.
    */
-  public static <E extends Expression<E, T>, T extends Type> Value getSymbolValue(E expr) {
+  public static <E extends Expression<E, T>, T extends Type> Value getOutputValue(E expr) {
     var symbol = getOutputSymbol(expr);
     assert symbol.isPresent();
     return symbol.get().getValue();
@@ -148,5 +152,35 @@ public class OperationExprConversionUtils {
     assert inferredType.isPresent();
     assert inferredType.get().isFullySpecified();
     return dgir.core.ir.Type.fromGeneralParameterizedNominalType(inferredType.get().asTypeParameter().getConcrete());
+  }
+
+  public static <E extends Expression<E, T>, T extends Type> void fillBlockScoped(Block toFill, E scope) {
+    for (var body : scope.getInstantiableChildren()) {
+      var exprsForBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(scope, body);
+      assert exprsForBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
+
+      for (var e : exprsForBlock) {
+        // SAFETY: already asserted, that the underlying operation is actually present.
+        toFill.addOperation(e.getUnderlyingOperation().get());
+      }
+    }
+  }
+
+  public static <E extends Expression<E, T>, T extends Type> void fillOpScoped(Operation op, int regionIdx, E scope) {
+    var toFill = op.getRegionOrThrow(regionIdx).getEntryBlock();
+    fillBlockScoped(toFill, scope);
+  }
+
+  public static <E extends Expression<E, T>, T extends Type, EngineT extends TypeInferenceSolver<E, T>> E regionToExpr(
+      EngineT engine, Region region) {
+    GeneralBlock generalBlock = GeneralBlock.fromBlock(region.getBlocks().getFirst());
+
+    return engine.generalBlockToInferenceExpr(generalBlock);
+  }
+
+  public static <T extends Type> dgir.core.ir.Type algoTypeToIrType(
+      T type) {
+    assert type.isFullySpecified();
+    return dgir.core.ir.Type.fromGeneralParameterizedNominalType(type.asTypeParameter().getConcrete());
   }
 }
