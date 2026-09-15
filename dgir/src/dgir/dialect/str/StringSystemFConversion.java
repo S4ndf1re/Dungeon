@@ -11,7 +11,6 @@ import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.SystemFConversionUtils;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
@@ -193,7 +192,7 @@ public final class StringSystemFConversion {
       var argExprs = peelApplication(instantiatedExpr).getRight();
 
       List<Value> argResults = argExprs.stream()
-          .map(e -> OperationExprConversionUtils.getOutputValue(e))
+          .map(e -> e.getOutputValue())
           .toList();
 
       return factory.apply(op.getLocation()).apply(argResults);

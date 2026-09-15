@@ -1,5 +1,6 @@
 package dgir.core.ir.types.traits;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import dgir.core.ir.types.Expression;
@@ -20,4 +21,32 @@ public interface IAbstraction<E extends Expression<E, T>, T extends Type> {
   public List<Symbol<E, T>> getAbstractionsOverSymbols();
 
   public E getAbstractionBody();
+
+  @SuppressWarnings("unchecked")
+  public default List<Symbol<E, T>> getAllAbstractedParamters() {
+    ArrayList<Symbol<E, T>> params = new ArrayList<>();
+
+    IAbstraction<E, T> current = this;
+
+    while (true) {
+      var abstractedOver = current.getAbstractionsOverSymbols();
+
+      if (abstractedOver.isEmpty()) {
+        break;
+      }
+
+      params.addAll(abstractedOver);
+
+      var body = current.getAbstractionBody();
+
+      if (body instanceof IAbstraction) {
+        current = (IAbstraction<E, T>) body;
+      } else {
+        break;
+      }
+    }
+
+    return List.copyOf(params);
+
+  }
 }
