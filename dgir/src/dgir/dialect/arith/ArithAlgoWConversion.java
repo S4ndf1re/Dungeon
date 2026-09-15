@@ -11,7 +11,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.types.Literal;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypingException;
@@ -132,8 +131,8 @@ public final class ArithAlgoWConversion {
       // monomorphic instances of polymorphic values requires constraint based
       // solving.
       // Classic algorithm W does not offer said capabilites. HM(X) is needed here!
-      var lhsIrType = OperationExprConversionUtils.algoTypeToIrType(lhsType);
-      var rhsIrType = OperationExprConversionUtils.algoTypeToIrType(rhsType);
+      var lhsIrType = lhsType.toIrType();
+      var rhsIrType = rhsType.toIrType();
 
       var resultIrType = data.binMode.getExpectedResultTypeForParams(lhsIrType, rhsIrType);
 
@@ -171,8 +170,8 @@ public final class ArithAlgoWConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.ExprCustom<BinOpData>) instantiatedExpr;
 
-      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().lhs);
-      var rhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().rhs);
+      var lhsValue = custExpr.getData().lhs.getOutputValue();
+      var rhsValue = custExpr.getData().rhs.getOutputValue();
 
       return new BinaryOp(op.getLocation(), lhsValue,
           rhsValue, custExpr.getData().binMode).getOperation();
@@ -224,7 +223,7 @@ public final class ArithAlgoWConversion {
       // TODO: maybe, it is possible to defer the type finding until both lhs and rhs
       // are completely inferred. This would require careful algorithm engineering and
       // is not possible, as of now.
-      var lhsIrType = OperationExprConversionUtils.algoTypeToIrType(lhsType);
+      var lhsIrType = lhsType.toIrType();
 
       var resultIrType = data.unaryMode.getExpectedResultTypeForParams(lhsIrType);
 
@@ -263,7 +262,7 @@ public final class ArithAlgoWConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.ExprCustom<UnaryData>) instantiatedExpr;
 
-      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().lhs);
+      var lhsValue = custExpr.getData().lhs.getOutputValue();
 
       return new UnaryOp(op.getLocation(), lhsValue,
           custExpr.getData().unaryMode).getOperation();
@@ -314,7 +313,7 @@ public final class ArithAlgoWConversion {
       // TODO: maybe, it is possible to defer the type finding until both lhs and rhs
       // are completely inferred. This would require careful algorithm engineering and
       // is not possible, as of now.
-      var valueIrType = OperationExprConversionUtils.algoTypeToIrType(valueType);
+      var valueIrType = valueType.toIrType();
       var resultIrType = data.targetType;
 
       assert isNumeric(valueIrType);
@@ -355,7 +354,7 @@ public final class ArithAlgoWConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.ExprCustom<CastData>) instantiatedExpr;
 
-      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().value);
+      var lhsValue = custExpr.getData().value.getOutputValue();
 
       return new CastOp(op.getLocation(), lhsValue,
           custExpr.getData().targetType).getOperation();

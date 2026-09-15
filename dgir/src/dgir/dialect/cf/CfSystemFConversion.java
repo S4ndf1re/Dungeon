@@ -9,7 +9,6 @@ import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.InferenceTree;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
@@ -83,15 +82,9 @@ public final class CfSystemFConversion {
       assert data.body instanceof Expr.Let;
       var let = (Expr.Let) data.body;
 
-      var exprsForBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(let, let.body());
-      assert exprsForBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
-
       var block = new Block();
 
-      for (var e : exprsForBlock) {
-        // SAFETY: already asserted, that the underlying operation is actually present.
-        block.addOperation(e.getUnderlyingOperation().get());
-      }
+      let.fillBlockScoped(block);
 
       var newCfOp = new CfOps.BranchOp(op.getLocation(), block).getOperation();
       newCfOp.getTemporaryRegion().addBlock(block);
@@ -165,34 +158,13 @@ public final class CfSystemFConversion {
       var custExpr = (Expr.Custom<BranchData>) instantiatedExpr;
       var data = custExpr.getData();
 
-      assert data.cond.getUnderlyingOperation().isPresent();
-      assert data.cond.getUnderlyingOperation().get().getOutput().isPresent();
-      var condValue = data.cond.getUnderlyingOperation().get().getOutputValueOrThrow();
-
-      assert data.thenCase instanceof Expr.Let;
-      assert data.elseCase instanceof Expr.Let;
-
-      var thenLet = (Expr.Let) data.thenCase;
-      var elseLet = (Expr.Let) data.elseCase;
-
-      var exprsForThenBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(thenLet, thenLet.body());
-      assert exprsForThenBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
-
-      var exprsForElseBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(elseLet, elseLet.body());
-      assert exprsForElseBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
+      var condValue = data.cond.getOutputValue();
 
       var thenBlock = new Block();
+      data.thenCase.fillBlockScoped(thenBlock);
+
       var elseBlock = new Block();
-
-      for (var e : exprsForThenBlock) {
-        // SAFETY: already asserted, that the underlying operation is actually present.
-        thenBlock.addOperation(e.getUnderlyingOperation().get());
-      }
-
-      for (var e : exprsForElseBlock) {
-        // SAFETY: already asserted, that the underlying operation is actually present.
-        elseBlock.addOperation(e.getUnderlyingOperation().get());
-      }
+      data.elseCase.fillBlockScoped(elseBlock);
 
       var newCfOp = new CfOps.BranchCondOp(op.getLocation(), condValue, thenBlock, elseBlock).getOperation();
       newCfOp.getTemporaryRegion().addBlock(thenBlock);

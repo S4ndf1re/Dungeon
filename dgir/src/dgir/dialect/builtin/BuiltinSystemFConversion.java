@@ -7,7 +7,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.systemf.Expr;
@@ -65,8 +64,7 @@ public final class BuiltinSystemFConversion {
       assert instantiatedExpr instanceof Expr.Let;
       var instantiatedLetExpr = (Expr.Let) instantiatedExpr;
 
-      var exprsInBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(instantiatedLetExpr,
-          instantiatedLetExpr.body());
+      var exprsInBlock = instantiatedLetExpr.getAllChildrenForScopeExpression(instantiatedLetExpr.body());
 
       var newOp = new ProgramOp(programOp.getLocation());
 
@@ -122,7 +120,7 @@ public final class BuiltinSystemFConversion {
 
       var param = custom.getData().param;
 
-      var paramSymbol = OperationExprConversionUtils.getOutputValue(param);
+      var paramSymbol = param.getOutputValue();
 
       return new IdOp(idOp.getLocation(), paramSymbol).getOperation();
     });

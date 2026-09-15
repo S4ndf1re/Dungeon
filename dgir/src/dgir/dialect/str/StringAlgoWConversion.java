@@ -9,7 +9,6 @@ import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWType;
@@ -169,7 +168,7 @@ public final class StringAlgoWConversion {
       var app = (Expr.ExprApp) instantiatedExpr;
 
       List<Value> argResults = app.args().stream()
-          .map(e -> OperationExprConversionUtils.getOutputValue(e))
+          .map(e -> e.getOutputValue())
           .toList();
 
       return factory.apply(op.getLocation()).apply(argResults);

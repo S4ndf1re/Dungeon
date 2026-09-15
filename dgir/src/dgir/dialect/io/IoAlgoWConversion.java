@@ -9,7 +9,6 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.ValueOperand;
 import dgir.core.ir.types.Literal;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWType;
@@ -49,7 +48,7 @@ public final class IoAlgoWConversion {
 
       return new IoOps.PrintOp(op.getLocation(),
           app.args().stream()
-              .map(OperationExprConversionUtils::<Expr, AlgorithmWType>getOutputValue).toList())
+              .map(e -> e.getOutputValue()).toList())
           .getOperation();
     });
 
@@ -70,9 +69,8 @@ public final class IoAlgoWConversion {
 
       assert instantiatedExpr.getInferredType().isPresent();
       assert instantiatedExpr.getInferredType().get().isFullySpecified();
-      var retType = instantiatedExpr.getInferredType().get();
 
-      var irType = OperationExprConversionUtils.algoTypeToIrType(retType);
+      var irType = instantiatedExpr.inferredTypeToIrType();
 
       return new IoOps.ConsoleInOp(op.getLocation(), irType).getOperation();
 
