@@ -5,8 +5,10 @@ import java.util.stream.Collectors;
 
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
+import dgir.core.ir.types.traits.IInstantiable.SolutionContext;
 
-public final record Subst(HashMap<TypeVar, AlgorithmWType> types) {
+public final record Subst(HashMap<TypeVar, AlgorithmWType> types)
+    implements SolutionContext<Expr, AlgorithmWType, TypeInference, Subst> {
 
   public static Subst newEmpty() {
     return new Subst(new HashMap<>());
@@ -30,6 +32,7 @@ public final record Subst(HashMap<TypeVar, AlgorithmWType> types) {
         "}");
   }
 
+  @Override
   public AlgorithmWType apply(AlgorithmWType type) {
     if (type instanceof AlgorithmWType.Var var) {
       var t = types.get(var.tyVar);
@@ -69,5 +72,11 @@ public final record Subst(HashMap<TypeVar, AlgorithmWType> types) {
         .forEach(entry -> otherTypes.putIfAbsent(entry.getKey(), entry.getValue()));
 
     return new Subst(otherTypes);
+  }
+
+  @Override
+  public Subst expand(TypeInference engine, AlgorithmWType ty1, AlgorithmWType ty2) {
+    UnifyResult unifyRes = engine.unify(ty1, ty2);
+    return unifyRes.subst().compose(this);
   }
 }

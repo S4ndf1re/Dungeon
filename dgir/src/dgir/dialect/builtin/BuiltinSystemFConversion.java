@@ -7,12 +7,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
-import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.systemf.TypeResult;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.systemf.Expr;
 import dgir.core.ir.types.systemf.SystemFInference;
 import dgir.core.ir.types.systemf.SystemFType;
@@ -29,7 +26,7 @@ public final class BuiltinSystemFConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
   public static void registerBuiltinSystemFConversion() {
-    ConverterRegistry.<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType, TypeInference>addOperatorsToDialect(
+    ConverterRegistry.<Expr, SystemFType, TypeInference>addOperatorsToDialect(
         SystemFInference.class,
         Pair.of(ProgramOp.class, BuiltinSystemFConversion::convertProgramOp),
         Pair.of(IdOp.class, BuiltinSystemFConversion::convertIdOp));
@@ -112,7 +109,7 @@ public final class BuiltinSystemFConversion {
         new IdData(new Expr.Var(Symbol.of(idOp.getOperand()))),
         infFunc,
         null,
-        null,
+        instFn,
         (d) -> List.of(d.param));
 
     expr.setInstantiateOperationCallback(instantiatedExpr -> {

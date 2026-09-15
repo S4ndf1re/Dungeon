@@ -23,13 +23,12 @@ import dgir.core.ir.types.algorithmw.InferResult;
 import dgir.core.ir.types.algorithmw.Subst;
 import dgir.core.ir.types.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 
 public final class CfAlgoWConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
   public static void registerBuiltinAlgoWConversion() {
-    ConverterRegistry.<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType, TypeInference>addOperatorsToDialect(
+    ConverterRegistry.<Expr, AlgorithmWType, TypeInference>addOperatorsToDialect(
         AlgorithmWInference.class,
         Pair.of(CfOps.BranchOp.class, CfAlgoWConversion::convertBranchOp),
         Pair.of(CfOps.BranchCondOp.class, CfAlgoWConversion::convertBranchCondOp),

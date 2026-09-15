@@ -10,7 +10,7 @@ import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 import dgir.core.ir.types.compatibility.ConverterRegistry.ConverterFunction;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
-public class ConvertedOperationBuffer<EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<EO, E, T>> {
+public class ConvertedOperationBuffer<E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<E, T>> {
   private HashMap<Operation, E> converted;
 
   public ConvertedOperationBuffer() {
@@ -31,7 +31,7 @@ public class ConvertedOperationBuffer<EO extends ExprOrOperator<E, T>, E extends
 
     var exprConverted = buffered.orElseGet(() -> {
       @SuppressWarnings("unchecked")
-      ConverterFunction<EO, E, T, SolverT> converter = (ConverterFunction<EO, E, T, SolverT>) registry
+      ConverterFunction<E, T, SolverT> converter = (ConverterFunction< E, T, SolverT>) registry
           .getConverter(op.asOp().getClass());
       Expression<E, T> convertedExpr = converter.convertToExpression(op, engine);
 

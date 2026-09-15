@@ -15,7 +15,6 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.SystemFConversionUtils;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.systemf.Expr;
 import dgir.core.ir.types.systemf.SystemFInference;
 import dgir.core.ir.types.systemf.SystemFType;
@@ -25,7 +24,7 @@ public final class StringSystemFConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
   public static void registerBuiltinSystemFConversion() {
-    ConverterRegistry.<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType, TypeInference>addOperatorsToDialect(
+    ConverterRegistry.<Expr, SystemFType, TypeInference>addOperatorsToDialect(
         SystemFInference.class,
         Pair.of(StrOps.ToStringOp.class, StringSystemFConversion::convertToStringOp),
         Pair.of(StrOps.ConcatOp.class, StringSystemFConversion::convertConcatOp),

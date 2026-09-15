@@ -14,9 +14,10 @@ import dgir.core.ir.types.TypeDialect.TypeInferenceSolver.ConversionContext;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.Scope.ScopeLike;
+import dgir.core.ir.types.traits.IInstantiable.SolutionContext;
 
 public class Context extends ScopeLike<SystemFType>
-    implements ConversionContext<Expr, SystemFType> {
+    implements ConversionContext<Expr, SystemFType>, SolutionContext<Expr, SystemFType, TypeInference, Context> {
 
   private ArrayList<Entry> entries;
   private HashSet<ExprOrOperator<Expr, SystemFType>> visited;
@@ -168,6 +169,7 @@ public class Context extends ScopeLike<SystemFType>
     return type;
   }
 
+  @Override
   public SystemFType apply(SystemFType type) {
     var current = type;
     var changed = true;
@@ -214,5 +216,10 @@ public class Context extends ScopeLike<SystemFType>
 
   public void visit(ExprOrOperator<Expr, SystemFType> expr) {
     this.visited.add(expr);
+  }
+
+  @Override
+  public Context expand(TypeInference engine, SystemFType ty1, SystemFType ty2) {
+    return this;
   }
 }
