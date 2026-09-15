@@ -10,7 +10,6 @@ import dgir.core.ir.Type;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
@@ -61,15 +60,15 @@ public final class FuncAlgoWConversion {
       var abs = (Expr.ExprAbs) instantiatedExpr;
       var body = abs.body();
 
-      Type funcType = OperationExprConversionUtils.algoTypeToIrType(abs.getInferredType().get());
+      Type funcType = abs.inferredTypeToIrType();
       assert funcType instanceof FuncType;
 
       var newFuncOp = new FuncOps.FuncOp(op.getLocation(), funcOp.getFuncName(), (FuncType) funcType);
 
-      OperationExprConversionUtils.fillOpScoped(newFuncOp.getOperation(), 0, body);
+      body.fillOpScoped(newFuncOp.getOperation(), 0);
 
       var newRegion = newFuncOp.getRegion();
-      var oldParams = OperationExprConversionUtils.getAllAbstractedParamters(abs);
+      var oldParams = abs.getAllAbstractedParamters();
       assert oldParams.size() == newRegion.getRegionValues().size();
 
       for (int i = 0; i < oldParams.size(); i++) {
@@ -109,7 +108,7 @@ public final class FuncAlgoWConversion {
         var newOp = new FuncOps.ReturnOp(returnOp.getLocation());
         return newOp.getOperation();
       } else {
-        var valueSymbol = OperationExprConversionUtils.getOutputValue(retExpr.value());
+        var valueSymbol = retExpr.value().getOutputValue();
 
         var newOp = new FuncOps.ReturnOp(returnOp.getLocation(), valueSymbol);
         return newOp.getOperation();
@@ -140,10 +139,10 @@ public final class FuncAlgoWConversion {
       var irType = Type.fromGeneralParameterizedNominalType(funcType.get().asTypeParameter().getConcrete());
       assert irType instanceof FuncTypes.FuncType;
 
-      var applicationArgs = OperationExprConversionUtils.getAllApplicationParameters(app);
+      var applicationArgs = app.getAllApplicationParameters();
 
       var parameterOperations = applicationArgs.stream()
-          .map(e -> OperationExprConversionUtils.getOutputValue(e))
+          .map(e -> e.getOutputValue())
           .toList();
 
       return new CallOp(op.getLocation(), callOp.getCalleeName(), parameterOperations, (FuncTypes.FuncType) irType)
@@ -170,10 +169,10 @@ public final class FuncAlgoWConversion {
 
       var app = (Expr.ExprApp) instantiatedExpr;
 
-      var applicationArgs = OperationExprConversionUtils.getAllApplicationParameters(app);
+      var applicationArgs = app.getAllApplicationParameters();
 
       var parameterOperations = applicationArgs.stream()
-          .map(e -> OperationExprConversionUtils.getOutputValue(e))
+          .map(e -> e.getOutputValue())
           .toList();
 
       var funcOp = app.func().getUnderlyingOperation();
@@ -217,7 +216,7 @@ public final class FuncAlgoWConversion {
       assert abs.body() instanceof Expr.ExprApp;
       var app = (Expr.ExprApp) abs.body();
 
-      var irType = OperationExprConversionUtils.algoTypeToIrType(app.getInferredType().get());
+      var irType = app.inferredTypeToIrType();
       assert irType instanceof FuncTypes.FuncType;
 
       return new FuncOps.ConstantOp(op.getLocation(), funcName, (FuncTypes.FuncType) irType)
