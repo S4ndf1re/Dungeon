@@ -6,8 +6,6 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import dgir.core.analysis.OperationVerifier;
-import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
@@ -19,20 +17,16 @@ import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
-import dgir.core.ir.types.Expression.ExpressionVisitor;
-import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
-import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
-import dgir.core.ir.types.traits.IExpressionCell;
 import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.traits.ISymbol;
 
 public final class TypeInference
-    extends TypeDialect.TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> {
+    extends TypeDialect.TypeInferenceSolver<Expr, AlgorithmWType> {
 
-  private ConvertedOperationBuffer<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType, TypeInference> operationToExprBuffer;
+  private ConvertedOperationBuffer<Expr, AlgorithmWType, TypeInference> operationToExprBuffer;
 
   public TypeInference() {
     this(new TypeDialectConverterRegistry());
@@ -110,52 +104,8 @@ public final class TypeInference
     var finalType = res.subst().apply(res.type());
 
     var instantiated = expr.instantiate(this, new InstEnv<>(expr), res.subst());
-    // 1. Replace values in Let and Abs expressions with new values
-    // As Exprs are already hash-consed, this will visit every relevant expression
-    // only once!
-    // Additionally, function parameters are also unique Values, i.e. they cannot
-    // get destroy hash-consing uniqueness!
-    new ExpressionVisitor<Expr, AlgorithmWType>(VisitOrder.IN_ORDER).visit(instantiated, e -> {
-      e.reinstantiateSymbols();
-    });
-    // 2. Instantiate Operations bottom-up. As all values are newly assigned, this
-    // operation will create a new operation tree
-    // During this stage, make sure to fully type the values using the expressions
-    // inferred types! The types are normally fully qualified, due to hash consing
-    // and solution
-    // applicaiton! In cases where the type is not fully qualified, throw a typing
-    // error, as annotations may be needed to fully infer typing.
-    // A few problems may arise in reconstructing the blocks and regions.
-    // The new expression tree is actually a sea-of-nodes like Expression tree
-    new ExpressionVisitor<Expr, AlgorithmWType>(VisitOrder.POST_ORDER, VisitGetChildrenOption.ONLY_INSTANTIATED)
-        .visit(instantiated, e -> {
-          var instOp = e.getInstantiateOperationCallback();
-          if (instOp.isPresent()) {
-            @SuppressWarnings("unchecked")
-            var exprUnwrapped = e instanceof IExpressionCell ? ((IExpressionCell<Expr, AlgorithmWType>) e).unwrap() : e;
-            var instantiatedOperation = instOp.get().instantiate(exprUnwrapped);
-            e.setUnderlyingOperation(instantiatedOperation);
-          }
-        });
 
-    // 3. Post-Process and move all temporary blocks to their operations parent
-    // region!
-    new ExpressionVisitor<Expr, AlgorithmWType>(VisitOrder.POST_ORDER).visit(instantiated, e -> {
-      var op = e.getUnderlyingOperation();
-      if (op.isPresent() && !op.get().getTemporaryRegion().getBlocks().isEmpty()) {
-        // Only try to move when the operation has its temporary region filled!
-        // In case the parent region does not exist, it is invalid to move the child
-        // blocks
-        // to any position up the operation chain, hence, temporary region resolution is
-        // invalid!
-        var parentRegion = op.get().getParentRegionOrThrow();
-        op.get().appendTemporaryBlocksToOtherRegion(parentRegion);
-      }
-    });
-
-    if (instantiated.getUnderlyingOperation().isPresent()) {
-      new OperationVerifier(VerifyOptions.FULL_VERIFICATION).verify(instantiated.getUnderlyingOperation().get());
-    }
+    instantiated = this.postSolve(instantiated);
 
     return new SolveResult<>((Type) finalType, expr, instantiated);
   }
@@ -175,6 +125,7 @@ public final class TypeInference
     return res;
   }
 
+  @Override
   public Expr asExpression(ExprOrOperator<Expr, AlgorithmWType> exprOrOp) {
     if (exprOrOp.isExpr()) {
       return exprOrOp.getExpr();

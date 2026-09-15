@@ -4,13 +4,12 @@ import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 import java.util.List;
 import java.util.Optional;
 
 public final class SystemFInference
     extends
-    TypeDialect<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType> {
+    TypeDialect<Expr, SystemFType> {
 
   private static Optional<TypeInference> solver = Optional.empty();
 
@@ -25,7 +24,7 @@ public final class SystemFInference
   }
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType> getSolverInstance() {
+  public TypeInferenceSolver<Expr, SystemFType> getSolverInstance() {
     if (SystemFInference.solver.isPresent()) {
       return SystemFInference.solver.get();
     } else {

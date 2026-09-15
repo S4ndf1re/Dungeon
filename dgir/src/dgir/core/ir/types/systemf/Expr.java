@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.traits.IExpressionCell;
+import dgir.core.ir.types.traits.IInstantiable;
 import dgir.core.ir.types.traits.IVariable;
 
 import java.util.List;
@@ -29,7 +30,8 @@ import dgir.core.ir.types.traits.IAbstraction;
  * Expressions that are valid for the SytemF Type System. All needed methods for
  * inference and type checking are implemented here
  */
-public abstract class Expr extends Expression<Expr, SystemFType> {
+public abstract class Expr extends Expression<Expr, SystemFType>
+    implements IInstantiable<Expr, SystemFType, Context, TypeInference> {
 
   public Expr() {
     super();
@@ -51,112 +53,10 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     return super.hashCode();
   }
 
-  /**
-   * Instantiate the full expression tree to find and store all instantiations.
-   * Additionally, every expression and its inferred type (determined during type
-   * inference) is substituted, resulting in a fully typed Expression tree.
-   *
-   * <p>
-   * In addition to the instantiation, a simple form of variable resolution is
-   * performed, by beta-reducing variables into the concrete expressions
-   * referenced by the ExprVars. This is important for later stage code
-   * generation.
-   *
-   * @param engine   the type inference engine used to infer all types
-   * @param env      an env storing all in scope expressions
-   * @param solution a partial or full solution that can be used to infer all
-   *                 types and instantiations
-   */
-  public final Expr instantiate(TypeInference engine, InstEnv<Expr, SystemFType, Context> env, Context solution) {
-    Expr expr = env.getConsed(this);
-    // Variables must always be visited, while other expressions must be
-    // instantiated, as long as its not a recursive instantiation.
-    if (!(expr instanceof IVariable) && env.isVisisted(expr, solution)) {
-      // In sequential solutions, this call works, as the solution is already
-      // registered! hash cons again, just in case!
-      if (env.hasSolution(expr, solution)) {
-        return env.getSolutionOrThrow(expr, solution);
-      } else {
-        var cell = new ExprCell(expr, expr);
-        env.addCellForExpr(expr, cell);
-        return cell;
-      }
-    }
-
-    // FIXME: this actually will hog a lot of memory in the long term, depending on
-    // the expression size!
-    // A possible solution would be to filter the subst to only occuring type
-    // variables! And removing all already applied solutions!
-    env.visit(expr, solution);
-
-    Expr instantiated;
-    instantiated = expr.instantiateInner(engine, env, solution);
-    instantiated.setInferredType(instantiated.getInferredType().map(ty -> solution.apply(ty)));
-
-    env.getCellsForExpressions(expr).stream().forEach(e -> e.replaceIfMatches(expr, instantiated));
-    var instantiatedTarget = env.getConsed(instantiated);
-
-    // The beta-reduction for variables.
-    // When the variable is in scope, actually replace the returned
-    // expression with the referenced instantiated Expr instance.
-    // This will not work for abstract Abs parameters,
-    // as those are not bound to concrete expressions.
-    //
-    // NOTE: in contrast to Algorithm W, System F has no unification.
-    // The variable lookup can never generalize anything, hence it can also not
-    // contribute to the type solution application.
-    if (instantiatedTarget instanceof IVariable) {
-      @SuppressWarnings("unchecked")
-      var instantiatedVariable = (IVariable<Expr, SystemFType>) instantiatedTarget;
-      var referencedFromEnv = env.getExprAndPosition(instantiatedVariable.getReferencedVariable());
-      if (referencedFromEnv.isPresent()) {
-        var scopeExpression = env.getScopeExpression(instantiatedVariable.getReferencedVariable());
-
-        var referencedExprAsExpr = engine.asExpression(referencedFromEnv.get().getLeft());
-        var referencedInferredType = referencedExprAsExpr.getInferredType();
-
-        if (referencedInferredType.isPresent() && instantiatedTarget.getInferredType().isPresent()) {
-          var copiedExpr = referencedExprAsExpr.copy();
-          copiedExpr.setParentScopeExpression(scopeExpression, referencedFromEnv.map(e -> e.getRight()));
-
-          Expr instantiatedReferenced = copiedExpr.instantiate(engine, env, solution);
-
-          // After instantiation, return the actual expression not the variable!
-          // NOTE: the instantiatedReferenced is already hash-consed
-          env.setSolution(instantiatedTarget, solution, instantiatedReferenced);
-          env.setSolution(expr, solution, instantiatedReferenced);
-          return instantiatedReferenced;
-        }
-      }
-    }
-
-    env.setSolution(expr, solution, instantiatedTarget);
-    env.setSolution(instantiatedTarget, solution, instantiatedTarget);
-    return instantiatedTarget;
+  @Override
+  public Expr getCellFor(Expr origin, Expr assignment) {
+    return new Cell(origin, assignment);
   }
-
-  /**
-   * Instantiate the correct type instance for code generation.
-   * This instance is stored within the expression.
-   * A default implementation is not possible, as every expression decides which
-   * children are instantiated and how the resulting tree node is built.
-   *
-   * <p>
-   * The {@link InstEnv} will act as a scope-like env storing expressions.
-   * Additionally, the {@link InstEnv} will store all visited expressions in
-   * combination with the {@link Context} solution.
-   *
-   * @param engine   the inference engine that provides useful helper methods,
-   *                 like `asExpression`
-   * @param env      the instance env, collecting visited expressions and acting
-   *                 as a scope-like env
-   * @param solution a partial or full solution that can be used to infer all
-   *                 types and instantiations
-   */
-  protected abstract Expr instantiateInner(
-      TypeInference engine,
-      InstEnv<Expr, SystemFType, Context> env,
-      Context solution);
 
   /**
    * ExprCell is an inherently mutable cell, that just references a changeable
@@ -171,11 +71,11 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
    * expression represents a dead end and is therefore a recursion breaker during
    * instantiation!
    */
-  private static final class ExprCell extends Expr implements IExpressionCell<Expr, SystemFType> {
+  private static final class Cell extends Expr implements IExpressionCell<Expr, SystemFType> {
     private Expr reference;
     private Expr cellValue;
 
-    public ExprCell(Expr reference, Expr cellValue) {
+    public Cell(Expr reference, Expr cellValue) {
       this.reference = reference;
       this.cellValue = cellValue;
     }
@@ -231,7 +131,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       throw new UnsupportedOperationException("The memory cell is expected to only exist after instantiation!");
     }
@@ -382,7 +282,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       // Nothing to instantiate;
       return this;
@@ -551,7 +451,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
       return new App(this);
     }
 
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return new App(this, this.fun.instantiate(engine, env, solution),
           this.arg.map(arg -> arg.instantiate(engine, env, solution)));
@@ -727,7 +627,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return new Abs(this, this.name, this.type, this.body.instantiate(engine, env, solution));
     }
@@ -815,7 +715,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       assert this.func.getInferredType().isPresent();
       assert this.func.getInferredType().get() instanceof SystemFType.ForAll;
@@ -903,7 +803,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       // Simply return the inner as fully instantiated!
       return this.expr.instantiate(engine, env, solution);
@@ -1006,7 +906,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return this.body.instantiate(engine, env, solution);
     }
@@ -1075,7 +975,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return this;
     }
@@ -1171,7 +1071,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return new Tuple(this, this.elements.stream().map(elem -> elem.instantiate(engine, env, solution)).toList());
     }
@@ -1290,7 +1190,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       var newLetExpr = new Let(this, List.copyOf(this.bindings), new LitExpr(new Literal.Unit()));
 
@@ -1396,7 +1296,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return new Return(this, this.value.instantiate(engine, env, solution));
     }
@@ -1503,7 +1403,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       return new Seq(this, this.expressions.stream().map(e -> e.instantiate(engine, env, solution)).toList());
     }
@@ -1612,7 +1512,7 @@ public abstract class Expr extends Expression<Expr, SystemFType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
       if (this.instFn.isPresent()) {
         // The rebuilt node (created via the copy constructor) inherits the
