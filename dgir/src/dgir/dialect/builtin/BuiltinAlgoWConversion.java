@@ -13,7 +13,6 @@ import dgir.core.ir.types.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.algorithmw.Expr;
 import dgir.core.ir.types.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.traits.IGlobal;
 import dgir.dialect.builtin.BuiltinOps.IdOp;
 import dgir.dialect.builtin.BuiltinOps.ProgramOp;
@@ -24,7 +23,7 @@ public final class BuiltinAlgoWConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
   public static void registerBuiltinAlgoWConversion() {
-    ConverterRegistry.<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType, TypeInference>addOperatorsToDialect(
+    ConverterRegistry.<Expr, AlgorithmWType, TypeInference>addOperatorsToDialect(
         AlgorithmWInference.class,
         Pair.of(ProgramOp.class, BuiltinAlgoWConversion::convertProgramOp),
         Pair.of(IdOp.class, BuiltinAlgoWConversion::convertIdOp));

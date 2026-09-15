@@ -23,7 +23,6 @@ import dgir.core.ir.types.algorithmw.InferResult;
 import dgir.core.ir.types.algorithmw.Subst;
 import dgir.core.ir.types.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode;
 import dgir.dialect.arith.ArithAttrs.UnaryModeAttr.UnaryMode;
 import dgir.dialect.arith.ArithOps.BinaryOp;
@@ -34,7 +33,7 @@ import dgir.dialect.arith.ArithOps.UnaryOp;
 public final class ArithAlgoWConversion {
 
   public static void registerBuiltinAlgoWConversion() {
-    ConverterRegistry.<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType, TypeInference>addOperatorsToDialect(
+    ConverterRegistry.<Expr, AlgorithmWType, TypeInference>addOperatorsToDialect(
         AlgorithmWInference.class,
         Pair.of(ConstantOp.class, ArithAlgoWConversion::convertConstOp),
         Pair.of(BinaryOp.class, ArithAlgoWConversion::convertBinOp),

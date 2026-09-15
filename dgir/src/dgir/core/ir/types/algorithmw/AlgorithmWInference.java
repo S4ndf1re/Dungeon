@@ -3,7 +3,6 @@ package dgir.core.ir.types.algorithmw;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 import java.util.List;
@@ -11,12 +10,12 @@ import java.util.Optional;
 
 public final class AlgorithmWInference
     extends
-    TypeDialect<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> {
+    TypeDialect<Expr, AlgorithmWType> {
 
   private static Optional<TypeInference> instance = Optional.empty();
 
   @Override
-  public TypeInferenceSolver<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType> getSolverInstance() {
+  public TypeInferenceSolver<Expr, AlgorithmWType> getSolverInstance() {
     var converterRegistry = ConverterRegistry.getConverterForDialect(AlgorithmWInference.class);
 
     // The solver binds to the converter registry at creation time. If converters
