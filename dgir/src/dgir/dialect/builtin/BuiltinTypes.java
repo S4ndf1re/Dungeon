@@ -44,7 +44,7 @@ public sealed interface BuiltinTypes {
       private final Function<Object, Boolean> validator;
 
       @Contract(pure = true)
-      static @NotNull @Unmodifiable List<TypeDescriptor> getDescriptors() {
+      public static @NotNull @Unmodifiable List<TypeDescriptor> getDescriptors() {
         return List.of(
             new IntegerDescriptor(1, true),
             new IntegerDescriptor(8, true),

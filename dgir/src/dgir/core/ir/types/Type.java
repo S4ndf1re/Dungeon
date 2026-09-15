@@ -6,4 +6,6 @@ public abstract class Type {
 
   public abstract GeneralTypeParameter asTypeParameter();
 
+  public abstract boolean isFullySpecified();
+
 }

@@ -7,15 +7,14 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
-import dgir.core.ir.Type;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.SystemFConversionUtils;
 
 import java.util.Optional;
-import dgir.core.ir.types.SystemFConversionUtils;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.systemf.Expr;
 import dgir.core.ir.types.systemf.SystemFInference;
@@ -40,15 +39,6 @@ public final class FuncSystemFConversion {
         Pair.of(FuncOps.ConstantOp.class, FuncSystemFConversion::convertConstantOp));
   }
 
-  private static SystemFType irTypeToSystemF(TypeInference engine, Type irType) {
-    return SystemFConversionUtils.irTypeToSystemF(engine, irType);
-  }
-
-  private static FuncType systemFTypeToFuncType(SystemFType ty) {
-    var irType = SystemFConversionUtils.systemFTypeToIrType(ty);
-    assert irType instanceof FuncType;
-    return (FuncType) irType;
-  }
 
   /**
    * Builds a function application from plain `App` nodes; the result type is
@@ -92,7 +82,9 @@ public final class FuncSystemFConversion {
       assert argument.getType().isKnown()
           : "function parameters must have a declared type for System F";
       params.add(Symbol.<Expr, SystemFType>of(argument));
-      paramTypes.add(irTypeToSystemF(engine, argument.getType().getAsKnownOrThrow()));
+
+      var argType = SystemFConversionUtils.irTypeToSystemFType(engine, argument.getType().getAsKnownOrThrow());
+      paramTypes.add(argType);
     }
 
     var block = GeneralBlock.fromBlock(funcOp.getEntryBlock());
@@ -125,7 +117,7 @@ public final class FuncSystemFConversion {
         var inferredType = abs.getInferredType();
         assert inferredType.isPresent();
         assert inferredType.get().isFullySpecified();
-        funcType = systemFTypeToFuncType(inferredType.get());
+        funcType = SystemFConversionUtils.systemFTypeToFuncType(inferredType.get());
       }
 
       var newFuncOp = new FuncOps.FuncOp(op.getLocation(), funcOp.getFuncName(), funcType);
@@ -179,12 +171,9 @@ public final class FuncSystemFConversion {
         return new FuncOps.ReturnOp(returnOp.getLocation()).getOperation();
       }
 
-      var valueSymbol = OperationExprConversionUtils.getOutputSymbol(retExpr.value());
+      var valueSymbol = OperationExprConversionUtils.getOutputValue(retExpr.value());
 
-      assert valueSymbol.isPresent();
-      assert valueSymbol.get() instanceof Symbol.ValueSymbol<Expr, SystemFType>;
-
-      return new FuncOps.ReturnOp(returnOp.getLocation(), valueSymbol.get().getValue())
+      return new FuncOps.ReturnOp(returnOp.getLocation(), valueSymbol)
           .getOperation();
     });
 
@@ -281,7 +270,7 @@ public final class FuncSystemFConversion {
     for (var input : funcType.getInputs()) {
       assert input.isKnown() : "constant function references must have fully typed signatures";
       values.add(Symbol.of(new Value()));
-      paramTypes.add(irTypeToSystemF(engine, input.getAsKnownOrThrow()));
+      paramTypes.add(SystemFConversionUtils.irTypeToSystemFType(engine, input.getAsKnownOrThrow()));
     }
 
     var fun = new Expr.Var(Symbol.of(new SymbolTableSymbol(funcName, funcType)));

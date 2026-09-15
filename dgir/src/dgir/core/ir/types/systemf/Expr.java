@@ -1428,6 +1428,12 @@ public abstract class Expr extends Expression<Expr, SystemFType>
     }
 
     @FunctionalInterface
+    public interface ReplaceSymbolFunction<D> {
+      Expr replaceSymbol(Custom<D> oldExpr, Symbol<Expr, SystemFType> original,
+          Symbol<Expr, SystemFType> replacement, D data);
+    }
+
+    @FunctionalInterface
     public interface GetChildrenFunction<D> {
       List<Expr> getChildren(D data);
     }
@@ -1437,22 +1443,25 @@ public abstract class Expr extends Expression<Expr, SystemFType>
     private Optional<CheckFunction<D>> checkFn;
     private Optional<InstantiateFunction<D>> instFn;
     private Optional<GetChildrenFunction<D>> getChildrenFn;
+    private Optional<ReplaceSymbolFunction<D>> replaceSymbolFn;
 
     public Custom(D data, InferFunction<D> inferFn) {
-      this(data, inferFn, null, null, null);
+      this(data, inferFn, null, null, null, null);
     }
 
     public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn) {
-      this(data, inferFn, checkFn, null, null);
+      this(data, inferFn, checkFn, null, null, null);
     }
 
     public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn,
-        InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn) {
+        InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
+        ReplaceSymbolFunction<D> replaceSymbolFn) {
       this.data = data;
       this.inferFn = inferFn;
       this.checkFn = Optional.ofNullable(checkFn);
       this.instFn = Optional.ofNullable(instFn);
       this.getChildrenFn = Optional.ofNullable(getChildrenFn);
+      this.replaceSymbolFn = Optional.ofNullable(replaceSymbolFn);
     }
 
     public Custom(Custom<D> other) {
@@ -1462,6 +1471,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.checkFn = other.checkFn;
       this.instFn = other.instFn;
       this.getChildrenFn = other.getChildrenFn;
+      this.replaceSymbolFn = other.replaceSymbolFn;
     }
 
     public Custom(Custom<D> other, D newData) {
@@ -1471,6 +1481,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.checkFn = other.checkFn;
       this.instFn = other.instFn;
       this.getChildrenFn = other.getChildrenFn;
+      this.replaceSymbolFn = other.replaceSymbolFn;
     }
 
     public D getData() {
@@ -1493,8 +1504,10 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      // TODO Auto-generated method stub
-      throw new UnsupportedOperationException("Unimplemented method 'replaceSymbol'");
+      if (this.replaceSymbolFn.isPresent()) {
+        return this.replaceSymbolFn.get().replaceSymbol(this, original, replacement, this.data);
+      }
+      return this;
     }
 
     @Override
