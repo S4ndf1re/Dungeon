@@ -6,7 +6,6 @@ import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWType;
@@ -62,8 +61,7 @@ public final class BuiltinAlgoWConversion {
       assert instantiatedExpr instanceof Expr.ExprLetRec;
       var instantiatedLetExpr = (Expr.ExprLetRec) instantiatedExpr;
 
-      var exprsInBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(instantiatedLetExpr,
-          instantiatedLetExpr.body());
+      var exprsInBlock = instantiatedLetExpr.getAllChildrenForScopeExpression(instantiatedLetExpr.body());
 
       var newOp = new ProgramOp(programOp.getLocation());
 
@@ -107,7 +105,7 @@ public final class BuiltinAlgoWConversion {
       var appParam = app.args().get(0);
       assert appParam != null;
 
-      var paramValue = OperationExprConversionUtils.getOutputValue(appParam);
+      var paramValue = appParam.getOutputValue();
 
       assert paramValue.getType().getAsKnownOrThrow().asParameterizedNominalType()
           .equals(returnType.get().asTypeParameter().getConcrete());

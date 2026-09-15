@@ -10,7 +10,6 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.SystemFConversionUtils;
 
@@ -38,7 +37,6 @@ public final class FuncSystemFConversion {
         Pair.of(FuncOps.CallIndirectOp.class, FuncSystemFConversion::convertCallIndirectOp),
         Pair.of(FuncOps.ConstantOp.class, FuncSystemFConversion::convertConstantOp));
   }
-
 
   /**
    * Builds a function application from plain `App` nodes; the result type is
@@ -107,7 +105,7 @@ public final class FuncSystemFConversion {
       assert abs.body() instanceof Expr.Let;
       var let = (Expr.Let) abs.body();
 
-      var directChildren = OperationExprConversionUtils.getAllChildrenForScopeExpression(let, let.body());
+      var directChildren = let.getAllChildrenForScopeExpression(let.body());
 
       // Reconstruct the function type from inference. For zero parameter
       // functions the expression carries the unit placeholder type
@@ -117,7 +115,9 @@ public final class FuncSystemFConversion {
         var inferredType = abs.getInferredType();
         assert inferredType.isPresent();
         assert inferredType.get().isFullySpecified();
-        funcType = SystemFConversionUtils.systemFTypeToFuncType(inferredType.get());
+        var irType = inferredType.get().toIrType();
+        assert irType instanceof FuncType;
+        funcType = (FuncType) irType;
       }
 
       var newFuncOp = new FuncOps.FuncOp(op.getLocation(), funcOp.getFuncName(), funcType);
@@ -130,7 +130,7 @@ public final class FuncSystemFConversion {
 
       var newRegion = newFuncOp.getRegion();
       if (!params.isEmpty()) {
-        var oldParams = OperationExprConversionUtils.getAllAbstractedParamters(abs);
+        var oldParams = abs.getAllAbstractedParamters();
         assert oldParams.size() == newRegion.getRegionValues().size();
 
         for (int i = 0; i < oldParams.size(); i++) {
@@ -171,7 +171,7 @@ public final class FuncSystemFConversion {
         return new FuncOps.ReturnOp(returnOp.getLocation()).getOperation();
       }
 
-      var valueSymbol = OperationExprConversionUtils.getOutputValue(retExpr.value());
+      var valueSymbol = retExpr.value().getOutputValue();
 
       return new FuncOps.ReturnOp(returnOp.getLocation(), valueSymbol)
           .getOperation();

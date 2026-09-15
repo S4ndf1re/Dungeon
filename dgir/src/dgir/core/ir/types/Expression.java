@@ -1,5 +1,6 @@
 package dgir.core.ir.types;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -7,9 +8,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
+import dgir.core.ir.Value;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.traits.IExpressionCell;
+import dgir.core.ir.types.traits.IVariable;
 
 public abstract class Expression<E extends Expression<E, T>, T extends Type> extends ExprOrOperator<E, T> {
   public Optional<T> inferredType;
@@ -267,5 +271,70 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type> ext
         }
       }
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public final Optional<Symbol<E, T>> getOutputSymbol() {
+    var assignedOp = this.getUnderlyingOperation();
+
+    if (assignedOp.isPresent() && assignedOp.get().getOutput().isPresent()) {
+      return Optional.of(Symbol.of(assignedOp.get().getOutputValueOrThrow()));
+    }
+
+    if (this instanceof IVariable) {
+      return Optional.of(((IVariable<E, T>) this).getReferencedVariable());
+    }
+
+    return Optional.empty();
+  }
+
+  public final Value getOutputValue() {
+    var symbol = this.getOutputSymbol();
+    assert symbol.isPresent();
+    return symbol.get().getValue();
+  }
+
+  public final dgir.core.ir.Type inferredTypeToIrType() {
+    var inferredType = this.getInferredType();
+    assert inferredType.isPresent();
+    return inferredType.get().toIrType();
+  }
+
+  public final void fillBlockScoped(Block toFill) {
+    for (var body : this.getInstantiableChildren()) {
+      var exprsForBlock = this.getAllChildrenForScopeExpression(body);
+      assert exprsForBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
+
+      for (var e : exprsForBlock) {
+        // SAFETY: already asserted, that the underlying operation is actually present.
+        toFill.addOperation(e.getUnderlyingOperation().get());
+      }
+    }
+  }
+
+  public final void fillOpScoped(Operation op, int regionIdx) {
+    var toFill = op.getRegionOrThrow(regionIdx).getEntryBlock();
+    this.fillBlockScoped(toFill);
+  }
+
+  public final List<E> getAllChildrenForScopeExpression(E body) {
+    record VisitState<E extends Expression<E, T>, T extends Type>(Set<E> withinThisBlock)
+        implements dgir.core.ir.types.Expression.ExpressionVisitor.VisitState<E, T> {
+    }
+    var visitState = new VisitState<E, T>(Collections.newSetFromMap(new IdentityHashMap<>()));
+
+    new Expression.ExpressionVisitor<E, T>(Expression.ExpressionVisitor.VisitOrder.IN_ORDER).visitWithState(body, e -> {
+      var parentScopeExpr = e.getParentScopeExpr();
+      if (parentScopeExpr.isPresent() && this == parentScopeExpr.get()) {
+        visitState.withinThisBlock.add(e);
+      }
+    }, visitState);
+
+    ArrayList<E> exprsInBlock = new ArrayList<>(visitState.withinThisBlock);
+    assert exprsInBlock.stream().allMatch(e -> e.getParentScopePosition().isPresent());
+
+    exprsInBlock.sort((a, b) -> a.getParentScopePosition().get().compareTo(b.getParentScopePosition().get()));
+
+    return List.copyOf(exprsInBlock);
   }
 }

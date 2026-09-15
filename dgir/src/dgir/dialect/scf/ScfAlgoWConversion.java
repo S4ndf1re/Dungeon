@@ -120,21 +120,21 @@ public final class ScfAlgoWConversion {
       var custExpr = (Expr.ExprCustom<IfData>) instantiatedExpr;
       var data = custExpr.getData();
 
-      var condValue = OperationExprConversionUtils.getOutputValue(data.cond());
+      var condValue = data.cond().getOutputValue();
       boolean withElse = data.elseCase().isPresent();
 
       ScfOps.IfOp newIf;
       if (op.getOutput().isPresent()) {
         newIf = new ScfOps.IfOp(op.getLocation(), condValue, withElse,
-            OperationExprConversionUtils.inferredTypeToIrType(custExpr));
+            custExpr.inferredTypeToIrType());
       } else {
         newIf = new ScfOps.IfOp(op.getLocation(), condValue, withElse);
       }
       var newOp = newIf.getOperation();
 
-      OperationExprConversionUtils.fillOpScoped(newOp, 0, data.thenCase);
+      data.thenCase.fillOpScoped(newOp, 0);
       if (withElse) {
-        OperationExprConversionUtils.fillOpScoped(newOp, 1, data.elseCase.get());
+        data.elseCase.get().fillOpScoped(newOp, 1);
       }
 
       return newOp;
@@ -155,7 +155,7 @@ public final class ScfAlgoWConversion {
       var newScope = new ScfOps.ScopeOp(op.getLocation());
       var newOp = newScope.getOperation();
 
-      OperationExprConversionUtils.fillOpScoped(newOp, 0, instantiatedExpr);
+      instantiatedExpr.fillOpScoped(newOp, 0);
 
       return newOp;
     });
@@ -195,7 +195,7 @@ public final class ScfAlgoWConversion {
       assert app.args().size() == 4;
 
       List<Value> argResults = app.args().stream()
-          .map(OperationExprConversionUtils::<Expr, AlgorithmWType>getOutputValue).toList();
+          .map(e -> e.getOutputValue()).toList();
 
       var newForOp = new ScfOps.ForOp(op.getLocation(), argResults.get(0), argResults.get(1), argResults.get(2),
           argResults.get(3));
@@ -203,7 +203,7 @@ public final class ScfAlgoWConversion {
 
       assert app.func() instanceof Expr.ExprAbs;
       var instantiatedAbs = (Expr.ExprAbs) app.func();
-      OperationExprConversionUtils.fillOpScoped(newOp, 0, instantiatedAbs.body());
+      instantiatedAbs.body().fillOpScoped(newOp, 0);
 
       var newRegion = newForOp.getRegion();
       if (forOp.getInductionValue() != newForOp.getInductionValue()) {
@@ -282,8 +282,8 @@ public final class ScfAlgoWConversion {
       var newWhile = new ScfOps.WhileOp(op.getLocation());
       var newOp = newWhile.getOperation();
 
-      OperationExprConversionUtils.fillOpScoped(newOp, 0, data.cond());
-      OperationExprConversionUtils.fillOpScoped(newOp, 1, data.body());
+      data.cond().fillOpScoped(newOp, 0);
+      data.body().fillOpScoped(newOp, 1);
 
       return newOp;
     });
@@ -357,9 +357,9 @@ public final class ScfAlgoWConversion {
       var data = custExpr.getData();
 
       return new ScfOps.SelectOp(op.getLocation(),
-          OperationExprConversionUtils.getOutputValue(data.cond()),
-          OperationExprConversionUtils.getOutputValue(data.trueVal()),
-          OperationExprConversionUtils.getOutputValue(data.falseVal())).getOperation();
+          data.cond().getOutputValue(),
+          data.trueVal().getOutputValue(),
+          data.falseVal().getOutputValue()).getOperation();
     });
 
     return result;
@@ -410,7 +410,7 @@ public final class ScfAlgoWConversion {
       var data = custExpr.getData();
 
       return new ScfOps.YieldOp(op.getLocation(),
-          OperationExprConversionUtils.getOutputValue(data.value())).getOperation();
+          data.value().getOutputValue()).getOperation();
     });
 
     return result;

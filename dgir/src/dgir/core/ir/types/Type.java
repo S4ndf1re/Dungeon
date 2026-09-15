@@ -8,4 +8,8 @@ public abstract class Type {
 
   public abstract boolean isFullySpecified();
 
+  public final dgir.core.ir.Type toIrType() {
+    assert this.isFullySpecified();
+    return dgir.core.ir.Type.fromGeneralParameterizedNominalType(this.asTypeParameter().getConcrete());
+  }
 }

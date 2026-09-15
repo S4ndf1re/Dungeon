@@ -8,7 +8,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
@@ -78,7 +77,7 @@ public final class CfAlgoWConversion {
       var body = custExpr.getData().body;
 
       var block = new Block();
-      OperationExprConversionUtils.fillBlockScoped(block, body);
+      body.fillBlockScoped(block);
 
       var newCfOp = new CfOps.BranchOp(op.getLocation(), block).getOperation();
       newCfOp.getTemporaryRegion().addBlock(block);
@@ -151,13 +150,13 @@ public final class CfAlgoWConversion {
       var custExpr = (Expr.ExprCustom<BranchData>) instantiatedExpr;
       var data = custExpr.getData();
 
-      var condValue = OperationExprConversionUtils.getOutputValue(data.cond);
+      var condValue = data.cond.getOutputValue();
 
       var thenBlock = new Block();
-      OperationExprConversionUtils.fillBlockScoped(thenBlock, data.thenCase);
+      data.thenCase.fillBlockScoped(thenBlock);
 
       var elseBlock = new Block();
-      OperationExprConversionUtils.fillBlockScoped(elseBlock, data.elseCase);
+      data.elseCase.fillBlockScoped(elseBlock);
 
       var newCfOp = new CfOps.BranchCondOp(op.getLocation(), condValue, thenBlock, elseBlock).getOperation();
       newCfOp.getTemporaryRegion().addBlock(thenBlock);
@@ -230,10 +229,10 @@ public final class CfAlgoWConversion {
       var custExpr = (Expr.ExprCustom<AssertData>) instantiatedExpr;
       var data = custExpr.getData();
 
-      var condValue = OperationExprConversionUtils.getOutputValue(data.cond);
+      var condValue = data.cond.getOutputValue();
 
       if (data.message.isPresent()) {
-        var messageValue = OperationExprConversionUtils.getOutputValue(data.message.get());
+        var messageValue = data.message.get().getOutputValue();
 
         return new CfOps.AssertOp(op.getLocation(), condValue, messageValue).getOperation();
       } else {

@@ -10,7 +10,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.types.Literal;
-import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.systemf.Expr;
@@ -137,8 +136,8 @@ public final class ArithSystemFConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.Custom<BinOpData>) instantiatedExpr;
 
-      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().lhs);
-      var rhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().rhs);
+      var lhsValue = custExpr.getData().lhs.getOutputValue();
+      var rhsValue = custExpr.getData().rhs.getOutputValue();
 
       return new BinaryOp(op.getLocation(), lhsValue,
           rhsValue, custExpr.getData().binMode).getOperation();
@@ -200,7 +199,7 @@ public final class ArithSystemFConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.Custom<UnaryData>) instantiatedExpr;
 
-      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().lhs);
+      var lhsValue = custExpr.getData().lhs.getOutputValue();
 
       return new UnaryOp(op.getLocation(), lhsValue,
           custExpr.getData().unaryMode).getOperation();
@@ -265,7 +264,7 @@ public final class ArithSystemFConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.Custom<CastData>) instantiatedExpr;
 
-      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().value);
+      var lhsValue = custExpr.getData().value.getOutputValue();
 
       return new CastOp(op.getLocation(), lhsValue,
           custExpr.getData().targetType).getOperation();
