@@ -15,16 +15,16 @@ import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
 public class ConverterRegistry {
 
   @FunctionalInterface
-  public static interface ConverterFunction<EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<EO, E, T>> {
+  public static interface ConverterFunction<E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<E, T>> {
     E convertToExpression(
         Operation op,
         SolverT engine);
   }
 
   public static final class TypeDialectConverterRegistry {
-    private HashMap<Class<? extends Op>, ConverterFunction<?, ?, ?, ?>> converters = new HashMap<>();
+    private HashMap<Class<? extends Op>, ConverterFunction<?, ?, ?>> converters = new HashMap<>();
 
-    public void addOpConverter(Class<? extends Op> op, ConverterFunction<?, ?, ?, ?> fn) {
+    public void addOpConverter(Class<? extends Op> op, ConverterFunction<?, ?, ?> fn) {
       this.converters.put(op, fn);
     }
 
@@ -32,7 +32,7 @@ public class ConverterRegistry {
       this.converters.remove(op);
     }
 
-    public ConverterFunction<?, ?, ?, ?> getConverter(Class<? extends Op> op) {
+    public ConverterFunction<?, ?, ?> getConverter(Class<? extends Op> op) {
       var converter = this.converters.get(op);
       if (converter == null) {
         throw new RuntimeException("Op " + op + " is not registered");
@@ -44,10 +44,10 @@ public class ConverterRegistry {
 
   // Holy hell what a type this is ............ All in the name of type safety.
   // Right?
-  private static HashMap<Class<? extends TypeDialect<?, ?, ?>>, TypeDialectConverterRegistry> converters = new HashMap<>();
+  private static HashMap<Class<? extends TypeDialect<?, ?>>, TypeDialectConverterRegistry> converters = new HashMap<>();
 
   public static void registerDialect(
-      Class<? extends TypeDialect<?, ?, ?>> dialect) {
+      Class<? extends TypeDialect<?, ?>> dialect) {
 
     if (converters.containsKey(dialect)) {
       return;
@@ -57,14 +57,14 @@ public class ConverterRegistry {
   }
 
   public static void deregisterDialect(
-      Class<? extends TypeDialect<?, ?, ?>> dialect) {
+      Class<? extends TypeDialect<?, ?>> dialect) {
     converters.remove(dialect);
   }
 
   @SafeVarargs
-  public static <EO extends ExprOrOperator<E, T>, E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<EO, E, T>> void addOperatorsToDialect(
-      Class<? extends TypeDialect<EO, E, T>> dialect,
-      Pair<Class<? extends Op>, ConverterFunction<EO, E, T, SolverT>>... pairs) {
+  public static <E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<E, T>> void addOperatorsToDialect(
+      Class<? extends TypeDialect<E, T>> dialect,
+      Pair<Class<? extends Op>, ConverterFunction<E, T, SolverT>>... pairs) {
 
     var convertersForDialect = converters.get(dialect);
     if (convertersForDialect == null) {
@@ -76,7 +76,7 @@ public class ConverterRegistry {
     }
   }
 
-  public static <D extends TypeDialect<?, ?, ?>> Optional<TypeDialectConverterRegistry> getConverterForDialect(
+  public static <D extends TypeDialect<?, ?>> Optional<TypeDialectConverterRegistry> getConverterForDialect(
       Class<D> dialect) {
     var dialectConverters = converters.get(dialect);
     if (dialectConverters == null) {

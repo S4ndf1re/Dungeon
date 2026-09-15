@@ -9,22 +9,17 @@ import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.InferenceTree;
-import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.systemf.CheckResult;
 import dgir.core.ir.types.systemf.Context;
-import dgir.core.ir.types.systemf.Entry;
 import dgir.core.ir.types.systemf.Expr;
-import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.systemf.SystemFInference;
 import dgir.core.ir.types.systemf.SystemFType;
 import dgir.core.ir.types.systemf.TypeInference;
 import dgir.core.ir.types.systemf.TypeResult;
-import dgir.core.ir.types.systemf.Expr.Custom.CheckFunction;
 import dgir.core.ir.types.systemf.Expr.Custom.GetChildrenFunction;
 import dgir.core.ir.types.systemf.Expr.Custom.InferFunction;
 import dgir.core.ir.types.systemf.Expr.Custom.InstantiateFunction;
@@ -33,7 +28,7 @@ public final class CfSystemFConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
   public static void registerBuiltinSystemFConversion() {
-    ConverterRegistry.<ExprOrOperator<Expr, SystemFType>, Expr, SystemFType, TypeInference>addOperatorsToDialect(
+    ConverterRegistry.<Expr, SystemFType, TypeInference>addOperatorsToDialect(
         SystemFInference.class,
         Pair.of(CfOps.BranchOp.class, CfSystemFConversion::convertBranchOp),
         Pair.of(CfOps.BranchCondOp.class, CfSystemFConversion::convertBranchCondOp),

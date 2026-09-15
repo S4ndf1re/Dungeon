@@ -23,11 +23,13 @@ import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.Scope;
 import dgir.core.ir.types.traits.IExpressionCell;
+import dgir.core.ir.types.traits.IInstantiable;
 import dgir.core.ir.types.traits.IVariable;
 import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.traits.IApplication;
 
-public abstract class Expr extends Expression<Expr, AlgorithmWType> {
+public abstract class Expr extends Expression<Expr, AlgorithmWType>
+    implements IInstantiable<Expr, AlgorithmWType, Subst, TypeInference> {
 
   protected Expr() {
   }
@@ -48,6 +50,11 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     return super.hashCode();
   }
 
+  @Override
+  public Expr getCellFor(Expr origin, Expr assignment) {
+    return new ExprCell(origin, assignment);
+  }
+
   /**
    * Infer the type of the expression. This method MUST be implemented for every
    * {@link Expr}.
@@ -60,123 +67,6 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
    *         combined into an {@link InferenceTree}
    */
   public abstract InferResult infer(TypeInference engine, Env env);
-
-  /**
-   * Instantiate the correct type instance for code generation.
-   * This instance is stored within the expression.
-   * Normally, a default implementation is provided,
-   * that just applies the solution {@link Subst} to to the previous inferred
-   * type.
-   * Some expressions, like {@link ExprAbs} or {@link ExprApp} need to implement a
-   * different
-   * version of `instantiateInner`.
-   * Especially {@link ExprAbs} needs to collect all fully instantiated instances.
-   *
-   * <p>
-   * The {@link InstEnv} will act as an {@link Env}, but does not store types but
-   * rather
-   * expressions.
-   * Additionally, the {@link InstEnv} will store all visited expressions in
-   * combination
-   * with the {@link Subst}.
-   * Hence further unified solutions will get applied to all Expressions in the
-   * tree,
-   * even though an expression was visited for a partial solution earlier.
-   *
-   * @param engine   the inference engine that provides useful helper methods,
-   *                 like `unify` and `asExpression`
-   * @param env      the instance env, collecting visited expressions and acting
-   *                 as a scope-like Env
-   * @param solution a partial of full solution that can be used to infer all
-   *                 types and instantiations
-   */
-  protected abstract Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env,
-      Subst solution);
-
-  /**
-   * Instantiate the full expression tree to find and store all instantiations.
-   * Additionally, every expression and its inferred type (determined during type
-   * inference)
-   * is substituted, resulting in a fully typed Expression tree.
-   *
-   * <p>
-   * In addition to the instantiation, a simple form of variable resolution is
-   * performed, by beta-reducing variables into the concrete expressions
-   * referenced by the ExprVars. This is important for later stage code generation
-   *
-   * @param engine   the type inference engine used to infer all types
-   * @param env      a env storing all in scope expressions
-   * @param solution a solution Subst that may be extended with further
-   *                 instantioation Substs
-   */
-  public final Expr instantiate(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
-    Expr expr = env.getConsed(this);
-    // Variables must always be visited, while other epxressions must be
-    // instantiated, as long as its not a recursive instantiation.
-    if (!(expr instanceof IVariable) && env.isVisisted(expr, solution)) {
-      // In sequential soltuions, this call works, as the soltuion is already
-      // registered! hash cons again, just in case!
-      if (env.hasSolution(expr, solution)) {
-        return env.getSolutionOrThrow(expr, solution);
-      } else {
-        var cell = new ExprCell(expr, expr);
-        env.addCellForExpr(expr, cell);
-        return cell;
-      }
-    }
-
-    // FIXME: this actually will hog a lot of memory in the long term, depending on
-    // the expression size!
-    // A possible solution would be to filter the subst to only occuring type
-    // variables! And removing all already applied solutions!
-    env.visit(expr, solution);
-
-    Expr instantiated;
-    instantiated = expr.instantiateInner(engine, env, solution);
-    instantiated.setInferredType(instantiated.getInferredType().map(ty -> solution.apply(ty)));
-
-    env.getCellsForExpressions(expr).stream().forEach(e -> e.replaceIfMatches(expr, instantiated));
-    var instantiatedTarget = env.getConsed(instantiated);
-
-    // The beta-reduction for variables.
-    // When the variable is in scope, actually replace the returned
-    // expression with the referenced instantiated Expr instance.
-    // This will not work for abstract ExprAbs parameters,
-    // as those are not bound to concrete expressions.
-    //
-    // FUTURE_WORK(jan): return a fully beta-reduced expression tree
-    if (instantiatedTarget instanceof IVariable) {
-      @SuppressWarnings("unchecked")
-      var instantiatedVariable = (IVariable<Expr, AlgorithmWType>) instantiatedTarget;
-      var referencedFromEnv = env.getExprAndPosition(instantiatedVariable.getReferencedVariable());
-      if (referencedFromEnv.isPresent()) {
-        var scopeExpression = env.getScopeExpression(instantiatedVariable.getReferencedVariable());
-
-        var referencedExprAsExpr = engine.asExpression(referencedFromEnv.get().getLeft());
-        var referencedInferredType = referencedExprAsExpr.getInferredType();
-
-        if (referencedInferredType.isPresent() && instantiatedTarget.getInferredType().isPresent()) {
-          UnifyResult res = engine.unify(instantiatedTarget.getInferredType().get(), referencedInferredType.get());
-          var finalSubst = res.subst().compose(solution);
-
-          var copiedExpr = referencedExprAsExpr.copy();
-          copiedExpr.setParentScopeExpression(scopeExpression, referencedFromEnv.map(e -> e.getRight()));
-
-          Expr instantiatedReferenced = copiedExpr.instantiate(engine, env, finalSubst);
-
-          // After instantiation, return the actual expression not the variable!
-          // NOTE: the instantiatedReferenced is already hash-consed
-          env.setSolution(instantiatedTarget, solution, instantiatedReferenced);
-          env.setSolution(expr, solution, instantiatedReferenced);
-          return instantiatedReferenced;
-        }
-      }
-    }
-
-    env.setSolution(expr, solution, instantiatedTarget);
-    env.setSolution(instantiatedTarget, solution, instantiatedTarget);
-    return instantiatedTarget;
-  }
 
   /**
    * ExprCell is an inherently mutable cell, that just references a changable
@@ -275,7 +165,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       throw new UnsupportedOperationException("The memory cell is expected to only exist after instantiation!");
     }
 
@@ -376,7 +266,8 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
       return new ExprAnn(this);
     }
 
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    @Override
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       // Simply return the inner as fully instantiated!
       return this.expr.instantiate(engine, env, solution);
     }
@@ -444,7 +335,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       return this;
     }
 
@@ -556,7 +447,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       return new ExprTuple(this, this.elements.stream().map(elem -> elem.instantiate(engine, env, solution)).toList());
     }
   }
@@ -643,7 +534,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       // Nothing to instantiate;
       return this;
     }
@@ -736,7 +627,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       this.inferredFunctionType = this.inferredFunctionType.map(fnTy -> solution.apply(fnTy));
 
       var funcExpr = engine.asExpression(this.func);
@@ -1041,7 +932,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       return new ExprAbs(this, List.copyOf(this.params), this.body.instantiate(engine, env, solution));
     }
 
@@ -1114,7 +1005,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       var newLetExpr = new ExprLetSeq(this,
           List.copyOf(this.bindings),
           new Expr.ExprLit(new Literal.Unit()));
@@ -1280,7 +1171,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       var newLetExpr = new ExprLetRec(this,
           List.copyOf(this.bindings),
           new Expr.ExprLit(new Literal.Unit()));
@@ -1470,7 +1361,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       return new ExprSeq(this, this.expressions.stream().map(e -> e.instantiate(engine, env, solution)).toList());
     }
 
@@ -1549,7 +1440,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       return new ExprReturn(this, this.value.instantiate(engine, env, solution));
     }
 
@@ -1648,7 +1539,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType> {
     }
 
     @Override
-    protected Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
+    public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
       if (this.instFn.isPresent()) {
         return this.instFn.get().instantiate(this, engine, env, solution, this.data);
       }

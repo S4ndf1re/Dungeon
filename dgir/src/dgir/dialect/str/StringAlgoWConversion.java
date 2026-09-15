@@ -15,13 +15,12 @@ import dgir.core.ir.types.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.algorithmw.Expr;
 import dgir.core.ir.types.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 
 public final class StringAlgoWConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
   public static void registerBuiltinAlgoWConversion() {
-    ConverterRegistry.<ExprOrOperator<Expr, AlgorithmWType>, Expr, AlgorithmWType, TypeInference>addOperatorsToDialect(
+    ConverterRegistry.<Expr, AlgorithmWType, TypeInference>addOperatorsToDialect(
         AlgorithmWInference.class,
         Pair.of(StrOps.ToStringOp.class, StringAlgoWConversion::convertToStringOp),
         Pair.of(StrOps.ConcatOp.class, StringAlgoWConversion::convertConcatOp),
