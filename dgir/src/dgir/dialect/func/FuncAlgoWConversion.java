@@ -2,7 +2,6 @@ package dgir.dialect.func;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -61,27 +60,13 @@ public final class FuncAlgoWConversion {
       assert instantiatedExpr instanceof Expr.ExprAbs;
       var abs = (Expr.ExprAbs) instantiatedExpr;
       var body = abs.body();
-      assert body instanceof Expr.ExprLetRec;
 
-      var let = (Expr.ExprLetRec) body;
-
-      var directChildren = OperationExprConversionUtils.getAllChildrenForScopeExpression(let, let.body());
-
-      var inferredType = abs.getInferredType();
-      assert inferredType.isPresent();
-      var gpnt = inferredType.get().asTypeParameter();
-      assert gpnt.isConcrete();
-
-      Type funcType = Type.fromGeneralParameterizedNominalType(gpnt.getConcrete());
+      Type funcType = OperationExprConversionUtils.algoTypeToIrType(abs.getInferredType().get());
       assert funcType instanceof FuncType;
 
       var newFuncOp = new FuncOps.FuncOp(op.getLocation(), funcOp.getFuncName(), (FuncType) funcType);
-      for (var child : directChildren) {
-        var exprOp = child.getUnderlyingOperation();
-        assert exprOp.isPresent();
 
-        newFuncOp.addOperation(exprOp.get(), 0);
-      }
+      OperationExprConversionUtils.fillOpScoped(newFuncOp.getOperation(), 0, body);
 
       var newRegion = newFuncOp.getRegion();
       var oldParams = OperationExprConversionUtils.getAllAbstractedParamters(abs);
@@ -115,24 +100,18 @@ public final class FuncAlgoWConversion {
     }
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-
       assert instantiatedExpr instanceof Expr.ExprReturn;
       var retExpr = (Expr.ExprReturn) instantiatedExpr;
 
       var type = retExpr.getInferredType();
-      assert type.isPresent();
-      assert type.get().isFullySpecified();
 
       if (type.get().asTypeParameter().getConcrete().getIdent() == TypeIdent.TYPE_IDENT_UNIT) {
         var newOp = new FuncOps.ReturnOp(returnOp.getLocation());
         return newOp.getOperation();
       } else {
-        var valueSymbol = OperationExprConversionUtils.getOutputSymbol(retExpr.value());
+        var valueSymbol = OperationExprConversionUtils.getOutputValue(retExpr.value());
 
-        assert valueSymbol.isPresent();
-        assert valueSymbol.get() instanceof Symbol.ValueSymbol<Expr, AlgorithmWType>;
-
-        var newOp = new FuncOps.ReturnOp(returnOp.getLocation(), valueSymbol.get().getValue());
+        var newOp = new FuncOps.ReturnOp(returnOp.getLocation(), valueSymbol);
         return newOp.getOperation();
       }
     });
@@ -162,13 +141,9 @@ public final class FuncAlgoWConversion {
       assert irType instanceof FuncTypes.FuncType;
 
       var applicationArgs = OperationExprConversionUtils.getAllApplicationParameters(app);
-      assert applicationArgs.stream().allMatch(arg -> arg.getUnderlyingOperation().isPresent()
-          && arg.getUnderlyingOperation().get().getOutput().isPresent());
 
       var parameterOperations = applicationArgs.stream()
-          .map(Expr::getUnderlyingOperation)
-          .map(Optional::get)
-          .map(Operation::getOutputValueOrThrow)
+          .map(e -> OperationExprConversionUtils.getOutputValue(e))
           .toList();
 
       return new CallOp(op.getLocation(), callOp.getCalleeName(), parameterOperations, (FuncTypes.FuncType) irType)
@@ -196,13 +171,9 @@ public final class FuncAlgoWConversion {
       var app = (Expr.ExprApp) instantiatedExpr;
 
       var applicationArgs = OperationExprConversionUtils.getAllApplicationParameters(app);
-      assert applicationArgs.stream().allMatch(arg -> arg.getUnderlyingOperation().isPresent()
-          && arg.getUnderlyingOperation().get().getOutput().isPresent());
 
       var parameterOperations = applicationArgs.stream()
-          .map(Expr::getUnderlyingOperation)
-          .map(Optional::get)
-          .map(Operation::getOutputValueOrThrow)
+          .map(e -> OperationExprConversionUtils.getOutputValue(e))
           .toList();
 
       var funcOp = app.func().getUnderlyingOperation();
@@ -246,11 +217,7 @@ public final class FuncAlgoWConversion {
       assert abs.body() instanceof Expr.ExprApp;
       var app = (Expr.ExprApp) abs.body();
 
-      var newFuncType = app.getInferredFunctionType();
-      assert newFuncType.isPresent();
-      assert newFuncType.get() instanceof AlgorithmWType.Arrow;
-
-      var irType = Type.fromGeneralParameterizedNominalType(newFuncType.get().asTypeParameter().getConcrete());
+      var irType = OperationExprConversionUtils.algoTypeToIrType(app.getInferredType().get());
       assert irType instanceof FuncTypes.FuncType;
 
       return new FuncOps.ConstantOp(op.getLocation(), funcName, (FuncTypes.FuncType) irType)

@@ -102,18 +102,17 @@ public final class BuiltinAlgoWConversion {
       var app = (Expr.ExprApp) instantiatedExpr;
 
       var returnType = app.getInferredType();
-      assert returnType.isPresent() && returnType.get().isFullySpecified();
+      assert returnType.get().isFullySpecified();
 
       var appParam = app.args().get(0);
-      assert appParam != null && appParam.getUnderlyingOperation().isPresent();
+      assert appParam != null;
 
-      var paramOp = appParam.getUnderlyingOperation().get();
+      var paramValue = OperationExprConversionUtils.getOutputValue(appParam);
 
-      assert paramOp.getOutputOrThrow().getType().isKnown();
-      assert paramOp.getOutputOrThrow().getType().getAsKnownOrThrow().asParameterizedNominalType()
+      assert paramValue.getType().getAsKnownOrThrow().asParameterizedNominalType()
           .equals(returnType.get().asTypeParameter().getConcrete());
 
-      return new IdOp(idOp.getLocation(), paramOp.getOutput().get().getValue()).getOperation();
+      return new IdOp(idOp.getLocation(), paramValue).getOperation();
     });
     return expr;
   }
