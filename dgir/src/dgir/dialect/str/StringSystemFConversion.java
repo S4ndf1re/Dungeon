@@ -3,7 +3,6 @@ package dgir.dialect.str;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -12,6 +11,7 @@ import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.SystemFConversionUtils;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
@@ -150,10 +150,10 @@ public final class StringSystemFConversion {
    * System F requires every lambda parameter to carry an explicit type, which
    * is taken from the operand's declared type.
    *
-   * @param op     the operation to convert
-   * @param engine the system f inference engine, used to translate IR types
+   * @param op      the operation to convert
+   * @param engine  the system f inference engine, used to translate IR types
    * @param factory given the op's location, yields a function that rebuilds the
-   *        concrete operation from the instantiated operand result values
+   *                concrete operation from the instantiated operand result values
    * @return the application expression representing the operation
    */
   private static Expr convertResultOp(
@@ -169,7 +169,7 @@ public final class StringSystemFConversion {
       var value = operand.getValueOrThrow();
       assert value.getType().isKnown() : "str operands must have declared types for System F";
       params.add(Symbol.<Expr, SystemFType>of(new Value()));
-      paramTypes.add(SystemFConversionUtils.irTypeToSystemF(engine, value.getType().getAsKnownOrThrow()));
+      paramTypes.add(SystemFConversionUtils.irTypeToSystemFType(engine, value.getType().getAsKnownOrThrow()));
     }
 
     Expr abs = new Expr.LitExpr(new Literal.Generic(op.getOutputValueOrThrow()));
@@ -191,13 +191,9 @@ public final class StringSystemFConversion {
       // The operands are taken from the instantiated application chain, as
       // beta reduction/substitution may have replaced the original values!
       var argExprs = peelApplication(instantiatedExpr).getRight();
-      assert argExprs.stream().allMatch(arg -> arg.getUnderlyingOperation().isPresent()
-          && arg.getUnderlyingOperation().get().getOutput().isPresent());
 
       List<Value> argResults = argExprs.stream()
-          .map(Expr::getUnderlyingOperation)
-          .map(Optional::get)
-          .map(Operation::getOutputValueOrThrow)
+          .map(e -> OperationExprConversionUtils.getOutputValue(e))
           .toList();
 
       return factory.apply(op.getLocation()).apply(argResults);

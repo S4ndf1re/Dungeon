@@ -6,7 +6,6 @@ import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
-import dgir.core.ir.Type;
 import dgir.core.ir.Value;
 import dgir.core.ir.ValueOperand;
 import dgir.core.ir.types.Literal;
@@ -50,7 +49,7 @@ public final class IoAlgoWConversion {
 
       return new IoOps.PrintOp(op.getLocation(),
           app.args().stream()
-              .map(OperationExprConversionUtils::<Expr, AlgorithmWType>getSymbolValue).toList())
+              .map(OperationExprConversionUtils::<Expr, AlgorithmWType>getOutputValue).toList())
           .getOperation();
     });
 
@@ -73,7 +72,7 @@ public final class IoAlgoWConversion {
       assert instantiatedExpr.getInferredType().get().isFullySpecified();
       var retType = instantiatedExpr.getInferredType().get();
 
-      var irType = Type.fromGeneralParameterizedNominalType(retType.asTypeParameter().getConcrete());
+      var irType = OperationExprConversionUtils.algoTypeToIrType(retType);
 
       return new IoOps.ConsoleInOp(op.getLocation(), irType).getOperation();
 

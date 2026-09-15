@@ -9,6 +9,7 @@ import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWType;
@@ -141,7 +142,7 @@ public final class StringAlgoWConversion {
    * the fully instantiated operand operations' results. Type validation already
    * happens within the operation verification!
    *
-   * @param op     the operation to convert
+   * @param op      the operation to convert
    * @param factory given the op's location, yields a function that rebuilds the
    *                concrete operation from the instantiated operand result values
    * @return the application expression representing the operation
@@ -167,11 +168,8 @@ public final class StringAlgoWConversion {
 
       var app = (Expr.ExprApp) instantiatedExpr;
 
-      assert app.args().stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
-      assert app.args().stream().allMatch(e -> e.getUnderlyingOperation().get().getOutput().isPresent());
-
       List<Value> argResults = app.args().stream()
-          .map(e -> e.getUnderlyingOperation().get().getOutputValueOrThrow())
+          .map(e -> OperationExprConversionUtils.getOutputValue(e))
           .toList();
 
       return factory.apply(op.getLocation()).apply(argResults);

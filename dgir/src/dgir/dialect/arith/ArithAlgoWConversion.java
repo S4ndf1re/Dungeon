@@ -2,6 +2,7 @@ package dgir.dialect.arith;
 
 import static dgir.dialect.builtin.BuiltinTypes.isNumeric;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,7 +11,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.algorithmw.Expr;
@@ -29,6 +33,7 @@ import dgir.dialect.arith.ArithOps.BinaryOp;
 import dgir.dialect.arith.ArithOps.CastOp;
 import dgir.dialect.arith.ArithOps.ConstantOp;
 import dgir.dialect.arith.ArithOps.UnaryOp;
+import dgir.dialect.builtin.BuiltinTypes;
 
 public final class ArithAlgoWConversion {
 
@@ -86,22 +91,49 @@ public final class ArithAlgoWConversion {
       var lhsType = finalSubst.apply(resLhs.type());
       var rhsType = finalSubst.apply(resRhs.type());
 
+      var integerDesciptors = BuiltinTypes.BuiltinTypeDescriptor.IntegerDescriptor.getDescriptors();
+      var floatDesciptors = new ArrayList<>(BuiltinTypes.BuiltinTypeDescriptor.FloatDescriptor.getDescriptors());
+      floatDesciptors.addAll(integerDesciptors);
+
+      Optional<TypingException> firstError = Optional.empty();
+      for (var floatDesc : floatDesciptors) {
+        try {
+          var unifyRes = eng.unify(lhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
+          finalSubst = unifyRes.subst().compose(finalSubst);
+          firstError = Optional.empty();
+          break;
+        } catch (TypingException e) {
+          firstError = firstError.or(() -> Optional.of(e));
+        }
+      }
+      if (firstError.isPresent()) {
+        throw firstError.get();
+      }
+
+      lhsType = finalSubst.apply(lhsType);
+
+      for (var floatDesc : floatDesciptors) {
+        try {
+          var unifyRes = eng.unify(rhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
+          finalSubst = unifyRes.subst().compose(finalSubst);
+          firstError = Optional.empty();
+          break;
+        } catch (TypingException e) {
+          firstError = firstError.or(() -> Optional.of(e));
+        }
+      }
+      if (firstError.isPresent()) {
+        throw firstError.get();
+      }
+
+      rhsType = finalSubst.apply(rhsType);
+
       // NOTE: deferring the constraint solution to concrete instantiation of
       // monomorphic instances of polymorphic values requires constraint based
       // solving.
       // Classic algorithm W does not offer said capabilites. HM(X) is needed here!
-      assert lhsType instanceof AlgorithmWType.LitType
-          : "as a numeric type lattice must be applied, the types must be known and cannot be partially inferred";
-      assert rhsType instanceof AlgorithmWType.LitType
-          : "as a numeric type lattice must be applied, the types must be known and cannot be partially inferred";
-
-      var lhsTypeParam = lhsType.asTypeParameter();
-      var rhsTypeParam = rhsType.asTypeParameter();
-      assert lhsTypeParam.isConcrete() : "lhs must be a concrete type parameter";
-      assert rhsTypeParam.isConcrete() : "rhs must be a concrete type parameter";
-
-      var lhsIrType = Type.fromGeneralParameterizedNominalType(lhsTypeParam.getConcrete());
-      var rhsIrType = Type.fromGeneralParameterizedNominalType(rhsTypeParam.getConcrete());
+      var lhsIrType = OperationExprConversionUtils.algoTypeToIrType(lhsType);
+      var rhsIrType = OperationExprConversionUtils.algoTypeToIrType(rhsType);
 
       var resultIrType = data.binMode.getExpectedResultTypeForParams(lhsIrType, rhsIrType);
 
@@ -139,16 +171,11 @@ public final class ArithAlgoWConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.ExprCustom<BinOpData>) instantiatedExpr;
 
-      var lhsOp = custExpr.getData().lhs.getUnderlyingOperation();
-      var rhsOp = custExpr.getData().rhs.getUnderlyingOperation();
+      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().lhs);
+      var rhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().rhs);
 
-      assert lhsOp.isPresent();
-      assert rhsOp.isPresent();
-      assert lhsOp.get().getOutput().isPresent();
-      assert rhsOp.get().getOutput().isPresent();
-
-      return new BinaryOp(op.getLocation(), lhsOp.get().getOutputValueOrThrow(),
-          rhsOp.get().getOutputValueOrThrow(), custExpr.getData().binMode).getOperation();
+      return new BinaryOp(op.getLocation(), lhsValue,
+          rhsValue, custExpr.getData().binMode).getOperation();
     });
 
     return result;
@@ -173,16 +200,31 @@ public final class ArithAlgoWConversion {
       Subst finalSubst = resLhs.subst();
       var lhsType = finalSubst.apply(resLhs.type());
 
+      var integerDesciptors = BuiltinTypes.BuiltinTypeDescriptor.IntegerDescriptor.getDescriptors();
+      var floatDesciptors = new ArrayList<>(BuiltinTypes.BuiltinTypeDescriptor.FloatDescriptor.getDescriptors());
+      floatDesciptors.addAll(integerDesciptors);
+
+      Optional<TypingException> firstError = Optional.empty();
+      for (var floatDesc : floatDesciptors) {
+        try {
+          var unifyRes = eng.unify(lhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
+          finalSubst = unifyRes.subst().compose(finalSubst);
+          firstError = Optional.empty();
+          break;
+        } catch (TypingException e) {
+          firstError = firstError.or(() -> Optional.of(e));
+        }
+      }
+      if (firstError.isPresent()) {
+        throw firstError.get();
+      }
+
+      lhsType = finalSubst.apply(lhsType);
+
       // TODO: maybe, it is possible to defer the type finding until both lhs and rhs
       // are completely inferred. This would require careful algorithm engineering and
       // is not possible, as of now.
-      assert lhsType instanceof AlgorithmWType.LitType
-          : "as a numeric type lattice must be applied, the types must be known and cannot be partially inferred";
-
-      var lhsTypeParam = lhsType.asTypeParameter();
-      assert lhsTypeParam.isConcrete() : "lhs must be a concrete type parameter";
-
-      var lhsIrType = Type.fromGeneralParameterizedNominalType(lhsTypeParam.getConcrete());
+      var lhsIrType = OperationExprConversionUtils.algoTypeToIrType(lhsType);
 
       var resultIrType = data.unaryMode.getExpectedResultTypeForParams(lhsIrType);
 
@@ -221,12 +263,9 @@ public final class ArithAlgoWConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.ExprCustom<UnaryData>) instantiatedExpr;
 
-      var lhsOp = custExpr.getData().lhs.getUnderlyingOperation();
+      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().lhs);
 
-      assert lhsOp.isPresent();
-      assert lhsOp.get().getOutput().isPresent();
-
-      return new UnaryOp(op.getLocation(), lhsOp.get().getOutputValueOrThrow(),
+      return new UnaryOp(op.getLocation(), lhsValue,
           custExpr.getData().unaryMode).getOperation();
     });
     return result;
@@ -251,16 +290,31 @@ public final class ArithAlgoWConversion {
       Subst finalSubst = resValue.subst();
       var valueType = finalSubst.apply(resValue.type());
 
+      var integerDesciptors = BuiltinTypes.BuiltinTypeDescriptor.IntegerDescriptor.getDescriptors();
+      var floatDesciptors = new ArrayList<>(BuiltinTypes.BuiltinTypeDescriptor.FloatDescriptor.getDescriptors());
+      floatDesciptors.addAll(integerDesciptors);
+
+      Optional<TypingException> firstError = Optional.empty();
+      for (var floatDesc : floatDesciptors) {
+        try {
+          var unifyRes = eng.unify(valueType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
+          finalSubst = unifyRes.subst().compose(finalSubst);
+          firstError = Optional.empty();
+          break;
+        } catch (TypingException e) {
+          firstError = firstError.or(() -> Optional.of(e));
+        }
+      }
+      if (firstError.isPresent()) {
+        throw firstError.get();
+      }
+
+      valueType = finalSubst.apply(valueType);
+
       // TODO: maybe, it is possible to defer the type finding until both lhs and rhs
       // are completely inferred. This would require careful algorithm engineering and
       // is not possible, as of now.
-      assert valueType instanceof AlgorithmWType.LitType
-          : "as a numeric type lattice must be applied, the types must be known and cannot be partially inferred";
-
-      var valueTypeParam = valueType.asTypeParameter();
-      assert valueTypeParam.isConcrete() : "lhs must be a concrete type parameter";
-
-      var valueIrType = Type.fromGeneralParameterizedNominalType(valueTypeParam.getConcrete());
+      var valueIrType = OperationExprConversionUtils.algoTypeToIrType(valueType);
       var resultIrType = data.targetType;
 
       assert isNumeric(valueIrType);
@@ -301,12 +355,9 @@ public final class ArithAlgoWConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.ExprCustom<CastData>) instantiatedExpr;
 
-      var lhsOp = custExpr.getData().value.getUnderlyingOperation();
+      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().value);
 
-      assert lhsOp.isPresent();
-      assert lhsOp.get().getOutput().isPresent();
-
-      return new CastOp(op.getLocation(), lhsOp.get().getOutputValueOrThrow(),
+      return new CastOp(op.getLocation(), lhsValue,
           custExpr.getData().targetType).getOperation();
     });
     return result;

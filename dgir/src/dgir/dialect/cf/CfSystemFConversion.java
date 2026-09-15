@@ -23,6 +23,7 @@ import dgir.core.ir.types.systemf.TypeResult;
 import dgir.core.ir.types.systemf.Expr.Custom.GetChildrenFunction;
 import dgir.core.ir.types.systemf.Expr.Custom.InferFunction;
 import dgir.core.ir.types.systemf.Expr.Custom.InstantiateFunction;
+import dgir.core.ir.types.systemf.Expr.Custom.ReplaceSymbolFunction;
 
 public final class CfSystemFConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
@@ -63,12 +64,15 @@ public final class CfSystemFConversion {
 
     GetChildrenFunction<BranchData> getChildrenFn = (data) -> List.of(data.body);
 
+    ReplaceSymbolFunction<BranchData> replaceSymbolFn = (oldExpr, original, replacement, data) -> new Expr.Custom<>(
+        oldExpr, new BranchData(data.body.replaceSymbol(original, replacement)));
+
     InstantiateFunction<BranchData> instFn = (toInstantiate, eng, env, solution, data) -> {
       return new Expr.Custom<BranchData>(toInstantiate,
           new BranchData(data.body.instantiate(eng, env, solution)));
     };
 
-    var result = new Expr.Custom<BranchData>(branchOpData, infFunc, null, instFn, getChildrenFn);
+    var result = new Expr.Custom<BranchData>(branchOpData, infFunc, null, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.Custom;
@@ -140,6 +144,10 @@ public final class CfSystemFConversion {
 
     GetChildrenFunction<BranchData> getChildrenFn = (data) -> List.of(data.cond, data.thenCase, data.elseCase);
 
+    ReplaceSymbolFunction<BranchData> replaceSymbolFn = (oldExpr, original, replacement, data) -> new Expr.Custom<>(
+        oldExpr, new BranchData(data.cond.replaceSymbol(original, replacement),
+            data.thenCase.replaceSymbol(original, replacement), data.elseCase.replaceSymbol(original, replacement)));
+
     InstantiateFunction<BranchData> instFn = (toInstantiate, eng, env, solution, data) -> {
       return new Expr.Custom<BranchData>(toInstantiate,
           new BranchData(
@@ -148,7 +156,7 @@ public final class CfSystemFConversion {
               data.elseCase.instantiate(eng, env, solution)));
     };
 
-    var result = new Expr.Custom<BranchData>(branchOpData, infFunc, null, instFn, getChildrenFn);
+    var result = new Expr.Custom<BranchData>(branchOpData, infFunc, null, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.Custom;
@@ -241,6 +249,10 @@ public final class CfSystemFConversion {
       }
     };
 
+    ReplaceSymbolFunction<AssertData> replaceSymbolFn = (oldExpr, original, replacement, data) -> new Expr.Custom<>(
+        oldExpr, new AssertData(data.cond.replaceSymbol(original, replacement),
+            data.message.map(msg -> msg.replaceSymbol(original, replacement))));
+
     InstantiateFunction<AssertData> instFn = (toInstantiate, eng, env, solution, data) -> {
       return new Expr.Custom<AssertData>(toInstantiate,
           new AssertData(
@@ -248,7 +260,7 @@ public final class CfSystemFConversion {
               data.message.map(msg -> msg.instantiate(eng, env, solution))));
     };
 
-    var result = new Expr.Custom<AssertData>(assertData, infFunc, null, instFn, getChildrenFn);
+    var result = new Expr.Custom<AssertData>(assertData, infFunc, null, instFn, getChildrenFn, replaceSymbolFn);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.Custom;

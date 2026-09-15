@@ -10,8 +10,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.SystemFConversionUtils;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.systemf.Expr;
 import dgir.core.ir.types.systemf.SystemFInference;
@@ -21,6 +21,7 @@ import dgir.core.ir.types.systemf.TypeResult;
 import dgir.core.ir.types.systemf.Expr.Custom.GetChildrenFunction;
 import dgir.core.ir.types.systemf.Expr.Custom.InferFunction;
 import dgir.core.ir.types.systemf.Expr.Custom.InstantiateFunction;
+import dgir.core.ir.types.systemf.Expr.Custom.ReplaceSymbolFunction;
 import dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode;
 import dgir.dialect.arith.ArithAttrs.UnaryModeAttr.UnaryMode;
 import dgir.dialect.arith.ArithOps.BinaryOp;
@@ -49,7 +50,7 @@ public final class ArithSystemFConversion {
       assert inferredType.isPresent();
       assert inferredType.get().isFullySpecified();
 
-      Type t = SystemFConversionUtils.systemFTypeToIrType(inferredType.get());
+      Type t = Type.fromGeneralParameterizedNominalType(inferredType.get().asTypeParameter().getConcrete());
       assert t.equals(constOp.getValueAttribute().getType());
 
       return new ArithOps.ConstantOp(constOp.getLocation(), constOp.getValueAttribute()).getOperation();
@@ -98,8 +99,8 @@ public final class ArithSystemFConversion {
       assert lhsType.isFullySpecified() : "lhs type must be fully specified";
       assert rhsType.isFullySpecified() : "rhs type must be fully specified";
 
-      var lhsIrType = SystemFConversionUtils.systemFTypeToIrType(lhsType);
-      var rhsIrType = SystemFConversionUtils.systemFTypeToIrType(rhsType);
+      var lhsIrType = Type.fromGeneralParameterizedNominalType(lhsType.asTypeParameter().getConcrete());
+      var rhsIrType = Type.fromGeneralParameterizedNominalType(rhsType.asTypeParameter().getConcrete());
 
       var resultIrType = data.binMode.getExpectedResultTypeForParams(lhsIrType, rhsIrType).getAsKnownOrThrow();
 
@@ -117,6 +118,10 @@ public final class ArithSystemFConversion {
 
     GetChildrenFunction<BinOpData> getChildrenFn = (data) -> List.of(data.lhs, data.rhs);
 
+    ReplaceSymbolFunction<BinOpData> replaceSymbolFunction = (oldExpr, original, replacement,
+        data) -> new Expr.Custom<>(oldExpr, new BinOpData(data.lhs.replaceSymbol(original, replacement),
+            data.rhs.replaceSymbol(original, replacement), data.binMode));
+
     InstantiateFunction<BinOpData> instFn = (toInstantiate, eng, env, solution, data) -> {
       return new Expr.Custom<BinOpData>(toInstantiate,
           new BinOpData(
@@ -125,23 +130,18 @@ public final class ArithSystemFConversion {
               data.binMode));
     };
 
-    var result = new Expr.Custom<BinOpData>(binOpData, infFunc, null, instFn, getChildrenFn);
+    var result = new Expr.Custom<BinOpData>(binOpData, infFunc, null, instFn, getChildrenFn, replaceSymbolFunction);
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.Custom;
 
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.Custom<BinOpData>) instantiatedExpr;
 
-      var lhsOp = custExpr.getData().lhs.getUnderlyingOperation();
-      var rhsOp = custExpr.getData().rhs.getUnderlyingOperation();
+      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().lhs);
+      var rhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().rhs);
 
-      assert lhsOp.isPresent();
-      assert rhsOp.isPresent();
-      assert lhsOp.get().getOutput().isPresent();
-      assert rhsOp.get().getOutput().isPresent();
-
-      return new BinaryOp(op.getLocation(), lhsOp.get().getOutputValueOrThrow(),
-          rhsOp.get().getOutputValueOrThrow(), custExpr.getData().binMode).getOperation();
+      return new BinaryOp(op.getLocation(), lhsValue,
+          rhsValue, custExpr.getData().binMode).getOperation();
     });
 
     return result;
@@ -166,7 +166,7 @@ public final class ArithSystemFConversion {
 
       assert lhsType.isFullySpecified() : "operand type must be fully specified";
 
-      var lhsIrType = SystemFConversionUtils.systemFTypeToIrType(lhsType);
+      var lhsIrType = Type.fromGeneralParameterizedNominalType(lhsType.asTypeParameter().getConcrete());
       var resultIrType = data.unaryMode.getExpectedResultTypeForParams(lhsIrType);
 
       var resultType = expectedResultType(eng, resultIrType);
@@ -183,12 +183,16 @@ public final class ArithSystemFConversion {
 
     GetChildrenFunction<UnaryData> getChildrenFn = (data) -> List.of(data.lhs);
 
+    ReplaceSymbolFunction<UnaryData> replaceSymbolFunction = (oldExpr, original, replacement,
+        data) -> new Expr.Custom<>(oldExpr, new UnaryData(data.lhs.replaceSymbol(original, replacement),
+            data.unaryMode));
+
     InstantiateFunction<UnaryData> instFn = (toInstantiate, eng, env, solution, data) -> {
       return new Expr.Custom<UnaryData>(toInstantiate,
           new UnaryData(data.lhs.instantiate(eng, env, solution), data.unaryMode));
     };
 
-    var result = new Expr.Custom<UnaryData>(unaryOpData, infFunc, null, instFn, getChildrenFn);
+    var result = new Expr.Custom<UnaryData>(unaryOpData, infFunc, null, instFn, getChildrenFn, replaceSymbolFunction);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.Custom;
@@ -196,12 +200,9 @@ public final class ArithSystemFConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.Custom<UnaryData>) instantiatedExpr;
 
-      var lhsOp = custExpr.getData().lhs.getUnderlyingOperation();
+      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().lhs);
 
-      assert lhsOp.isPresent();
-      assert lhsOp.get().getOutput().isPresent();
-
-      return new UnaryOp(op.getLocation(), lhsOp.get().getOutputValueOrThrow(),
+      return new UnaryOp(op.getLocation(), lhsValue,
           custExpr.getData().unaryMode).getOperation();
     });
 
@@ -227,7 +228,7 @@ public final class ArithSystemFConversion {
 
       assert valueType.isFullySpecified() : "value type must be fully specified";
 
-      var valueIrType = SystemFConversionUtils.systemFTypeToIrType(valueType);
+      var valueIrType = Type.fromGeneralParameterizedNominalType(valueType.asTypeParameter().getConcrete());
       var resultIrType = data.targetType;
 
       assert isNumeric(valueIrType);
@@ -247,12 +248,16 @@ public final class ArithSystemFConversion {
 
     GetChildrenFunction<CastData> getChildrenFn = (data) -> List.of(data.value);
 
+    ReplaceSymbolFunction<CastData> replaceSymbolFunction = (oldExpr, original, replacement,
+        data) -> new Expr.Custom<>(oldExpr, new CastData(data.value.replaceSymbol(original, replacement),
+            data.targetType));
+
     InstantiateFunction<CastData> instFn = (toInstantiate, eng, env, solution, data) -> {
       return new Expr.Custom<CastData>(toInstantiate,
           new CastData(data.value.instantiate(eng, env, solution), data.targetType));
     };
 
-    var result = new Expr.Custom<CastData>(castOpData, infFunc, null, instFn, getChildrenFn);
+    var result = new Expr.Custom<CastData>(castOpData, infFunc, null, instFn, getChildrenFn, replaceSymbolFunction);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.Custom;
@@ -260,12 +265,9 @@ public final class ArithSystemFConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.Custom<CastData>) instantiatedExpr;
 
-      var valueOp = custExpr.getData().value.getUnderlyingOperation();
+      var lhsValue = OperationExprConversionUtils.getOutputValue(custExpr.getData().value);
 
-      assert valueOp.isPresent();
-      assert valueOp.get().getOutput().isPresent();
-
-      return new CastOp(op.getLocation(), valueOp.get().getOutputValueOrThrow(),
+      return new CastOp(op.getLocation(), lhsValue,
           custExpr.getData().targetType).getOperation();
     });
     return result;

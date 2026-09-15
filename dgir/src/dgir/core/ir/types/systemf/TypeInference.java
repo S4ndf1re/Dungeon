@@ -30,6 +30,7 @@ public final class TypeInference
     extends TypeDialect.TypeInferenceSolver<Expr, SystemFType> {
 
   private ConvertedOperationBuffer<Expr, SystemFType, TypeInference> operationToExprBuffer;
+  private Context startContext;
 
   public TypeInference() {
     this(new TypeDialectConverterRegistry());
@@ -38,6 +39,7 @@ public final class TypeInference
   public TypeInference(TypeDialectConverterRegistry registry) {
     super(registry);
     operationToExprBuffer = new ConvertedOperationBuffer<>();
+    startContext = new Context();
   }
 
   private static SystemFType convertInnerGeneralParameterized(GeneralParameterizedNominalType type) {
@@ -138,6 +140,14 @@ public final class TypeInference
     instantiated = this.postSolve(instantiated);
 
     return new SolveResult<>((Type) finalType, expr, instantiated);
+  }
+
+  public Context getStartContext() {
+    return this.startContext;
+  }
+
+  public void setStartContext(Context newCtx) {
+    this.startContext = newCtx;
   }
 
   public SystemFType substType(

@@ -76,18 +76,9 @@ public final class CfAlgoWConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Expr.ExprCustom<BranchData>) instantiatedExpr;
       var body = custExpr.getData().body;
-      assert body instanceof Expr.ExprLetRec;
-      var letRec = (Expr.ExprLetRec) body;
-
-      var exprsForBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(letRec, letRec.body());
-      assert exprsForBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
 
       var block = new Block();
-
-      for (var e : exprsForBlock) {
-        // SAFETY: already asserted, that the underlying operation is actually present.
-        block.addOperation(e.getUnderlyingOperation().get());
-      }
+      OperationExprConversionUtils.fillBlockScoped(block, body);
 
       var newCfOp = new CfOps.BranchOp(op.getLocation(), block).getOperation();
       newCfOp.getTemporaryRegion().addBlock(block);
@@ -160,36 +151,13 @@ public final class CfAlgoWConversion {
       var custExpr = (Expr.ExprCustom<BranchData>) instantiatedExpr;
       var data = custExpr.getData();
 
-      assert data.cond.getUnderlyingOperation().isPresent();
-      assert data.cond.getUnderlyingOperation().get().getOutput().isPresent();
-      var condValue = data.cond.getUnderlyingOperation().get().getOutputValueOrThrow();
-
-      assert data.thenCase instanceof Expr.ExprLetRec;
-      assert data.elseCase instanceof Expr.ExprLetRec;
-
-      var thenLetRec = (Expr.ExprLetRec) data.thenCase;
-      var elseLetRec = (Expr.ExprLetRec) data.elseCase;
-
-      var exprsForThenBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(thenLetRec,
-          thenLetRec.body());
-      assert exprsForThenBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
-
-      var exprsForElseBlock = OperationExprConversionUtils.getAllChildrenForScopeExpression(elseLetRec,
-          elseLetRec.body());
-      assert exprsForElseBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
+      var condValue = OperationExprConversionUtils.getOutputValue(data.cond);
 
       var thenBlock = new Block();
+      OperationExprConversionUtils.fillBlockScoped(thenBlock, data.thenCase);
+
       var elseBlock = new Block();
-
-      for (var e : exprsForThenBlock) {
-        // SAFETY: already asserted, that the underlying operation is actually present.
-        thenBlock.addOperation(e.getUnderlyingOperation().get());
-      }
-
-      for (var e : exprsForElseBlock) {
-        // SAFETY: already asserted, that the underlying operation is actually present.
-        elseBlock.addOperation(e.getUnderlyingOperation().get());
-      }
+      OperationExprConversionUtils.fillBlockScoped(elseBlock, data.elseCase);
 
       var newCfOp = new CfOps.BranchCondOp(op.getLocation(), condValue, thenBlock, elseBlock).getOperation();
       newCfOp.getTemporaryRegion().addBlock(thenBlock);
@@ -262,14 +230,10 @@ public final class CfAlgoWConversion {
       var custExpr = (Expr.ExprCustom<AssertData>) instantiatedExpr;
       var data = custExpr.getData();
 
-      assert data.cond.getUnderlyingOperation().isPresent();
-      assert data.cond.getUnderlyingOperation().get().getOutput().isPresent();
-      var condValue = data.cond.getUnderlyingOperation().get().getOutputValueOrThrow();
+      var condValue = OperationExprConversionUtils.getOutputValue(data.cond);
 
       if (data.message.isPresent()) {
-        assert data.message.get().getUnderlyingOperation().isPresent();
-        assert data.message.get().getUnderlyingOperation().get().getOutput().isPresent();
-        var messageValue = data.message.get().getUnderlyingOperation().get().getOutputValueOrThrow();
+        var messageValue = OperationExprConversionUtils.getOutputValue(data.message.get());
 
         return new CfOps.AssertOp(op.getLocation(), condValue, messageValue).getOperation();
       } else {

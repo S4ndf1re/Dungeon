@@ -15,7 +15,6 @@ import dgir.core.ir.types.Expression.ExpressionVisitor;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
-import dgir.core.ir.types.SystemFConversionUtils;
 import dgir.core.analysis.DotExpression;
 import dgir.core.analysis.DotType;
 import dgir.core.ir.types.algorithmw.AlgorithmWInference;
@@ -72,7 +71,7 @@ public class ConversionParityTest {
     var inference = new AlgorithmWInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+    DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
     DgirTestUtils.saveInferenceCfg("algoW", programOp.getOperation(), solvedPair.instantiated());
     DgirTestUtils.saveDotAndPng(".algoW.expr", DotExpression.toDot(solvedPair.instantiated()));
     DgirTestUtils.saveDotAndPng(".algoW.type", DotType.toDot(solvedPair.type()));
@@ -90,7 +89,7 @@ public class ConversionParityTest {
     var inference = new SystemFInference();
     var solver = inference.getSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+    DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
     DgirTestUtils.saveInferenceCfg("systemF", programOp.getOperation(), solvedPair.instantiated());
     DgirTestUtils.saveDotAndPng(".systemF.expr", DotExpression.toDot(solvedPair.instantiated()));
     DgirTestUtils.saveDotAndPng(".systemF.type", DotType.toDot(solvedPair.type()));
@@ -103,7 +102,7 @@ public class ConversionParityTest {
     var solvedType = solvedPair.type();
     GeneralParameterizedNominalType gpnt = null;
     if (solvedType instanceof SystemFType.Lit) {
-      gpnt = SystemFConversionUtils.systemFTypeToGeneralNominal((SystemFType) solvedType);
+      gpnt = solvedType.asTypeParameter().getConcrete();
     }
 
     return new SolvedResult(gpnt != null ? gpnt.toString() : solvedType.toString(), countOps(ops));

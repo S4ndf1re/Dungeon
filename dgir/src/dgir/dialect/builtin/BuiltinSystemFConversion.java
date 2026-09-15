@@ -16,6 +16,7 @@ import dgir.core.ir.types.systemf.SystemFType;
 import dgir.core.ir.types.systemf.TypeInference;
 import dgir.core.ir.types.systemf.Expr.Custom.InferFunction;
 import dgir.core.ir.types.systemf.Expr.Custom.InstantiateFunction;
+import dgir.core.ir.types.systemf.Expr.Custom.ReplaceSymbolFunction;
 import dgir.core.traits.IGlobal;
 import dgir.dialect.builtin.BuiltinOps.IdOp;
 import dgir.dialect.builtin.BuiltinOps.ProgramOp;
@@ -97,20 +98,21 @@ public final class BuiltinSystemFConversion {
     record IdData(Expr param) {
     }
 
-    // The identity is fully polymorphic: its inferred type is exactly the type of
-    // its operand.
     InferFunction<IdData> infFunc = (eng, ctx, data) -> eng.infer(ctx, data.param);
 
     InstantiateFunction<IdData> instFn = (toInstantiate, eng, env, solution, data) -> new Expr.Custom<IdData>(
         toInstantiate,
         new IdData(data.param.instantiate(eng, env, solution)));
 
+    ReplaceSymbolFunction<IdData> replaceSymbolFn = (oldExpr, original, replacement, data) -> new Expr.Custom<>(
+        oldExpr, new IdData(data.param.replaceSymbol(original, replacement)));
+
     var expr = new Expr.Custom<IdData>(
         new IdData(new Expr.Var(Symbol.of(idOp.getOperand()))),
         infFunc,
         null,
         instFn,
-        (d) -> List.of(d.param));
+        (d) -> List.of(d.param), replaceSymbolFn);
 
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.Custom;
@@ -120,10 +122,9 @@ public final class BuiltinSystemFConversion {
 
       var param = custom.getData().param;
 
-      var paramSymbol = OperationExprConversionUtils.getOutputSymbol(param);
-      assert paramSymbol.isPresent();
+      var paramSymbol = OperationExprConversionUtils.getOutputValue(param);
 
-      return new IdOp(idOp.getLocation(), paramSymbol.get().getValue()).getOperation();
+      return new IdOp(idOp.getLocation(), paramSymbol).getOperation();
     });
     return expr;
   }
