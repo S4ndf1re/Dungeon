@@ -10,7 +10,7 @@ import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.compatibility.ConverterRegistry.ConverterFunction;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
-public class ConvertedOperationBuffer<E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<SolverT, E, T>> {
+public class ConvertedOperationBuffer<E extends Expression<E, T>, T extends Type<T>, SolverT extends TypeInferenceSolver<SolverT, E, T>> {
   private HashMap<Operation, E> converted;
 
   public ConvertedOperationBuffer() {

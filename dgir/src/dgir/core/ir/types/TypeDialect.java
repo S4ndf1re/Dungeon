@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
-public abstract class TypeDialect<TypeInferenceT extends TypeInferenceSolver<TypeInferenceT, E, T>, E extends Expression<E, T>, T extends Type> {
+public abstract class TypeDialect<TypeInferenceT extends TypeInferenceSolver<TypeInferenceT, E, T>, E extends Expression<E, T>, T extends Type<T>> {
 
   /**
    * Return the static instance of a specific type inference solver for a type
@@ -36,7 +36,7 @@ public abstract class TypeDialect<TypeInferenceT extends TypeInferenceSolver<Typ
    * @return a list of allowed types to be used with the specific algorithm
    */
   @SuppressWarnings("unchecked")
-  public List<Class<? extends Type>> getAllowedTypes() {
+  public List<Class<? extends Type<?>>> getAllowedTypes() {
     Class<T> typeClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[2];
     return TypeDialect.extractTypesFromAbstract(typeClass);
   }
@@ -51,7 +51,7 @@ public abstract class TypeDialect<TypeInferenceT extends TypeInferenceSolver<Typ
   }
 
   @SuppressWarnings("unchecked")
-  public static <E extends Expression<E, T>, T extends Type> List<Class<? extends Expression<E, T>>> extractExpressionsFromAbstract(
+  public static <E extends Expression<E, T>, T extends Type<T>> List<Class<? extends Expression<E, T>>> extractExpressionsFromAbstract(
       Class<? extends Expression<E, T>> abstractInterface) {
     if (!Arrays.asList(abstractInterface.getInterfaces()).contains(
         Expression.class) && !abstractInterface.getSuperclass().equals(Expression.class)) {
@@ -76,8 +76,8 @@ public abstract class TypeDialect<TypeInferenceT extends TypeInferenceSolver<Typ
   }
 
   @SuppressWarnings("unchecked")
-  public static List<Class<? extends Type>> extractTypesFromAbstract(
-      Class<? extends Type> abstractClass) {
+  public static List<Class<? extends Type<?>>> extractTypesFromAbstract(
+      Class<? extends Type<?>> abstractClass) {
     System.out.println(abstractClass.getName());
     if (!abstractClass.getSuperclass().equals(Type.class)) {
       throw new IllegalStateException(
@@ -95,7 +95,7 @@ public abstract class TypeDialect<TypeInferenceT extends TypeInferenceSolver<Typ
     return possibleTypes
         .stream()
         .filter(classInheritsExpression)
-        .map(clazz -> (Class<? extends Type>) clazz)
+        .map(clazz -> (Class<? extends Type<?>>) clazz)
         .collect(Collectors.toList());
   }
 }

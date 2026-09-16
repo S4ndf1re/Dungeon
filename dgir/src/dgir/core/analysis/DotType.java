@@ -34,7 +34,7 @@ public class DotType {
    * @param type the type to render.
    * @return a DOT digraph string.
    */
-  public static String toDot(Type type) {
+  public static String toDot(Type<?> type) {
     StringBuilder dot = new StringBuilder();
     dot.append("digraph type {\n");
     dot.append("\tnode [shape=box];\n");

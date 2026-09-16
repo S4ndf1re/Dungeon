@@ -15,11 +15,9 @@ import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.GetChildrenFunction;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunctionResult;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InstantiateFunction;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.ReplaceSymbolFunction;
 import dgir.core.ir.types.builtin.algorithmw.InferResult;
-import dgir.core.ir.types.builtin.algorithmw.Subst;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
@@ -49,10 +47,9 @@ public final class CfAlgoWConversion {
     InferFunction<BranchData> infFunc = (eng, env, data) -> {
 
       InferResult resValue = eng.infer(data.body, env);
-      Subst finalSubst = resValue.subst();
-      var valueType = finalSubst.apply(resValue.type());
+      var valueType = resValue.type().deref();
 
-      return new InferFunctionResult(finalSubst, valueType);
+      return valueType;
     };
 
     GetChildrenFunction<BranchData> getChildrenFn = (data) -> {
@@ -104,27 +101,22 @@ public final class CfAlgoWConversion {
     InferFunction<BranchData> infFunc = (eng, env, data) -> {
 
       InferResult resCond = eng.infer(data.cond(), env);
-      Subst finalSubst = resCond.subst();
-      var condType = finalSubst.apply(resCond.type());
+      var condType = resCond.type();
 
-      var unifyCondRes = eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.from("bool")));
-      finalSubst = unifyCondRes.subst().compose(finalSubst);
+      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.from("bool")));
 
       InferResult resThen = eng.infer(data.thenCase(), env);
-      finalSubst = resThen.subst().compose(finalSubst);
-      var thenType = finalSubst.apply(resThen.type());
+      var thenType = resThen.type();
 
       InferResult resElse = eng.infer(data.elseCase(), env);
-      finalSubst = resElse.subst().compose(finalSubst);
-      var elseType = finalSubst.apply(resElse.type());
+      var elseType = resElse.type();
 
       // TODO: figure out if it would actually be better if unit is returned,
       // always!
-      var unifyBodyRes = eng.unify(thenType, elseType);
-      finalSubst = unifyBodyRes.subst().compose(finalSubst);
-      var finalType = finalSubst.apply(thenType);
+      eng.unify(thenType, elseType);
+      var finalType = thenType.deref();
 
-      return new InferFunctionResult(finalSubst, finalType);
+      return finalType;
     };
 
     GetChildrenFunction<BranchData> getChildrenFn = (data) -> {
@@ -184,22 +176,18 @@ public final class CfAlgoWConversion {
     InferFunction<AssertData> infFunc = (eng, env, data) -> {
 
       InferResult resCond = eng.infer(data.cond(), env);
-      Subst finalSubst = resCond.subst();
-      var condType = finalSubst.apply(resCond.type());
+      var condType = resCond.type();
 
-      var unifyCondRes = eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.from("bool")));
-      finalSubst = unifyCondRes.subst().compose(finalSubst);
+      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.from("bool")));
 
       if (data.message.isPresent()) {
         InferResult resMessage = eng.infer(data.message.get(), env);
-        finalSubst = resMessage.subst().compose(finalSubst);
-        var messageType = finalSubst.apply(resMessage.type());
+        var messageType = resMessage.type();
 
-        var messageUnifyRes = eng.unify(messageType, new AlgorithmWType.LitType(TypeIdent.from("string")));
-        finalSubst = messageUnifyRes.subst().compose(finalSubst);
+        eng.unify(messageType, new AlgorithmWType.LitType(TypeIdent.from("string")));
       }
 
-      return new InferFunctionResult(finalSubst, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
+      return new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT);
     };
 
     GetChildrenFunction<AssertData> getChildrenFn = (data) -> {

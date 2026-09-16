@@ -63,6 +63,7 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   @JsonIgnore
   private @Nullable Region parent;
 
+  @SuppressWarnings("unused")
   private Optional<Block> copyFrom;
 
   // =========================================================================
