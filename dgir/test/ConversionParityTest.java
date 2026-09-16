@@ -69,7 +69,7 @@ public class ConversionParityTest {
 
   private static SolvedResult solveAlgoW(ProgramOp programOp) {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
     DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
     DgirTestUtils.saveInferenceCfg("algoW", programOp.getOperation(), solvedPair.instantiated());
@@ -87,7 +87,7 @@ public class ConversionParityTest {
 
   private static SolvedResult solveSystemF(ProgramOp programOp) {
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
     DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
     DgirTestUtils.saveInferenceCfg("systemF", programOp.getOperation(), solvedPair.instantiated());
