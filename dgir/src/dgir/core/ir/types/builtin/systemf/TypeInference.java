@@ -14,7 +14,6 @@ import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypeVar.TypeVarScope;
@@ -44,7 +43,7 @@ public final class TypeInference
   private static SystemFType convertInnerGeneralParameterized(GeneralParameterizedNominalType type) {
     List<SystemFType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
       case GeneralTypeParameter.Concrete con -> convertInnerGeneralParameterized(con.ty());
-      case GeneralTypeParameter.Unknown unk -> new SystemFType.EtVar(new TypeVar());
+      case GeneralTypeParameter.Unknown unk -> new SystemFType.EtVar(new TypeVar<>());
       case GeneralTypeParameter.Numeric num -> new SystemFType.NumericType(num.number());
     }).toList();
 
@@ -64,7 +63,7 @@ public final class TypeInference
       return (Context) c;
     });
 
-    try (TypeVarScope scope = TypeVar.addScope()) {
+    try (TypeVarScope<SystemFType> scope = TypeVar.addScope()) {
       var resultType = convertInnerGeneralParameterized(type);
       var newCtx = mappedCtx.map(c -> {
         var newC = c.copy();
@@ -127,7 +126,7 @@ public final class TypeInference
   }
 
   @Override
-  public SolveResult<Expr> solve(ExprOrOperator<Expr, SystemFType> exprOrOp) {
+  public SolveResult<Expr, SystemFType> solve(ExprOrOperator<Expr, SystemFType> exprOrOp) {
     var expr = this.asExpression(exprOrOp);
     var res = this.infer(this.getStartContext(), expr);
     var solutionCtx = res.ctx().copy();
@@ -137,7 +136,7 @@ public final class TypeInference
 
     instantiated = this.postSolve(instantiated);
 
-    return new SolveResult<>((Type) finalType, expr, instantiated);
+    return new SolveResult<>(finalType, expr, instantiated);
   }
 
   public Context getStartContext() {
@@ -149,7 +148,7 @@ public final class TypeInference
   }
 
   public SystemFType substType(
-      TypeVar tyVar,
+      TypeVar<SystemFType> tyVar,
       SystemFType replacement,
       SystemFType target) {
     return target.substType(tyVar, replacement);
@@ -323,7 +322,7 @@ public final class TypeInference
     }
   }
 
-  InstResult instL(Context ctx, TypeVar a, SystemFType ty) {
+  InstResult instL(Context ctx, TypeVar<SystemFType> a, SystemFType ty) {
     var input = ctx + " |- ^" + a + " :=< " + ty;
 
     if (ty instanceof SystemFType.EtVar etvar && ctx.before(a, etvar.tyVar)) {
@@ -337,11 +336,11 @@ public final class TypeInference
           newCtx,
           new InferenceTree("InstLReach", input, "" + newCtx, List.of()));
     } else if (ty instanceof SystemFType.Lit lit) {
-      try (var scope = TypeVar.addScope()) {
+      try (var scope = TypeVar.<SystemFType>addScope()) {
         var litType = new SystemFType.Lit(lit.ident,
-            lit.parameters.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar())).toList());
+            lit.parameters.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar<>())).toList());
 
-        List<TypeVar> existentials = scope.createdVars();
+        List<TypeVar<SystemFType>> existentials = scope.createdVars();
 
         var breakRes = ctx.break3(entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
 
@@ -368,8 +367,8 @@ public final class TypeInference
         throw new RuntimeException(e);
       }
     } else if (ty instanceof SystemFType.Arrow arrow) {
-      var a1 = new TypeVar();
-      var a2 = new TypeVar();
+      var a1 = new TypeVar<SystemFType>();
+      var a2 = new TypeVar<SystemFType>();
       var breakRes = ctx.break3(
           entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
       var arrowType = new SystemFType.Arrow(
@@ -394,11 +393,11 @@ public final class TypeInference
               "" + instLRes.ctx(),
               List.of(instRRes.tree(), instLRes.tree())));
     } else if (ty instanceof SystemFType.Tuple tuple) {
-      try (var scope = TypeVar.addScope()) {
+      try (var scope = TypeVar.<SystemFType>addScope()) {
         var tupleType = new SystemFType.Tuple(
-            tuple.elements.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar())).toList());
+            tuple.elements.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar<>())).toList());
 
-        List<TypeVar> existentials = scope.createdVars();
+        List<TypeVar<SystemFType>> existentials = scope.createdVars();
 
         var breakRes = ctx.break3(entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
 
@@ -458,7 +457,7 @@ public final class TypeInference
     }
   }
 
-  InstResult instR(Context ctx, SystemFType ty, TypeVar a) {
+  InstResult instR(Context ctx, SystemFType ty, TypeVar<SystemFType> a) {
     var input = ctx + " |- " + ty + " :=< ^" + a;
     if (ty instanceof SystemFType.EtVar etvar) {
       var breakRes = ctx.break3(
@@ -472,11 +471,11 @@ public final class TypeInference
           newCtx,
           new InferenceTree("InstRReach", input, "" + newCtx, List.of()));
     } else if (ty instanceof SystemFType.Lit lit) {
-      try (var scope = TypeVar.addScope()) {
+      try (var scope = TypeVar.<SystemFType>addScope()) {
         var litType = new SystemFType.Lit(lit.ident,
-            lit.parameters.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar())).toList());
+            lit.parameters.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar<>())).toList());
 
-        List<TypeVar> existentials = scope.createdVars();
+        List<TypeVar<SystemFType>> existentials = scope.createdVars();
 
         var breakRes = ctx.break3(entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
 
@@ -504,8 +503,8 @@ public final class TypeInference
       }
 
     } else if (ty instanceof SystemFType.Arrow arrow) {
-      var a1 = new TypeVar();
-      var a2 = new TypeVar();
+      var a1 = new TypeVar<SystemFType>();
+      var a2 = new TypeVar<SystemFType>();
       var breakRes = ctx.break3(
           entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
       var arrowType = new SystemFType.Arrow(
@@ -530,11 +529,11 @@ public final class TypeInference
               "" + instLRes.ctx(),
               List.of(instRRes.tree(), instLRes.tree())));
     } else if (ty instanceof SystemFType.Tuple tuple) {
-      try (var scope = TypeVar.addScope()) {
+      try (var scope = TypeVar.<SystemFType>addScope()) {
         var tupleType = new SystemFType.Tuple(
-            tuple.elements.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar())).toList());
+            tuple.elements.stream().map(p -> (SystemFType) new SystemFType.EtVar(new TypeVar<>())).toList());
 
-        List<TypeVar> existentials = scope.createdVars();
+        List<TypeVar<SystemFType>> existentials = scope.createdVars();
 
         var breakRes = ctx.break3(entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
 

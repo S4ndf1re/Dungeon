@@ -141,7 +141,7 @@ public class DgirTestUtils {
    * not drawn. Also renders a PNG image. The file name is derived from the
    * calling test method via the stack walker and suffixed with {@code .expr}.
    */
-  public static <E extends Expression<E, T>, T extends Type> void saveDotExpr(E expr) {
+  public static <E extends Expression<E, T>, T extends Type<T>> void saveDotExpr(E expr) {
     saveDotAndPng(".expr", DotExpression.toDot(expr, DotExpression.VisitGetChildrenOption.ONLY_INSTANTIATED));
   }
 
@@ -151,7 +151,7 @@ public class DgirTestUtils {
    * PNG image. The file name is derived from the calling test method via the
    * stack walker and suffixed with {@code .expr.preinst}.
    */
-  public static <E extends Expression<E, T>, T extends Type> void saveDotExprPreInstantiation(E expr) {
+  public static <E extends Expression<E, T>, T extends Type<T>> void saveDotExprPreInstantiation(E expr) {
     saveDotAndPng(".expr.preinst", DotExpression.toDot(expr, DotExpression.VisitGetChildrenOption.ALL_CHILDREN));
   }
 
@@ -162,7 +162,7 @@ public class DgirTestUtils {
    * is derived from the calling test method via the stack walker and suffixed
    * with {@code .expr.scopes}.
    */
-  public static <E extends Expression<E, T>, T extends Type> void saveDotExprScopes(E expr) {
+  public static <E extends Expression<E, T>, T extends Type<T>> void saveDotExprScopes(E expr) {
     saveDotAndPng(".expr.scopes",
         DotExpression.toDotWithScopes(expr, DotExpression.VisitGetChildrenOption.ONLY_INSTANTIATED));
   }
@@ -172,7 +172,7 @@ public class DgirTestUtils {
    * image. The file name is derived from the calling test method via the stack
    * walker and suffixed with {@code .type}.
    */
-  public static void saveDotType(Type type) {
+  public static void saveDotType(Type<?> type) {
     saveDotAndPng(".type", DotType.toDot(type));
   }
 
@@ -268,7 +268,7 @@ public class DgirTestUtils {
    * @param stagePrefix prefix for the file name suffixes (e.g. {@code
    *                    "algoW"}), may be empty.
    */
-  public static <E extends Expression<E, T>, T extends Type> void saveInferenceCfg(
+  public static <E extends Expression<E, T>, T extends Type<T>> void saveInferenceCfg(
       String stagePrefix, Operation inputOp, E solvedExpr) {
     saveDotCfg(stagePrefix + ".input.cfg", inputOp);
 

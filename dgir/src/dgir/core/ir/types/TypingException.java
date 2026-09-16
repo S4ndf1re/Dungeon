@@ -79,10 +79,10 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class OccursCheckFailed extends TypingException {
 
-    public final Type type;
-    public final TypeVar symbol;
+    public final Type<?> type;
+    public final TypeVar<?> symbol;
 
-    public OccursCheckFailed(Type type, TypeVar symbol) {
+    public OccursCheckFailed(Type<?> type, TypeVar<?> symbol) {
       super("Occurs-Check failed: " + symbol + " occurs in " + type);
       this.symbol = symbol;
       this.type = type;
@@ -91,10 +91,10 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class UnificationFailed extends TypingException {
 
-    public final Type left;
-    public final Type right;
+    public final Type<?> left;
+    public final Type<?> right;
 
-    public UnificationFailed(Type left, Type right) {
+    public UnificationFailed(Type<?> left, Type<?> right) {
       super("Unification failed: " + left + " != " + right);
       this.left = left;
       this.right = right;
@@ -129,10 +129,10 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class SubtypingFailed extends TypingException {
 
-    public final Type left;
-    public final Type right;
+    public final Type<?> left;
+    public final Type<?> right;
 
-    public SubtypingFailed(Type left, Type right) {
+    public SubtypingFailed(Type<?> left, Type<?> right) {
       super("Subtyping error between " + left + " and " + right);
       this.left = left;
       this.right = right;
@@ -161,9 +161,9 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class ExpectedLiteral extends TypingException {
     public final Symbol<?, ?> sym;
-    public final Type type;
+    public final Type<?> type;
 
-    public ExpectedLiteral(Symbol<?, ?> sym, Type type) {
+    public ExpectedLiteral(Symbol<?, ?> sym, Type<?> type) {
       super(sym + " has an invalid type: " + type + ". Expected Literal");
       this.sym = sym;
       this.type = type;

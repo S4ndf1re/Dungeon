@@ -16,11 +16,9 @@ import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.GetChildrenFunction;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunctionResult;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InstantiateFunction;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.ReplaceSymbolFunction;
 import dgir.core.ir.types.builtin.algorithmw.InferResult;
-import dgir.core.ir.types.builtin.algorithmw.Subst;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
@@ -59,36 +57,30 @@ public final class ScfAlgoWConversion {
     InferFunction<IfData> infFunc = (eng, env, data) -> {
 
       InferResult resCond = eng.infer(data.cond(), env);
-      Subst finalSubst = resCond.subst();
-      var condType = finalSubst.apply(resCond.type());
+      var condType = resCond.type();
 
-      var unifyCondRes = eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
-      finalSubst = unifyCondRes.subst().compose(finalSubst);
+      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
 
       InferResult resThen = eng.infer(data.thenCase(), env);
-      finalSubst = resThen.subst().compose(finalSubst);
-      var thenType = finalSubst.apply(resThen.type());
+      var thenType = resThen.type();
 
       if (data.elseCase().isPresent()) {
         InferResult resElse = eng.infer(data.elseCase().get(), env);
-        finalSubst = resElse.subst().compose(finalSubst);
-        var elseType = finalSubst.apply(resElse.type());
+        var elseType = resElse.type();
 
-        var unifyBranchesRes = eng.unify(thenType, elseType);
-        finalSubst = unifyBranchesRes.subst().compose(finalSubst);
+        eng.unify(thenType, elseType);
       }
 
       AlgorithmWType resultType;
       if (op.getOutput().isPresent()) {
-        resultType = finalSubst.apply(thenType);
+        resultType = thenType;
       } else {
         // An if without results is only well-typed when both branches are unit.
-        var unifyUnitRes = eng.unify(thenType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
-        finalSubst = unifyUnitRes.subst().compose(finalSubst);
+        eng.unify(thenType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
         resultType = new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT);
       }
 
-      return new InferFunctionResult(finalSubst, resultType);
+      return resultType;
     };
 
     GetChildrenFunction<IfData> getChildrenFn = (data) -> {
@@ -240,20 +232,16 @@ public final class ScfAlgoWConversion {
     InferFunction<WhileData> infFunc = (eng, env, data) -> {
 
       InferResult resCond = eng.infer(data.cond(), env);
-      Subst finalSubst = resCond.subst();
-      var condType = finalSubst.apply(resCond.type());
+      var condType = resCond.type();
 
-      var unifyCondRes = eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
-      finalSubst = unifyCondRes.subst().compose(finalSubst);
+      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
 
       InferResult resBody = eng.infer(data.body(), env);
-      finalSubst = resBody.subst().compose(finalSubst);
-      var bodyType = finalSubst.apply(resBody.type());
+      var bodyType = resBody.type();
 
-      var unifyBodyRes = eng.unify(bodyType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
-      finalSubst = unifyBodyRes.subst().compose(finalSubst);
+      eng.unify(bodyType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
 
-      return new InferFunctionResult(finalSubst, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
+      return new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT);
     };
 
     GetChildrenFunction<WhileData> getChildrenFn = (data) -> {
@@ -308,25 +296,20 @@ public final class ScfAlgoWConversion {
     InferFunction<SelectData> infFunc = (eng, env, data) -> {
 
       InferResult resCond = eng.infer(data.cond(), env);
-      Subst finalSubst = resCond.subst();
-      var condType = finalSubst.apply(resCond.type());
+      var condType = resCond.type();
 
-      var unifyCondRes = eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
-      finalSubst = unifyCondRes.subst().compose(finalSubst);
+      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
 
       InferResult resTrue = eng.infer(data.trueVal(), env);
-      finalSubst = resTrue.subst().compose(finalSubst);
-      var trueType = finalSubst.apply(resTrue.type());
+      var trueType = resTrue.type();
 
       InferResult resFalse = eng.infer(data.falseVal(), env);
-      finalSubst = resFalse.subst().compose(finalSubst);
-      var falseType = finalSubst.apply(resFalse.type());
+      var falseType = resFalse.type();
 
-      var unifyValsRes = eng.unify(trueType, falseType);
-      finalSubst = unifyValsRes.subst().compose(finalSubst);
-      var resultType = finalSubst.apply(trueType);
+      eng.unify(trueType, falseType);
+      var resultType = trueType;
 
-      return new InferFunctionResult(finalSubst, resultType);
+      return resultType;
     };
 
     GetChildrenFunction<SelectData> getChildrenFn = (data) -> {
@@ -380,10 +363,9 @@ public final class ScfAlgoWConversion {
     InferFunction<YieldData> infFunc = (eng, env, data) -> {
 
       InferResult resValue = eng.infer(data.value(), env);
-      Subst finalSubst = resValue.subst();
-      var valueType = finalSubst.apply(resValue.type());
+      var valueType = resValue.type();
 
-      return new InferFunctionResult(finalSubst, valueType);
+      return valueType;
     };
 
     GetChildrenFunction<YieldData> getChildrenFn = (data) -> {
@@ -423,8 +405,7 @@ public final class ScfAlgoWConversion {
     record JumpData() {
     }
 
-    InferFunction<JumpData> infFunc = (eng, env, data) -> new InferFunctionResult(
-        Subst.newEmpty(), new AlgorithmWType.Var(new TypeVar()));
+    InferFunction<JumpData> infFunc = (eng, env, data) -> new AlgorithmWType.Var(new TypeVar<>(engine.getCurrentLevel()));
 
     var result = new Expr.ExprCustom<JumpData>(new JumpData(), infFunc, null, null, null);
 
@@ -440,8 +421,7 @@ public final class ScfAlgoWConversion {
     record EndData() {
     }
 
-    InferFunction<EndData> infFunc = (eng, env, data) -> new InferFunctionResult(
-        Subst.newEmpty(), new AlgorithmWType.Var(new TypeVar()));
+    InferFunction<EndData> infFunc = (eng, env, data) -> new AlgorithmWType.Var(new TypeVar<>(engine.getCurrentLevel()));
 
     var result = new Expr.ExprCustom<EndData>(new EndData(), infFunc, null, null, null);
 

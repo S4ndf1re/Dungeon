@@ -322,8 +322,7 @@ public final class Operation implements Serializable, Cloneable {
   /**
    * Run the {@link OperationVerifier} on this operation.
    *
-   * @param recursive {@code true} to also verify all nested operations and
-   *                  blocks.
+   * @param verifyOptions Options for configuring the OperationVerifier.
    * @return {@code true} if verification succeeds.
    */
   @Contract(pure = true)

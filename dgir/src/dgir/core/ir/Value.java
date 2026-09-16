@@ -210,6 +210,7 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
     }
   }
 
+  @Override
   public void replaceAllUsesIn(@NotNull Value newValue, Operation op) {
     if (this.type.isKnown() && newValue.type.isKnown()) {
       assert newValue.getType().equals(type.getAsKnownOrThrow()) : "Cannot replace with a value of different type.";
@@ -225,6 +226,7 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
     }
   }
 
+  @Override
   public void replaceAllUsesIn(@NotNull Value newValue, Region region) {
     if (this.type.isKnown() && newValue.type.isKnown()) {
       assert newValue.getType().equals(type.getAsKnownOrThrow()) : "Cannot replace with a value of different type.";
