@@ -14,19 +14,17 @@ import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
-import dgir.core.ir.types.TypeDialect;
+import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
-import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.traits.ISymbol;
 
 public final class TypeInference
-    extends TypeDialect.TypeInferenceSolver<Expr, AlgorithmWType> {
+    extends TypeInferenceSolver<TypeInference, Expr, AlgorithmWType> {
 
-  private ConvertedOperationBuffer<Expr, AlgorithmWType, TypeInference> operationToExprBuffer;
 
   public TypeInference() {
     this(new TypeDialectConverterRegistry());
@@ -34,7 +32,6 @@ public final class TypeInference
 
   public TypeInference(TypeDialectConverterRegistry registry) {
     super(registry);
-    operationToExprBuffer = new ConvertedOperationBuffer<>();
   }
 
   @Override
@@ -123,18 +120,6 @@ public final class TypeInference
     InferResult res = expr.infer(this, env);
     expr.setInferredType(Optional.ofNullable(res.type()));
     return res;
-  }
-
-  @Override
-  public Expr asExpression(ExprOrOperator<Expr, AlgorithmWType> exprOrOp) {
-    if (exprOrOp.isExpr()) {
-      return exprOrOp.getExpr();
-    } else if (exprOrOp.isOperator()) {
-      var op = exprOrOp.getOp();
-      return this.operationToExprBuffer.operationToExpr(this, op, this.registry, Expr.class);
-    } else {
-      throw new RuntimeException("unimplemented for OPs");
-    }
   }
 
   public UnifyResult unify(AlgorithmWType left, AlgorithmWType right) {

@@ -36,7 +36,7 @@ public class OperatorInferenceTest {
   @Test
   public void simpleFunctionInference1() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
     ProgramOp programOp = entry.getLeft();
@@ -61,7 +61,7 @@ public class OperatorInferenceTest {
   @Test
   public void simpleFunctionInference2() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
     ProgramOp programOp = entry.getLeft();
@@ -88,7 +88,7 @@ public class OperatorInferenceTest {
   @Test
   public void simpleBinOpInference() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
     ProgramOp programOp = entry.getLeft();
@@ -115,7 +115,7 @@ public class OperatorInferenceTest {
   @Test
   public void simpleBinOpInference2() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
     ProgramOp programOp = entry.getLeft();

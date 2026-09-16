@@ -7,7 +7,6 @@ import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Value;
-import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
@@ -16,7 +15,7 @@ import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
-import dgir.core.ir.types.TypeDialect;
+import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypeVar.TypeVarScope;
 import dgir.core.ir.types.TypingException;
@@ -27,7 +26,7 @@ import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.traits.ISymbol;
 
 public final class TypeInference
-    extends TypeDialect.TypeInferenceSolver<Expr, SystemFType> {
+    extends TypeInferenceSolver<TypeInference, Expr, SystemFType> {
 
   private ConvertedOperationBuffer<Expr, SystemFType, TypeInference> operationToExprBuffer;
   private Context startContext;
@@ -129,9 +128,8 @@ public final class TypeInference
 
   @Override
   public SolveResult<Expr> solve(ExprOrOperator<Expr, SystemFType> exprOrOp) {
-    var context = new Context();
     var expr = this.asExpression(exprOrOp);
-    var res = this.infer(context, expr);
+    var res = this.infer(this.getStartContext(), expr);
     var solutionCtx = res.ctx().copy();
     SystemFType finalType = solutionCtx.apply(res.type());
 
@@ -161,17 +159,6 @@ public final class TypeInference
     var inferredResult = expr.infer(this, ctx);
     expr.setInferredType(Optional.ofNullable(inferredResult.ctx().apply(inferredResult.type())));
     return inferredResult;
-  }
-
-  public Expr asExpression(ExprOrOperator<Expr, SystemFType> expr) {
-    if (expr.isExpr()) {
-      return expr.getExpr();
-    } else if (expr.isOperator()) {
-      Operation op = expr.getOp();
-      return this.operationToExprBuffer.operationToExpr(this, op, this.registry, Expr.class);
-    } else {
-      throw new RuntimeException("unimplemented for OPs");
-    }
   }
 
   public CheckResult check(Context ctx, ExprOrOperator<Expr, SystemFType> exprParam, SystemFType ty) {

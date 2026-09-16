@@ -1,51 +1,20 @@
 package dgir.core.ir.types.builtin.algorithmw;
 
-import dgir.core.ir.types.Expression;
-import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
-import dgir.core.ir.types.compatibility.ConverterRegistry;
-
-import java.util.List;
-import java.util.Optional;
+import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
 public final class AlgorithmWInference
     extends
-    TypeDialect<Expr, AlgorithmWType> {
-
-  private static Optional<TypeInference> instance = Optional.empty();
+    TypeDialect<TypeInference, Expr, AlgorithmWType> {
 
   @Override
-  public TypeInferenceSolver<Expr, AlgorithmWType> getSolverInstance() {
-    var converterRegistry = ConverterRegistry.getConverterForDialect(AlgorithmWInference.class);
-
-    // The solver binds to the converter registry at creation time. If converters
-    // were registered after a default solver was cached, rebuild it so the
-    // registered converters become visible.
-    if (instance.isPresent()
-        && converterRegistry.isPresent()
-        && instance.get().getRegistry() != converterRegistry.get()) {
-      instance = Optional.empty();
-    }
-
-    if (instance.isPresent()) {
-      return instance.get();
-    }
-
-    TypeInference solver = converterRegistry.isPresent()
-        ? new TypeInference(converterRegistry.get())
-        : new TypeInference();
-    AlgorithmWInference.instance = Optional.of(solver);
-    return solver;
+  protected TypeInference instantiateSolver() {
+    return new TypeInference();
   }
 
   @Override
-  public List<Class<? extends Type>> getAllowedTypes() {
-    return TypeDialect.extractTypesFromAbstract(AlgorithmWType.class);
-  }
-
-  @Override
-  public List<Class<? extends Expression<Expr, AlgorithmWType>>> getAllowedExpressions() {
-    return TypeDialect.extractExpressionsFromAbstract(Expr.class);
+  protected TypeInference instantiateSolver(TypeDialectConverterRegistry registry) {
+    return new TypeInference(registry);
   }
 
 }
