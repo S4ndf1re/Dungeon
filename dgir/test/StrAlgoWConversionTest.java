@@ -49,7 +49,7 @@ public class StrAlgoWConversionTest {
 
   private static Pair<Type, List<Operation>> solve(ProgramOp programOp) {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
         DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
         DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());

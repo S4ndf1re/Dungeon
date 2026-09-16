@@ -1,47 +1,21 @@
 package dgir.core.ir.types.builtin.systemf;
 
-import dgir.core.ir.types.Expression;
-import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeDialect;
-import dgir.core.ir.types.compatibility.ConverterRegistry;
-import java.util.List;
-import java.util.Optional;
+import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
 public final class SystemFInference
     extends
-    TypeDialect<Expr, SystemFType> {
-
-  private static Optional<TypeInference> solver = Optional.empty();
+    TypeDialect<TypeInference, Expr, SystemFType> {
 
   @Override
-  public List<Class<? extends Type>> getAllowedTypes() {
-    return TypeDialect.extractTypesFromAbstract(SystemFType.class);
+  protected TypeInference instantiateSolver() {
+    return new TypeInference();
   }
 
   @Override
-  public List<Class<? extends Expression<Expr, SystemFType>>> getAllowedExpressions() {
-    return TypeDialect.extractExpressionsFromAbstract(Expr.class);
+  protected TypeInference instantiateSolver(TypeDialectConverterRegistry registry) {
+    return new TypeInference(registry);
   }
-
-  @Override
-  public TypeInferenceSolver<Expr, SystemFType> getSolverInstance() {
-    if (SystemFInference.solver.isPresent()) {
-      return SystemFInference.solver.get();
-    } else {
-      TypeInference solverInstance = null;
-      var converterRegistry = ConverterRegistry.getConverterForDialect(SystemFInference.class);
-      if (converterRegistry.isPresent()) {
-        solverInstance = new TypeInference(converterRegistry.get());
-      } else {
-        solverInstance = new TypeInference();
-      }
-      SystemFInference.solver = Optional.of(solverInstance);
-      return solverInstance;
-    }
-  }
-
-
-
 
 
 }

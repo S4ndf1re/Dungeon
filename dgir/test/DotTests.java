@@ -45,7 +45,7 @@ public class DotTests {
   @Test
   public void expressionDotRenders() throws Exception {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Expr expr = this.buildConstExample();
     solver.solve(expr);

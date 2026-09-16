@@ -44,7 +44,7 @@ public class AlgorithmWTest {
     assert allowedExpression.contains(Expr.ExprReturn.class);
     assert allowedExpression.contains(Expr.ExprCustom.class);
 
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
     assert solver != null;
     assert solver.getClass().equals(TypeInference.class);
   }
@@ -52,7 +52,7 @@ public class AlgorithmWTest {
   @Test
   public void algorithmWTest() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var cnst = Symbol.<Expr, AlgorithmWType>of(new Value());
     var x = Symbol.<Expr, AlgorithmWType>of(new Value());
@@ -83,7 +83,7 @@ public class AlgorithmWTest {
   @Test
   public void annotationTest() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var cnst = Symbol.<Expr, AlgorithmWType>of(new Value());
     var x = Symbol.<Expr, AlgorithmWType>of(new Value());
@@ -118,7 +118,7 @@ public class AlgorithmWTest {
   @Test
   public void annotation2Test() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var cnst = Symbol.<Expr, AlgorithmWType>of(new Value());
     var x = Symbol.<Expr, AlgorithmWType>of(new Value());
@@ -162,7 +162,7 @@ public class AlgorithmWTest {
   @Test
   public void cyclicFunctionUse() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Symbol<Expr, AlgorithmWType> a = Symbol.<Expr, AlgorithmWType>of(new Value());
     Symbol<Expr, AlgorithmWType> b = Symbol.<Expr, AlgorithmWType>of(new Value());
@@ -198,7 +198,7 @@ public class AlgorithmWTest {
   @Test
   public void cyclicFunctionUse2() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Symbol<Expr, AlgorithmWType> a = Symbol.<Expr, AlgorithmWType>of(new Value());
     Symbol<Expr, AlgorithmWType> b = Symbol.<Expr, AlgorithmWType>of(new Value());
@@ -233,7 +233,7 @@ public class AlgorithmWTest {
   @Test
   public void recursiveFunctionUse() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Symbol<Expr, AlgorithmWType> f = Symbol.<Expr, AlgorithmWType>of(new Value());
     Symbol<Expr, AlgorithmWType> x = Symbol.<Expr, AlgorithmWType>of(new Value());
@@ -265,7 +265,7 @@ public class AlgorithmWTest {
   @Test
   public void multiParamFunction() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Symbol<Expr, AlgorithmWType> a = Symbol.<Expr, AlgorithmWType>of(new Value());
     Symbol<Expr, AlgorithmWType> x = Symbol.<Expr, AlgorithmWType>of(new Value());
@@ -298,7 +298,7 @@ public class AlgorithmWTest {
   @Test
   public void letPolymorphism() {
     var inference = new AlgorithmWInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var cnst = Symbol.<Expr, AlgorithmWType>of(new Value());
     var x = Symbol.<Expr, AlgorithmWType>of(new Value());
