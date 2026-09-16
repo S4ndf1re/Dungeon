@@ -5,9 +5,9 @@ import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeInferenceSolver;
 
-public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, S, EngineT>, T extends Type, S extends dgir.core.ir.types.traits.IInstantiable.SolutionContext<E, T, EngineT, S>, EngineT extends TypeInferenceSolver<EngineT, E, T>> {
+public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, S, EngineT>, T extends Type<T>, S extends dgir.core.ir.types.traits.IInstantiable.SolutionContext<E, T, EngineT, S>, EngineT extends TypeInferenceSolver<EngineT, E, T>> {
 
-  public interface SolutionContext<E extends Expression<E, T>, T extends Type, EngineT extends TypeInferenceSolver<EngineT, E, T>, SCtxT extends SolutionContext<E, T, EngineT, SCtxT>> {
+  public interface SolutionContext<E extends Expression<E, T>, T extends Type<T>, EngineT extends TypeInferenceSolver<EngineT, E, T>, SCtxT extends SolutionContext<E, T, EngineT, SCtxT>> {
     /**
      * Apply the type to the solution, resolting in an applied type that contains
      * the solution in its described type!
@@ -23,7 +23,7 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
      * `this`. Algorithms like AlgorithmW actually require solution expansion during
      * beta-reduction of variables
      */
-    public SCtxT expand(EngineT engine, T ty1, T ty2);
+    public SCtxT expand(EngineT engine, E target, T expectedType);
   }
 
   /**
@@ -125,8 +125,8 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
         var referencedInferredType = referencedExprAsExpr.getInferredType();
 
         if (referencedInferredType.isPresent() && instantiatedTarget.getInferredType().isPresent()) {
-          S finalSolutionCtx = solutionContext.expand(engine, instantiatedTarget.getInferredType().get(),
-              referencedInferredType.get());
+          S finalSolutionCtx = solutionContext.expand(engine, referencedExprAsExpr,
+              instantiatedTarget.getInferredType().get());
 
           var copiedExpr = referencedExprAsExpr.copy();
           copiedExpr.setParentScopeExpression(scopeExpression, referencedFromEnv.map(e -> e.getRight()));

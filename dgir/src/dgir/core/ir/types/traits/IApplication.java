@@ -7,7 +7,7 @@ import java.util.List;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
 
-public interface IApplication<E extends Expression<E, T>, T extends Type> {
+public interface IApplication<E extends Expression<E, T>, T extends Type<T>> {
   /**
    * This is meant for applications / Arrow function applications(calls) to return
    * a list of all

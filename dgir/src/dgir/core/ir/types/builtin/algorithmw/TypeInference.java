@@ -9,11 +9,11 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
+import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
@@ -25,9 +25,11 @@ import dgir.core.traits.ISymbol;
 public final class TypeInference
     extends TypeInferenceSolver<TypeInference, Expr, AlgorithmWType> {
 
+  private int currentLevel;
 
   public TypeInference() {
     this(new TypeDialectConverterRegistry());
+    this.currentLevel = 0;
   }
 
   public TypeInference(TypeDialectConverterRegistry registry) {
@@ -40,7 +42,7 @@ public final class TypeInference
       Optional<ConversionContext<Expr, AlgorithmWType>> data) {
     List<AlgorithmWType> paramTypes = type.getTypedParameters().stream().map(param -> switch (param) {
       case GeneralTypeParameter.Concrete con -> this.generalNominalTypeToInferenceType(con.ty(), data).getLeft();
-      case GeneralTypeParameter.Unknown unk -> new AlgorithmWType.Var(new TypeVar());
+      case GeneralTypeParameter.Unknown unk -> new AlgorithmWType.Var(new TypeVar<>());
       case GeneralTypeParameter.Numeric num -> new AlgorithmWType.NumericType(num.number());
     }).toList();
 
@@ -94,17 +96,17 @@ public final class TypeInference
   }
 
   @Override
-  public SolveResult<Expr> solve(ExprOrOperator<Expr, AlgorithmWType> exprOrOp) {
+  public SolveResult<Expr, AlgorithmWType> solve(ExprOrOperator<Expr, AlgorithmWType> exprOrOp) {
     Env env = new Env();
     Expr expr = this.asExpression(exprOrOp);
     InferResult res = this.infer(expr, env);
-    var finalType = res.subst().apply(res.type());
+    var finalType = res.type();
 
-    var instantiated = expr.instantiate(this, new InstEnv<>(expr), res.subst());
+    var instantiated = expr.instantiate(this, new InstEnv<>(expr), Subst.newEmpty());
 
     instantiated = this.postSolve(instantiated);
 
-    return new SolveResult<>((Type) finalType, expr, instantiated);
+    return new SolveResult<>(finalType, expr, instantiated);
   }
 
   /**
@@ -117,15 +119,21 @@ public final class TypeInference
    * inferred result in combination with the already inferred {@link Expr}
    */
   public InferResult infer(Expr expr, Env env) {
+    this.currentLevel += 1;
     InferResult res = expr.infer(this, env);
+    this.currentLevel -= 1;
     expr.setInferredType(Optional.ofNullable(res.type()));
     return res;
   }
 
-  public UnifyResult unify(AlgorithmWType left, AlgorithmWType right) {
+  public InferenceTree unify(AlgorithmWType left, AlgorithmWType right) {
     if (right instanceof AlgorithmWType.Var) {
       return right.unify(this, left);
     }
     return left.unify(this, right);
+  }
+
+  public int getCurrentLevel() {
+    return this.currentLevel;
   }
 }

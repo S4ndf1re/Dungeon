@@ -47,7 +47,7 @@ public class CfAlgoWConversionTest {
     CfAlgoWConversion.registerBuiltinAlgoWConversion();
   }
 
-  private static Pair<Type, List<Operation>> solve(ProgramOp programOp) {
+  private static Pair<Type<AlgorithmWType>, List<Operation>> solve(ProgramOp programOp) {
     var inference = new AlgorithmWInference();
     var solver = inference.getNewSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));

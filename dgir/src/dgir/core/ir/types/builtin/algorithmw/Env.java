@@ -62,8 +62,8 @@ public final class Env extends ScopeLike<AlgorithmWType> implements ConversionCo
    *
    * @return
    */
-  public Set<TypeVar> freeTypeVars() {
-    var set = new HashSet<TypeVar>();
+  public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
+    var set = new HashSet<TypeVar<AlgorithmWType>>();
 
     for (var entry : this.env.entrySet()) {
       set.addAll(entry.getValue().freeTypeVars());

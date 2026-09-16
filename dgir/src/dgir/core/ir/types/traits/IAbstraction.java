@@ -7,7 +7,7 @@ import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
 
-public interface IAbstraction<E extends Expression<E, T>, T extends Type> {
+public interface IAbstraction<E extends Expression<E, T>, T extends Type<T>> {
   /**
    * This is meant for abstractions / Arrow functions to return a list of all
    * abstracted symbols.

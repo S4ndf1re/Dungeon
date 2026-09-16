@@ -58,7 +58,7 @@ public class DotExpression {
    * @param <T>  the concrete type attached to the expressions.
    * @return a DOT digraph string.
    */
-  public static <E extends Expression<E, T>, T extends Type> String toDot(E root) {
+  public static <E extends Expression<E, T>, T extends Type<T>> String toDot(E root) {
     return toDot(root, VisitGetChildrenOption.ALL_CHILDREN);
   }
 
@@ -73,7 +73,7 @@ public class DotExpression {
    * @param <T>               the concrete type attached to the expressions.
    * @return a DOT digraph string.
    */
-  public static <E extends Expression<E, T>, T extends Type> String toDot(
+  public static <E extends Expression<E, T>, T extends Type<T>> String toDot(
       E root,
       VisitGetChildrenOption getChildrenOption) {
     StringBuilder dot = new StringBuilder();
@@ -102,7 +102,7 @@ public class DotExpression {
    * @param <T>  the concrete type attached to the expressions.
    * @return a DOT digraph string with one cluster per bounding scope.
    */
-  public static <E extends Expression<E, T>, T extends Type> String toDotWithScopes(E root) {
+  public static <E extends Expression<E, T>, T extends Type<T>> String toDotWithScopes(E root) {
     return toDotWithScopes(root, VisitGetChildrenOption.ALL_CHILDREN);
   }
 
@@ -113,7 +113,7 @@ public class DotExpression {
    * @param getChildrenOption whether to follow all children or only the
    *                          instantiable ones.
    */
-  public static <E extends Expression<E, T>, T extends Type> String toDotWithScopes(
+  public static <E extends Expression<E, T>, T extends Type<T>> String toDotWithScopes(
       E root,
       VisitGetChildrenOption getChildrenOption) {
     StringBuilder dot = new StringBuilder();
@@ -140,7 +140,7 @@ public class DotExpression {
     return dot.toString();
   }
 
-  private static <E extends Expression<E, T>, T extends Type> String appendExpression(
+  private static <E extends Expression<E, T>, T extends Type<T>> String appendExpression(
       StringBuilder dot,
       E expr,
       IdentityHashMap<Expression<E, T>, String> emitted,

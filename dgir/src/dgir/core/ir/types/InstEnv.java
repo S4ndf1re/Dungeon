@@ -10,7 +10,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.types.traits.IExpressionCell;
 
-public final class InstEnv<E extends Expression<E, T>, T extends Type, S> extends HashConsing<E, T> {
+public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> extends HashConsing<E, T> {
   private Optional<InstEnv<E, T, S>> parentEnv;
   private E bindingExpression;
   private HashMap<Symbol<E, T>, Pair<E, Integer>> env;

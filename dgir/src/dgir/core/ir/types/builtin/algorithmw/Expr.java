@@ -228,16 +228,14 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       InferResult res = engine.infer(expr, env);
 
       var unifyRes = engine.unify(res.type(), type);
-      var subst = unifyRes.subst().compose(res.subst());
 
       return new InferResult(
-          subst,
           type,
           new InferenceTree(
               "T-Ann",
               env + " |- " + this,
               type.toString(),
-              List.of(res.tree())));
+              List.of(res.tree(), unifyRes)));
     }
 
     @Override
@@ -310,7 +308,6 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     public InferResult infer(TypeInference engine, Env env) {
       var algoWType = engine.generalNominalTypeToInferenceType(value.toParameterizedNominalType(), null);
       return new InferResult(
-          Subst.newEmpty(),
           algoWType.getLeft(),
           new InferenceTree(
               "T-" + algoWType,
@@ -405,15 +402,12 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     @Override
     public InferResult infer(TypeInference engine, Env env) {
       String input = env + " |- " + this;
-      Subst subst = Subst.newEmpty();
       ArrayList<AlgorithmWType> types = new ArrayList<>();
       ArrayList<InferenceTree> trees = new ArrayList<>();
       Env currentEnv = env.copy();
 
       for (var expr : elements) {
         var res = engine.infer(expr, currentEnv);
-        subst = res.subst().compose(subst);
-        currentEnv = currentEnv.apply(res.subst());
         types.add(res.type());
         trees.add(res.tree());
       }
@@ -421,7 +415,6 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       var resultType = new AlgorithmWType.Tuple(List.copyOf(types));
 
       return new InferResult(
-          subst,
           resultType,
           new InferenceTree(
               "T-Tuple",
@@ -501,9 +494,8 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
 
       Scheme scheme = env.get(name);
       if (scheme != null) {
-        AlgorithmWType instantiated = scheme.instantiate(engine, this.name);
+        AlgorithmWType instantiated = scheme.instantiate(engine);
         return new InferResult(
-            Subst.newEmpty(),
             instantiated,
             new InferenceTree(
                 "T-Var",
@@ -632,10 +624,10 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
 
       var funcExpr = engine.asExpression(this.func);
       if (this.inferredFunctionType.isPresent() && funcExpr.getInferredType().isPresent()) {
-        UnifyResult res = engine.unify(this.inferredFunctionType.get(), funcExpr.getInferredType().get());
-        Subst extendedSolution = res.subst().compose(solution);
-        return new ExprApp(this, this.func.instantiate(engine, env, extendedSolution),
-            this.args.stream().map(arg -> arg.instantiate(engine, env, solution)).toList());
+        var newSolution = solution.expand(engine, funcExpr, this.inferredFunctionType.get());
+
+        return new ExprApp(this, this.func.instantiate(engine, env, newSolution),
+            this.args.stream().map(arg -> arg.instantiate(engine, env, newSolution)).toList());
       } else {
         return new ExprApp(this, this.func.instantiate(engine, env, solution),
             this.args.stream().map(arg -> arg.instantiate(engine, env, solution)).toList());
@@ -652,29 +644,16 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     public InferResult infer(TypeInference engine, Env env) {
       String input = env + " |- " + this;
 
-      AlgorithmWType resultType = new AlgorithmWType.Var(new TypeVar());
+      AlgorithmWType resultType = new AlgorithmWType.Var(new TypeVar<>(engine.getCurrentLevel()));
 
-      // TODO: when the function is inferred to be a symbol lookup
-      // (it always is in IR context),
-      // the function type that may be polymorphic is instantiated.
-      // This instantiation must somehow be reflected
-      // within the final Expression tree.
-      // Somehow a all function calls with their call expressions must be tracked to
-      // generate the correctly typed operations after the
-      // type inference and checking.
       InferResult funcInferRes = engine.infer(func, env);
 
-      Env envSubst = env.apply(funcInferRes.subst());
-
-      Subst finalSubst = funcInferRes.subst();
       AlgorithmWType builtArrowType = resultType;
       ArrayList<InferenceTree> trees = new ArrayList<>();
       trees.add(funcInferRes.tree());
 
       for (var arg : this.args.reversed()) {
-        InferResult argRes = engine.infer(arg, envSubst);
-        finalSubst = argRes.subst().compose(finalSubst);
-        envSubst = envSubst.apply(finalSubst);
+        InferResult argRes = engine.infer(arg, env);
         builtArrowType = new AlgorithmWType.Arrow(argRes.type(), builtArrowType);
         trees.add(argRes.tree());
       }
@@ -689,19 +668,12 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
             builtArrowType);
       }
 
-      AlgorithmWType funcTypeSubst = finalSubst.apply(funcInferRes.type());
-      this.inferredFunctionType = Optional.of(funcTypeSubst);
-      UnifyResult unifyRes = engine.unify(funcTypeSubst, builtArrowType);
+      this.inferredFunctionType = Optional.of(funcInferRes.type());
+      var unifyRes = engine.unify(funcInferRes.type(), builtArrowType);
 
-      finalSubst = unifyRes.subst().compose(finalSubst);
-      // NOTE: subst the resultType not the builtArrowType, as the the arrow type is
-      // only needed for unification to build the final subst
-      resultType = finalSubst.apply(resultType);
-
-      trees.add(unifyRes.tree());
+      trees.add(unifyRes);
 
       return new InferResult(
-          finalSubst,
           resultType,
           new InferenceTree(
               "T-App",
@@ -806,9 +778,9 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       String input = env + " |- " + this;
 
       Env newEnv = env.copy();
-      ArrayList<Pair<Symbol<Expr, AlgorithmWType>, TypeVar>> paramsAndTypeVars = new ArrayList<>();
+      ArrayList<Pair<Symbol<Expr, AlgorithmWType>, TypeVar<AlgorithmWType>>> paramsAndTypeVars = new ArrayList<>();
       for (var param : this.params) {
-        var typeVar = new TypeVar();
+        var typeVar = new TypeVar<AlgorithmWType>(engine.getCurrentLevel());
         AlgorithmWType freshTypeVar = new AlgorithmWType.Var(typeVar);
         Scheme newScheme = new Scheme(List.of(), freshTypeVar);
         newEnv.put(param, newScheme);
@@ -816,18 +788,15 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       }
 
       Scope<AlgorithmWType> functionScope = newEnv.addScope();
-      AlgorithmWType retTypeVar = new AlgorithmWType.Var(new TypeVar());
+      AlgorithmWType retTypeVar = new AlgorithmWType.Var(new TypeVar<>(engine.getCurrentLevel()));
       InferResult res = engine.infer(body, newEnv);
-      Subst subst = res.subst();
       ArrayList<InferenceTree> trees = new ArrayList<>();
 
       // Unify all return values. If return values do not have the same type, error
       // will get thrown here!
       for (var retType : functionScope.getAllReturnTypesInScope()) {
-        var unifyRes = engine.unify(retTypeVar, subst.apply(retType));
-        subst = unifyRes.subst().compose(subst);
-        retTypeVar = subst.apply(retTypeVar);
-        trees.add(unifyRes.tree());
+        var unifyRes = engine.unify(retTypeVar, retType);
+        trees.add(unifyRes);
       }
 
       // In terms of IR, the body will not have a direct return parameter. Though it
@@ -838,15 +807,12 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       // expression that actually returns a value of type T.
       // This must then be unified with the retTypeVar collected from all return
       // statements (if present)
-      subst = res.subst().compose(subst);
-      retTypeVar = subst.apply(retTypeVar);
-      UnifyResult retTypeUnify = engine.unify(res.type(), retTypeVar);
-      subst = retTypeUnify.subst().compose(subst);
+      var retTypeUnify = engine.unify(res.type(), retTypeVar);
 
-      AlgorithmWType appliedRetType = subst.apply(retTypeVar);
+      AlgorithmWType appliedRetType = retTypeVar;
       AlgorithmWType resultType = appliedRetType;
       for (var paramAndTypeVar : paramsAndTypeVars.reversed()) {
-        resultType = new AlgorithmWType.Arrow(subst.apply(new AlgorithmWType.Var(paramAndTypeVar.getRight())),
+        resultType = new AlgorithmWType.Arrow(new AlgorithmWType.Var(paramAndTypeVar.getRight()),
             resultType);
       }
 
@@ -860,13 +826,12 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       }
 
       return new InferResult(
-          subst,
           resultType,
           new InferenceTree(
               "T-Abs",
               input,
               resultType.toString(),
-              List.of(res.tree())));
+              List.of(res.tree(), retTypeUnify)));
     }
 
     @Override
@@ -897,8 +862,9 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
         assert currentParamType instanceof AlgorithmWType.Arrow;
         var arrowType = (AlgorithmWType.Arrow) currentParamType;
 
-        assert arrowType.from instanceof AlgorithmWType.LitType : "expected fully type literal, received " + arrowType;
-        var litType = arrowType.from;
+        assert arrowType.from.deref() instanceof AlgorithmWType.LitType
+            : "expected fully type literal, received " + arrowType;
+        var litType = arrowType.from.deref();
 
         var nominalType = litType.asTypeParameter().getConcrete();
         var irType = Type.fromGeneralParameterizedNominalType(nominalType);
@@ -1052,7 +1018,6 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
 
       Env newEnv = env.copy();
 
-      Subst subst = Subst.newEmpty();
       ArrayList<InferenceTree> trees = new ArrayList<>();
 
       for (var binding : this.bindings) {
@@ -1060,23 +1025,18 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
         var value = binding.getRight();
 
         InferResult res1 = engine.infer(value, newEnv);
-        subst = res1.subst().compose(subst);
-        Env envSubst = newEnv.apply(subst);
 
-        Scheme generalizedType = subst.apply(res1.type()).generalize(envSubst);
+        Scheme generalizedType = res1.type().generalize(engine.getCurrentLevel());
 
-        newEnv = envSubst.copy();
         newEnv.put(param, generalizedType);
         trees.add(res1.tree());
       }
 
       InferResult res2 = engine.infer(body, newEnv);
 
-      Subst finalSubst = res2.subst().compose(subst);
       trees.add(res2.tree());
 
       return new InferResult(
-          finalSubst,
           res2.type(),
           new InferenceTree(
               "T-Let*",
@@ -1220,12 +1180,11 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       ArrayList<Triple<Symbol<Expr, AlgorithmWType>, AlgorithmWType, Expr>> notUnified = new ArrayList<>(
           this.bindings.size());
       for (var binding : this.bindings) {
-        var typeVar = new TypeVar();
+        var typeVar = new TypeVar<AlgorithmWType>(engine.getCurrentLevel());
         notUnified.add(Triple.of(binding.getLeft(), new AlgorithmWType.Var(typeVar), binding.getRight()));
-        newEnv.put(binding.getLeft(), new AlgorithmWType.Var(typeVar).generalize(newEnv));
+        newEnv.put(binding.getLeft(), new AlgorithmWType.Var(typeVar).generalize(engine.getCurrentLevel()));
       }
 
-      Subst subst = Subst.newEmpty();
       ArrayList<InferenceTree> trees = new ArrayList<>();
 
       for (var binding : notUnified) {
@@ -1234,27 +1193,21 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
         var value = binding.getRight();
 
         InferResult res1 = engine.infer(value, newEnv);
-        subst = res1.subst().compose(subst);
-        Env envSubst = newEnv.apply(subst);
 
-        UnifyResult unifyRes = engine.unify(typeVar, res1.type());
-        subst = unifyRes.subst().compose(subst);
-        envSubst = envSubst.apply(subst);
+        var unifyRes = engine.unify(typeVar, res1.type());
+        trees.add(unifyRes);
 
-        Scheme generalizedType = subst.apply(res1.type()).generalize(envSubst);
+        Scheme generalizedType = res1.type().generalize(engine.getCurrentLevel());
 
-        newEnv = envSubst.copy();
         newEnv.put(param, generalizedType);
         trees.add(res1.tree());
       }
 
       InferResult res2 = engine.infer(body, newEnv);
 
-      Subst finalSubst = res2.subst().compose(subst);
       trees.add(res2.tree());
 
       return new InferResult(
-          finalSubst,
           res2.type(),
           new InferenceTree(
               "T-Let*",
@@ -1346,18 +1299,16 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     public InferResult infer(TypeInference engine, Env env) {
       String input = env + " |- " + this;
 
-      Subst subst = Subst.newEmpty();
       ArrayList<InferenceTree> trees = new ArrayList<>();
       AlgorithmWType lastType = new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT);
       for (var expr : this.expressions) {
         var infRes = engine.infer(expr, env);
-        subst = infRes.subst().compose(subst);
         trees.add(infRes.tree());
         lastType = infRes.type();
       }
 
-      var resType = subst.apply(lastType);
-      return new InferResult(subst, resType, new InferenceTree("Inf-Seq", input, "" + resType, List.copyOf(trees)));
+      var resType = lastType;
+      return new InferResult(resType, new InferenceTree("Inf-Seq", input, "" + resType, List.copyOf(trees)));
     }
 
     @Override
@@ -1415,12 +1366,12 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       InferResult inferred = engine.infer(this.value, env);
       var topScope = env.topScope();
 
-      var inferredType = inferred.subst().apply(inferred.type());
+      var inferredType = inferred.type();
       if (topScope.isPresent()) {
         topScope.get().addReturnType(inferredType);
       }
 
-      return new InferResult(inferred.subst(), inferredType,
+      return new InferResult(inferredType,
           new InferenceTree("T-Return", input, "" + inferredType, List.of(inferred.tree())));
     }
 
@@ -1451,14 +1402,10 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
   }
 
   public static class ExprCustom<D> extends Expr {
-    public static final record InferFunctionResult(
-        Subst subst,
-        AlgorithmWType type) {
-    }
 
     @FunctionalInterface
     public interface InferFunction<D> {
-      InferFunctionResult infer(TypeInference engine, Env env, D data);
+      AlgorithmWType infer(TypeInference engine, Env env, D data);
     }
 
     @FunctionalInterface
@@ -1550,8 +1497,8 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     public InferResult infer(TypeInference engine, Env env) {
       String input = env + " |- " + this;
       var infRes = this.inferFn.infer(engine, env, data);
-      return new InferResult(infRes.subst, infRes.type,
-          new InferenceTree("T-Cust", input, "" + infRes.type, List.of()));
+      return new InferResult(infRes,
+          new InferenceTree("T-Cust", input, "" + infRes, List.of()));
     }
 
     @Override

@@ -15,14 +15,14 @@ import dgir.core.ir.types.compatibility.ExprOrOperator;
       }
     }
 
-    public final record TVarBnd(TypeVar tyVar) implements Entry {
+    public final record TVarBnd(TypeVar<SystemFType> tyVar) implements Entry {
       @Override
       public final String toString() {
         return tyVar.toString();
       }
     }
 
-    public final record ETVarBnd(TypeVar tyVar) implements Entry {
+    public final record ETVarBnd(TypeVar<SystemFType> tyVar) implements Entry {
       @Override
       public final String toString() {
         return tyVar.toString();
@@ -30,7 +30,7 @@ import dgir.core.ir.types.compatibility.ExprOrOperator;
     }
 
     public final record SETVarBnd(
-        TypeVar tyVar,
+        TypeVar<SystemFType> tyVar,
         SystemFType type) implements Entry {
       @Override
       public final String toString() {
@@ -38,7 +38,7 @@ import dgir.core.ir.types.compatibility.ExprOrOperator;
       }
     }
     public final record SVarBnd(
-        TypeVar tyVar,
+        TypeVar<SystemFType> tyVar,
         SystemFType type) implements Entry {
       @Override
       public final String toString() {

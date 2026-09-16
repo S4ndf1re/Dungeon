@@ -361,7 +361,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       } else if (funcTypeApplied instanceof SystemFType.EtVar etvar) {
         var a = etvar.tyVar;
 
-        var a2 = new TypeVar();
+        var a2 = new TypeVar<SystemFType>();
 
         var breakRes = funcInferred.ctx().break3(
             entry -> entry instanceof Entry.ETVarBnd bnd && bnd.tyVar().equals(a));
@@ -369,7 +369,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         var newCtx = new Context(breakRes.left(), funcInferred.ctx());
         CheckResult checkRes;
         if (this.arg.isPresent()) {
-          var a1 = new TypeVar();
+          var a1 = new TypeVar<SystemFType>();
           var arrowType = new SystemFType.Arrow(
               new SystemFType.EtVar(a1),
               new SystemFType.EtVar(a2));
@@ -500,7 +500,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
       var input = ctx + " |- " + this;
-      var b = new TypeVar();
+      var b = new TypeVar<SystemFType>();
       var newCtx = ctx.copy();
       Scope<SystemFType> scope = newCtx.addScope();
 
@@ -812,10 +812,10 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
   public static final class TAbs extends Expr {
 
-    private final TypeVar variable;
+    private final TypeVar<SystemFType> variable;
     private final Expr body;
 
-    public TAbs(TypeVar variable, Expr body) {
+    public TAbs(TypeVar<SystemFType> variable, Expr body) {
       this.variable = variable;
       this.body = body;
     }
@@ -826,7 +826,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.body = other.body;
     }
 
-    public TAbs(TAbs other, TypeVar variable, Expr body) {
+    public TAbs(TAbs other, TypeVar<SystemFType> variable, Expr body) {
       super(other);
       this.variable = variable;
       this.body = body;
@@ -1118,14 +1118,14 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       var input = ctx + " |- " + this;
       Context newCtx = ctx.copy();
       ArrayList<InferenceTree> trees = new ArrayList<>();
-      ArrayList<Triple<Symbol<Expr, SystemFType>, TypeVar, ExprOrOperator<Expr, SystemFType>>> nonUnified = new ArrayList<>(
+      ArrayList<Triple<Symbol<Expr, SystemFType>, TypeVar<SystemFType>, ExprOrOperator<Expr, SystemFType>>> nonUnified = new ArrayList<>(
           this.bindings.size());
 
       var mark = new Entry.Mark();
       newCtx.push(mark);
 
       for (var binding : this.bindings) {
-        var typeVar = new TypeVar();
+        var typeVar = new TypeVar<SystemFType>();
         nonUnified.add(Triple.of(binding.getLeft(), typeVar, binding.getRight()));
         newCtx.push(new Entry.ETVarBnd(typeVar));
         newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(typeVar)));

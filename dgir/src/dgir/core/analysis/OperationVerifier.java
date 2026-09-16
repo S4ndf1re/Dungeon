@@ -67,9 +67,8 @@ public class OperationVerifier {
   // =========================================================================
 
   /**
-   * @param recursive {@code true} to verify all nested operations; {@code false}
-   *                  to verify only the
-   *                  top-level operation and its immediate structure.
+   * @param options Options for configuring the behaviour of the OperationVerifier
+   *                visitor
    */
   public OperationVerifier(VerifyOptions options) {
     this.options = options;

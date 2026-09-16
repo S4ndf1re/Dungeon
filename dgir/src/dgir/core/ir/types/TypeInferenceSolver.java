@@ -15,7 +15,7 @@ import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRe
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.traits.IExpressionCell;
 
-public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSolver<TypeInferenceT, E, T>, E extends Expression<E, T>, T extends Type> {
+public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSolver<TypeInferenceT, E, T>, E extends Expression<E, T>, T extends Type<T>> {
   protected TypeDialectConverterRegistry registry;
 
   private ConvertedOperationBuffer<E, T, TypeInferenceT> operationToExprBuffer;
@@ -24,7 +24,7 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
    * Result of a full solve: the final type, the expression tree after
    * inference but before instantiation, and the instantiated tree.
    */
-  public static record SolveResult<E>(Type type, E preInstantiation, E instantiated) {
+  public static record SolveResult<E extends Expression<E, T>, T extends Type<T>>(T type, E preInstantiation, E instantiated) {
   }
 
   /**
@@ -63,7 +63,7 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
    * @return a {@link SolveResult} of the final type, the pre-instantiation
    *         expression tree, and the fully type annotated instantiated tree
    */
-  public abstract SolveResult<E> solve(ExprOrOperator<E, T> expr);
+  public abstract SolveResult<E, T> solve(ExprOrOperator<E, T> expr);
 
   /**
    * Post-Solve stage to finish Expression Instantiation.
