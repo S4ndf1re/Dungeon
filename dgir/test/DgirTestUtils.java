@@ -89,7 +89,7 @@ public class DgirTestUtils {
     }
 
     // Check that this is a valid op, otherwise we can't generate a cfg
-    if (!op.verify( VerifyOptions.FULL_VERIFICATION)) {
+    if (!op.verify(VerifyOptions.FULL_VERIFICATION)) {
       System.out.println(
           "Skipping cfg generation for invalid op: "
               + op.getClass().getSimpleName()
@@ -163,7 +163,8 @@ public class DgirTestUtils {
    * with {@code .expr.scopes}.
    */
   public static <E extends Expression<E, T>, T extends Type> void saveDotExprScopes(E expr) {
-    saveDotAndPng(".expr.scopes", DotExpression.toDotWithScopes(expr, DotExpression.VisitGetChildrenOption.ONLY_INSTANTIATED));
+    saveDotAndPng(".expr.scopes",
+        DotExpression.toDotWithScopes(expr, DotExpression.VisitGetChildrenOption.ONLY_INSTANTIATED));
   }
 
   /**
@@ -175,7 +176,6 @@ public class DgirTestUtils {
     saveDotAndPng(".type", DotType.toDot(type));
   }
 
-
   /**
    * Save the given dot string and its rendered PNG image in
    * {@link #savePath}, named after the calling test method ({@code
@@ -184,6 +184,10 @@ public class DgirTestUtils {
    * actual unit test.
    */
   public static void saveDotAndPng(String suffix, String dot) {
+    if (!System.getenv().containsKey("EXPORT_IMAGES")) {
+      return;
+    }
+
     Set<String> helperMethods = Set.of(
         "setup", "solve", "solveAlgoW", "solveSystemF", "assertParity", "countOps");
     String callerName = DgirCoreUtils.STACK_WALKER.walk(

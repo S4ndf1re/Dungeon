@@ -17,12 +17,12 @@ import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.analysis.DotExpression;
 import dgir.core.analysis.DotType;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference;
-import dgir.core.ir.types.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
+import dgir.core.ir.types.builtin.algorithmw.Expr;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
-import dgir.core.ir.types.systemf.SystemFInference;
-import dgir.core.ir.types.systemf.SystemFType;
+import dgir.core.ir.types.builtin.systemf.SystemFInference;
+import dgir.core.ir.types.builtin.systemf.SystemFType;
 import dgir.core.debug.Location;
 import dgir.dialect.arith.ArithAlgoWConversion;
 import dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode;
@@ -77,7 +77,7 @@ public class ConversionParityTest {
     DgirTestUtils.saveDotAndPng(".algoW.type", DotType.toDot(solvedPair.type()));
 
     List<Operation> ops = new ArrayList<>();
-    new ExpressionVisitor<Expr, dgir.core.ir.types.algorithmw.AlgorithmWType>(
+    new ExpressionVisitor<Expr, dgir.core.ir.types.builtin.algorithmw.AlgorithmWType>(
         VisitOrder.POST_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
         .visit(solvedPair.instantiated(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
 
@@ -95,7 +95,7 @@ public class ConversionParityTest {
     DgirTestUtils.saveDotAndPng(".systemF.type", DotType.toDot(solvedPair.type()));
 
     List<Operation> ops = new ArrayList<>();
-    new ExpressionVisitor<dgir.core.ir.types.systemf.Expr, SystemFType>(
+    new ExpressionVisitor<dgir.core.ir.types.builtin.systemf.Expr, SystemFType>(
         VisitOrder.POST_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
         .visit(solvedPair.instantiated(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
 

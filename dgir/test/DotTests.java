@@ -15,9 +15,9 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference;
-import dgir.core.ir.types.algorithmw.AlgorithmWType;
-import dgir.core.ir.types.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
+import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.Expr;
 
 public class DotTests {
 
