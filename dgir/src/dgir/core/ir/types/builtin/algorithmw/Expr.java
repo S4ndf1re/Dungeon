@@ -1063,7 +1063,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
         subst = res1.subst().compose(subst);
         Env envSubst = newEnv.apply(subst);
 
-        Scheme generalizedType = subst.apply(res1.type()).generalize(envSubst, Optional.of(value));
+        Scheme generalizedType = subst.apply(res1.type()).generalize(envSubst);
 
         newEnv = envSubst.copy();
         newEnv.put(param, generalizedType);
@@ -1222,7 +1222,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       for (var binding : this.bindings) {
         var typeVar = new TypeVar();
         notUnified.add(Triple.of(binding.getLeft(), new AlgorithmWType.Var(typeVar), binding.getRight()));
-        newEnv.put(binding.getLeft(), new AlgorithmWType.Var(typeVar).generalize(newEnv, Optional.empty()));
+        newEnv.put(binding.getLeft(), new AlgorithmWType.Var(typeVar).generalize(newEnv));
       }
 
       Subst subst = Subst.newEmpty();
@@ -1241,7 +1241,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
         subst = unifyRes.subst().compose(subst);
         envSubst = envSubst.apply(subst);
 
-        Scheme generalizedType = subst.apply(res1.type()).generalize(envSubst, Optional.of(value));
+        Scheme generalizedType = subst.apply(res1.type()).generalize(envSubst);
 
         newEnv = envSubst.copy();
         newEnv.put(param, generalizedType);
