@@ -2,9 +2,9 @@ import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
-import dgir.core.ir.types.systemf.Expr;
-import dgir.core.ir.types.systemf.SystemFInference;
-import dgir.core.ir.types.systemf.SystemFType;
+import dgir.core.ir.types.builtin.systemf.Expr;
+import dgir.core.ir.types.builtin.systemf.SystemFInference;
+import dgir.core.ir.types.builtin.systemf.SystemFType;
 
 import dgir.core.ir.types.TypeVar;
 

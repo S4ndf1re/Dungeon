@@ -11,17 +11,17 @@ import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference;
-import dgir.core.ir.types.algorithmw.AlgorithmWType;
-import dgir.core.ir.types.algorithmw.Expr;
-import dgir.core.ir.types.algorithmw.Expr.ExprCustom.GetChildrenFunction;
-import dgir.core.ir.types.algorithmw.Expr.ExprCustom.InferFunction;
-import dgir.core.ir.types.algorithmw.Expr.ExprCustom.InferFunctionResult;
-import dgir.core.ir.types.algorithmw.Expr.ExprCustom.InstantiateFunction;
-import dgir.core.ir.types.algorithmw.Expr.ExprCustom.ReplaceSymbolFunction;
-import dgir.core.ir.types.algorithmw.InferResult;
-import dgir.core.ir.types.algorithmw.Subst;
-import dgir.core.ir.types.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
+import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.GetChildrenFunction;
+import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunction;
+import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunctionResult;
+import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InstantiateFunction;
+import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.ReplaceSymbolFunction;
+import dgir.core.ir.types.builtin.algorithmw.InferResult;
+import dgir.core.ir.types.builtin.algorithmw.Subst;
+import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class ScfAlgoWConversion {
