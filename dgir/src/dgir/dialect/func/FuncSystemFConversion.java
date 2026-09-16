@@ -15,10 +15,10 @@ import dgir.core.ir.types.SystemFConversionUtils;
 
 import java.util.Optional;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.systemf.Expr;
-import dgir.core.ir.types.systemf.SystemFInference;
-import dgir.core.ir.types.systemf.SystemFType;
-import dgir.core.ir.types.systemf.TypeInference;
+import dgir.core.ir.types.builtin.systemf.Expr;
+import dgir.core.ir.types.builtin.systemf.SystemFInference;
+import dgir.core.ir.types.builtin.systemf.SystemFType;
+import dgir.core.ir.types.builtin.systemf.TypeInference;
 import dgir.core.traits.ISymbol.SymbolTableSymbol;
 import dgir.dialect.func.FuncOps.CallIndirectOp;
 import dgir.dialect.func.FuncOps.CallOp;

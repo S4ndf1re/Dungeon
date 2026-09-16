@@ -14,10 +14,10 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.SystemFConversionUtils;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.systemf.Expr;
-import dgir.core.ir.types.systemf.SystemFInference;
-import dgir.core.ir.types.systemf.SystemFType;
-import dgir.core.ir.types.systemf.TypeInference;
+import dgir.core.ir.types.builtin.systemf.Expr;
+import dgir.core.ir.types.builtin.systemf.SystemFInference;
+import dgir.core.ir.types.builtin.systemf.SystemFType;
+import dgir.core.ir.types.builtin.systemf.TypeInference;
 
 public final class StringSystemFConversion {
   // NOTE: this is still very error prone, as the functions and ops must match

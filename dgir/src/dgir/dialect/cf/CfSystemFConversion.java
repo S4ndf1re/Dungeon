@@ -12,17 +12,17 @@ import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
-import dgir.core.ir.types.systemf.CheckResult;
-import dgir.core.ir.types.systemf.Context;
-import dgir.core.ir.types.systemf.Expr;
-import dgir.core.ir.types.systemf.SystemFInference;
-import dgir.core.ir.types.systemf.SystemFType;
-import dgir.core.ir.types.systemf.TypeInference;
-import dgir.core.ir.types.systemf.TypeResult;
-import dgir.core.ir.types.systemf.Expr.Custom.GetChildrenFunction;
-import dgir.core.ir.types.systemf.Expr.Custom.InferFunction;
-import dgir.core.ir.types.systemf.Expr.Custom.InstantiateFunction;
-import dgir.core.ir.types.systemf.Expr.Custom.ReplaceSymbolFunction;
+import dgir.core.ir.types.builtin.systemf.CheckResult;
+import dgir.core.ir.types.builtin.systemf.Context;
+import dgir.core.ir.types.builtin.systemf.Expr;
+import dgir.core.ir.types.builtin.systemf.SystemFInference;
+import dgir.core.ir.types.builtin.systemf.SystemFType;
+import dgir.core.ir.types.builtin.systemf.TypeInference;
+import dgir.core.ir.types.builtin.systemf.TypeResult;
+import dgir.core.ir.types.builtin.systemf.Expr.Custom.GetChildrenFunction;
+import dgir.core.ir.types.builtin.systemf.Expr.Custom.InferFunction;
+import dgir.core.ir.types.builtin.systemf.Expr.Custom.InstantiateFunction;
+import dgir.core.ir.types.builtin.systemf.Expr.Custom.ReplaceSymbolFunction;
 
 public final class CfSystemFConversion {
   // NOTE: this is still very error prone, as the functions and ops must match

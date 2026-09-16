@@ -1,4 +1,4 @@
-package dgir.core.ir.types.systemf;
+package dgir.core.ir.types.builtin.systemf;
 
 import java.util.ArrayList;
 import dgir.core.ir.types.InstEnv;

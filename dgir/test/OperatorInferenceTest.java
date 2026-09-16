@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 
 import dgir.core.ir.Dialect;
 import dgir.core.ir.types.TypeIdent;
-import dgir.core.ir.types.algorithmw.AlgorithmWInference;
-import dgir.core.ir.types.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
+import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.dialect.builtin.BuiltinOps.ProgramOp;
