@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import dgir.core.ir.types.TypeVar;
-
+import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 
-public abstract sealed class SystemFType extends Type {
+public abstract sealed class SystemFType extends Type<SystemFType> {
 
   @Override
   public GeneralTypeParameter asTypeParameter() {
@@ -20,23 +20,25 @@ public abstract sealed class SystemFType extends Type {
   }
 
   public abstract boolean isFullySpecified();
+
   public abstract boolean isMono();
 
-  public abstract Set<TypeVar> freeVariables();
+  public abstract Set<TypeVar<SystemFType>> freeTypeVars();
 
-  public boolean occursCheck(TypeVar varName) {
-    return this.freeVariables().contains(varName);
+  @Override
+  public boolean occursCheck(TypeVar<SystemFType> varName) {
+    return this.freeTypeVars().contains(varName);
   }
 
   public abstract SystemFType substType(
-      TypeVar tyVar,
+      TypeVar<SystemFType> tyVar,
       SystemFType replacement);
 
   public static final class Var extends SystemFType {
 
-    public final TypeVar tyVar;
+    public final TypeVar<SystemFType> tyVar;
 
-    public Var(TypeVar name) {
+    public Var(TypeVar<SystemFType> name) {
       this.tyVar = name;
     }
 
@@ -61,12 +63,12 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public Set<TypeVar> freeVariables() {
+    public Set<TypeVar<SystemFType>> freeTypeVars() {
       return Set.of(this.tyVar);
     }
 
     @Override
-    public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+    public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
       if (this.tyVar.equals(tyVar)) {
         return replacement;
       } else {
@@ -78,13 +80,31 @@ public abstract sealed class SystemFType extends Type {
     public boolean isFullySpecified() {
       return false;
     }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<SystemFType> tyVar) {
+      if (this.tyVar.getAssigendType().isPresent()) {
+        this.tyVar.getAssigendType().get().occursCheckAjustLevel(tyVar);
+      } else if (this.tyVar == tyVar) {
+        throw new TypingException.OccursCheckFailed(this, tyVar);
+      }
+
+      var data = tyVar.find();
+      var oData = this.tyVar.find();
+      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel()));
+    }
+
+    @Override
+    public SystemFType deref() {
+      return this;
+    }
   }
 
   public static final class EtVar extends SystemFType {
 
-    public final TypeVar tyVar;
+    public final TypeVar<SystemFType> tyVar;
 
-    public EtVar(TypeVar tyVar) {
+    public EtVar(TypeVar<SystemFType> tyVar) {
       this.tyVar = tyVar;
     }
 
@@ -109,12 +129,12 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public Set<TypeVar> freeVariables() {
+    public Set<TypeVar<SystemFType>> freeTypeVars() {
       return Set.of(this.tyVar);
     }
 
     @Override
-    public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+    public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
       if (this.tyVar.equals(tyVar)) {
         return replacement;
       } else {
@@ -125,6 +145,24 @@ public abstract sealed class SystemFType extends Type {
     @Override
     public boolean isFullySpecified() {
       return false;
+    }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<SystemFType> tyVar) {
+      if (this.tyVar.getAssigendType().isPresent()) {
+        this.tyVar.getAssigendType().get().occursCheckAjustLevel(tyVar);
+      } else if (this.tyVar == tyVar) {
+        throw new TypingException.OccursCheckFailed(this, tyVar);
+      }
+
+      var data = tyVar.find();
+      var oData = this.tyVar.find();
+      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel()));
+    }
+
+    @Override
+    public SystemFType deref() {
+      return this;
     }
   }
 
@@ -161,17 +199,17 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public Set<TypeVar> freeVariables() {
-      var fromVars = this.from.freeVariables();
-      var toVars = this.to.freeVariables();
-      var set = new HashSet<TypeVar>();
+    public Set<TypeVar<SystemFType>> freeTypeVars() {
+      var fromVars = this.from.freeTypeVars();
+      var toVars = this.to.freeTypeVars();
+      var set = new HashSet<TypeVar<SystemFType>>();
       set.addAll(fromVars);
       set.addAll(toVars);
       return Set.copyOf(set);
     }
 
     @Override
-    public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+    public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
       return new SystemFType.Arrow(
           this.from.substType(tyVar, replacement),
           this.to.substType(tyVar, replacement));
@@ -199,14 +237,25 @@ public abstract sealed class SystemFType extends Type {
     public boolean isFullySpecified() {
       return this.from.isFullySpecified() && this.to.isFullySpecified();
     }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<SystemFType> tyVar) {
+      this.from.occursCheckAjustLevel(tyVar);
+      this.to.occursCheckAjustLevel(tyVar);
+    }
+
+    @Override
+    public SystemFType deref() {
+      return this;
+    }
   }
 
   public static final class ForAll extends SystemFType {
 
-    public final TypeVar boundVar;
+    public final TypeVar<SystemFType> boundVar;
     public final SystemFType body;
 
-    public ForAll(TypeVar name, SystemFType type) {
+    public ForAll(TypeVar<SystemFType> name, SystemFType type) {
       this.boundVar = name;
       this.body = type;
     }
@@ -234,15 +283,15 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public Set<TypeVar> freeVariables() {
-      var set = new HashSet<TypeVar>();
-      set.addAll(this.body.freeVariables());
+    public Set<TypeVar<SystemFType>> freeTypeVars() {
+      var set = new HashSet<TypeVar<SystemFType>>();
+      set.addAll(this.body.freeTypeVars());
       set.remove(this.boundVar);
       return Set.copyOf(set);
     }
 
     @Override
-    public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+    public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
       if (this.boundVar.equals(tyVar)) {
         // The type variable is shadowed by the ForAll binder
         return this;
@@ -256,6 +305,18 @@ public abstract sealed class SystemFType extends Type {
     @Override
     public boolean isFullySpecified() {
       return false;
+    }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<SystemFType> tyVar) {
+      if (this.boundVar != tyVar) {
+        this.body.occursCheckAjustLevel(tyVar);
+      }
+    }
+
+    @Override
+    public SystemFType deref() {
+      return this;
     }
   }
 
@@ -295,11 +356,11 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public Set<TypeVar> freeVariables() {
-      HashSet<TypeVar> freeVars = new HashSet<>();
+    public Set<TypeVar<SystemFType>> freeTypeVars() {
+      HashSet<TypeVar<SystemFType>> freeVars = new HashSet<>();
 
       for (var param : parameters) {
-        freeVars.addAll(param.freeVariables());
+        freeVars.addAll(param.freeTypeVars());
       }
 
       return Set.copyOf(freeVars);
@@ -319,8 +380,18 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+    public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
       return new Lit(this.ident, this.parameters.stream().map(param -> param.substType(tyVar, replacement)).toList());
+    }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<SystemFType> tyVar) {
+      this.parameters.forEach(p -> p.occursCheckAjustLevel(tyVar));
+    }
+
+    @Override
+    public SystemFType deref() {
+      return this;
     }
   }
 
@@ -337,12 +408,12 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public Set<TypeVar> freeVariables() {
+    public Set<TypeVar<SystemFType>> freeTypeVars() {
       return Set.of();
     }
 
     @Override
-    public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+    public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
       return new NumericType(this.size);
     }
 
@@ -355,6 +426,15 @@ public abstract sealed class SystemFType extends Type {
     @Override
     public boolean isFullySpecified() {
       return true;
+    }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<SystemFType> tyVar) {
+    }
+
+    @Override
+    public SystemFType deref() {
+      return this;
     }
   }
 
@@ -389,12 +469,11 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public Set<TypeVar> freeVariables() {
-      var set = new HashSet<TypeVar>();
-      this.elements.forEach(elem -> set.addAll(elem.freeVariables()));
+    public Set<TypeVar<SystemFType>> freeTypeVars() {
+      var set = new HashSet<TypeVar<SystemFType>>();
+      this.elements.forEach(elem -> set.addAll(elem.freeTypeVars()));
       return Set.copyOf(set);
     }
-
 
     @Override
     public boolean isFullySpecified() {
@@ -402,11 +481,20 @@ public abstract sealed class SystemFType extends Type {
     }
 
     @Override
-    public SystemFType substType(TypeVar tyVar, SystemFType replacement) {
+    public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
       return new SystemFType.Tuple(
           this.elements.stream().map(elem -> elem.substType(tyVar, replacement)).toList());
     }
-  }
 
+    @Override
+    public void occursCheckAjustLevel(TypeVar<SystemFType> tyVar) {
+      this.elements.forEach(e -> e.occursCheckAjustLevel(tyVar));
+    }
+
+    @Override
+    public SystemFType deref() {
+      return this;
+    }
+  }
 
 }

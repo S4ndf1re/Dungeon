@@ -19,11 +19,9 @@ import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.GetChildrenFunction;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunctionResult;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InstantiateFunction;
 import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.ReplaceSymbolFunction;
 import dgir.core.ir.types.builtin.algorithmw.InferResult;
-import dgir.core.ir.types.builtin.algorithmw.Subst;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode;
@@ -84,11 +82,9 @@ public final class ArithAlgoWConversion {
     InferFunction<BinOpData> infFunc = (eng, env, data) -> {
 
       InferResult resLhs = eng.infer(data.lhs, env);
-      var newEnv = env.apply(resLhs.subst());
-      InferResult resRhs = eng.infer(data.rhs, newEnv);
-      Subst finalSubst = resRhs.subst().compose(resLhs.subst());
-      var lhsType = finalSubst.apply(resLhs.type());
-      var rhsType = finalSubst.apply(resRhs.type());
+      InferResult resRhs = eng.infer(data.rhs, env);
+      var lhsType = resLhs.type().deref();
+      var rhsType = resRhs.type().deref();
 
       var integerDesciptors = BuiltinTypes.BuiltinTypeDescriptor.IntegerDescriptor.getDescriptors();
       var floatDesciptors = new ArrayList<>(BuiltinTypes.BuiltinTypeDescriptor.FloatDescriptor.getDescriptors());
@@ -97,8 +93,7 @@ public final class ArithAlgoWConversion {
       Optional<TypingException> firstError = Optional.empty();
       for (var floatDesc : floatDesciptors) {
         try {
-          var unifyRes = eng.unify(lhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
-          finalSubst = unifyRes.subst().compose(finalSubst);
+          eng.unify(lhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
           firstError = Optional.empty();
           break;
         } catch (TypingException e) {
@@ -109,12 +104,11 @@ public final class ArithAlgoWConversion {
         throw firstError.get();
       }
 
-      lhsType = finalSubst.apply(lhsType);
+      lhsType = lhsType.deref();
 
       for (var floatDesc : floatDesciptors) {
         try {
-          var unifyRes = eng.unify(rhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
-          finalSubst = unifyRes.subst().compose(finalSubst);
+          eng.unify(rhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
           firstError = Optional.empty();
           break;
         } catch (TypingException e) {
@@ -125,7 +119,7 @@ public final class ArithAlgoWConversion {
         throw firstError.get();
       }
 
-      rhsType = finalSubst.apply(rhsType);
+      rhsType = rhsType.deref();
 
       // NOTE: deferring the constraint solution to concrete instantiation of
       // monomorphic instances of polymorphic values requires constraint based
@@ -146,7 +140,7 @@ public final class ArithAlgoWConversion {
               Optional.empty())
           .getLeft();
 
-      return new InferFunctionResult(finalSubst, resultType);
+      return resultType;
     };
 
     GetChildrenFunction<BinOpData> getChildrenFn = (data) -> {
@@ -196,8 +190,7 @@ public final class ArithAlgoWConversion {
     InferFunction<UnaryData> infFunc = (eng, env, data) -> {
 
       InferResult resLhs = eng.infer(data.lhs, env);
-      Subst finalSubst = resLhs.subst();
-      var lhsType = finalSubst.apply(resLhs.type());
+      var lhsType = resLhs.type().deref();
 
       var integerDesciptors = BuiltinTypes.BuiltinTypeDescriptor.IntegerDescriptor.getDescriptors();
       var floatDesciptors = new ArrayList<>(BuiltinTypes.BuiltinTypeDescriptor.FloatDescriptor.getDescriptors());
@@ -206,8 +199,7 @@ public final class ArithAlgoWConversion {
       Optional<TypingException> firstError = Optional.empty();
       for (var floatDesc : floatDesciptors) {
         try {
-          var unifyRes = eng.unify(lhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
-          finalSubst = unifyRes.subst().compose(finalSubst);
+          eng.unify(lhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
           firstError = Optional.empty();
           break;
         } catch (TypingException e) {
@@ -218,7 +210,7 @@ public final class ArithAlgoWConversion {
         throw firstError.get();
       }
 
-      lhsType = finalSubst.apply(lhsType);
+      lhsType = lhsType.deref();
 
       // TODO: maybe, it is possible to defer the type finding until both lhs and rhs
       // are completely inferred. This would require careful algorithm engineering and
@@ -237,7 +229,7 @@ public final class ArithAlgoWConversion {
           .generalNominalTypeToInferenceType(resultIrType.asParameterizedNominalType(), Optional.empty())
           .getLeft();
 
-      return new InferFunctionResult(finalSubst, resultType);
+      return resultType;
     };
 
     GetChildrenFunction<UnaryData> getChildrenFn = (data) -> {
@@ -286,8 +278,7 @@ public final class ArithAlgoWConversion {
     InferFunction<CastData> infFunc = (eng, env, data) -> {
 
       InferResult resValue = eng.infer(data.value, env);
-      Subst finalSubst = resValue.subst();
-      var valueType = finalSubst.apply(resValue.type());
+      var valueType = resValue.type().deref();
 
       var integerDesciptors = BuiltinTypes.BuiltinTypeDescriptor.IntegerDescriptor.getDescriptors();
       var floatDesciptors = new ArrayList<>(BuiltinTypes.BuiltinTypeDescriptor.FloatDescriptor.getDescriptors());
@@ -296,8 +287,7 @@ public final class ArithAlgoWConversion {
       Optional<TypingException> firstError = Optional.empty();
       for (var floatDesc : floatDesciptors) {
         try {
-          var unifyRes = eng.unify(valueType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
-          finalSubst = unifyRes.subst().compose(finalSubst);
+          eng.unify(valueType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
           firstError = Optional.empty();
           break;
         } catch (TypingException e) {
@@ -308,7 +298,7 @@ public final class ArithAlgoWConversion {
         throw firstError.get();
       }
 
-      valueType = finalSubst.apply(valueType);
+      valueType = valueType.deref();
 
       // TODO: maybe, it is possible to defer the type finding until both lhs and rhs
       // are completely inferred. This would require careful algorithm engineering and
@@ -329,7 +319,7 @@ public final class ArithAlgoWConversion {
           .generalNominalTypeToInferenceType(resultIrType.asParameterizedNominalType(), Optional.empty())
           .getLeft();
 
-      return new InferFunctionResult(finalSubst, resultType);
+      return resultType;
     };
 
     GetChildrenFunction<CastData> getChildrenFn = (data) -> {

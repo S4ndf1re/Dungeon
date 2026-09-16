@@ -15,7 +15,7 @@ import dgir.core.ir.types.TypeInferenceSolver;
 public class ConverterRegistry {
 
   @FunctionalInterface
-  public static interface ConverterFunction<E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<SolverT, E, T>> {
+  public static interface ConverterFunction<E extends Expression<E, T>, T extends Type<T>, SolverT extends TypeInferenceSolver<SolverT, E, T>> {
     E convertToExpression(
         Operation op,
         SolverT engine);
@@ -62,7 +62,7 @@ public class ConverterRegistry {
   }
 
   @SafeVarargs
-  public static <E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<SolverT, E, T>> void addOperatorsToDialect(
+  public static <E extends Expression<E, T>, T extends Type<T>, SolverT extends TypeInferenceSolver<SolverT, E, T>> void addOperatorsToDialect(
       Class<? extends TypeDialect<SolverT, E, T>> dialect,
       Pair<Class<? extends Op>, ConverterFunction<E, T, SolverT>>... pairs) {
 

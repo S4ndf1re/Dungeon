@@ -3,13 +3,13 @@ package dgir.core.ir.types;
 import dgir.core.ir.Value;
 import dgir.core.traits.ISymbol.SymbolTableSymbol;
 
-public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type> {
+public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type<T>> {
 
-  public static <E extends Expression<E, T>, T extends Type> Symbol<E, T> of(SymbolTableSymbol name) {
+  public static <E extends Expression<E, T>, T extends Type<T>> Symbol<E, T> of(SymbolTableSymbol name) {
     return new Symbol.TableSymbol<E, T>(name);
   }
 
-  public static <E extends Expression<E, T>, T extends Type> Symbol<E, T> of(Value val) {
+  public static <E extends Expression<E, T>, T extends Type<T>> Symbol<E, T> of(Value val) {
     return new Symbol.ValueSymbol<E, T>(val);
   }
 
@@ -41,7 +41,7 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type> 
   @Override
   public abstract int hashCode();
 
-  public static final class ValueSymbol<E extends Expression<E, T>, T extends Type> extends Symbol<E, T> {
+  public static final class ValueSymbol<E extends Expression<E, T>, T extends Type<T>> extends Symbol<E, T> {
     private final Value value;
 
     public ValueSymbol(Value value) {
@@ -63,7 +63,7 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type> 
     }
   }
 
-  public static final class TableSymbol<E extends Expression<E, T>, T extends Type> extends Symbol<E, T> {
+  public static final class TableSymbol<E extends Expression<E, T>, T extends Type<T>> extends Symbol<E, T> {
     private final SymbolTableSymbol value;
 
     public TableSymbol(SymbolTableSymbol value) {

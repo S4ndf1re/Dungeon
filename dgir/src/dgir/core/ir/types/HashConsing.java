@@ -15,7 +15,7 @@ import java.util.HashMap;
  * @param <T> The type of the type associated with the expression, which must
  *            extend {@link Type}.
  */
-public class HashConsing<E extends Expression<E, T>, T extends Type> {
+public class HashConsing<E extends Expression<E, T>, T extends Type<T>> {
 
   /**
    * A map that stores canonical instances of expressions.

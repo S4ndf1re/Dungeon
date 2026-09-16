@@ -3,6 +3,10 @@ package dgir.core.ir.types;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.BiConsumer;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * Marker class representing a unique type variable.
@@ -21,7 +25,11 @@ import java.util.List;
  * be tracked within logical scopes using {@link TypeVarScope} for cleanup or
  * analysis purposes.
  */
-public class TypeVar {
+public class TypeVar<T extends Type<T>> {
+
+  private TypeVar<T> parent;
+  private Optional<T> assignedType;
+  private int level;
 
   /**
    * A scope for tracking type variables created within a logical context.
@@ -38,8 +46,8 @@ public class TypeVar {
    * call
    * {@link #close()} manually or use try-with-resources for automatic cleanup.
    */
-  public static final class TypeVarScope implements AutoCloseable {
-    private ArrayList<TypeVar> createdVars;
+  public static final class TypeVarScope<T extends Type<T>> implements AutoCloseable {
+    private ArrayList<TypeVar<T>> createdVars;
 
     /**
      * Constructs a new, empty type variable scope.
@@ -55,7 +63,7 @@ public class TypeVar {
      *         registered with
      *         this scope
      */
-    public List<TypeVar> createdVars() {
+    public List<TypeVar<T>> createdVars() {
       return List.copyOf(createdVars);
     }
 
@@ -64,7 +72,7 @@ public class TypeVar {
      *
      * @param var the type variable to track
      */
-    public void addCreated(TypeVar var) {
+    public void addCreated(TypeVar<T> var) {
       createdVars.add(var);
     }
 
@@ -87,7 +95,7 @@ public class TypeVar {
   }
 
   private static long counter;
-  private static HashSet<TypeVarScope> openScopes = new HashSet<>();
+  private static HashSet<TypeVarScope<?>> openScopes = new HashSet<>();
 
   private long idx;
 
@@ -101,13 +109,22 @@ public class TypeVar {
    * open scopes
    * (see {@link #addScope()}).
    */
+  @SuppressWarnings("unchecked")
   public TypeVar() {
-    this(null);
+    this.idx = TypeVar.counter++;
+    openScopes.forEach(scope -> ((TypeVarScope<T>) scope).addCreated(this));
+    this.parent = this;
+    this.assignedType = Optional.empty();
+    this.level = -1;
   }
 
-  public <E extends Expression<E, T>, T extends Type> TypeVar(Symbol<E, T> value) {
+  @SuppressWarnings("unchecked")
+  public TypeVar(int level) {
     this.idx = TypeVar.counter++;
-    openScopes.forEach(scope -> scope.addCreated(this));
+    openScopes.forEach(scope -> ((TypeVarScope<T>) scope).addCreated(this));
+    this.parent = this;
+    this.assignedType = Optional.empty();
+    this.level = level;
   }
 
   /**
@@ -147,8 +164,8 @@ public class TypeVar {
    *
    * @return a new, registered {@link TypeVarScope}
    */
-  public static TypeVarScope addScope() {
-    var scope = new TypeVarScope();
+  public static <T extends Type<T>> TypeVarScope<T> addScope() {
+    var scope = new TypeVarScope<T>();
     openScopes.add(scope);
     return scope;
   }
@@ -163,8 +180,80 @@ public class TypeVar {
    *
    * @param scope the scope to remove
    */
-  public static void removeScope(TypeVarScope scope) {
+  public static <T extends Type<T>> void removeScope(TypeVarScope<T> scope) {
     openScopes.remove(scope);
+  }
+
+  public TypeVar<T> find() {
+    var current = this;
+    while (current != current.parent) {
+      /// flatten the union find tree
+      current.parent = current.parent.parent;
+      current = current.parent;
+    }
+
+    return current;
+  }
+
+  public static int mergeLevel(int l1, int l2) {
+    if (l1 < 0 || l2 < 0) {
+      throw new IllegalArgumentException("One of the levels is onbound: " + l1 + " " + l2);
+    }
+    return Math.min(l1, l2);
+  }
+
+  public Optional<Pair<T, T>> unify(TypeVar<T> other) {
+    if (this == other) {
+      return Optional.empty();
+    }
+
+    BiConsumer<TypeVar<T>, TypeVar<T>> merge = (v1, v2) -> {
+      var v = v1;
+      if (v1.assignedType.isEmpty() && v2.assignedType.isPresent()) {
+        return;
+      }
+
+      v.setLevel(mergeLevel(v1.level, v2.level));
+    };
+
+    Optional<Pair<T, T>> toUnify = Optional.empty();
+    if (this.assignedType.isPresent() && other.assignedType.isPresent()) {
+      toUnify = Optional.of(Pair.of(this.assignedType.get(), other.assignedType.get()));
+    }
+
+    if (this.assignedType.isPresent() && other.assignedType.isEmpty()) {
+      this.assignedType.get().occursCheckAjustLevel(other);
+    } else if (this.assignedType.isEmpty() && other.assignedType.isPresent()) {
+      other.assignedType.get().occursCheckAjustLevel(this);
+    }
+
+    var thisRoot = this.find();
+    var otherRoot = other.find();
+    // Union Find common representant
+    merge.accept(thisRoot, otherRoot);
+
+    if (thisRoot.assignedType.isEmpty()) {
+      thisRoot.assignedType = otherRoot.getAssigendType();
+    }
+    other.parent = this;
+
+    return toUnify;
+  }
+
+  public void assignType(T type) {
+    this.find().assignedType = Optional.ofNullable(type);
+  }
+
+  public Optional<T> getAssigendType() {
+    return this.find().assignedType;
+  }
+
+  public int getLevel() {
+    return this.find().level;
+  }
+
+  public void setLevel(int level) {
+    this.find().level = level;
   }
 
 }

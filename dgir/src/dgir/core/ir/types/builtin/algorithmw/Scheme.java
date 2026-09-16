@@ -6,70 +6,73 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeVar;
 
 public final class Scheme {
-    private List<TypeVar> vars;
-    private AlgorithmWType type;
+  private List<TypeVar<AlgorithmWType>> vars;
+  private AlgorithmWType type;
 
-    public Scheme(List<TypeVar> vars, AlgorithmWType type) {
-      this.vars = vars;
-      this.type = type;
-    }
-
-    /**
-     * Apply the subst to this scheme. First filter all bound variables from the
-     * subst, then apply
-     * the filtered subst to the type.
-     *
-     * @param subst the subst to apply with
-     * @return the applied scheme where subst is applied to this
-     */
-    public Scheme apply(Subst subst) {
-      var filtered = new HashMap<TypeVar, AlgorithmWType>(subst.types());
-
-      for (var s : this.vars) {
-        filtered.remove(s);
-      }
-
-      var newType = new Subst(filtered).apply(this.type);
-      return new Scheme(this.vars, newType);
-    }
-
-    @Override
-    public final String toString() {
-      return ("[{" +
-          this.vars
-              .stream()
-              .map(Object::toString)
-              .collect(Collectors.joining(", "))
-          +
-          "}, " +
-          this.type +
-          "]");
-    }
-
-    /**
-     * Find all non bound type variables
-     *
-     * @return
-     */
-    public Set<TypeVar> freeTypeVars() {
-      var ftv = this.type.freeTypeVars();
-      var set = new HashSet<TypeVar>(ftv);
-      set.removeAll(this.vars);
-      return Set.copyOf(set);
-    }
-
-    public AlgorithmWType instantiate(TypeInference engine, Symbol<Expr, AlgorithmWType> value) {
-      Subst s = Subst.newEmpty();
-
-      for (var typeVar : this.vars) {
-        var fresh = new TypeVar(value);
-        s.types().put(typeVar, new AlgorithmWType.Var(fresh));
-      }
-
-      return s.apply(this.type);
-    }
+  public Scheme(List<TypeVar<AlgorithmWType>> vars, AlgorithmWType type) {
+    this.vars = vars;
+    this.type = type;
   }
+
+  /**
+   * Apply the subst to this scheme. First filter all bound variables from the
+   * subst, then apply
+   * the filtered subst to the type.
+   *
+   * @param subst the subst to apply with
+   * @return the applied scheme where subst is applied to this
+   */
+  public Scheme apply(Subst subst) {
+    var filtered = new HashMap<TypeVar<AlgorithmWType>, AlgorithmWType>(subst.types());
+
+    for (var s : this.vars) {
+      filtered.remove(s);
+    }
+
+    var newType = new Subst(filtered).apply(this.type);
+    return new Scheme(this.vars, newType);
+  }
+
+  @Override
+  public final String toString() {
+    return ("[{" +
+        this.vars
+            .stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(", "))
+        +
+        "}, " +
+        this.type +
+        "]");
+  }
+
+  /**
+   * Find all non bound type variables
+   *
+   * @return
+   */
+  public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
+    var ftv = this.type.freeTypeVars();
+    var set = new HashSet<TypeVar<AlgorithmWType>>(ftv);
+    set.removeAll(this.vars);
+    return Set.copyOf(set);
+  }
+
+  public Subst toSubst(TypeInference engine) {
+    Subst s = Subst.newEmpty();
+
+    for (var typeVar : this.vars) {
+      var fresh = new TypeVar<AlgorithmWType>(engine.getCurrentLevel());
+      s.types().put(typeVar, new AlgorithmWType.Var(fresh));
+    }
+
+    return s;
+  }
+
+  public AlgorithmWType instantiate(TypeInference engine) {
+    return this.toSubst(engine).apply(this.type);
+  }
+}

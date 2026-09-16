@@ -191,7 +191,7 @@ public class Context extends ScopeLike<SystemFType>
    * In this case, appearing before means that type Variable A appears later in
    * the context
    */
-  public boolean before(TypeVar tyVarA, TypeVar tyVarB) {
+  public boolean before(TypeVar<SystemFType> tyVarA, TypeVar<SystemFType> tyVarB) {
     var posA = IntStream.range(0, this.entries.size())
         .filter(
             i -> this.entries.get(i) instanceof Entry.ETVarBnd bnd &&
@@ -219,7 +219,7 @@ public class Context extends ScopeLike<SystemFType>
   }
 
   @Override
-  public Context expand(TypeInference engine, SystemFType ty1, SystemFType ty2) {
+  public Context expand(TypeInference engine, Expr target, SystemFType targetType) {
     return this;
   }
 }

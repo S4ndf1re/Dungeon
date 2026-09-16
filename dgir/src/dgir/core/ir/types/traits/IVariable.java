@@ -4,7 +4,7 @@ import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.Type;
 
-public interface IVariable<E extends Expression<E, T>, T extends Type> {
+public interface IVariable<E extends Expression<E, T>, T extends Type<T>> {
   /**
    * When an {@link Expression} is a variable that is just a reference to another
    * {@link Symbol} within the algorithm specific environment,

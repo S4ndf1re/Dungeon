@@ -6,9 +6,9 @@ import java.util.Optional;
 
 import dgir.core.ir.types.Type;
 
-public final class Scope<T extends Type> {
+public final class Scope<T extends Type<T>> {
 
-  public static abstract class ScopeLike<T extends Type> {
+  public static abstract class ScopeLike<T extends Type<T>> {
     ArrayList<Scope<T>> scopeStack;
 
     protected ScopeLike() {

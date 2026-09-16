@@ -15,12 +15,7 @@ import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 
-public abstract sealed class AlgorithmWType extends Type {
-
-  @Override
-  public GeneralTypeParameter asTypeParameter() {
-    throw new RuntimeException("cannot convert, as the type is not fully specified!");
-  }
+public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
   @Override
   public abstract boolean equals(Object obj);
@@ -28,14 +23,10 @@ public abstract sealed class AlgorithmWType extends Type {
   @Override
   public abstract int hashCode();
 
-  public Scheme generalize(Env env) {
-    Set<TypeVar> ftv = this.freeTypeVars();
-    Set<TypeVar> envFtv = env.freeTypeVars();
+  public Scheme generalize(int level) {
+    Set<TypeVar<AlgorithmWType>> ftv = this.freeTypeVars();
 
-    List<TypeVar> unboundFtv = ftv
-        .stream()
-        .filter(ty -> !envFtv.contains(ty))
-        .collect(Collectors.toList());
+    List<TypeVar<AlgorithmWType>> unboundFtv = ftv.stream().filter(v -> v.find().getLevel() >= level).toList();
 
     return new Scheme(unboundFtv, this);
   }
@@ -49,24 +40,25 @@ public abstract sealed class AlgorithmWType extends Type {
    *         tree.
    * @throws RuntimeException if unimplemented
    */
-  public abstract UnifyResult unify(
+  public abstract InferenceTree unify(
       TypeInference engine,
       AlgorithmWType other);
 
-  public boolean occursCheck(TypeVar ty) {
+  @Override
+  public boolean occursCheck(TypeVar<AlgorithmWType> ty) {
     var ftv = this.freeTypeVars();
     return ftv.contains(ty);
   }
 
   public abstract boolean isFullySpecified();
 
-  public abstract Set<TypeVar> freeTypeVars();
+  public abstract Set<TypeVar<AlgorithmWType>> freeTypeVars();
 
   public static final class Var extends AlgorithmWType {
 
-    public final TypeVar tyVar;
+    public final TypeVar<AlgorithmWType> tyVar;
 
-    public Var(TypeVar tyVar) {
+    public Var(TypeVar<AlgorithmWType> tyVar) {
       this.tyVar = tyVar;
     }
 
@@ -77,46 +69,96 @@ public abstract sealed class AlgorithmWType extends Type {
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof Var other && this.tyVar == other.tyVar;
+      return obj instanceof AlgorithmWType other && this.deref().equals(other.deref());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.tyVar);
+      var dereffed = this.deref();
+      if (dereffed instanceof Var v && v.tyVar.find() == this.tyVar.find()) {
+        return this.tyVar.find().hashCode();
+      }
+      return Objects.hash(dereffed);
     }
 
     @Override
-    public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
       // Maybe the two types (this and other) are actually the same type variable
-      if (other instanceof Var b && this.tyVar == b.tyVar) {
-        return new UnifyResult(
-            Subst.newEmpty(),
-            new InferenceTree(
-                "Unify-Var-Same",
-                this.toString() + " ~ " + b.toString()));
+      if (other instanceof Var b) {
+        var unifyRes = this.tyVar.unify(b.tyVar);
+        if (unifyRes.isPresent()) {
+          return engine.unify(unifyRes.get().getLeft(), unifyRes.get().getRight());
+        } else {
+          return new InferenceTree(
+              "Unify-Var-Unify",
+              this.toString() + " ~ " + b.toString());
+        }
       } else if (other.occursCheck(this.tyVar)) {
         throw new TypingException.OccursCheckFailed(other, this.tyVar);
       } else {
+        if (this.tyVar.getAssigendType().isPresent()) {
+          engine.unify(this.tyVar.getAssigendType().get(), other);
+        } else {
+          other.occursCheckAjustLevel(this.tyVar);
+          this.tyVar.assignType(other);
+        }
         // In every other case, the type variable can be substituded with the concrete
         // type that is other
-        var subst = Subst.newSingleton(this.tyVar, other);
-        return new UnifyResult(
-            subst,
-            new InferenceTree(
-                "Unify-Var",
-                this.toString() + " ~ " + other.toString(),
-                other.toString() + "/" + this.toString()));
+        return new InferenceTree(
+            "Unify-Var",
+            this.toString() + " ~ " + other.toString(),
+            other.toString() + "/" + this.toString());
       }
     }
 
     @Override
-    public Set<TypeVar> freeTypeVars() {
-      return Set.of(this.tyVar);
+    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
+      if (this.tyVar.getAssigendType().isPresent()) {
+        return Set.copyOf(this.tyVar.getAssigendType().get().freeTypeVars());
+      }
+
+      return Set.of(this.tyVar.find());
     }
 
     @Override
     public boolean isFullySpecified() {
+      var assignedType = this.tyVar.getAssigendType();
+      if (assignedType.isPresent()) {
+        return assignedType.get().isFullySpecified();
+      }
       return false;
+    }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+      if (this.tyVar.getAssigendType().isPresent()) {
+        this.tyVar.getAssigendType().get().occursCheckAjustLevel(tyVar);
+      } else if (this.tyVar == tyVar) {
+        throw new TypingException.OccursCheckFailed(this, tyVar);
+      }
+
+      var data = tyVar.find();
+      var oData = this.tyVar.find();
+      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel()));
+    }
+
+    @Override
+    public AlgorithmWType deref() {
+      var assigendType = this.tyVar.getAssigendType();
+      if (assigendType.isPresent()) {
+        return assigendType.get().deref();
+      }
+      return new AlgorithmWType.Var(this.tyVar.find());
+    }
+
+    @Override
+    public GeneralTypeParameter asTypeParameter() {
+      var assigendType = this.tyVar.getAssigendType();
+      if (assigendType.isPresent()) {
+        return assigendType.get().asTypeParameter();
+      }
+      throw new UnsupportedOperationException("The variable " + this.tyVar
+          + " is not bound to a type, i.e. is not fully inferred and hence can't be converted to a type parameter");
     }
   }
 
@@ -166,30 +208,26 @@ public abstract sealed class AlgorithmWType extends Type {
     }
 
     @Override
-    public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
       if (other instanceof Arrow b) {
-        UnifyResult u1 = engine.unify(this.from, b.from);
-        UnifyResult u2 = engine.unify(
-            u1.applySubst(this.to),
-            u1.applySubst(b.to));
+        InferenceTree u1 = engine.unify(this.from, b.from);
+        InferenceTree u2 = engine.unify(
+            this.to,
+            b.to);
 
-        Subst finalSubst = u2.subst().compose(u1.subst());
-
-        return new UnifyResult(
-            finalSubst,
-            new InferenceTree(
-                "Unify-Arrow",
-                this.toString() + " ~ " + b.toString(),
-                finalSubst.toString(),
-                List.of(u1.tree(), u2.tree())));
+        return new InferenceTree(
+            "Unify-Arrow",
+            this.toString() + " ~ " + b.toString(),
+            "",
+            List.of(u1, u2));
       } else {
         throw new TypingException.UnificationFailed(this, other);
       }
     }
 
     @Override
-    public Set<TypeVar> freeTypeVars() {
-      var set = new HashSet<TypeVar>();
+    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
+      var set = new HashSet<TypeVar<AlgorithmWType>>();
       set.addAll(this.from.freeTypeVars());
       set.addAll(this.to.freeTypeVars());
       return Set.copyOf(set);
@@ -198,6 +236,17 @@ public abstract sealed class AlgorithmWType extends Type {
     @Override
     public boolean isFullySpecified() {
       return this.from.isFullySpecified() && this.to.isFullySpecified();
+    }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+      this.from.occursCheckAjustLevel(tyVar);
+      this.to.occursCheckAjustLevel(tyVar);
+    }
+
+    @Override
+    public AlgorithmWType deref() {
+      return new AlgorithmWType.Arrow(this.from.deref(), this.to.deref());
     }
   }
 
@@ -248,10 +297,9 @@ public abstract sealed class AlgorithmWType extends Type {
     }
 
     @Override
-    public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
       if (other instanceof LitType otherLit &&
           otherLit.tyName.equals(this.tyName)) {
-        var subst = Subst.newEmpty();
         var trees = new ArrayList<InferenceTree>();
 
         if (this.parameters.size() != otherLit.parameters.size()) {
@@ -266,28 +314,35 @@ public abstract sealed class AlgorithmWType extends Type {
           var result = engine.unify(
               this.parameters.get(i),
               otherLit.parameters.get(i));
-          subst = result.subst().compose(subst);
-          trees.add(result.tree());
+          trees.add(result);
         }
 
-        return new UnifyResult(
-            Subst.newEmpty(),
-            new InferenceTree(
-                "Unify-Base",
-                this.toString() + " ~ " + other.toString()));
+        return new InferenceTree(
+            "Unify-Base",
+            this.toString() + " ~ " + other.toString());
       } else {
         throw new TypingException.UnificationFailed(this, other);
       }
     }
 
     @Override
-    public Set<TypeVar> freeTypeVars() {
+    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
       return Set.of();
     }
 
     @Override
     public boolean isFullySpecified() {
       return this.parameters.stream().allMatch(AlgorithmWType::isFullySpecified);
+    }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+      this.parameters.forEach(p -> p.occursCheckAjustLevel(tyVar));
+    }
+
+    @Override
+    public AlgorithmWType deref() {
+      return new AlgorithmWType.LitType(this.tyName, this.parameters.stream().map(p -> p.deref()).toList());
     }
   }
 
@@ -304,21 +359,19 @@ public abstract sealed class AlgorithmWType extends Type {
     }
 
     @Override
-    public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
 
       if (other instanceof NumericType otherNum && this.size == otherNum.size) {
-        return new UnifyResult(
-            Subst.newEmpty(),
-            new InferenceTree(
-                "Unify-NumericType",
-                this.toString() + " ~ " + other.toString()));
+        return new InferenceTree(
+            "Unify-NumericType",
+            this.toString() + " ~ " + other.toString());
       } else {
         throw new TypingException.UnificationFailed(this, other);
       }
     }
 
     @Override
-    public Set<TypeVar> freeTypeVars() {
+    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
       return Set.of();
     }
 
@@ -344,6 +397,14 @@ public abstract sealed class AlgorithmWType extends Type {
       return Objects.hash(this.size);
     }
 
+    @Override
+    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+    }
+
+    @Override
+    public AlgorithmWType deref() {
+      return new AlgorithmWType.NumericType(this.size);
+    }
   }
 
   public static final class Tuple extends AlgorithmWType {
@@ -376,8 +437,8 @@ public abstract sealed class AlgorithmWType extends Type {
     }
 
     @Override
-    public Set<TypeVar> freeTypeVars() {
-      var set = new HashSet<TypeVar>();
+    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
+      var set = new HashSet<TypeVar<AlgorithmWType>>();
 
       this.elements.stream().forEach(e -> set.addAll(e.freeTypeVars()));
 
@@ -385,31 +446,27 @@ public abstract sealed class AlgorithmWType extends Type {
     }
 
     @Override
-    public UnifyResult unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
       if (other instanceof Tuple b) {
         if (this.elements.size() != b.elements.size()) {
           throw new TypingException.TupleSizeMismatch(
               this.elements.size(),
               b.elements.size());
         }
-        Subst subst = Subst.newEmpty();
         ArrayList<InferenceTree> trees = new ArrayList<>();
 
         for (int i = 0; i < this.elements.size(); i++) {
-          UnifyResult result = engine.unify(
-              subst.apply(this.elements.get(i)),
-              subst.apply(b.elements.get(i)));
-          subst = result.subst().compose(subst);
-          trees.add(result.tree());
+          InferenceTree result = engine.unify(
+              this.elements.get(i),
+              b.elements.get(i));
+          trees.add(result);
         }
 
-        return new UnifyResult(
-            subst,
-            new InferenceTree(
-                "Unify-Tuple",
-                this + " ~ " + other,
-                subst + "",
-                List.copyOf(trees)));
+        return new InferenceTree(
+            "Unify-Tuple",
+            this + " ~ " + other,
+            "",
+            List.copyOf(trees));
       } else {
         throw new TypingException.UnificationFailed(this, other);
       }
@@ -418,6 +475,21 @@ public abstract sealed class AlgorithmWType extends Type {
     @Override
     public boolean isFullySpecified() {
       return this.elements.stream().allMatch(AlgorithmWType::isFullySpecified);
+    }
+
+    @Override
+    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+      this.elements.forEach(e -> e.occursCheckAjustLevel(tyVar));
+    }
+
+    @Override
+    public GeneralTypeParameter asTypeParameter() {
+      throw new UnsupportedOperationException("This method is not implemented for tuples");
+    }
+
+    @Override
+    public AlgorithmWType deref() {
+      return new AlgorithmWType.Tuple(this.elements.stream().map(e -> e.deref()).toList());
     }
   }
 }

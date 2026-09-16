@@ -15,7 +15,7 @@ import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.traits.IExpressionCell;
 import dgir.core.ir.types.traits.IVariable;
 
-public abstract class Expression<E extends Expression<E, T>, T extends Type> extends ExprOrOperator<E, T> {
+public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> extends ExprOrOperator<E, T> {
   public Optional<T> inferredType;
   public Optional<Operation> underlyingOperation;
   public Optional<E> parentScopeExpression;
@@ -39,7 +39,7 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type> ext
   }
 
   @FunctionalInterface
-  public interface InstantiateOperation<E extends Expression<E, T>, T extends Type> {
+  public interface InstantiateOperation<E extends Expression<E, T>, T extends Type<T>> {
     public Operation instantiate(E expr);
   }
 
@@ -164,7 +164,7 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type> ext
    */
   public abstract E copy();
 
-  public static class ExpressionVisitor<E extends Expression<E, T>, T extends Type> {
+  public static class ExpressionVisitor<E extends Expression<E, T>, T extends Type<T>> {
     private Set<E> visited;
     private VisitOrder order;
     private VisitGetChildrenOption getChildrenOption;
@@ -192,11 +192,11 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type> ext
     }
 
     @FunctionalInterface
-    public static interface Visitor<E extends Expression<E, T>, T extends Type> {
+    public static interface Visitor<E extends Expression<E, T>, T extends Type<T>> {
       public void visit(E expr);
     }
 
-    public static interface VisitState<E extends Expression<E, T>, T extends Type> {
+    public static interface VisitState<E extends Expression<E, T>, T extends Type<T>> {
       public default void enter(E expr) {
       }
 
@@ -318,7 +318,7 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type> ext
   }
 
   public final List<E> getAllChildrenForScopeExpression(E body) {
-    record VisitState<E extends Expression<E, T>, T extends Type>(Set<E> withinThisBlock)
+    record VisitState<E extends Expression<E, T>, T extends Type<T>>(Set<E> withinThisBlock)
         implements dgir.core.ir.types.Expression.ExpressionVisitor.VisitState<E, T> {
     }
     var visitState = new VisitState<E, T>(Collections.newSetFromMap(new IdentityHashMap<>()));
