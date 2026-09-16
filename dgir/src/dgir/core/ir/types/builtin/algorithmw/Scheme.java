@@ -3,34 +3,19 @@ package dgir.core.ir.types.builtin.algorithmw;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeVar;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 
 public final class Scheme {
     private List<TypeVar> vars;
     private AlgorithmWType type;
-    private Optional<ExprOrOperator<Expr, AlgorithmWType>> originExpr;
 
     public Scheme(List<TypeVar> vars, AlgorithmWType type) {
       this.vars = vars;
       this.type = type;
-
-      this.originExpr = Optional.empty();
-    }
-
-    public Scheme(List<TypeVar> vars, AlgorithmWType type, ExprOrOperator<Expr, AlgorithmWType> originExpr) {
-      this(vars, type);
-      this.originExpr = Optional.ofNullable(originExpr);
-    }
-
-    public Scheme(List<TypeVar> vars, AlgorithmWType type, Optional<ExprOrOperator<Expr, AlgorithmWType>> originExpr) {
-      this(vars, type);
-      this.originExpr = originExpr;
     }
 
     /**
@@ -49,7 +34,7 @@ public final class Scheme {
       }
 
       var newType = new Subst(filtered).apply(this.type);
-      return new Scheme(this.vars, newType, this.originExpr);
+      return new Scheme(this.vars, newType);
     }
 
     @Override

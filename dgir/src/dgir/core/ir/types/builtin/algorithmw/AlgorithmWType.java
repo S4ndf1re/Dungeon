@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,7 +14,6 @@ import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
-import dgir.core.ir.types.compatibility.ExprOrOperator;
 
 public abstract sealed class AlgorithmWType extends Type {
 
@@ -30,7 +28,7 @@ public abstract sealed class AlgorithmWType extends Type {
   @Override
   public abstract int hashCode();
 
-  public Scheme generalize(Env env, Optional<ExprOrOperator<Expr, AlgorithmWType>> originExpr) {
+  public Scheme generalize(Env env) {
     Set<TypeVar> ftv = this.freeTypeVars();
     Set<TypeVar> envFtv = env.freeTypeVars();
 
@@ -39,7 +37,7 @@ public abstract sealed class AlgorithmWType extends Type {
         .filter(ty -> !envFtv.contains(ty))
         .collect(Collectors.toList());
 
-    return new Scheme(unboundFtv, this, originExpr);
+    return new Scheme(unboundFtv, this);
   }
 
   /**
