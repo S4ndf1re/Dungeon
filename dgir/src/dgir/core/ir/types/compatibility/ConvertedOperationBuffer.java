@@ -6,11 +6,11 @@ import java.util.Optional;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
-import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
+import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.compatibility.ConverterRegistry.ConverterFunction;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 
-public class ConvertedOperationBuffer<E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<E, T>> {
+public class ConvertedOperationBuffer<E extends Expression<E, T>, T extends Type, SolverT extends TypeInferenceSolver<SolverT, E, T>> {
   private HashMap<Operation, E> converted;
 
   public ConvertedOperationBuffer() {

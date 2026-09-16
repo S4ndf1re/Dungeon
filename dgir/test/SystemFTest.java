@@ -19,7 +19,7 @@ public class SystemFTest {
   @Test
   public void systemFTest() {
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var x = Symbol.<Expr, SystemFType>of(new Value());
 
@@ -46,7 +46,7 @@ public class SystemFTest {
   public void systemFTest2() {
     // let add = \x -> \y -> x + y in add 1 2
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var add = Symbol.<Expr, SystemFType>of(new Value());
     var x = Symbol.<Expr, SystemFType>of(new Value());
@@ -85,7 +85,7 @@ public class SystemFTest {
   public void systemFTest3() {
     // let add = \x -> List()
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var add = Symbol.<Expr, SystemFType>of(new Value());
     var x = Symbol.<Expr, SystemFType>of(new Value());
@@ -119,7 +119,7 @@ public class SystemFTest {
     // b = 2
     // in add 1 2
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var add = Symbol.<Expr, SystemFType>of(new Value());
     var a = Symbol.<Expr, SystemFType>of(new Value());
@@ -158,7 +158,7 @@ public class SystemFTest {
   @Test
   public void cyclicFunctionUse() {
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Symbol<Expr, SystemFType> a = Symbol.<Expr, SystemFType>of(new Value());
     Symbol<Expr, SystemFType> b = Symbol.<Expr, SystemFType>of(new Value());
@@ -198,7 +198,7 @@ public class SystemFTest {
   @Test
   public void cyclicFunctionUse2() {
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     Symbol<Expr, SystemFType> a = Symbol.<Expr, SystemFType>of(new Value());
     Symbol<Expr, SystemFType> b = Symbol.<Expr, SystemFType>of(new Value());
@@ -238,7 +238,7 @@ public class SystemFTest {
   @Test
   public void polymorphicConst() {
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var a = new TypeVar();
     var b = new TypeVar();
@@ -273,7 +273,7 @@ public class SystemFTest {
   @Test
   public void polymorphicUses() {
     var inference = new SystemFInference();
-    var solver = inference.getSolverInstance();
+    var solver = inference.getNewSolverInstance();
 
     var a = new TypeVar();
     var b = new TypeVar();

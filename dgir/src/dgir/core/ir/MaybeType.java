@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
 
-import dgir.core.ir.types.TypeDialect.TypeInferenceSolver;
+import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.serialization.MaybeTypeDeserializer;
 import dgir.core.serialization.MaybeTypeSerializer;
 import tools.jackson.databind.annotation.JsonDeserialize;

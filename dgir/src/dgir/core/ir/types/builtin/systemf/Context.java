@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import dgir.core.ir.types.TypeDialect.TypeInferenceSolver.ConversionContext;
+import dgir.core.ir.types.TypeInferenceSolver.ConversionContext;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 import dgir.core.ir.types.compatibility.Scope.ScopeLike;

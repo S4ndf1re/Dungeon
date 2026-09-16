@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.TypeDialect.TypeInferenceSolver.ConversionContext;
+import dgir.core.ir.types.TypeInferenceSolver.ConversionContext;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.compatibility.Scope.ScopeLike;
 
