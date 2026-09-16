@@ -1,4 +1,4 @@
-package dgir.core.ir.types.algorithmw;
+package dgir.core.ir.types.builtin.algorithmw;
 
 import dgir.core.ir.types.InferenceTree;
 
