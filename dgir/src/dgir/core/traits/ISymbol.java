@@ -50,6 +50,10 @@ public interface ISymbol extends IOpTrait {
   }
 
   public final record SymbolTableSymbol(String ident, Type type) {
+    @Override
+    public final String toString() {
+      return ident + "~<" + type.getParameterizedIdent() + ">";
+    }
   }
 
   /**

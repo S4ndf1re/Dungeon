@@ -94,9 +94,14 @@ public final class Value extends IRObjectWithUseList<Value, ValueOperand> implem
 
   public Value(MaybeType type, ValueDebugInfo info) {
     this.type = type;
-    if(info != null) {
+    if (info != null) {
       this.debugInfo = info;
     }
+  }
+
+  public Value(ValueDebugInfo info) {
+    this.type = MaybeType.of();
+    this.debugInfo = info;
   }
 
   @JsonCreator

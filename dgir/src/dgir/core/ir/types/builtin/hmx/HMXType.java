@@ -1,4 +1,4 @@
-package dgir.core.ir.types.builtin.algorithmw;
+package dgir.core.ir.types.builtin.hmx;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -15,7 +15,7 @@ import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 
-public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
+public abstract sealed class HMXType extends Type<HMXType> {
 
   @Override
   public abstract boolean equals(Object obj);
@@ -23,12 +23,12 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
   @Override
   public abstract int hashCode();
 
-  public Scheme generalize(int level) {
-    Set<TypeVar<AlgorithmWType>> ftv = this.freeTypeVars();
+  public Scheme generalize(int level, Constraint constr) {
+    Set<TypeVar<HMXType>> ftv = this.freeTypeVars();
 
-    List<TypeVar<AlgorithmWType>> unboundFtv = ftv.stream().filter(v -> v.find().getLevel() >= level).toList();
+    List<TypeVar<HMXType>> unboundFtv = ftv.stream().map(v -> v.find()).filter(v -> v.getLevel() >= level).toList();
 
-    return new Scheme(unboundFtv, this);
+    return new Scheme(unboundFtv, this, constr);
   }
 
   /**
@@ -42,34 +42,39 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
    */
   public abstract InferenceTree unify(
       TypeInference engine,
-      AlgorithmWType other);
+      HMXType other);
 
   @Override
-  public boolean occursCheck(TypeVar<AlgorithmWType> ty) {
+  public boolean occursCheck(TypeVar<HMXType> ty) {
     var ftv = this.freeTypeVars();
     return ftv.contains(ty);
   }
 
   public abstract boolean isFullySpecified();
 
-  public abstract Set<TypeVar<AlgorithmWType>> freeTypeVars();
+  public abstract Set<TypeVar<HMXType>> freeTypeVars();
 
-  public static final class Var extends AlgorithmWType {
+  public static final class Var extends HMXType {
 
-    public final TypeVar<AlgorithmWType> tyVar;
+    public final TypeVar<HMXType> tyVar;
 
-    public Var(TypeVar<AlgorithmWType> tyVar) {
+    public Var(TypeVar<HMXType> tyVar) {
       this.tyVar = tyVar;
     }
 
     @Override
     public String toString() {
-      return tyVar.toString();
+      var dereffed = this.deref();
+      if (dereffed instanceof Var v) {
+        return v.tyVar.toString();
+      } else {
+        return dereffed.toString();
+      }
     }
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof AlgorithmWType other && this.deref().equals(other.deref());
+      return obj instanceof HMXType other && this.deref().equals(other.deref());
     }
 
     @Override
@@ -82,7 +87,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, HMXType other) {
       // Maybe the two types (this and other) are actually the same type variable
       if (other instanceof Var b) {
         var unifyRes = this.tyVar.unify(b.tyVar);
@@ -112,7 +117,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
+    public Set<TypeVar<HMXType>> freeTypeVars() {
       if (this.tyVar.getAssigendType().isPresent()) {
         return Set.copyOf(this.tyVar.getAssigendType().get().freeTypeVars());
       }
@@ -130,7 +135,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+    public void occursCheckAjustLevel(TypeVar<HMXType> tyVar) {
       if (this.tyVar.getAssigendType().isPresent()) {
         this.tyVar.getAssigendType().get().occursCheckAjustLevel(tyVar);
       } else if (this.tyVar == tyVar) {
@@ -143,12 +148,12 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public AlgorithmWType deref() {
+    public HMXType deref() {
       var assigendType = this.tyVar.getAssigendType();
       if (assigendType.isPresent()) {
         return assigendType.get().deref();
       }
-      return new AlgorithmWType.Var(this.tyVar.find());
+      return new HMXType.Var(this.tyVar.find());
     }
 
     @Override
@@ -162,19 +167,19 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
   }
 
-  public static final class Arrow extends AlgorithmWType {
+  public static final class Arrow extends HMXType {
 
-    public final AlgorithmWType from;
-    public final AlgorithmWType to;
+    public final HMXType from;
+    public final HMXType to;
 
-    public Arrow(AlgorithmWType from, AlgorithmWType to) {
+    public Arrow(HMXType from, HMXType to) {
       this.from = from;
       this.to = to;
     }
 
     @Override
     public String toString() {
-      return from + " -> " + to;
+      return from.deref() + " -> " + to.deref();
     }
 
     @Override
@@ -193,11 +198,11 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     public GeneralTypeParameter asTypeParameter() {
       assert this.isFullySpecified();
 
-      ArrayList<AlgorithmWType> types = new ArrayList<>();
+      ArrayList<HMXType> types = new ArrayList<>();
 
-      AlgorithmWType current = this;
-      while (current instanceof AlgorithmWType.Arrow) {
-        var arrow = (AlgorithmWType.Arrow) current;
+      HMXType current = this;
+      while (current instanceof HMXType.Arrow) {
+        var arrow = (HMXType.Arrow) current;
         types.add(arrow.from);
         current = arrow.to;
       }
@@ -208,7 +213,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, HMXType other) {
       if (other instanceof Arrow b) {
         InferenceTree u1 = engine.unify(this.from, b.from);
         InferenceTree u2 = engine.unify(
@@ -226,8 +231,8 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
-      var set = new HashSet<TypeVar<AlgorithmWType>>();
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      var set = new HashSet<TypeVar<HMXType>>();
       set.addAll(this.from.freeTypeVars());
       set.addAll(this.to.freeTypeVars());
       return Set.copyOf(set);
@@ -239,28 +244,28 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+    public void occursCheckAjustLevel(TypeVar<HMXType> tyVar) {
       this.from.occursCheckAjustLevel(tyVar);
       this.to.occursCheckAjustLevel(tyVar);
     }
 
     @Override
-    public AlgorithmWType deref() {
-      return new AlgorithmWType.Arrow(this.from.deref(), this.to.deref());
+    public HMXType deref() {
+      return new HMXType.Arrow(this.from.deref(), this.to.deref());
     }
   }
 
-  public static final class LitType extends AlgorithmWType {
+  public static final class LitType extends HMXType {
 
     public final TypeIdent tyName;
-    public final List<AlgorithmWType> parameters;
+    public final List<HMXType> parameters;
 
     public LitType(TypeIdent tyName) {
       this.tyName = tyName;
       this.parameters = List.of();
     }
 
-    public LitType(TypeIdent tyName, List<AlgorithmWType> parameters) {
+    public LitType(TypeIdent tyName, List<HMXType> parameters) {
       this.tyName = tyName;
       this.parameters = List.copyOf(parameters);
     }
@@ -270,7 +275,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       assert this.isFullySpecified() : "the type must be fully specified to be convertable to a general type";
 
       return GeneralTypeParameter.of(new GeneralParameterizedNominalType(this.tyName,
-          this.parameters.stream().map(AlgorithmWType::asTypeParameter).toList()));
+          this.parameters.stream().map(HMXType::asTypeParameter).toList()));
     }
 
     @Override
@@ -280,6 +285,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
               : "<" +
                   parameters
                       .stream()
+                      .map(HMXType::deref)
                       .map(Object::toString)
                       .collect(Collectors.joining(","))
                   +
@@ -297,7 +303,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, HMXType other) {
       if (other instanceof LitType otherLit &&
           otherLit.tyName.equals(this.tyName)) {
         var trees = new ArrayList<InferenceTree>();
@@ -326,27 +332,27 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
+    public Set<TypeVar<HMXType>> freeTypeVars() {
       return Set.of();
     }
 
     @Override
     public boolean isFullySpecified() {
-      return this.parameters.stream().allMatch(AlgorithmWType::isFullySpecified);
+      return this.parameters.stream().allMatch(HMXType::isFullySpecified);
     }
 
     @Override
-    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+    public void occursCheckAjustLevel(TypeVar<HMXType> tyVar) {
       this.parameters.forEach(p -> p.occursCheckAjustLevel(tyVar));
     }
 
     @Override
-    public AlgorithmWType deref() {
-      return new AlgorithmWType.LitType(this.tyName, this.parameters.stream().map(p -> p.deref()).toList());
+    public HMXType deref() {
+      return new HMXType.LitType(this.tyName, this.parameters.stream().map(p -> p.deref()).toList());
     }
   }
 
-  public static final class NumericType extends AlgorithmWType {
+  public static final class NumericType extends HMXType {
     public long size;
 
     public NumericType(long size) {
@@ -359,7 +365,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, HMXType other) {
 
       if (other instanceof NumericType otherNum && this.size == otherNum.size) {
         return new InferenceTree(
@@ -371,7 +377,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
+    public Set<TypeVar<HMXType>> freeTypeVars() {
       return Set.of();
     }
 
@@ -398,20 +404,20 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+    public void occursCheckAjustLevel(TypeVar<HMXType> tyVar) {
     }
 
     @Override
-    public AlgorithmWType deref() {
-      return new AlgorithmWType.NumericType(this.size);
+    public HMXType deref() {
+      return new HMXType.NumericType(this.size);
     }
   }
 
-  public static final class Tuple extends AlgorithmWType {
+  public static final class Tuple extends HMXType {
 
-    public final List<AlgorithmWType> elements;
+    public final List<HMXType> elements;
 
-    public Tuple(List<AlgorithmWType> elements) {
+    public Tuple(List<HMXType> elements) {
       this.elements = elements;
     }
 
@@ -420,6 +426,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       return ("(" +
           this.elements
               .stream()
+              .map(HMXType::deref)
               .map(Object::toString)
               .collect(Collectors.joining(", "))
           +
@@ -437,8 +444,8 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
-      var set = new HashSet<TypeVar<AlgorithmWType>>();
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      var set = new HashSet<TypeVar<HMXType>>();
 
       this.elements.stream().forEach(e -> set.addAll(e.freeTypeVars()));
 
@@ -446,7 +453,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public InferenceTree unify(TypeInference engine, HMXType other) {
       if (other instanceof Tuple b) {
         if (this.elements.size() != b.elements.size()) {
           throw new TypingException.TupleSizeMismatch(
@@ -474,11 +481,11 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
     @Override
     public boolean isFullySpecified() {
-      return this.elements.stream().allMatch(AlgorithmWType::isFullySpecified);
+      return this.elements.stream().allMatch(HMXType::isFullySpecified);
     }
 
     @Override
-    public void occursCheckAjustLevel(TypeVar<AlgorithmWType> tyVar) {
+    public void occursCheckAjustLevel(TypeVar<HMXType> tyVar) {
       this.elements.forEach(e -> e.occursCheckAjustLevel(tyVar));
     }
 
@@ -488,8 +495,8 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public AlgorithmWType deref() {
-      return new AlgorithmWType.Tuple(this.elements.stream().map(e -> e.deref()).toList());
+    public HMXType deref() {
+      return new HMXType.Tuple(this.elements.stream().map(e -> e.deref()).toList());
     }
   }
 }

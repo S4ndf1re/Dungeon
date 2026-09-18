@@ -91,7 +91,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
       var data = tyVar.find();
       var oData = this.tyVar.find();
-      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel()));
+      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel(), data, oData));
     }
 
     @Override
@@ -157,7 +157,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
       var data = tyVar.find();
       var oData = this.tyVar.find();
-      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel()));
+      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel(), data, oData));
     }
 
     @Override
