@@ -139,7 +139,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
       var data = tyVar.find();
       var oData = this.tyVar.find();
-      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel()));
+      oData.setLevel(TypeVar.mergeLevel(data.getLevel(), oData.getLevel(), data, oData));
     }
 
     @Override

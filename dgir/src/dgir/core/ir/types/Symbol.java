@@ -53,6 +53,11 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type<T
     }
 
     @Override
+    public String toString() {
+      return this.value + "";
+    }
+
+    @Override
     public int hashCode() {
       return value.hashCode();
     }
@@ -72,6 +77,11 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type<T
 
     public SymbolTableSymbol get() {
       return this.value;
+    }
+
+    @Override
+    public String toString() {
+      return this.value + "";
     }
 
     @Override

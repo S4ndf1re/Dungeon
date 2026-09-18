@@ -195,9 +195,9 @@ public class TypeVar<T extends Type<T>> {
     return current;
   }
 
-  public static int mergeLevel(int l1, int l2) {
+  public static <T extends Type<T>> int mergeLevel(int l1, int l2, TypeVar<T> a, TypeVar<T> b) {
     if (l1 < 0 || l2 < 0) {
-      throw new IllegalArgumentException("One of the levels is onbound: " + l1 + " " + l2);
+      throw new IllegalArgumentException("One of the levels is onbound: " + l1 + "(" + a + ") " + l2 + "(" + b + ")");
     }
     return Math.min(l1, l2);
   }
@@ -213,7 +213,7 @@ public class TypeVar<T extends Type<T>> {
         return;
       }
 
-      v.setLevel(mergeLevel(v1.level, v2.level));
+      v.setLevel(mergeLevel(v1.level, v2.level, v1, v2));
     };
 
     Optional<Pair<T, T>> toUnify = Optional.empty();
