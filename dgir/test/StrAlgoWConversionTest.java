@@ -13,7 +13,6 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression.ExpressionVisitor;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
-import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
@@ -47,7 +46,7 @@ public class StrAlgoWConversionTest {
     StringAlgoWConversion.registerBuiltinAlgoWConversion();
   }
 
-  private static Pair<Type, List<Operation>> solve(ProgramOp programOp) {
+  private static Pair<AlgorithmWType, List<Operation>> solve(ProgramOp programOp) {
     var inference = new AlgorithmWInference();
     var solver = inference.getNewSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));

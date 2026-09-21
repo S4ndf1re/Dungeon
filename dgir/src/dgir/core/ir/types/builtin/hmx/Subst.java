@@ -1,5 +1,6 @@
 package dgir.core.ir.types.builtin.hmx;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,6 +36,11 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
 
   @Override
   public HMXType apply(HMXType type) {
+    this.dropCycles();
+    return this.applyInner(type);
+  }
+
+  public HMXType applyInner(HMXType type) {
     type = type.deref();
     if (type instanceof HMXType.Var tyVar) {
       if (tyVar.tyVar.getAssigendType().isPresent()) {
@@ -59,6 +65,19 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
     }
   }
 
+  public void dropCycles() {
+    ArrayList<TypeVar<HMXType>> toDrop = new ArrayList<>();
+    for (var entry : this.types.keySet()) {
+      if (new HMXType.Var(entry).equals(this.types.get(entry))) {
+        toDrop.add(entry);
+      }
+    }
+
+    for (var entry : toDrop) {
+      this.types.remove(entry);
+    }
+  }
+
   /**
    * Compose this subst with another subst, by first relaying other through this
    *
@@ -66,6 +85,9 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
    * @return the composed subst
    */
   public Subst compose(Subst other) {
+    this.dropCycles();
+    other.dropCycles();
+
     var otherTypes = new HashMap<TypeVar<HMXType>, HMXType>(other.types);
     otherTypes
         .entrySet()
@@ -77,22 +99,21 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
         .stream()
         .forEach(entry -> otherTypes.putIfAbsent(entry.getKey(), entry.getValue()));
 
-    return new Subst(otherTypes);
+    var newSubst = new Subst(otherTypes);
+    newSubst.dropCycles();
+    return newSubst;
   }
 
   @Override
   public Subst expand(TypeInference engine, HMXExpr target, HMXType targetType) {
-    var ty1 = target.getInferredType().get();
+    var ty1 = target.getInferredType().get().deref();
     var ftv = ty1.freeTypeVars();
 
     var scheme = new Scheme(ftv.stream().map(v -> v.find()).toList(), ty1, new Constraint.Trivial());
     var s = scheme.toSubst(engine);
 
-    engine.unify(s.apply(ty1), targetType);
-
-    for (var key : Set.copyOf(s.types.keySet())) {
-      s.types.put(key, s.types.get(key).deref());
-    }
+    var newType = s.apply(ty1);
+    engine.unify(newType, targetType);
 
     return s.compose(this);
   }

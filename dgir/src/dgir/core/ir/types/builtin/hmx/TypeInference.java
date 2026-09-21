@@ -28,17 +28,20 @@ public final class TypeInference
 
   private int currentLevel;
   private boolean allowSubtypeFailure;
+  private ArrayList<Constraint> deferredConstraints;
 
   public TypeInference() {
     this(new TypeDialectConverterRegistry());
     this.currentLevel = 0;
     this.allowSubtypeFailure = false;
+    this.deferredConstraints = new ArrayList<>();
   }
 
   public TypeInference(TypeDialectConverterRegistry registry) {
     super(registry);
     this.currentLevel = 0;
     this.allowSubtypeFailure = false;
+    this.deferredConstraints = new ArrayList<>();
   }
 
   @Override
@@ -209,7 +212,7 @@ public final class TypeInference
           "Sub-Var-Reverse",
           l + " <: " + r,
           l + "/" + r);
-     }
+    }
 
     if (l instanceof HMXType.Arrow a && r instanceof HMXType.Arrow b) {
       // Contravariant in the parameter, covariant in the result: the
@@ -229,8 +232,10 @@ public final class TypeInference
         var aType = a.toIrType();
         var bType = b.toIrType();
 
-        if (!aType.isSubtypeOf(bType)) {
-          throw new TypingException.SubtypingFailed(l, r);
+        if (aType.isSubtypeOf(bType)) {
+          return new InferenceTree(
+              "Sub-Base",
+              l + " <: " + r);
         }
       } catch (TypingException.NotFullySpecified e) {
         // Do nothing, this case may be ok, but only if the rest matches!
@@ -315,12 +320,23 @@ public final class TypeInference
   }
 
   public Scheme solveConstraintAndGeneralize(Constraint constr, Env env, HMXType type) {
+    var markConstraint = new Constraint.Trivial();
+    this.addDeferredConstraint(markConstraint);
+
     var oldSubtypeFailure = this.getAllowSubtypeFailure();
     this.allowSubtypeFailure = true;
     this.solveConstraint(constr, env);
     this.allowSubtypeFailure = oldSubtypeFailure;
 
     var finalType = type.deref();
-    return finalType.generalize(this.currentLevel, constr);
+    var idx = this.deferredConstraints.indexOf(markConstraint);
+    var deferred = this.deferredConstraints.subList(idx + 1, this.deferredConstraints.size());
+    this.deferredConstraints = new ArrayList<>(this.deferredConstraints.subList(0, idx));
+
+    return finalType.generalize(this.currentLevel, new Constraint.And(deferred));
+  }
+
+  public void addDeferredConstraint(Constraint constr) {
+    this.deferredConstraints.add(constr);
   }
 }
