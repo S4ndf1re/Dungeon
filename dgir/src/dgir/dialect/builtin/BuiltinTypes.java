@@ -429,7 +429,7 @@ public sealed interface BuiltinTypes {
      * By default the base class integer is signed and 64 bit wide
      */
     private IntegerT() {
-      super("integer", new NumberT());
+      super("integer", TypeUniquer.uniqueInstance(new NumberT()));
       this.width = 64;
       this.signed = true;
     }

@@ -3,6 +3,7 @@ package dgir.core.ir.types.builtin.systemf;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import dgir.core.ir.types.TypeVar;
@@ -54,7 +55,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public int hashCode() {
-      return super.hashCode();
+      return this.tyVar.hashCode();
     }
 
     @Override
@@ -120,7 +121,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public int hashCode() {
-      return super.hashCode();
+      return this.tyVar.hashCode();
     }
 
     @Override
@@ -190,7 +191,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public int hashCode() {
-      return super.hashCode();
+      return Objects.hash(this.from, this.to);
     }
 
     @Override
@@ -274,7 +275,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public int hashCode() {
-      return super.hashCode();
+      return Objects.hash(this.boundVar, this.body);
     }
 
     @Override
@@ -347,7 +348,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public int hashCode() {
-      return super.hashCode();
+      return Objects.hash(this.ident, this.parameters);
     }
 
     @Override
@@ -460,7 +461,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public int hashCode() {
-      return super.hashCode();
+      return Objects.hash(this.elements);
     }
 
     @Override

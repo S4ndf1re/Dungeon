@@ -240,8 +240,8 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getNewSolverInstance();
 
-    var a = new TypeVar();
-    var b = new TypeVar();
+    var a = new TypeVar<SystemFType>();
+    var b = new TypeVar<SystemFType>();
     var x = Symbol.<Expr, SystemFType>of(new Value());
     var y = Symbol.<Expr, SystemFType>of(new Value());
 
@@ -275,8 +275,8 @@ public class SystemFTest {
     var inference = new SystemFInference();
     var solver = inference.getNewSolverInstance();
 
-    var a = new TypeVar();
-    var b = new TypeVar();
+    var a = new TypeVar<SystemFType>();
+    var b = new TypeVar<SystemFType>();
     var x = Symbol.<Expr, SystemFType>of(new Value());
     var y = Symbol.<Expr, SystemFType>of(new Value());
 

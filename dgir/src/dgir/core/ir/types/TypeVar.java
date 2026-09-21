@@ -31,6 +31,16 @@ public class TypeVar<T extends Type<T>> {
   private Optional<T> assignedType;
   private int level;
 
+  @Override
+  public int hashCode() {
+    return System.identityHashCode(this.find());
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof TypeVar tvOther && this.find() == tvOther.find();
+  }
+
   /**
    * A scope for tracking type variables created within a logical context.
    *
@@ -235,7 +245,8 @@ public class TypeVar<T extends Type<T>> {
     if (thisRoot.assignedType.isEmpty()) {
       thisRoot.assignedType = otherRoot.getAssigendType();
     }
-    other.parent = this;
+
+    otherRoot.parent = thisRoot;
 
     return toUnify;
   }

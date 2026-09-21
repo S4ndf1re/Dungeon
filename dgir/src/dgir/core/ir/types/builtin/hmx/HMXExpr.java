@@ -1295,7 +1295,8 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       }
 
       return new GenerateResult(
-          new Constraint.And(new Constraint.Equal(resType, type), new Constraint.And(sequentialConstraints)),
+          new Constraint.Exists(sequentialTypes,
+              new Constraint.And(new Constraint.Equal(resType, type), new Constraint.And(sequentialConstraints))),
           new InferenceTree("Inf-Seq", input, "" + resType, List.of()));
     }
 

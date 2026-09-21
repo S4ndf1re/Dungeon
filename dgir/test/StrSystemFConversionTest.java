@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import dgir.core.ir.Dialect;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression.ExpressionVisitor;
-import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
@@ -47,7 +46,7 @@ public class StrSystemFConversionTest {
     StringSystemFConversion.registerBuiltinSystemFConversion();
   }
 
-  private static Pair<Type, List<Operation>> solve(ProgramOp programOp) {
+  private static Pair<SystemFType, List<Operation>> solve(ProgramOp programOp) {
     var inference = new SystemFInference();
     var solver = inference.getNewSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));

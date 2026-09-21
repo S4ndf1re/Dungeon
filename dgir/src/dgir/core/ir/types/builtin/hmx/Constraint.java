@@ -1,5 +1,6 @@
 package dgir.core.ir.types.builtin.hmx;
 
+import java.util.Arrays;
 import java.util.List;
 
 import dgir.core.ir.types.Symbol;
@@ -55,8 +56,8 @@ public abstract class Constraint {
 
   /**
    * Subtype constraint tLeft <: tRight. Unlike {@link Inst} this is NOT a
-   * one-shot constraint: deferred copies are re-checked with fresh variables
-   * on every instantiation of the scheme they belong to.
+   * one-shot constraint: deferred copies are re-checked with fresh variables on
+   * every instantiation of the scheme they belong to.
    */
   public static final class Sub extends Constraint {
     public final HMXType tLeft;
@@ -80,6 +81,7 @@ public abstract class Constraint {
         // stays in the stored constraint tree and is re-checked by the second
         // pass of Inst.solve after the fresh variables are bound, and on every
         // further instantiation.
+        engine.addDeferredConstraint(this);
       }
     }
 
@@ -87,6 +89,52 @@ public abstract class Constraint {
     public Constraint applySubst(Subst subst) {
       return new Sub(subst.apply(this.tLeft), subst.apply(this.tRight));
     }
+  }
+
+  public static final class DetermineByCallbackAndUnify extends Constraint {
+
+    public static final class CallbackNotReady extends RuntimeException {
+    }
+
+    @FunctionalInterface
+    public interface DetermineCallback {
+      HMXType determine(HMXType... types) throws CallbackNotReady;
+    }
+
+    public final DetermineCallback callback;
+    public final HMXType unifyAgainst;
+    public final HMXType[] originalTypes;
+
+    public DetermineByCallbackAndUnify(DetermineCallback callback, HMXType unifyAgainst, HMXType... types) {
+      this.callback = callback;
+      this.unifyAgainst = unifyAgainst;
+      this.originalTypes = types;
+    }
+
+    @Override
+    public void solve(TypeInference engine, Env env) {
+      try {
+        var result = this.callback.determine(this.originalTypes);
+        engine.unify(result, this.unifyAgainst);
+      } catch (CallbackNotReady e) {
+        if (!engine.getAllowSubtypeFailure()) {
+          throw e;
+        }
+        // Only allow the exception, if the subtyping constraints are not resolved
+        // completely!
+        engine.addDeferredConstraint(this);
+      }
+    }
+
+    @Override
+    public Constraint applySubst(Subst subst) {
+      HMXType[] newTypes = new HMXType[this.originalTypes.length];
+      newTypes = Arrays.asList(this.originalTypes).stream().map(t -> subst.apply(t)).toList()
+          .toArray(newTypes);
+
+      return new DetermineByCallbackAndUnify(this.callback, this.unifyAgainst, newTypes);
+    }
+
   }
 
   /**
@@ -192,14 +240,9 @@ public abstract class Constraint {
 
     @Override
     public Constraint applySubst(Subst subst) {
-      return new Exists(this.toQuantify.stream()
-          .map(tv -> new HMXType.Var(tv))
-          .map(tv -> tv.deref())
-          .map(tv -> subst.apply(tv))
-          .filter(tv -> tv instanceof HMXType.Var)
-          .map(tv -> ((HMXType.Var) tv).tyVar)
-          .toList(),
-          this.inner.applySubst(subst));
+      return new Exists(this.toQuantify.stream().map(tv -> new HMXType.Var(tv)).map(tv -> tv.deref())
+          .map(tv -> subst.apply(tv)).filter(tv -> tv instanceof HMXType.Var)
+          .map(tv -> ((HMXType.Var) tv).tyVar).toList(), this.inner.applySubst(subst));
     }
   }
 
@@ -240,12 +283,14 @@ public abstract class Constraint {
         binding.scheme.vars().forEach(v -> v.setLevel(engine.getCurrentLevel()));
         // Instead of putting the real scheme with the real constraint into the env,
         // build a shell first!
-        newEnv.put(binding.name, new Scheme(binding.scheme.vars(), binding.scheme.type(), new Constraint.Trivial()));
+        newEnv.put(binding.name,
+            new Scheme(binding.scheme.vars(), binding.scheme.type(), new Constraint.Trivial()));
       }
 
       for (var binding : this.bindings) {
         binding.scheme.vars().forEach(v -> v.setLevel(engine.getCurrentLevel()));
-        var scheme = engine.solveConstraintAndGeneralize(binding.scheme.constr(), newEnv, binding.scheme.type());
+        var scheme = engine.solveConstraintAndGeneralize(binding.scheme.constr(), newEnv,
+            binding.scheme.type());
         newEnv.put(binding.name, scheme);
       }
 
@@ -254,7 +299,8 @@ public abstract class Constraint {
 
     @Override
     public Constraint applySubst(Subst subst) {
-      return new LetRec(this.bindings.stream().map(b -> b.applySubst(subst)).toList(), this.inner.applySubst(subst));
+      return new LetRec(this.bindings.stream().map(b -> b.applySubst(subst)).toList(),
+          this.inner.applySubst(subst));
     }
   }
 
@@ -283,7 +329,8 @@ public abstract class Constraint {
 
       for (var binding : this.bindings) {
         binding.scheme.vars().forEach(v -> v.setLevel(engine.getCurrentLevel()));
-        var scheme = engine.solveConstraintAndGeneralize(binding.scheme.constr(), newEnv, binding.scheme.type());
+        var scheme = engine.solveConstraintAndGeneralize(binding.scheme.constr(), newEnv,
+            binding.scheme.type());
         newEnv.put(binding.name, scheme);
       }
 
@@ -292,7 +339,8 @@ public abstract class Constraint {
 
     @Override
     public Constraint applySubst(Subst subst) {
-      return new LetSeq(this.bindings.stream().map(b -> b.applySubst(subst)).toList(), this.inner.applySubst(subst));
+      return new LetSeq(this.bindings.stream().map(b -> b.applySubst(subst)).toList(),
+          this.inner.applySubst(subst));
     }
   }
 

@@ -69,7 +69,16 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof AlgorithmWType other && this.deref().equals(other.deref());
+      if (obj instanceof Var vOther) {
+        var dereffed = this.deref();
+        var otherDereffed = vOther.deref();
+        if (dereffed instanceof Var v1 && otherDereffed instanceof Var v2) {
+          return v1.tyVar.find().equals(v2.tyVar.find());
+        }
+
+        return dereffed.equals(otherDereffed);
+      }
+      return false;
     }
 
     @Override
