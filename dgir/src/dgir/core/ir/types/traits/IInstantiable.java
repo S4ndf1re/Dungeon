@@ -80,7 +80,13 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
    */
   @SuppressWarnings("unchecked")
   public default E instantiate(EngineT engine, InstEnv<E, T, S> env, S solutionContext) {
-    E expr = env.getConsed((E) this);
+    // NOTE(jan): it is not 100% certain, that this extra copy and solution
+    // application is actually needed. Though one might make the argument, that in
+    // later iterations of this code, the solution context may be redunant entirely.
+    E exprCopy = ((E) this).copy();
+    exprCopy.setInferredType(exprCopy.getInferredType().map(ty -> solutionContext.apply(ty)));
+    E expr = env.getConsed(exprCopy);
+
     // Variables must always be visited, while other epxressions must be
     // instantiated, as long as its not a recursive instantiation.
     if (!(expr instanceof IVariable) && env.isVisisted(expr, solutionContext)) {

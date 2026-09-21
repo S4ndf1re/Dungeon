@@ -1,0 +1,138 @@
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import dgir.core.ir.Dialect;
+import dgir.core.ir.Operation;
+import dgir.core.ir.types.Expression.ExpressionVisitor;
+import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
+import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
+import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.builtin.hmx.HMXInference;
+import dgir.core.ir.types.builtin.hmx.HMXType;
+import dgir.core.ir.types.builtin.hmx.HMXExpr;
+import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.compatibility.ExprOrOperator;
+import dgir.core.debug.Location;
+import dgir.dialect.arith.ArithHMXConversion;
+import dgir.dialect.arith.ArithOps.ConstantOp;
+import dgir.dialect.builtin.BuiltinHMXConversion;
+import dgir.dialect.builtin.BuiltinOps.ProgramOp;
+import dgir.dialect.func.FuncHMXConversion;
+import dgir.dialect.func.FuncOps.FuncOp;
+import dgir.dialect.func.FuncOps.ReturnOp;
+import dgir.dialect.str.StringHMXConversion;
+import dgir.dialect.str.StrOps.ConcatOp;
+import dgir.dialect.str.StrOps.LengthOp;
+import dgir.dialect.str.StrOps.ToStringOp;
+import dgir.dialect.str.StrOps.TrimOp;
+
+public class StrHMXConversionTest {
+  static final Location LOC = Location.UNKNOWN;
+
+  @BeforeEach
+  public void setup() {
+    ConverterRegistry.registerDialect(HMXInference.class);
+    Dialect.registerAllDialects();
+    FuncHMXConversion.registerBuiltinAlgoWConversion();
+    BuiltinHMXConversion.registerBuiltinAlgoWConversion();
+    ArithHMXConversion.registerBuiltinAlgoWConversion();
+    StringHMXConversion.registerBuiltinAlgoWConversion();
+  }
+
+  private static Pair<HMXType, List<Operation>> solve(ProgramOp programOp) {
+    var inference = new HMXInference();
+    var solver = inference.getNewSolverInstance();
+    var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
+    DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+    DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
+    DgirTestUtils.saveDotExpr(solvedPair.instantiated());
+    DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
+    DgirTestUtils.saveDotType(solvedPair.type());
+
+    List<Operation> ops = new ArrayList<>();
+    new ExpressionVisitor<HMXExpr, HMXType>(VisitOrder.POST_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
+        .visit(solvedPair.instantiated(), e -> e.getUnderlyingOperation().ifPresent(ops::add));
+
+    return Pair.of(solvedPair.type(), ops);
+  }
+
+  private static long countOps(List<Operation> ops, Class<? extends dgir.core.ir.Op> clazz) {
+    return ops.stream().filter(op -> clazz.isInstance(op.asOp())).count();
+  }
+
+  @Test
+  public void concatInfersString() {
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    ProgramOp programOp = entry.getLeft();
+    FuncOp funcOp = entry.getRight();
+
+    var a = funcOp.addOperation(new ConstantOp(LOC, "Hello "), 0);
+    var b = funcOp.addOperation(new ConstantOp(LOC, "World"), 0);
+    ConcatOp concat = funcOp.addOperation(new ConcatOp(LOC, a.getResult(), b.getResult()), 0);
+
+    funcOp.addOperation(new ReturnOp(LOC, concat.getResult()), 0);
+
+    var solved = solve(programOp);
+
+    assertEquals(1, countOps(solved.getRight(), ConcatOp.class), "rebuilt concat op missing from result tree");
+
+    assertTrue(solved.getLeft() instanceof HMXType.LitType);
+    assertEquals(TypeIdent.from("string"), ((HMXType.LitType) solved.getLeft()).tyName);
+  }
+
+  @Test
+  public void chainedStrOpsSurviveRebuild() {
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    ProgramOp programOp = entry.getLeft();
+    FuncOp funcOp = entry.getRight();
+
+    var text = funcOp.addOperation(new ConstantOp(LOC, "  Hello  "), 0);
+    var number = funcOp.addOperation(new ConstantOp(LOC, 42), 0);
+    var asText = funcOp.addOperation(new ToStringOp(LOC, number.getResult()), 0);
+    var trimmed = funcOp.addOperation(new TrimOp(LOC, text.getResult()), 0);
+    var combined = funcOp.addOperation(new ConcatOp(LOC, trimmed.getResult(), asText.getResult()), 0);
+    var length = funcOp.addOperation(new LengthOp(LOC, combined.getResult()), 0);
+
+    funcOp.addOperation(new ReturnOp(LOC, length.getResult()), 0);
+
+    var solved = solve(programOp);
+
+    // Every str op of the chain must be part of the reconstructed tree.
+    assertEquals(1, countOps(solved.getRight(), ToStringOp.class), "rebuilt toString op missing");
+    assertEquals(1, countOps(solved.getRight(), TrimOp.class), "rebuilt trim op missing");
+    assertEquals(1, countOps(solved.getRight(), ConcatOp.class), "rebuilt concat op missing");
+    assertEquals(1, countOps(solved.getRight(), LengthOp.class), "rebuilt length op missing");
+
+    assertTrue(solved.getLeft() instanceof HMXType.LitType);
+    assertEquals(TypeIdent.from("int32"), ((HMXType.LitType) solved.getLeft()).tyName);
+  }
+
+  @Test
+  public void chainedStrOpsSurviveRebuild2() {
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    ProgramOp programOp = entry.getLeft();
+    FuncOp funcOp = entry.getRight();
+
+    var text = funcOp.addOperation(new ConstantOp(LOC, "  Hello  "), 0);
+    var world = funcOp.addOperation(new ConstantOp(LOC, " World "), 0);
+    var combined = funcOp.addOperation(new ConcatOp(LOC, text.getResult(), world.getResult()), 0);
+
+    funcOp.addOperation(new ReturnOp(LOC, combined.getResult()), 0);
+
+    var solved = solve(programOp);
+
+    // Every str op of the chain must be part of the reconstructed tree.
+    assertEquals(1, countOps(solved.getRight(), ConcatOp.class), "rebuilt concat op missing");
+
+    assertTrue(solved.getLeft() instanceof HMXType.LitType);
+    assertEquals(TypeIdent.from("string"), ((HMXType.LitType) solved.getLeft()).tyName);
+  }
+
+}
