@@ -643,13 +643,13 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       HMXType resultType = type;
 
       HMXType builtArrowType = resultType;
-      ArrayList<TypeVar<HMXType>> argTypeVars = new ArrayList<>();
+      ArrayList<TypeVar<HMXType>> quantifiedVars = new ArrayList<>();
       ArrayList<Constraint> argConstraints = new ArrayList<>();
       ArrayList<InferenceTree> trees = new ArrayList<>();
 
       for (var arg : this.args.reversed()) {
         var freshTypeVar = new TypeVar<HMXType>();
-        argTypeVars.add(freshTypeVar);
+        quantifiedVars.add(freshTypeVar);
         GenerateResult argRes = engine.generate(arg, env, new HMXType.Var(freshTypeVar));
         argConstraints.add(argRes.constr());
         builtArrowType = new HMXType.Arrow(new HMXType.Var(freshTypeVar), builtArrowType);
@@ -666,16 +666,18 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
             builtArrowType);
       }
 
-      GenerateResult funcInferRes = engine.generate(func, env, builtArrowType);
+      var fnTypeVar = new TypeVar<HMXType>();
+      var fnType = new HMXType.Var(fnTypeVar);
+      GenerateResult funcInferRes = engine.generate(func, env, fnType);
       trees.add(funcInferRes.tree());
+      quantifiedVars.add(fnTypeVar);
 
       this.inferredFunctionType = Optional.of(builtArrowType);
-      // var unifyRes = engine.unify(funcInferRes.type(), builtArrowType);
-      // trees.add(unifyRes);
 
       return new GenerateResult(
-          new Constraint.Exists(argTypeVars,
-              new Constraint.And(funcInferRes.constr(), new Constraint.And(argConstraints))),
+          new Constraint.Exists(quantifiedVars,
+              new Constraint.And(new Constraint.Sub(fnType, builtArrowType), funcInferRes.constr(),
+                  new Constraint.And(argConstraints))),
           new InferenceTree(
               "T-App",
               input,

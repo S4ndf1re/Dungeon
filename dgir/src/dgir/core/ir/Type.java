@@ -51,6 +51,7 @@ public abstract class Type extends MaybeType {
 
   @JsonIgnore
   private final @NotNull TypeDetails details;
+  private final Optional<Type> superType;
 
   // =========================================================================
   // Type Info
@@ -76,6 +77,10 @@ public abstract class Type extends MaybeType {
   @Contract(pure = true)
   public final @NotNull String getIdent() {
     return details.ident();
+  }
+
+  public final Optional<Type> getSuperType() {
+    return this.superType;
   }
 
   /**
@@ -172,9 +177,21 @@ public abstract class Type extends MaybeType {
             () -> new IllegalStateException(
                 "Type class " + ident + " is not registered in DGIRContext"));
 
-    // This is just that everyhwere a type is used, a maybe type may be found as
-    // well
+    // This is just that everyhwere a type is used, a maybe type may be found aswell
     this.specifyToKnown(this);
+    this.superType = Optional.empty();
+  }
+
+  protected Type(String ident, Type superType) {
+    super();
+    details = TypeDetails.get(ident)
+        .orElseThrow(
+            () -> new IllegalStateException(
+                "Type class " + ident + " is not registered in DGIRContext"));
+
+    // This is just that everyhwere a type is used, a maybe type may be found aswell
+    this.specifyToKnown(this);
+    this.superType = Optional.ofNullable(superType);
   }
 
   // =========================================================================
@@ -199,6 +216,17 @@ public abstract class Type extends MaybeType {
    */
   public final boolean validate(Object value) {
     return getValidator().apply(value);
+  }
+
+  public final boolean isSubtypeOf(Type other) {
+    var current = Optional.of(this);
+    while (current.isPresent()) {
+      if (current.get().equals(other)) {
+        return true;
+      }
+      current = current.get().getSuperType();
+    }
+    return false;
   }
 
   // =========================================================================

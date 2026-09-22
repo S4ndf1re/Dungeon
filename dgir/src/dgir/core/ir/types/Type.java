@@ -26,7 +26,10 @@ public abstract class Type<T extends Type<T>> {
   public abstract T deref();
 
   public final dgir.core.ir.Type toIrType() {
-    assert this.isFullySpecified();
+    if (!this.isFullySpecified()) {
+      throw new TypingException.NotFullySpecified(this);
+    }
+
     return dgir.core.ir.Type.fromGeneralParameterizedNominalType(this.asTypeParameter().getConcrete());
   }
 }

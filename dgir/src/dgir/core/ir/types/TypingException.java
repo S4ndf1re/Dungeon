@@ -169,4 +169,15 @@ public abstract sealed class TypingException extends RuntimeException {
       this.type = type;
     }
   }
+
+  public static final class NotFullySpecified extends TypingException {
+    public final Type<?> type;
+
+    public NotFullySpecified(Type<?> type) {
+      super("Type " + type
+          + " is not fully specified. I.e. there are unresolved type variables contained wihtin the type");
+      this.type = type;
+    }
+
+  }
 }
