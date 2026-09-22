@@ -27,14 +27,18 @@ public final class TypeInference
     extends TypeInferenceSolver<TypeInference, HMXExpr, HMXType> {
 
   private int currentLevel;
+  private boolean allowSubtypeFailure;
 
   public TypeInference() {
     this(new TypeDialectConverterRegistry());
     this.currentLevel = 0;
+    this.allowSubtypeFailure = false;
   }
 
   public TypeInference(TypeDialectConverterRegistry registry) {
     super(registry);
+    this.currentLevel = 0;
+    this.allowSubtypeFailure = false;
   }
 
   @Override
@@ -140,8 +144,160 @@ public final class TypeInference
     return left.unify(this, right);
   }
 
+  public static final class UnresolvedSubtypeException extends RuntimeException {
+    public final HMXType left;
+    public final HMXType right;
+
+    public UnresolvedSubtypeException(HMXType left, HMXType right) {
+      super("Unresolved subtype constraint: " + left + " <: " + right);
+      this.left = left;
+      this.right = right;
+    }
+  }
+
+  public InferenceTree subtype(HMXType left, HMXType right) {
+    var l = left.deref();
+
+    var r = right.deref();
+
+    if (l instanceof HMXType.Var lv) {
+      if (r instanceof HMXType.Var rv) {
+        var unifyRes = lv.tyVar.unify(rv.tyVar);
+        if (unifyRes.isPresent()) {
+          return this.subtype(unifyRes.get().getLeft(), unifyRes.get().getRight());
+        }
+        return new InferenceTree(
+            "Sub-Var-Var",
+            l + " <: " + r);
+      }
+
+      // Within scheme generalization, an open variable must NOT be equated
+      // with the concrete type: assigning would collapse the scheme variables.
+      // Defer the leaf into the scheme's stored constraint tree instead; it is
+      // re-checked with fresh variables on every instantiation.
+      if (this.allowSubtypeFailure) {
+        throw new UnresolvedSubtypeException(l, r);
+      }
+
+      // Outside generalization the old conservative logic applies: equate the
+      // variable with the concrete type. Every accepted program stays
+      // well-typed; directional bounds are lost.
+      if (r.occursCheck(lv.tyVar)) {
+        throw new TypingException.OccursCheckFailed(r, lv.tyVar);
+      }
+
+      r.occursCheckAjustLevel(lv.tyVar);
+      lv.tyVar.assignType(r);
+      return new InferenceTree(
+          "Sub-Var",
+          l + " <: " + r,
+          r + "/" + l);
+    }
+
+    if (r instanceof HMXType.Var rv) {
+      if (this.allowSubtypeFailure) {
+        throw new UnresolvedSubtypeException(l, r);
+      }
+
+      if (l.occursCheck(rv.tyVar)) {
+        throw new TypingException.OccursCheckFailed(l, rv.tyVar);
+      }
+
+      l.occursCheckAjustLevel(rv.tyVar);
+      rv.tyVar.assignType(l);
+      return new InferenceTree(
+          "Sub-Var-Reverse",
+          l + " <: " + r,
+          l + "/" + r);
+     }
+
+    if (l instanceof HMXType.Arrow a && r instanceof HMXType.Arrow b) {
+      // Contravariant in the parameter, covariant in the result: the
+      // operands of the parameter check are swapped.
+      var fromCheck = this.subtype(b.from, a.from);
+      var toCheck = this.subtype(a.to, b.to);
+
+      return new InferenceTree(
+          "Sub-Arrow",
+          l + " <: " + r,
+          "",
+          List.of(fromCheck, toCheck));
+    }
+
+    if (l instanceof HMXType.LitType a && r instanceof HMXType.LitType b) {
+      try {
+        var aType = a.toIrType();
+        var bType = b.toIrType();
+
+        if (!aType.isSubtypeOf(bType)) {
+          throw new TypingException.SubtypingFailed(l, r);
+        }
+      } catch (TypingException.NotFullySpecified e) {
+        // Do nothing, this case may be ok, but only if the rest matches!
+      }
+
+      if (a.tyName.equals(b.tyName)) {
+        if (a.parameters.size() != b.parameters.size()) {
+          throw new RuntimeException(
+              "Parameter count mismatch: " +
+                  a.parameters.size() +
+                  " vs " +
+                  b.parameters.size());
+        }
+
+        // Covariant type parameters.
+        var trees = new ArrayList<InferenceTree>();
+        for (int i = 0; i < a.parameters.size(); i++) {
+          trees.add(this.subtype(a.parameters.get(i), b.parameters.get(i)));
+        }
+
+        return new InferenceTree(
+            "Sub-Base",
+            l + " <: " + r);
+      }
+
+      throw new TypingException.SubtypingFailed(l, r);
+    }
+
+    if (l instanceof HMXType.NumericType a && r instanceof HMXType.NumericType b) {
+      if (a.size <= b.size) {
+        return new InferenceTree(
+            "Sub-NumericType",
+            l + " <: " + r);
+      }
+
+      throw new TypingException.SubtypingFailed(l, r);
+    }
+
+    if (l instanceof HMXType.Tuple a && r instanceof HMXType.Tuple b) {
+      if (a.elements.size() != b.elements.size()) {
+        throw new TypingException.TupleSizeMismatch(
+            a.elements.size(),
+            b.elements.size());
+      }
+
+      // Covariant element-wise.
+      var trees = new ArrayList<InferenceTree>();
+      for (int i = 0; i < a.elements.size(); i++) {
+        trees.add(this.subtype(a.elements.get(i), b.elements.get(i)));
+      }
+
+      return new InferenceTree(
+          "Sub-Tuple",
+          l + " <: " + r,
+          "",
+          List.copyOf(trees));
+    }
+
+    throw new TypingException.SubtypingFailed(l, r);
+  }
+
   public int getCurrentLevel() {
     return this.currentLevel;
+  }
+
+  public boolean getAllowSubtypeFailure() {
+    return this.allowSubtypeFailure;
   }
 
   public void solveConstraint(Constraint constr, Env env) {
@@ -159,7 +315,10 @@ public final class TypeInference
   }
 
   public Scheme solveConstraintAndGeneralize(Constraint constr, Env env, HMXType type) {
+    var oldSubtypeFailure = this.getAllowSubtypeFailure();
+    this.allowSubtypeFailure = true;
     this.solveConstraint(constr, env);
+    this.allowSubtypeFailure = oldSubtypeFailure;
 
     var finalType = type.deref();
     return finalType.generalize(this.currentLevel, constr);

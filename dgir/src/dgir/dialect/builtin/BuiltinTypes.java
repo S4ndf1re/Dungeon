@@ -34,6 +34,61 @@ public sealed interface BuiltinTypes {
       return BuiltinDialect.class;
     }
 
+    final class NumberDescriptor implements BuiltinTypeDescriptor {
+      private final String ident;
+      private final @NotNull Supplier<Type> nonParametricInstance;
+      private final Function<Object, Boolean> validator;
+
+      @Contract(pure = true)
+      public static @NotNull @Unmodifiable List<TypeDescriptor> getDescriptors() {
+        return List.of(new NumberDescriptor());
+      }
+
+      public NumberDescriptor() {
+        this.ident = "number";
+        this.nonParametricInstance = () -> TypeUniquer.uniqueInstance(new NumberT());
+        this.validator = value -> {
+          if (!(value instanceof Number))
+            return false;
+          return true;
+        };
+      }
+
+      @Override
+      public @NotNull Class<? extends Type> getTypeClass() {
+        return NumberT.class;
+      }
+
+      @Override
+      public @NotNull String getIdent() {
+        return ident;
+      }
+
+      @Override
+      public @NotNull Function<Object, Boolean> getValidator() {
+        return validator;
+      }
+
+      @Override
+      public @NotNull Function<@NotNull Pair<@NotNull String, @NotNull TypeDetails>, @NotNull Type> getParameterizedIdentFactory() {
+        return params -> nonParametricInstance.get();
+      }
+
+      @Override
+      public @NotNull Function<@NotNull Pair<@NotNull GeneralParameterizedNominalType, @NotNull TypeDetails>, @NotNull Type> getGeneralParameterizedNominalTypeFactory() {
+        return typeParam -> {
+          var typeByInstance = this.nonParametricInstance.get();
+          assert typeParam.getLeft().getIdent().asStringIdent().equals(typeByInstance.getIdent())
+              : "Assumed TypeIdent does not match actual ident as registerd within the dialect's types";
+          return typeByInstance;
+        };
+      }
+
+      @Override
+      public void initDefaultTypeInstances() {
+      }
+    }
+
     // =========================================================================
     // Type Info
     // =========================================================================
@@ -46,6 +101,7 @@ public sealed interface BuiltinTypes {
       @Contract(pure = true)
       public static @NotNull @Unmodifiable List<TypeDescriptor> getDescriptors() {
         return List.of(
+            new IntegerDescriptor(),
             new IntegerDescriptor(1, true),
             new IntegerDescriptor(8, true),
             new IntegerDescriptor(16, true),
@@ -55,6 +111,16 @@ public sealed interface BuiltinTypes {
             new IntegerDescriptor(16, false),
             new IntegerDescriptor(32, false),
             new IntegerDescriptor(64, false));
+      }
+
+      public IntegerDescriptor() {
+        this.ident = "integer";
+        this.nonParametricInstance = () -> IntegerT.baseType;
+        this.validator = value -> {
+          if (!(value instanceof Number))
+            return false;
+          return true;
+        };
       }
 
       public IntegerDescriptor(int width, boolean signed) {
@@ -121,15 +187,16 @@ public sealed interface BuiltinTypes {
           throw new IllegalStateException(
               "IntegerT cache must be populated after type registration. Ensure that BuiltinDialect is registered before any types are accessed.");
         }
-        IntegerT.integerTypeCache[0] = new IntegerT(1, true);
-        IntegerT.integerTypeCache[1] = new IntegerT(8, true);
-        IntegerT.integerTypeCache[2] = new IntegerT(16, true);
-        IntegerT.integerTypeCache[3] = new IntegerT(32, true);
-        IntegerT.integerTypeCache[4] = new IntegerT(64, true);
-        IntegerT.integerTypeCache[5] = new IntegerT(8, false);
-        IntegerT.integerTypeCache[6] = new IntegerT(16, false);
-        IntegerT.integerTypeCache[7] = new IntegerT(32, false);
-        IntegerT.integerTypeCache[8] = new IntegerT(64, false);
+        IntegerT.baseType = TypeUniquer.uniqueInstance(new IntegerT());
+        IntegerT.integerTypeCache[0] = TypeUniquer.uniqueInstance(new IntegerT(1, true));
+        IntegerT.integerTypeCache[1] = TypeUniquer.uniqueInstance(new IntegerT(8, true));
+        IntegerT.integerTypeCache[2] = TypeUniquer.uniqueInstance(new IntegerT(16, true));
+        IntegerT.integerTypeCache[3] = TypeUniquer.uniqueInstance(new IntegerT(32, true));
+        IntegerT.integerTypeCache[4] = TypeUniquer.uniqueInstance(new IntegerT(64, true));
+        IntegerT.integerTypeCache[5] = TypeUniquer.uniqueInstance(new IntegerT(8, false));
+        IntegerT.integerTypeCache[6] = TypeUniquer.uniqueInstance(new IntegerT(16, false));
+        IntegerT.integerTypeCache[7] = TypeUniquer.uniqueInstance(new IntegerT(32, false));
+        IntegerT.integerTypeCache[8] = TypeUniquer.uniqueInstance(new IntegerT(64, false));
       }
 
     }
@@ -141,7 +208,7 @@ public sealed interface BuiltinTypes {
 
       @Contract(pure = true)
       public static @NotNull @Unmodifiable List<TypeDescriptor> getDescriptors() {
-        return List.of(new FloatDescriptor(32), new FloatDescriptor(64));
+        return List.of(new FloatDescriptor(), new FloatDescriptor(32), new FloatDescriptor(64));
       }
 
       public FloatDescriptor(int width) {
@@ -161,6 +228,16 @@ public sealed interface BuiltinTypes {
             case Double ignored when width == 64 -> true;
             default -> false;
           };
+        };
+      }
+
+      public FloatDescriptor() {
+        this.ident = "float";
+        this.nonParametricInstance = () -> FloatT.baseType;
+        this.validator = value -> {
+          if (!(value instanceof Number))
+            return false;
+          return true;
         };
       }
 
@@ -202,8 +279,9 @@ public sealed interface BuiltinTypes {
           throw new IllegalStateException(
               "FloatT cache must be populated after type registration. Ensure that BuiltinDialect is registered before any types are accessed.");
         }
-        FloatT.floatTypeCache[0] = new FloatT(32);
-        FloatT.floatTypeCache[1] = new FloatT(64);
+        FloatT.baseType = TypeUniquer.uniqueInstance(new FloatT());
+        FloatT.floatTypeCache[0] = TypeUniquer.uniqueInstance(new FloatT(32));
+        FloatT.floatTypeCache[1] = TypeUniquer.uniqueInstance(new FloatT(64));
       }
     }
   }
@@ -241,6 +319,7 @@ public sealed interface BuiltinTypes {
     // Static Fields
     // =========================================================================
 
+    static IntegerT baseType = null; // TypeUniquer.uniqueInstance(new IntegerT());
     static final @Nullable IntegerT[] integerTypeCache = new IntegerT[9];
 
     private static @NotNull IntegerT cacheGuard(int index) {
@@ -340,9 +419,19 @@ public sealed interface BuiltinTypes {
      * @param isSigned whether this type is signed.
      */
     private IntegerT(int width, boolean isSigned) {
-      super(identFromWidthAndSign(width, isSigned));
+      super(identFromWidthAndSign(width, isSigned), IntegerT.baseType);
       this.width = width;
       this.signed = isSigned;
+    }
+
+    /**
+     * This is the constructor for the base class!
+     * By default the base class integer is signed and 64 bit wide
+     */
+    private IntegerT() {
+      super("integer", new NumberT());
+      this.width = 64;
+      this.signed = true;
     }
 
     // =========================================================================
@@ -462,6 +551,7 @@ public sealed interface BuiltinTypes {
     // =========================================================================
     // Static Fields
     // =========================================================================
+    static FloatT baseType = null; // = TypeUniquer.uniqueInstance(new FloatT());
     static final FloatT[] floatTypeCache = new FloatT[2];
 
     private static @NotNull FloatT cacheGuard(int index) {
@@ -499,7 +589,8 @@ public sealed interface BuiltinTypes {
 
     /** Create a default 32-bit float type. */
     FloatT() {
-      this(32);
+      super("float", TypeUniquer.uniqueInstance(new NumberT()));
+      this.width = 64;
     }
 
     /**
@@ -508,7 +599,7 @@ public sealed interface BuiltinTypes {
      * @param width must be either 32 or 64.
      */
     private FloatT(int width) {
-      super(identFromWidth(width));
+      super(identFromWidth(width), FloatT.baseType);
       this.width = width;
     }
 
@@ -540,6 +631,7 @@ public sealed interface BuiltinTypes {
         default -> throw new RuntimeException("Invalid float width: " + width);
       };
     }
+
   }
 
   // =========================================================================
@@ -669,6 +761,13 @@ public sealed interface BuiltinTypes {
     public UnitType() {
       super("unit");
     }
+  }
+
+  final class NumberT extends Type implements BuiltinTypes {
+    protected NumberT() {
+      super("number");
+    }
+
   }
 
 }
