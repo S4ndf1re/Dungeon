@@ -49,7 +49,6 @@ public abstract sealed class HMXType extends Type<HMXType> {
     var ftv = this.freeTypeVars();
     return ftv.contains(ty);
   }
-
   public abstract boolean isFullySpecified();
 
   public abstract Set<TypeVar<HMXType>> freeTypeVars();
@@ -86,6 +85,7 @@ public abstract sealed class HMXType extends Type<HMXType> {
       return Objects.hash(dereffed);
     }
 
+
     @Override
     public InferenceTree unify(TypeInference engine, HMXType other) {
       // Maybe the two types (this and other) are actually the same type variable
@@ -115,7 +115,6 @@ public abstract sealed class HMXType extends Type<HMXType> {
             other.toString() + "/" + this.toString());
       }
     }
-
     @Override
     public Set<TypeVar<HMXType>> freeTypeVars() {
       if (this.tyVar.getAssigendType().isPresent()) {
@@ -229,7 +228,6 @@ public abstract sealed class HMXType extends Type<HMXType> {
         throw new TypingException.UnificationFailed(this, other);
       }
     }
-
     @Override
     public Set<TypeVar<HMXType>> freeTypeVars() {
       var set = new HashSet<TypeVar<HMXType>>();
@@ -330,7 +328,6 @@ public abstract sealed class HMXType extends Type<HMXType> {
         throw new TypingException.UnificationFailed(this, other);
       }
     }
-
     @Override
     public Set<TypeVar<HMXType>> freeTypeVars() {
       return Set.of();

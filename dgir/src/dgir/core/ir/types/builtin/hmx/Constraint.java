@@ -54,6 +54,42 @@ public abstract class Constraint {
   }
 
   /**
+   * Subtype constraint tLeft <: tRight. Unlike {@link Inst} this is NOT a
+   * one-shot constraint: deferred copies are re-checked with fresh variables
+   * on every instantiation of the scheme they belong to.
+   */
+  public static final class Sub extends Constraint {
+    public final HMXType tLeft;
+    public final HMXType tRight;
+
+    public Sub(HMXType tLeft, HMXType tRight) {
+      this.tLeft = tLeft;
+      this.tRight = tRight;
+    }
+
+    @Override
+    public void solve(TypeInference engine, Env env) {
+      try {
+        engine.subtype(this.tLeft, this.tRight);
+      } catch (TypeInference.UnresolvedSubtypeException e) {
+        if (!engine.getAllowSubtypeFailure()) {
+          throw e;
+        }
+        // An open variable is involved and we are within a generalize block; the leaf
+        // cannot be decided yet. It
+        // stays in the stored constraint tree and is re-checked by the second
+        // pass of Inst.solve after the fresh variables are bound, and on every
+        // further instantiation.
+      }
+    }
+
+    @Override
+    public Constraint applySubst(Subst subst) {
+      return new Sub(subst.apply(this.tLeft), subst.apply(this.tRight));
+    }
+  }
+
+  /**
    * Instantiate the variable taken from context, and equate against type
    */
   public static final class Inst extends Constraint implements OneShotConstraint {
