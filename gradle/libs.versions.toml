@@ -25,6 +25,7 @@ jk1license = "3.1.1"
 netty = "4.2.10.Final"
 commonsLang3 = "3.20.0"
 jetbrainsAnnotations = "24.1.0"
+clojurephantGradlePlugin = "0.9.1"
 
 
 [plugins]
@@ -33,6 +34,7 @@ protobuf = { id = "com.google.protobuf", version.ref = "protobufGradlePlugin" }
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorproneGradlePlugin" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 jk1license = { id = "com.github.jk1.dependency-license-report", version.ref = "jk1license" }
+clojurephant = { id = "dev.clojurephant.clojure", version.ref = "clojurephantGradlePlugin" }
 
 [libraries]
 # LibGDX
