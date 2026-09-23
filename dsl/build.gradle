@@ -1,0 +1,77 @@
+plugins {
+    id 'java-library'
+    alias(libs.plugins.clojurephant)
+    alias(libs.plugins.errorprone)
+}
+
+sourceSets.main.java.srcDir 'src/java/'
+sourceSets.main.clojure.srcDir 'src/clj/'
+sourceSets.main.resources.srcDir 'assets/'
+
+sourceSets.test.java.srcDir 'test/java/'
+sourceSets.test.clojure.srcDir 'test/clj/'
+sourceSets.test.resources.srcDir 'test_assets/'
+
+repositories {
+    maven { url = 'https://repo.clojars.org' }
+}
+
+configurations {
+    nreplRuntime
+}
+
+dependencies {
+    api project(':dgir')
+
+    api 'org.clojure:clojure:1.12.1'
+
+    // Clojure Dependencies
+    // NOTE(jan): it is of essence, to mirror these dependencies to the deps.end file,
+    // as this file is actually used for lsp auto completion to work
+    implementation 'metosin:malli:0.20.2'
+    implementation 'com.taoensso:nippy:3.9.0'
+    implementation 'com.phronemophobic:clj-graphviz:0.6.4'
+
+    // Clojure Runtime Dependencies
+    nreplRuntime 'nrepl:nrepl:1.5.1'
+    nreplRuntime 'cider:cider-nrepl:0.62.2'
+
+    errorprone libs.errorprone.core
+
+
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+    testRuntimeOnly 'dev.clojurephant:jovial:0.4.3'
+    // Bundled graphviz natives (libgvc) per platform; no system graphviz needed.
+    testRuntimeOnly ({ ->
+        def os = org.gradle.internal.os.OperatingSystem.current()
+        def arch = System.getProperty('os.arch') == 'aarch64' ? 'aarch64' : 'x86-64'
+        if (os.isMacOsX()) return "com.phronemophobic.cljonda:graphviz-darwin-$arch:2.50.0-0.9.5"
+        if (os.isLinux() && arch == 'x86-64') return 'com.phronemophobic.cljonda:graphviz-linux-x86-64:2.50.0-0.9.5'
+        return null // no natives published; that platform needs system graphviz
+    }())
+}
+
+
+tasks.register('nrepl', JavaExec) {
+    group = 'clojure'
+    description = 'Starts an nREPL server on the dsl module classpath.'
+    classpath = sourceSets.main.runtimeClasspath + configurations.nreplRuntime
+    mainClass = 'clojure.main'
+    args = ['-e', "(require 'nrepl.server 'cider.nrepl)",
+            '-e', '(nrepl.server/start-server :bind "127.0.0.1" :port 7888 :handler cider.nrepl/cider-nrepl-handler)',
+            '-e', '(doseq [f [".nrepl-port" "dsl/.nrepl-port"]] (spit f "7888"))',
+            '-e', '(deref (promise))']
+}
+
+tasks.withType(Checkstyle).configureEach {
+    enabled = false
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    testLogging {
+        showStandardStreams = true
+        events 'passed', 'skipped', 'failed'
+    }
+}

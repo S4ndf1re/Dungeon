@@ -9,6 +9,11 @@
 .settings/
 .externalToolBuilders/
 .classpath
+.zcodeignore
+.lsp/
+.cpcache/
+.factorypath
+.clj-condo/
 
 
 # Temporary files #
@@ -73,3 +78,4 @@ replay_pid*
 
 # Memory
 .memory/
+.nrepl-port
