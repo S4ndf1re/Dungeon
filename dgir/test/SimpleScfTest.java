@@ -5,6 +5,9 @@ import dgir.core.analysis.OperationVerifier.VerifyOptions;
 import dgir.core.debug.Location;
 import dgir.core.ir.Dialect;
 import org.junit.jupiter.api.BeforeAll;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Test;
 
 /** Simple test to debug SCF operations */
@@ -21,9 +24,9 @@ public class SimpleScfTest {
     ScopeOp scopeOp = new ScopeOp(LOC);
     scopeOp.getRegion().getEntryBlock().addOperation(new ContinueOp(LOC));
 
-    System.out.println("Scope verify: "
-        + scopeOp.verify(VerifyOptions.FULL_VERIFICATION));
-    System.out.println("Has terminator: " + scopeOp.getRegion().getEntryBlock().hasTerminator());
+    // ScopeOp's implicit terminator is EndOp, so ContinueOp is an invalid terminator here.
+    assertFalse(scopeOp.verify(VerifyOptions.FULL_VERIFICATION));
+    assertTrue(scopeOp.getRegion().getEntryBlock().hasTerminator());
   }
 
   @Test
@@ -33,10 +36,8 @@ public class SimpleScfTest {
 
     ifOp.getThenRegion().getEntryBlock().addOperation(new ContinueOp(LOC));
 
-    System.out.println("ConstOp verify: " + condOp.verify(VerifyOptions.FULL_VERIFICATION));
-    System.out.println("If verify: " + ifOp.verify(VerifyOptions.FULL_VERIFICATION));
-    System.out.println(
-        "Then has terminator: " + ifOp.getThenRegion().getEntryBlock().hasTerminator());
+    assertFalse(ifOp.verify(VerifyOptions.FULL_VERIFICATION));
+    assertTrue(ifOp.getThenRegion().getEntryBlock().hasTerminator());
   }
 
   @Test
@@ -55,8 +56,8 @@ public class SimpleScfTest {
 
     forOp.getRegion().getEntryBlock().addOperation(new ContinueOp(LOC));
 
-    System.out.println("For verify: " + forOp.verify(VerifyOptions.FULL_VERIFICATION));
-    System.out.println("Has induction value: " + true);
-    System.out.println("For has terminator: " + forOp.getRegion().getEntryBlock().hasTerminator());
+    // ContinueOp is the loop back-edge terminator and is valid inside ForOp.
+    assertTrue(forOp.verify(VerifyOptions.FULL_VERIFICATION));
+    assertTrue(forOp.getRegion().getEntryBlock().hasTerminator());
   }
 }

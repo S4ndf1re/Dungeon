@@ -175,7 +175,7 @@ public sealed interface ScfOps {
     /**
      * Returns the valid parent op types: {@link ForOp} and {@link WhileOp}.
      *
-     * @return an unmodifiable list of the three permitted parent classes.
+     * @return an unmodifiable list of the permitted parent classes.
      */
     @Contract(pure = true)
     @Override

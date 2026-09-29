@@ -6,8 +6,6 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import dgir.core.ir.Value;
-import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InferenceTree;
@@ -21,8 +19,6 @@ import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
-import dgir.core.ir.types.traits.IAbstraction;
-import dgir.core.traits.ISymbol;
 
 public final class TypeInference
     extends TypeInferenceSolver<TypeInference, Expr, SystemFType> {
@@ -81,48 +77,23 @@ public final class TypeInference
   }
 
   @Override
-  public Expr generalBlockToInferenceExpr(GeneralBlock block) {
-    ArrayList<Pair<Symbol<Expr, SystemFType>, Expr>> bindings = new ArrayList<>();
-    Optional<Symbol<Expr, SystemFType>> lastValue = Optional.empty();
+  public Expr newLetExpr(List<Pair<Symbol<Expr, SystemFType>, Expr>> bindings, Expr body) {
+    return new Expr.Let(bindings, body);
+  }
 
-    for (var op : block.getOperations()) {
-      var opOutput = op.getOutput();
-      if (opOutput.isPresent()) {
-        Symbol<Expr, SystemFType> sym = Symbol.<Expr, SystemFType>of(opOutput.get().getValue());
-        var expr = this.asExpression(ExprOrOperator.of(op));
-        if (expr.containsSymbol(sym)) {
-          throw new TypingException.CyclicSymbolAssignment(sym, expr);
-        }
-        bindings.add(Pair.of(sym, expr));
-        lastValue = Optional.of(sym);
-      } else {
-        /*
-         * NOTE: handle everything as a returnable value, even though something like a
-         * function is not actually a expression! This is done to correctly typecheck
-         * each function and their parameters!
-         */
-        Symbol<Expr, SystemFType> sym = null;
-        if (op.asOp() instanceof ISymbol isym) {
-          sym = Symbol.of(isym.getSymbol());
-        } else {
-          sym = Symbol.of(new Value());
-        }
-        var expr = this.asExpression(ExprOrOperator.of(op));
-        if (expr.containsSymbol(sym)) {
-          throw new TypingException.CyclicSymbolAssignment(sym, expr);
-        }
-        bindings.add(Pair.of(sym, expr));
-        lastValue = Optional.of(sym);
-      }
-    }
+  @Override
+  public Expr newSeqExpr(List<Expr> exprs) {
+    return new Expr.Seq(exprs);
+  }
 
-    if (lastValue.isPresent()) {
-      return new Expr.Let(bindings,
-          new Expr.Seq(bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IAbstraction))
-              .map(bnd -> (Expr) new Expr.Var(bnd.getLeft())).toList()));
-    } else {
-      return new Expr.Let(bindings, new Expr.LitExpr(new Literal.Unit()));
-    }
+  @Override
+  public Expr newVarExpr(Symbol<Expr, SystemFType> symbol) {
+    return new Expr.Var(symbol);
+  }
+
+  @Override
+  public Expr newLit(Literal lit) {
+    return new Expr.LitExpr(lit);
   }
 
   @Override
