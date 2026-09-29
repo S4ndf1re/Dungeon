@@ -6,11 +6,9 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import dgir.core.ir.Value;
-import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
-import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
+import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
@@ -19,9 +17,7 @@ import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.builtin.hmx.traits.OneShotConstraint;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
-import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
-import dgir.core.traits.ISymbol;
 
 public final class TypeInference
     extends TypeInferenceSolver<TypeInference, HMXExpr, HMXType> {
@@ -58,49 +54,23 @@ public final class TypeInference
   }
 
   @Override
-  public HMXExpr generalBlockToInferenceExpr(GeneralBlock block) {
-    ArrayList<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings = new ArrayList<>();
-    Optional<Symbol<HMXExpr, HMXType>> lastValue = Optional.empty();
+  public HMXExpr newLetExpr(List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings, HMXExpr body) {
+    return new HMXExpr.ExprLetRec(bindings, body);
+  }
 
-    for (var op : block.getOperations()) {
-      var opOutput = op.getOutput();
-      if (opOutput.isPresent()) {
-        var sym = Symbol.<HMXExpr, HMXType>of(opOutput.get().getValue());
-        var expr = this.asExpression(ExprOrOperator.of(op));
-        if (expr.containsSymbol(sym)) {
-          throw new TypingException.CyclicSymbolAssignment(sym, expr);
-        }
-        bindings.add(Pair.of(sym, expr));
-        lastValue = Optional.of(sym);
-      } else {
-        /*
-         * NOTE: handle everything as a returnable value, even though something like a
-         * function is not actually a expression! This is done to correctly typecheck
-         * each function and their parameters!
-         */
-        Symbol<HMXExpr, HMXType> sym = null;
-        if (op.asOp() instanceof ISymbol isym) {
-          sym = Symbol.<HMXExpr, HMXType>of(isym.getSymbol());
-        } else {
-          var val = new Value();
-          sym = Symbol.<HMXExpr, HMXType>of(val);
-        }
-        var expr = this.asExpression(ExprOrOperator.of(op));
-        if (expr.containsSymbol(sym)) {
-          throw new TypingException.CyclicSymbolAssignment(sym, expr);
-        }
-        bindings.add(Pair.of(sym, expr));
-        lastValue = Optional.of(sym);
-      }
-    }
+  @Override
+  public HMXExpr newSeqExpr(List<HMXExpr> exprs) {
+    return new HMXExpr.ExprSeq(exprs);
+  }
 
-    if (lastValue.isPresent()) {
-      return new HMXExpr.ExprLetRec(bindings,
-          new HMXExpr.ExprSeq(bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IAbstraction))
-              .map(bnd -> (HMXExpr) new HMXExpr.ExprVar(bnd.getLeft())).toList()));
-    } else {
-      return new HMXExpr.ExprLetRec(bindings, new HMXExpr.ExprLit(new Literal.Unit()));
-    }
+  @Override
+  public HMXExpr newVarExpr(Symbol<HMXExpr, HMXType> symbol) {
+    return new HMXExpr.ExprVar(symbol);
+  }
+
+  @Override
+  public HMXExpr newLit(Literal lit) {
+    return new HMXExpr.ExprLit(lit);
   }
 
   @Override

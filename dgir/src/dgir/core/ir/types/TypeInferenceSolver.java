@@ -1,19 +1,24 @@
 package dgir.core.ir.types;
 
 import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.analysis.OperationVerifier;
 import dgir.core.analysis.OperationVerifier.VerifyOptions;
+import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
+import dgir.core.ir.types.traits.IAbstraction;
 import dgir.core.ir.types.traits.IExpressionCell;
+import dgir.core.traits.ISymbol;
 
 public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSolver<TypeInferenceT, E, T>, E extends Expression<E, T>, T extends Type<T>> {
   protected TypeDialectConverterRegistry registry;
@@ -24,7 +29,8 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
    * Result of a full solve: the final type, the expression tree after
    * inference but before instantiation, and the instantiated tree.
    */
-  public static record SolveResult<E extends Expression<E, T>, T extends Type<T>>(T type, E preInstantiation, E instantiated) {
+  public static record SolveResult<E extends Expression<E, T>, T extends Type<T>>(T type, E preInstantiation,
+      E instantiated) {
   }
 
   /**
@@ -43,6 +49,16 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
   public TypeDialectConverterRegistry getRegistry() {
     return registry;
   }
+
+  // TODO: implement this for all missing builtin functionalities (i.e. all
+  // converters that relie on custom expressions / custom constraints)
+  public abstract E newVarExpr(Symbol<E, T> symbol);
+
+  public abstract E newLetExpr(List<Pair<Symbol<E, T>, E>> bindings, E body);
+
+  public abstract E newSeqExpr(List<E> exprs);
+
+  public abstract E newLit(Literal lit);
 
   /**
    * Solve the full expression tree by applying algorithm specific logic, like
@@ -122,8 +138,10 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     if (instantiated.getUnderlyingOperation().isPresent()) {
       boolean valid = new OperationVerifier(VerifyOptions.FULL_VERIFICATION)
           .verify(instantiated.getUnderlyingOperation().get());
-      assert valid : "Reconstructed operation failed verification: "
-          + instantiated.getUnderlyingOperation().get();
+      if (!valid) {
+        throw new RuntimeException(
+            "Reconstructed operation failed verification: " + instantiated.getUnderlyingOperation().get());
+      }
     }
 
     return instantiated;
@@ -135,7 +153,58 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
    * @param block the block to convert
    * @return the converted {@link Expression}
    */
-  public abstract E generalBlockToInferenceExpr(GeneralBlock block);
+  public E generalBlockToInferenceExpr(GeneralBlock block) {
+    ArrayList<Pair<Symbol<E, T>, E>> bindings = new ArrayList<>();
+    Optional<Symbol<E, T>> lastValue = Optional.empty();
+
+    for (var op : block.getOperations()) {
+      var opOutput = op.getOutput();
+      if (opOutput.isPresent()) {
+        Symbol<E, T> sym = Symbol.of(opOutput.get().getValue());
+        var expr = this.asExpression(ExprOrOperator.of(op));
+        if (expr.containsSymbol(sym)) {
+          throw new TypingException.CyclicSymbolAssignment(sym, expr);
+        }
+        bindings.add(Pair.of(sym, expr));
+        lastValue = Optional.of(sym);
+      } else {
+        /*
+         * NOTE: handle everything as a returnable value, even though something like a
+         * function is not actually a expression! This is done to correctly typecheck
+         * each function and their parameters!
+         */
+        Symbol<E, T> sym = null;
+        if (op.asOp() instanceof ISymbol isym) {
+          sym = Symbol.of(isym.getSymbol());
+        } else {
+          sym = Symbol.of(new Value());
+        }
+        var expr = this.asExpression(ExprOrOperator.of(op));
+        if (expr.containsSymbol(sym)) {
+          throw new TypingException.CyclicSymbolAssignment(sym, expr);
+        }
+        bindings.add(Pair.of(sym, expr));
+        lastValue = Optional.of(sym);
+      }
+    }
+
+    if (lastValue.isPresent()) {
+      var sequence = new ArrayList<>(
+          bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IAbstraction) && !bnd.getLeft().isUsed())
+              .map(bnd -> this.newVarExpr(bnd.getLeft())).toList());
+
+      // In this case, the previous filter filtered the value, hence leading to
+      // missing value within the sequence!
+      if (bindings.getLast().getLeft().isUsed()) {
+        sequence.add(this.newVarExpr(bindings.getLast().getLeft()));
+      }
+
+      return this.newLetExpr(bindings,
+          this.newSeqExpr(sequence));
+    } else {
+      return this.newLetExpr(bindings, this.newLit(new Literal.Unit()));
+    }
+  }
 
   /**
    * Convert a {@link GeneralParameterizedNominalType} to an algorithm specific
