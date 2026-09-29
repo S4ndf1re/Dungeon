@@ -201,16 +201,12 @@ public sealed interface FuncTypes {
           })
           .toList();
 
-      GeneralParameterizedNominalType.GeneralTypeParameter output = null;
+      GeneralTypeParameter output;
       if (this.getOutput().isPresent()) {
-        if (this.getOutput().get().isKnown()) {
-          output = GeneralParameterizedNominalType.GeneralTypeParameter.of(
-              this.getOutput().get().getAsKnownOrThrow().asParameterizedNominalType());
-        } else {
-          output = GeneralParameterizedNominalType.GeneralTypeParameter.of();
-        }
+        output = GeneralTypeParameter.of(
+            this.getOutput().get().getAsKnownOrThrow().asParameterizedNominalType());
       } else {
-        output = GeneralParameterizedNominalType.GeneralTypeParameter.of(
+        output = GeneralTypeParameter.of(
             new GeneralParameterizedNominalType(TypeIdent.TYPE_IDENT_UNIT));
       }
 
@@ -253,7 +249,11 @@ public sealed interface FuncTypes {
     private FuncType(@NotNull List<MaybeType> inputs, @Nullable MaybeType output) {
       super("func.func");
       this.inputs = Collections.unmodifiableList(inputs);
-      this.output = Optional.ofNullable(output);
+      // Normalize: a missing or unknown output is "void" — represented exactly
+      // once, as Optional.empty(). This guarantees getOutputAsNullable() == null
+      // is a reliable void test and unknown MaybeTypes can never leak into
+      // getParameterizedIdent().
+      this.output = Optional.ofNullable(output).filter(MaybeType::isKnown);
     }
 
     // =========================================================================

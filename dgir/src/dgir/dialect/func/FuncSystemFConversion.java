@@ -107,17 +107,19 @@ public final class FuncSystemFConversion {
 
       var directChildren = let.getAllChildrenForScopeExpression(let.body());
 
-      // Reconstruct the function type from inference. For zero parameter
-      // functions the expression carries the unit placeholder type
-      // (unit -> body), so the originally declared type is kept.
-      FuncType funcType = funcOp.getType();
-      if (!params.isEmpty()) {
-        var inferredType = abs.getInferredType();
-        assert inferredType.isPresent();
-        assert inferredType.get().isFullySpecified();
-        var irType = inferredType.get().toIrType();
-        assert irType instanceof FuncType;
-        funcType = (FuncType) irType;
+      // Reconstruct the function type from inference, never from the
+      // originally declared type: the declared type may be stale (e.g. void
+      // while the body returns a value). For zero parameter functions the
+      // expression carries the synthetic unit placeholder type
+      // (unit -> body), so the unit input is stripped again.
+      var inferredType = abs.getInferredType();
+      assert inferredType.isPresent();
+      assert inferredType.get().isFullySpecified();
+      var irType = inferredType.get().toIrType();
+      assert irType instanceof FuncType;
+      FuncType funcType = (FuncType) irType;
+      if (params.isEmpty()) {
+        funcType = FuncType.of(List.of(), funcType.getOutput().orElse(null));
       }
 
       var newFuncOp = new FuncOps.FuncOp(op.getLocation(), funcOp.getFuncName(), funcType);
