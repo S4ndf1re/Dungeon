@@ -80,6 +80,11 @@ public class GeneralParameterizedNominalType {
     this.typedParameters = typedParameters;
   }
 
+  public GeneralParameterizedNominalType(TypeIdent ident, GeneralTypeParameter typedParameters) {
+    this.ident = ident;
+    this.typedParameters = List.of(typedParameters);
+  }
+
   public TypeIdent getIdent() {
     return ident;
   }

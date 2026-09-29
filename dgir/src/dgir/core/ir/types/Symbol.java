@@ -17,6 +17,14 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type<T
     return this instanceof ValueSymbol;
   }
 
+  public boolean isUsed() {
+    if (this.isValue()) {
+      return !this.getValue().getUses().isEmpty();
+    }
+
+    return false;
+  }
+
   public Value getValue() {
     if (this.isValue()) {
       return ((ValueSymbol<E, T>) this).value;
