@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 
 import dgir.core.ir.types.TypeInferenceSolver;
+import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.serialization.MaybeTypeDeserializer;
 import dgir.core.serialization.MaybeTypeSerializer;
 import tools.jackson.databind.annotation.JsonDeserialize;
@@ -48,7 +49,7 @@ public class MaybeType {
 
   public void specifyToKnown(@NotNull Type ty) {
     if (ty == null) {
-      throw new IllegalArgumentException("Type msut not be null for resetting the type");
+      throw new IllegalArgumentException("Type must not be null for resetting the type");
     }
 
     this.type = ty;
@@ -95,6 +96,17 @@ public class MaybeType {
 
   @Override
   public String toString() {
-    return this.type != null ? this.type + "" : "";
+    // NOTE: unknown MaybeTypes must never reach this method via
+    // Type.buildParameterList; that silently drops the parameter ("" -> empty
+    // parameter list) or prints an unparseable ident ("?").
+    return this.type != null ? this.type + "" : "?";
+  }
+
+  public GeneralTypeParameter asParameterizedNominalTypeParameter() {
+    if (this.isKnown()) {
+      return GeneralTypeParameter.of(this.getAsKnownOrThrow().asParameterizedNominalType());
+    } else {
+      return GeneralTypeParameter.of();
+    }
   }
 }

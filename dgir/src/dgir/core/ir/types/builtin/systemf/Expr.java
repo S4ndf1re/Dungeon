@@ -1202,7 +1202,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         newEnv.put(bnd.getLeft(), bnd.getRight(), i);
       }
 
-      newLetExpr.body = this.body.instantiate(engine, newEnv, solution);
+       newLetExpr.body = this.body.instantiate(engine, newEnv, solution);
 
       return newLetExpr;
     }

@@ -120,7 +120,10 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     });
 
     if (instantiated.getUnderlyingOperation().isPresent()) {
-      new OperationVerifier(VerifyOptions.FULL_VERIFICATION).verify(instantiated.getUnderlyingOperation().get());
+      boolean valid = new OperationVerifier(VerifyOptions.FULL_VERIFICATION)
+          .verify(instantiated.getUnderlyingOperation().get());
+      assert valid : "Reconstructed operation failed verification: "
+          + instantiated.getUnderlyingOperation().get();
     }
 
     return instantiated;

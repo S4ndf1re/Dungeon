@@ -3,6 +3,7 @@ package dgir.core.ir;
 import dgir.dialect.arith.ArithDialect;
 import dgir.dialect.builtin.BuiltinDialect;
 import dgir.dialect.builtin.BuiltinOps;
+import dgir.dialect.cell.CellDialect;
 import dgir.dialect.cf.CfDialect;
 import dgir.dialect.func.FuncDialect;
 import dgir.dialect.io.IoDialect;
@@ -21,9 +22,13 @@ import org.jetbrains.annotations.Unmodifiable;
 /**
  * Base class for all DGIR dialects.
  *
- * <p>A dialect groups a set of related {@link Op operations}, {@link Type types}, and {@link
- * Attribute attributes} under a shared namespace. Dialects are registered once at startup via
- * {@link #registerAllDialects()}, which calls {@link #register()} on each one and populates the
+ * <p>
+ * A dialect groups a set of related {@link Op operations}, {@link Type types},
+ * and {@link
+ * Attribute attributes} under a shared namespace. Dialects are registered once
+ * at startup via
+ * {@link #registerAllDialects()}, which calls {@link #register()} on each one
+ * and populates the
  * global {@link DGIRContext} registries.
  */
 public abstract class Dialect {
@@ -31,33 +36,36 @@ public abstract class Dialect {
   Logger logger = Logger.getLogger(getClass().getName());
 
   /**
-   * Cache of already-computed operation prototype lists, keyed by dialect class. Populated lazily
-   * by {@link #allOpsFromSealedInterface(Class)} on the first call for each dialect.
+   * Cache of already-computed operation prototype lists, keyed by dialect class.
+   * Populated lazily
+   * by {@link #allOpsFromSealedInterface(Class)} on the first call for each
+   * dialect.
    */
-  private static final @NotNull Map<Class<? extends Dialect>, @Unmodifiable List<Op>> dialectOps =
-      new HashMap<>();
+  private static final @NotNull Map<Class<? extends Dialect>, @Unmodifiable List<Op>> dialectOps = new HashMap<>();
 
   /**
-   * Cache of already-computed attribute prototype lists, keyed by dialect class. Populated lazily
-   * by {@link #allAttributesFromSealedInterface(Class)} on the first call for each dialect.
+   * Cache of already-computed attribute prototype lists, keyed by dialect class.
+   * Populated lazily
+   * by {@link #allAttributesFromSealedInterface(Class)} on the first call for
+   * each dialect.
    */
-  private static final @NotNull Map<
-          Class<? extends Dialect>, @Unmodifiable List<AttributeDescriptor>>
-      dialectAttributes = new HashMap<>();
+  private static final @NotNull Map<Class<? extends Dialect>, @Unmodifiable List<AttributeDescriptor>> dialectAttributes = new HashMap<>();
 
   /**
-   * Cache of already-computed type prototype lists, keyed by dialect class. Populated lazily by
-   * {@link #allTypesFromSealedInterface(Class)} on the first call for each dialect.
+   * Cache of already-computed type prototype lists, keyed by dialect class.
+   * Populated lazily by
+   * {@link #allTypesFromSealedInterface(Class)} on the first call for each
+   * dialect.
    */
-  private static final @NotNull Map<Class<? extends Dialect>, @Unmodifiable List<TypeDescriptor>>
-      dialectTypes = new HashMap<>();
+  private static final @NotNull Map<Class<? extends Dialect>, @Unmodifiable List<TypeDescriptor>> dialectTypes = new HashMap<>();
 
   // =========================================================================
   // Dialect Info
   // =========================================================================
 
   /**
-   * The namespace prefix used in operation/type idents (e.g. {@code "arith"}, {@code "func"}).
+   * The namespace prefix used in operation/type idents (e.g. {@code "arith"},
+   * {@code "func"}).
    *
    * @return the dialect namespace.
    */
@@ -93,7 +101,8 @@ public abstract class Dialect {
   // =========================================================================
 
   /**
-   * Register this dialect in the global {@link DGIRContext}. Inserts all ops, types, and attributes
+   * Register this dialect in the global {@link DGIRContext}. Inserts all ops,
+   * types, and attributes
    * into their respective registries.
    */
   public void register() {
@@ -127,10 +136,12 @@ public abstract class Dialect {
   /**
    * Look up a registered dialect by its class.
    *
-   * @param dialectClass The class of the dialect to look up (e.g. {@code ArithDialect.class} or
-   *     {@code FuncDialect.class}).
-   * @return An optional containing the registered dialect, or empty if no such dialect is
-   *     registered.
+   * @param dialectClass The class of the dialect to look up (e.g.
+   *                     {@code ArithDialect.class} or
+   *                     {@code FuncDialect.class}).
+   * @return An optional containing the registered dialect, or empty if no such
+   *         dialect is
+   *         registered.
    */
   @Contract(pure = true)
   public static @NotNull Optional<Dialect> get(@NotNull Class<? extends Dialect> dialectClass) {
@@ -138,54 +149,62 @@ public abstract class Dialect {
   }
 
   /**
-   * Look up a registered dialect by its class, throwing an exception if no such dialect is
+   * Look up a registered dialect by its class, throwing an exception if no such
+   * dialect is
    * registered.
    *
-   * @param dialectClass The class of the dialect to look up (e.g. {@code ArithDialect.class} or
-   *     {@code FuncDialect.class}).
+   * @param dialectClass The class of the dialect to look up (e.g.
+   *                     {@code ArithDialect.class} or
+   *                     {@code FuncDialect.class}).
    * @return The registered dialect.
    */
   @Contract(pure = true)
   public static @NotNull Dialect getOrThrow(@NotNull Class<? extends Dialect> dialectClass) {
     return get(dialectClass)
         .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Dialect not registered: " + dialectClass.getSimpleName()));
+            () -> new IllegalArgumentException(
+                "Dialect not registered: " + dialectClass.getSimpleName()));
   }
 
   /**
-   * Register all built-in dialects in dependency order. Must be called once before constructing any
+   * Register all built-in dialects in dependency order. Must be called once
+   * before constructing any
    * IR.
    */
   public static void registerAllDialects() {
-    List<Dialect> dialects =
-        List.of(
-            ArithDialect.get(),
-            BuiltinDialect.get(),
-            CfDialect.get(),
-            FuncDialect.get(),
-            IoDialect.get(),
-            MemoryDialect.get(),
-            ScfDialect.get(),
-            StrDialect.get());
+    List<Dialect> dialects = List.of(
+        ArithDialect.get(),
+        BuiltinDialect.get(),
+        CfDialect.get(),
+        FuncDialect.get(),
+        IoDialect.get(),
+        MemoryDialect.get(),
+        ScfDialect.get(),
+        StrDialect.get(),
+        CellDialect.get());
     dialects.forEach(Dialect::register);
   }
 
   /**
-   * Collect all operation prototypes contributed by a dialect by reflectively instantiating every
+   * Collect all operation prototypes contributed by a dialect by reflectively
+   * instantiating every
    * permitted subclass of {@code diOps} via its no-arg constructor.
    *
-   * <p>Results are cached so that repeated calls for the same dialect are cheap. The {@code diOps}
-   * argument must be a {@code sealed} interface whose every {@code permits} entry is a concrete op
+   * <p>
+   * Results are cached so that repeated calls for the same dialect are cheap. The
+   * {@code diOps}
+   * argument must be a {@code sealed} interface whose every {@code permits} entry
+   * is a concrete op
    * class with a declared no-arg constructor.
    *
-   * @param diOps the sealed marker interface whose permitted subclasses enumerate the dialect's ops
-   *     (e.g. {@link BuiltinOps}).
+   * @param diOps the sealed marker interface whose permitted subclasses enumerate
+   *              the dialect's ops
+   *              (e.g. {@link BuiltinOps}).
    * @return an unmodifiable list of op prototypes, one per permitted subclass.
-   * @throws AssertionError if {@code diOps} is not a sealed interface.
-   * @throws RuntimeException if any permitted subclass lacks a no-arg constructor or its
-   *     constructor throws.
+   * @throws AssertionError   if {@code diOps} is not a sealed interface.
+   * @throws RuntimeException if any permitted subclass lacks a no-arg constructor
+   *                          or its
+   *                          constructor throws.
    */
   @NotNull
   @Unmodifiable
@@ -197,23 +216,27 @@ public abstract class Dialect {
       return dialectOps.get(this.getClass());
     }
 
-    // Go over all permitted subclasses of this interface and collect their prototypes. This
+    // Go over all permitted subclasses of this interface and collect their
+    // prototypes. This
     // allows
     // us to avoid
-    // having to manually list all operations in the dialect, and instead just have them register
+    // having to manually list all operations in the dialect, and instead just have
+    // them register
     // themselves via implementing
     // their dialect specific subclass.
     List<Op> ops = new ArrayList<>();
 
     Class<?>[] permittedSubclasses = diOps.getPermittedSubclasses();
     for (Class<?> subclass : permittedSubclasses) {
-      // Get the default constructor for this operation and invoke it to get the prototype, then
+      // Get the default constructor for this operation and invoke it to get the
+      // prototype, then
       // add
       // it to the list of ops for this dialect.
       try {
         Constructor<?> defaultConstructor = subclass.getDeclaredConstructor();
         boolean isAccessible = defaultConstructor.canAccess(null);
-        if (!isAccessible) defaultConstructor.setAccessible(true);
+        if (!isAccessible)
+          defaultConstructor.setAccessible(true);
         try {
           Op newOp = (Op) defaultConstructor.newInstance();
           ops.add(newOp);
@@ -223,7 +246,8 @@ public abstract class Dialect {
         } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
           throw new RuntimeException(e);
         }
-        if (!isAccessible) defaultConstructor.setAccessible(false);
+        if (!isAccessible)
+          defaultConstructor.setAccessible(false);
       } catch (NoSuchMethodException e) {
         throw new RuntimeException(
             "Operation class must have a default constructor: " + subclass.getName(), e);
@@ -234,19 +258,27 @@ public abstract class Dialect {
   }
 
   /**
-   * Collect all attribute descriptors contributed by a dialect by reflectively invoking a public
-   * static {@code defaultInstance()} factory on every permitted subclass of {@code diAttrs}.
+   * Collect all attribute descriptors contributed by a dialect by reflectively
+   * invoking a public
+   * static {@code defaultInstance()} factory on every permitted subclass of
+   * {@code diAttrs}.
    *
-   * <p>Results are cached so that repeated calls for the same dialect are cheap. The {@code
-   * diAttrs} argument must be a {@code sealed} interface whose every {@code permits} entry is a
+   * <p>
+   * Results are cached so that repeated calls for the same dialect are cheap. The
+   * {@code
+   * diAttrs} argument must be a {@code sealed} interface whose every
+   * {@code permits} entry is a
    * concrete descriptor class with a declared static default factory.
    *
-   * @param diAttrs the sealed marker interface whose permitted subclasses enumerate the dialect's
-   *     attribute descriptors.
-   * @return an unmodifiable list of attribute descriptors, one per permitted subclass.
-   * @throws AssertionError if {@code diAttrs} is not a sealed interface.
-   * @throws RuntimeException if any permitted subclass lacks the static factory method or the
-   *     factory throws.
+   * @param diAttrs the sealed marker interface whose permitted subclasses
+   *                enumerate the dialect's
+   *                attribute descriptors.
+   * @return an unmodifiable list of attribute descriptors, one per permitted
+   *         subclass.
+   * @throws AssertionError   if {@code diAttrs} is not a sealed interface.
+   * @throws RuntimeException if any permitted subclass lacks the static factory
+   *                          method or the
+   *                          factory throws.
    */
   @NotNull
   @Unmodifiable
@@ -263,7 +295,8 @@ public abstract class Dialect {
       try {
         Method defaultInstanceFactory = subclass.getDeclaredMethod("defaultInstance");
         boolean isAccessible = defaultInstanceFactory.canAccess(null);
-        if (!isAccessible) defaultInstanceFactory.setAccessible(true);
+        if (!isAccessible)
+          defaultInstanceFactory.setAccessible(true);
         try {
           AttributeDescriptor newAttr = (AttributeDescriptor) defaultInstanceFactory.invoke(null);
           attrs.add(newAttr);
@@ -273,7 +306,8 @@ public abstract class Dialect {
         } catch (IllegalAccessException e) {
           throw new RuntimeException(e);
         }
-        if (!isAccessible) defaultInstanceFactory.setAccessible(false);
+        if (!isAccessible)
+          defaultInstanceFactory.setAccessible(false);
       } catch (NoSuchMethodException e) {
         throw new RuntimeException(
             "AttributeDescriptor class must have a static defaultInstance factory method: "
@@ -286,19 +320,25 @@ public abstract class Dialect {
   }
 
   /**
-   * Collect all type prototypes contributed by a dialect by reflectively instantiating every
+   * Collect all type prototypes contributed by a dialect by reflectively
+   * instantiating every
    * permitted subclass of {@code diTypes} via its no-arg constructor.
    *
-   * <p>Results are cached so that repeated calls for the same dialect are cheap. The {@code
-   * diTypes} argument must be a {@code sealed} interface whose every {@code permits} entry is a
+   * <p>
+   * Results are cached so that repeated calls for the same dialect are cheap. The
+   * {@code
+   * diTypes} argument must be a {@code sealed} interface whose every
+   * {@code permits} entry is a
    * concrete type class with a declared no-arg constructor.
    *
-   * @param diTypes the sealed marker interface whose permitted subclasses enumerate the dialect's
-   *     types.
+   * @param diTypes the sealed marker interface whose permitted subclasses
+   *                enumerate the dialect's
+   *                types.
    * @return an unmodifiable list of type prototypes, one per permitted subclass.
-   * @throws AssertionError if {@code diTypes} is not a sealed interface.
-   * @throws RuntimeException if any permitted subclass lacks a no-arg constructor or its
-   *     constructor throws.
+   * @throws AssertionError   if {@code diTypes} is not a sealed interface.
+   * @throws RuntimeException if any permitted subclass lacks a no-arg constructor
+   *                          or its
+   *                          constructor throws.
    */
   @NotNull
   @Unmodifiable
@@ -315,7 +355,8 @@ public abstract class Dialect {
       try {
         Method getDescriptors = subclass.getDeclaredMethod("getDescriptors");
         boolean isAccessible = getDescriptors.canAccess(null);
-        if (!isAccessible) getDescriptors.setAccessible(true);
+        if (!isAccessible)
+          getDescriptors.setAccessible(true);
         try {
           @SuppressWarnings("unchecked")
           List<TypeDescriptor> newType = (List<TypeDescriptor>) getDescriptors.invoke(null);
@@ -326,7 +367,8 @@ public abstract class Dialect {
         } catch (IllegalAccessException e) {
           throw new RuntimeException(e);
         }
-        if (!isAccessible) getDescriptors.setAccessible(false);
+        if (!isAccessible)
+          getDescriptors.setAccessible(false);
       } catch (NoSuchMethodException e) {
         throw new RuntimeException(
             "TypeDescriptor class must have a static getDescriptors factory method: "

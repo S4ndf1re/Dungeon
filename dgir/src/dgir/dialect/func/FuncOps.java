@@ -380,7 +380,7 @@ public sealed interface FuncOps {
       return () -> List.of(
           new NamedAttribute(SymbolTable.getSymbolAttributeName(), new StringAttribute("foo")),
           new NamedAttribute(SymbolTable.getSymbolTypeAttributeName(),
-              new TypeAttribute((Type) FuncType.of(List.of(), Type.of()))),
+              new TypeAttribute(FuncType.empty())),
           new NamedAttribute("type", new TypeAttribute(FuncType.empty())));
     }
 
