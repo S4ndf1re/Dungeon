@@ -16,9 +16,10 @@ import org.jetbrains.annotations.Unmodifiable;
  * <p>The verifier walks to the immediate parent operation and checks its type against the list
  * returned by {@link #getValidParentTypes()}. An op with no parent passes unconditionally.
  *
- * <p>Examples: {@link ScfOps.EndOp} (only valid inside {@link ScfOps.ForOp}), {@link
- * ScfOps.ContinueOp} (valid inside {@link ScfOps.IfOp}, {@link ScfOps.ScopeOp}, or {@link
- * ScfOps.ForOp}), {@link FuncOps.ReturnOp} (only valid inside {@link FuncOps.FuncOp}).
+ * Examples: {@link ScfOps.EndOp} (only valid inside {@link ScfOps.IfOp}, {@link ScfOps.ScopeOp},
+ * {@link ScfOps.WhileOp}, or {@link ScfOps.ForOp}), {@link ScfOps.ContinueOp} (loop back-edge,
+ * valid inside {@link ScfOps.ForOp} or {@link ScfOps.WhileOp}), {@link FuncOps.ReturnOp} (only
+ * valid inside {@link FuncOps.FuncOp}).
  */
 public interface ISpecificParentOp extends IOpTrait {
   /**

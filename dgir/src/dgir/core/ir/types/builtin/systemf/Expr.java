@@ -565,6 +565,9 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
         var finalCtx = new Context(break3Result.left(), bodyCheck.ctx());
 
+        this.setInferredType(
+            Optional.of(finalCtx.apply(new SystemFType.Arrow(arrow.from, finalCtx.apply(arrow.to)))));
+
         return new CheckResult(
             finalCtx,
             new InferenceTree(
@@ -1136,7 +1139,6 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         var expr = binding.getRight();
         var valueInferred = engine.check(newCtx, expr, newCtx.apply(new SystemFType.EtVar(typeVar)));
         newCtx = valueInferred.ctx().copy();
-
         trees.add(valueInferred.tree());
       }
 
@@ -1202,7 +1204,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         newEnv.put(bnd.getLeft(), bnd.getRight(), i);
       }
 
-       newLetExpr.body = this.body.instantiate(engine, newEnv, solution);
+      newLetExpr.body = this.body.instantiate(engine, newEnv, solution);
 
       return newLetExpr;
     }
