@@ -228,7 +228,6 @@ public sealed interface BuiltinOps {
      */
     public IdOp(@NotNull Location location, @NotNull Value from, @NotNull Value to) {
       setOperation(Operation.Create(location, this, List.of(from), null, from.getType()));
-      setOutputValue(to);
     }
   }
 }

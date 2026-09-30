@@ -1,4 +1,4 @@
-package imports.Dungeon;
+package Dungeon;
 
 /**
  * This class represents the hero character in the dungeon game. It provides methods for the hero's
