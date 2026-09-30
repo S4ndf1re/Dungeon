@@ -161,11 +161,6 @@ public sealed interface ArithOps {
         @NotNull Location loc, @NotNull Value operand, @NotNull UnaryModeAttr.UnaryMode mode) {
       setOperation(Operation.Create(loc, this, List.of(operand), null, operand.getType()));
       getAttributeAs("unaryMode", UnaryModeAttr.class).orElseThrow().setMode(mode);
-      switch (mode) {
-        case INCREMENT, DECREMENT -> setOutputValue(operand);
-        default -> {
-        }
-      }
     }
 
     // =========================================================================

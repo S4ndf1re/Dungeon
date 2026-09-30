@@ -255,11 +255,6 @@ public abstract class Op {
     return getOperation().getOutputValue();
   }
 
-  public @NotNull Op setOutputValue(@NotNull Value value) {
-    getOperation().setOutputValue(value);
-    return this;
-  }
-
   // =========================================================================
   // Attributes
   // =========================================================================

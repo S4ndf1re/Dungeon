@@ -5,6 +5,7 @@ import static dgir.dialect.func.FuncOps.*;
 import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.io.IoOps.PrintOp;
 import static dgir.dialect.str.StrTypes.StringT;
+import static dgir.dialect.cell.CellOps.SetCellOp;
 import static org.junit.jupiter.api.Assertions.*;
 
 import dgir.core.debug.Location;
@@ -52,17 +53,15 @@ public class BuiltinTests {
     ProgramOp programOp = entry.getLeft();
     FuncOp funcMainOp = entry.getRight();
 
-    var fooFuncOp =
-        programOp.addOperation(
-            new FuncOp(LOC, "foo", FuncType.of(List.of(StringT.INSTANCE()), StringT.INSTANCE())));
+    var fooFuncOp = programOp.addOperation(
+        new FuncOp(LOC, "foo", FuncType.of(List.of(StringT.INSTANCE()), StringT.INSTANCE())));
     {
       fooFuncOp.addOperation(new ReturnOp(LOC, fooFuncOp.getArgument(0).orElseThrow()), 0);
     }
 
     {
       var helloWorldTextOp = funcMainOp.addOperation(new ConstantOp(LOC, "Hello World!"), 0);
-      var funcCallOp =
-          funcMainOp.addOperation(new CallOp(LOC, fooFuncOp, helloWorldTextOp.getResult()), 0);
+      var funcCallOp = funcMainOp.addOperation(new CallOp(LOC, fooFuncOp, helloWorldTextOp.getResult()), 0);
       funcMainOp.addOperation(new PrintOp(LOC, funcCallOp.getOutputValue().orElseThrow()), 0);
       funcMainOp.addOperation(new ReturnOp(LOC), 0);
     }
@@ -71,7 +70,8 @@ public class BuiltinTests {
   }
 
   /**
-   * Checks whether values which are written to multiple types are serialized and deserialized
+   * Checks whether values which are written to multiple types are serialized and
+   * deserialized
    * correctly.
    */
   @Test
@@ -82,8 +82,8 @@ public class BuiltinTests {
 
     var constOp = funcMainOp.addOperation(new ConstantOp(LOC, 42), 0);
 
-    var secondConstOp =
-        funcMainOp.addOperation(new ConstantOp(LOC, 100).setOutputValue(constOp.getResult()), 0);
+    var secondConstOp = funcMainOp.addOperation(new ConstantOp(LOC, 100), 0);
+    funcMainOp.addOperation(new SetCellOp(LOC, constOp.getResult(), secondConstOp.getResult()), 0);
 
     funcMainOp.addOperation(new PrintOp(LOC, secondConstOp.getOutputValue().orElseThrow()), 0);
     funcMainOp.addOperation(new ReturnOp(LOC), 0);
@@ -92,7 +92,8 @@ public class BuiltinTests {
   }
 
   /**
-   * Checks whether an incorrect program with a function without terminator is correctly rejected by
+   * Checks whether an incorrect program with a function without terminator is
+   * correctly rejected by
    * the verifier.
    */
   @Test
@@ -103,7 +104,10 @@ public class BuiltinTests {
     assertFalse(DgirTestUtils.testValidityAndSerialization(programOp));
   }
 
-  /** Checks that signed integer attributes preserve signed values across JSON round-trip. */
+  /**
+   * Checks that signed integer attributes preserve signed values across JSON
+   * round-trip.
+   */
   @Test
   public void signedIntegerRoundTrip() {
     Attribute original = new BuiltinAttrs.IntegerAttribute(-1, IntegerT.INT8());
@@ -117,7 +121,10 @@ public class BuiltinTests {
     assertEquals(-1, parsedInteger.getValue().byteValue());
   }
 
-  /** Checks that unsigned integer attributes keep the expected unsigned bit pattern. */
+  /**
+   * Checks that unsigned integer attributes keep the expected unsigned bit
+   * pattern.
+   */
   @Test
   public void unsignedIntegerStorage() {
     BuiltinAttrs.IntegerAttribute value = new BuiltinAttrs.IntegerAttribute(255, IntegerT.UINT8());
@@ -126,13 +133,14 @@ public class BuiltinTests {
     assertEquals(255, Byte.toUnsignedInt(value.getValue().byteValue()));
   }
 
-  /** Checks implicit narrowing and bool normalization done by IntegerAttribute conversion. */
+  /**
+   * Checks implicit narrowing and bool normalization done by IntegerAttribute
+   * conversion.
+   */
   @Test
   public void implicitIntegerCasting() {
-    BuiltinAttrs.IntegerAttribute narrowed =
-        new BuiltinAttrs.IntegerAttribute(300, IntegerT.INT8());
-    BuiltinAttrs.IntegerAttribute normalizedBool =
-        new BuiltinAttrs.IntegerAttribute(42, IntegerT.BOOL());
+    BuiltinAttrs.IntegerAttribute narrowed = new BuiltinAttrs.IntegerAttribute(300, IntegerT.INT8());
+    BuiltinAttrs.IntegerAttribute normalizedBool = new BuiltinAttrs.IntegerAttribute(42, IntegerT.BOOL());
 
     assertEquals("int8", narrowed.getType().getParameterizedIdent());
     assertEquals(44, narrowed.getValue().byteValue());

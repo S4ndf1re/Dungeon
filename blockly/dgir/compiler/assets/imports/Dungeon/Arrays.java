@@ -1,4 +1,4 @@
-package imports.Dungeon;
+package Dungeon;
 
 public class Arrays {
   /**

@@ -575,6 +575,11 @@ public final class Operation implements Serializable, Cloneable {
    * @throws AssertionError if this operation has no output.
    */
   public void setOutputValue(@NotNull Value value) {
+    if (!DgirCoreUtils.getCallingClass().equals(OperationDeserializer.class)) {
+      throw new RuntimeException(
+          "Cannot call setOutputValue outside of serialization. Use SetCellOp and CreateCellOp instead!");
+    }
+
     assert this.output.isPresent() : "Trying to set output value of an operation that has no output.";
     this.output.get().setValue(value);
   }
