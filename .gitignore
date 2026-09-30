@@ -13,7 +13,7 @@
 .lsp/
 .cpcache/
 .factorypath
-.clj-condo/
+.clj-kondo/
 
 
 # Temporary files #

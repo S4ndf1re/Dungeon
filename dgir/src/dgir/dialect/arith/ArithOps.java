@@ -292,15 +292,20 @@ public sealed interface ArithOps {
     public BinaryOp(
         @NotNull Location loc, @NotNull Value lhs, @NotNull Value rhs, @NotNull BinMode binMode) {
       // Get the right output type for the given operands and binary operation kind.
-      MaybeType outputType = switch (binMode) {
-        // Regular arithmetic operations.
-        case ADD, SUB, MUL, DIV, DIVUI, MOD, MODUI ->
-          getDominantType(lhs.getType(), rhs.getType());
-        // Binary operations.
-        case BOR, BAND, BXOR, LSH, RSHS, RSHU -> lhs.getType();
-        // Logical operations.
-        case AND, OR, XOR, EQ, NE, LT, LE, GT, GE -> MaybeType.of(IntegerT.BOOL());
-      };
+      MaybeType outputType = null;
+      try {
+        outputType = switch (binMode) {
+          // Regular arithmetic operations.
+          case ADD, SUB, MUL, DIV, DIVUI, MOD, MODUI ->
+            getDominantType(lhs.getType(), rhs.getType());
+          // Binary operations.
+          case BOR, BAND, BXOR, LSH, RSHS, RSHU -> lhs.getType();
+          // Logical operations.
+          case AND, OR, XOR, EQ, NE, LT, LE, GT, GE -> MaybeType.of(IntegerT.BOOL());
+        };
+      } catch (Exception e) {
+        outputType = MaybeType.of();
+      }
 
       setOperation(Operation.Create(loc, this, List.of(lhs, rhs), null, outputType));
       getAttributeAs("binMode", BinModeAttr.class).orElseThrow().setMode(binMode);
