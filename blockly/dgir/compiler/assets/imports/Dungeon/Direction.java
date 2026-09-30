@@ -1,4 +1,4 @@
-package imports.Dungeon;
+package Dungeon;
 
 /**
  * This enum represents the different directions that can be used for movement and interaction in

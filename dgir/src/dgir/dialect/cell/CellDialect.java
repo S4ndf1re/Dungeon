@@ -35,7 +35,7 @@ public class CellDialect extends Dialect {
 
   @Override
   public @NotNull @Unmodifiable List<TypeDescriptor> allTypes() {
-    return allTypesFromSealedInterface(CellTypes.CellTypeDescriptor.class);
+    return List.of();
   }
 
   @Override

@@ -22,12 +22,15 @@ public sealed interface ArithRunners {
       var operand = op.getOperandValueOrThrow(0);
       var operandValue = NumericUtils.getNumber(state, operand);
 
+      var unaryResult = unaryOperation(
+          operandValue,
+          op.getAttributeAsOrThrow("unaryMode", ArithAttrs.UnaryModeAttr.class).getMode(),
+          operand.getType().getAsKnownOrThrow());
+
       state.setValueForOutput(
-          op,
-          unaryOperation(
-              operandValue,
-              op.getAttributeAsOrThrow("unaryMode", ArithAttrs.UnaryModeAttr.class).getMode(),
-              operand.getType().getAsKnownOrThrow()));
+          op, unaryResult);
+
+      state.setValue(operand, unaryResult);
       return Action.Next();
     }
 
@@ -35,14 +38,14 @@ public sealed interface ArithRunners {
         Number number, ArithAttrs.UnaryModeAttr.UnaryMode mode, Type operandType) {
       return switch (operandType) {
         case BuiltinTypes.FloatT floatT ->
-            floatT.convertToValidNumber(unaryDoubleOperation(number.doubleValue(), mode));
+          floatT.convertToValidNumber(unaryDoubleOperation(number.doubleValue(), mode));
         case BuiltinTypes.IntegerT integerT when integerT.equals(BuiltinTypes.IntegerT.BOOL()) ->
-            integerT.convertToValidNumber(unaryBooleanOperation(number.byteValue(), mode));
+          integerT.convertToValidNumber(unaryBooleanOperation(number.byteValue(), mode));
         case BuiltinTypes.IntegerT integerT ->
-            integerT.convertToValidNumber(unaryLongOperation(number.longValue(), mode));
+          integerT.convertToValidNumber(unaryLongOperation(number.longValue(), mode));
         default ->
-            throw new IllegalArgumentException(
-                "Unsupported operand type for unary operation: " + operandType);
+          throw new IllegalArgumentException(
+              "Unsupported operand type for unary operation: " + operandType);
       };
     }
 
@@ -52,9 +55,9 @@ public sealed interface ArithRunners {
         case INCREMENT -> operand + 1;
         case DECREMENT -> operand - 1;
         case COMPLEMENT ->
-            throw new UnsupportedOperationException("Complement not supported for doubles");
+          throw new UnsupportedOperationException("Complement not supported for doubles");
         case LOGICAL_COMPLEMENT ->
-            throw new UnsupportedOperationException("Logical complement not supported for doubles");
+          throw new UnsupportedOperationException("Logical complement not supported for doubles");
       };
     }
 
@@ -65,15 +68,15 @@ public sealed interface ArithRunners {
         case DECREMENT -> operand - 1;
         case COMPLEMENT -> ~operand;
         case LOGICAL_COMPLEMENT ->
-            throw new UnsupportedOperationException("Logical complement not supported for longs");
+          throw new UnsupportedOperationException("Logical complement not supported for longs");
       };
     }
 
     static byte unaryBooleanOperation(byte operand, ArithAttrs.UnaryModeAttr.UnaryMode mode) {
       return switch (mode) {
         case NEGATE, INCREMENT, DECREMENT, COMPLEMENT ->
-            throw new UnsupportedOperationException(
-                "Only logical complement supported for boolean operations");
+          throw new UnsupportedOperationException(
+              "Only logical complement supported for boolean operations");
         case LOGICAL_COMPLEMENT -> (byte) (operand == 0 ? 1 : 0);
       };
     }
@@ -82,7 +85,9 @@ public sealed interface ArithRunners {
   /**
    * Executes {@code arith.bin} operations.
    *
-   * <p>The runtime dispatch is mode-first (ADD/SUB/..., LT/LE/..., DIVUI/...) and then type-aware,
+   * <p>
+   * The runtime dispatch is mode-first (ADD/SUB/..., LT/LE/..., DIVUI/...) and
+   * then type-aware,
    * so signed, unsigned, and floating-point semantics are applied explicitly.
    */
   final class BinaryRunner extends OpRunner implements ArithRunners {
@@ -95,14 +100,13 @@ public sealed interface ArithRunners {
       var lhsValue = binOp.getOperandValueOrThrow(0);
       var rhsValue = binOp.getOperandValueOrThrow(1);
 
-      var result =
-          binaryOperation(
-              NumericUtils.getNumber(state, lhsValue),
-              NumericUtils.getNumber(state, rhsValue),
-              lhsValue.getType().getAsKnownOrThrow(),
-              rhsValue.getType().getAsKnownOrThrow(),
-              binOp.getOutputValueOrThrow().getType().getAsKnownOrThrow(),
-              binOp.getAttributeAsOrThrow("binMode", ArithAttrs.BinModeAttr.class).getMode());
+      var result = binaryOperation(
+          NumericUtils.getNumber(state, lhsValue),
+          NumericUtils.getNumber(state, rhsValue),
+          lhsValue.getType().getAsKnownOrThrow(),
+          rhsValue.getType().getAsKnownOrThrow(),
+          binOp.getOutputValueOrThrow().getType().getAsKnownOrThrow(),
+          binOp.getAttributeAsOrThrow("binMode", ArithAttrs.BinModeAttr.class).getMode());
       state.setValueForOutput(binOp, result);
       return Action.Next();
     }
@@ -117,18 +121,20 @@ public sealed interface ArithRunners {
         @NotNull ArithAttrs.BinModeAttr.BinMode binMode) {
       return switch (binMode) {
         case LT, LE, GT, GE, EQ, NE ->
-            compareOperation(lhs, rhs, lhsType, rhsType, resultType, binMode);
+          compareOperation(lhs, rhs, lhsType, rhsType, resultType, binMode);
         case AND, OR, XOR -> logicalOperation(lhs, rhs, resultType, binMode);
         case DIVUI, MODUI -> unsignedIntegerOperation(lhs, rhs, resultType, binMode);
         case ADD, SUB, MUL, DIV, MOD, BOR, BAND, BXOR, LSH, RSHS, RSHU ->
-            numericOrIntegerOperation(lhs, rhs, resultType, binMode);
+          numericOrIntegerOperation(lhs, rhs, resultType, binMode);
       };
     }
 
     /**
      * Executes comparison modes ({@code LT, LE, GT, GE, EQ, NE}).
      *
-     * <p>If either operand is float, compare in floating-point domain. Otherwise compare integers
+     * <p>
+     * If either operand is float, compare in floating-point domain. Otherwise
+     * compare integers
      * using signed or unsigned rules chosen from the dominant integer type.
      */
     private static @NotNull Number compareOperation(
@@ -147,32 +153,32 @@ public sealed interface ArithRunners {
       if (lhsType instanceof BuiltinTypes.FloatT || rhsType instanceof BuiltinTypes.FloatT) {
         comparison = Double.compare(lhs.doubleValue(), rhs.doubleValue());
       } else {
-        BuiltinTypes.IntegerT dominantType =
-            (BuiltinTypes.IntegerT) BuiltinTypes.getDominantType(lhsType, rhsType);
+        BuiltinTypes.IntegerT dominantType = (BuiltinTypes.IntegerT) BuiltinTypes.getDominantType(lhsType, rhsType);
         // Keep only the active bit-width before comparing unsigned values.
         long left = dominantType.normalizedLongRepresentation(lhs.longValue());
         long right = dominantType.normalizedLongRepresentation(rhs.longValue());
-        comparison =
-            dominantType.isSigned() ? Long.compare(left, right) : Long.compareUnsigned(left, right);
+        comparison = dominantType.isSigned() ? Long.compare(left, right) : Long.compareUnsigned(left, right);
       }
-      boolean result =
-          switch (binMode) {
-            case LT -> comparison < 0;
-            case LE -> comparison <= 0;
-            case GT -> comparison > 0;
-            case GE -> comparison >= 0;
-            case EQ -> comparison == 0;
-            case NE -> comparison != 0;
-            default ->
-                throw new IllegalArgumentException("Unsupported comparison operation: " + binMode);
-          };
+      boolean result = switch (binMode) {
+        case LT -> comparison < 0;
+        case LE -> comparison <= 0;
+        case GT -> comparison > 0;
+        case GE -> comparison >= 0;
+        case EQ -> comparison == 0;
+        case NE -> comparison != 0;
+        default ->
+          throw new IllegalArgumentException("Unsupported comparison operation: " + binMode);
+      };
       return (byte) (result ? 1 : 0);
     }
 
     /**
-     * Executes boolean logic modes ({@code AND, OR, XOR}) on integer-backed booleans.
+     * Executes boolean logic modes ({@code AND, OR, XOR}) on integer-backed
+     * booleans.
      *
-     * <p>Non-zero is treated as true, zero as false, and the result is normalized back into the
+     * <p>
+     * Non-zero is treated as true, zero as false, and the result is normalized back
+     * into the
      * configured integer bool representation.
      */
     private static @NotNull Number logicalOperation(
@@ -187,21 +193,22 @@ public sealed interface ArithRunners {
       }
       boolean left = lhs.longValue() != 0;
       boolean right = rhs.longValue() != 0;
-      long result =
-          switch (binMode) {
-            case AND -> left && right ? 1 : 0;
-            case OR -> left || right ? 1 : 0;
-            case XOR -> left ^ right ? 1 : 0;
-            default ->
-                throw new IllegalArgumentException("Unsupported logical operation: " + binMode);
-          };
+      long result = switch (binMode) {
+        case AND -> left && right ? 1 : 0;
+        case OR -> left || right ? 1 : 0;
+        case XOR -> left ^ right ? 1 : 0;
+        default ->
+          throw new IllegalArgumentException("Unsupported logical operation: " + binMode);
+      };
       return integerT.convertToValidNumber(result);
     }
 
     /**
      * Executes unsigned arithmetic modes ({@code DIVUI, MODUI}).
      *
-     * <p>Operands are first masked to the target integer width so Java signed storage still behaves
+     * <p>
+     * Operands are first masked to the target integer width so Java signed storage
+     * still behaves
      * as the intended unsigned bit-pattern.
      */
     private static @NotNull Number unsignedIntegerOperation(
@@ -215,20 +222,21 @@ public sealed interface ArithRunners {
       }
       long left = integerT.normalizedLongRepresentation(lhs.longValue());
       long right = integerT.normalizedLongRepresentation(rhs.longValue());
-      long result =
-          switch (binMode) {
-            case DIVUI -> Long.divideUnsigned(left, right);
-            case MODUI -> Long.remainderUnsigned(left, right);
-            default ->
-                throw new IllegalArgumentException("Unsupported unsigned operation: " + binMode);
-          };
+      long result = switch (binMode) {
+        case DIVUI -> Long.divideUnsigned(left, right);
+        case MODUI -> Long.remainderUnsigned(left, right);
+        default ->
+          throw new IllegalArgumentException("Unsupported unsigned operation: " + binMode);
+      };
       return integerT.convertToValidNumber(result);
     }
 
     /**
      * Executes regular arithmetic, bitwise, and shift modes.
      *
-     * <p>Float result types use float/double arithmetic. Integer result types use integer
+     * <p>
+     * Float result types use float/double arithmetic. Integer result types use
+     * integer
      * arithmetic and bit operations, with final narrowing via {@link
      * BuiltinTypes.IntegerT#convertToValidNumber(long)}.
      */
@@ -248,7 +256,7 @@ public sealed interface ArithRunners {
             case DIV -> left / right;
             case MOD -> left % right;
             default ->
-                throw new IllegalArgumentException("Unsupported float operation: " + binMode);
+              throw new IllegalArgumentException("Unsupported float operation: " + binMode);
           };
         }
         double left = lhs.doubleValue();
@@ -264,27 +272,27 @@ public sealed interface ArithRunners {
       }
 
       if (resultType instanceof BuiltinTypes.IntegerT integerT) {
-        // Mask before bit operations so the operation respects the declared integer width.
+        // Mask before bit operations so the operation respects the declared integer
+        // width.
         long left = integerT.normalizedLongRepresentation(lhs.longValue());
         long right = integerT.normalizedLongRepresentation(rhs.longValue());
         int shiftAmount = (int) rhs.longValue();
-        long result =
-            switch (binMode) {
-              case ADD -> left + right;
-              case SUB -> left - right;
-              case MUL -> left * right;
-              case DIV -> left / right;
-              case MOD -> left % right;
-              case BOR -> left | right;
-              case BAND -> left & right;
-              case BXOR -> left ^ right;
-              case LSH -> left << shiftAmount;
-              case RSHS -> left >> shiftAmount;
-              // Unsigned right-shift must not sign-extend the high bit.
-              case RSHU -> left >>> shiftAmount;
-              default ->
-                  throw new IllegalArgumentException("Unsupported integer operation: " + binMode);
-            };
+        long result = switch (binMode) {
+          case ADD -> left + right;
+          case SUB -> left - right;
+          case MUL -> left * right;
+          case DIV -> left / right;
+          case MOD -> left % right;
+          case BOR -> left | right;
+          case BAND -> left & right;
+          case BXOR -> left ^ right;
+          case LSH -> left << shiftAmount;
+          case RSHS -> left >> shiftAmount;
+          // Unsigned right-shift must not sign-extend the high bit.
+          case RSHU -> left >>> shiftAmount;
+          default ->
+            throw new IllegalArgumentException("Unsupported integer operation: " + binMode);
+        };
         return integerT.convertToValidNumber(result);
       }
 

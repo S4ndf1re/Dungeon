@@ -7,6 +7,7 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import dgir.core.ir.Value;
 import dgir.dialect.arith.ArithAttrs;
 import dgir.dialect.arith.ArithOps;
+import dgir.dialect.cell.CellOps;
 import dgir.dialect.builtin.BuiltinTypes;
 import dgir.dialect.io.IoOps;
 import dgir.dialect.mem.MemOps;
@@ -25,13 +26,15 @@ public class Intrinsics {
         return EmitResult.of(Optional.empty());
       }
       case "Dungeon.Hero.rotate(Dungeon.Direction)" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         Value directionValue = args.getFirst();
         context.insert(new DgOps.RotateOp(context.loc(n), directionValue));
         return EmitResult.of(Optional.empty());
       }
       case "Dungeon.Hero.interact(Dungeon.Direction)" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         Value directionValue = args.getFirst();
         context.insert(new DgOps.InteractOp(context.loc(n), directionValue));
         return EmitResult.of(Optional.empty());
@@ -45,7 +48,8 @@ public class Intrinsics {
         return EmitResult.of(Optional.empty());
       }
       case "Dungeon.Hero.drop(Dungeon.ItemType)" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         Value itemTypeValue = args.getFirst();
         context.insert(new DgOps.DropOp(context.loc(n), itemTypeValue));
         return EmitResult.of(Optional.empty());
@@ -63,29 +67,30 @@ public class Intrinsics {
         return EmitResult.of(Optional.empty());
       }
       case "Dungeon.Hero.isNearTile(Dungeon.LevelElement, Dungeon.Direction)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         Value levelElementValue = args.getFirst();
         Value directionValue = args.get(1);
-        var op =
-            context.insert(
-                new DgOps.IsNearTileOp(context.loc(n), levelElementValue, directionValue));
+        var op = context.insert(
+            new DgOps.IsNearTileOp(context.loc(n), levelElementValue, directionValue));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "Dungeon.Hero.matchesTile(Dungeon.LevelElement, Dungeon.LevelElement)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         Value levelElementValue1 = args.getFirst();
         Value levelElementValue2 = args.get(1);
-        var op =
-            context.insert(
-                new ArithOps.BinaryOp(
-                    context.loc(n),
-                    levelElementValue1,
-                    levelElementValue2,
-                    ArithAttrs.BinModeAttr.BinMode.EQ));
+        var op = context.insert(
+            new ArithOps.BinaryOp(
+                context.loc(n),
+                levelElementValue1,
+                levelElementValue2,
+                ArithAttrs.BinModeAttr.BinMode.EQ));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "Dungeon.Hero.isActive(Dungeon.Direction)" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         Value directionValue = args.getFirst();
         var op = context.insert(new DgOps.IsActiveOp(context.loc(n), directionValue));
         return EmitResult.of(Optional.of(op.getResult()));
@@ -108,43 +113,35 @@ public class Intrinsics {
         return EmitResult.of(Optional.empty());
       }
       case "Dungeon.IO.nextFloat()" -> {
-        var result =
-            context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.FloatT.FLOAT32()));
+        var result = context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.FloatT.FLOAT32()));
         return EmitResult.of(Optional.of(result.getResult()));
       }
       case "Dungeon.IO.nextDouble()" -> {
-        var result =
-            context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.FloatT.FLOAT64()));
+        var result = context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.FloatT.FLOAT64()));
         return EmitResult.of(Optional.of(result.getResult()));
       }
       case "Dungeon.IO.nextBoolean()" -> {
-        var result =
-            context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.BOOL()));
+        var result = context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.BOOL()));
         return EmitResult.of(Optional.of(result.getResult()));
       }
       case "Dungeon.IO.nextByte()" -> {
-        var result =
-            context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.INT8()));
+        var result = context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.INT8()));
         return EmitResult.of(Optional.of(result.getResult()));
       }
       case "Dungeon.IO.nextShort()" -> {
-        var result =
-            context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.INT16()));
+        var result = context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.INT16()));
         return EmitResult.of(Optional.of(result.getResult()));
       }
       case "Dungeon.IO.nextInt()" -> {
-        var result =
-            context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.INT32()));
+        var result = context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.INT32()));
         return EmitResult.of(Optional.of(result.getResult()));
       }
       case "Dungeon.IO.nextLong()" -> {
-        var result =
-            context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.INT64()));
+        var result = context.insert(new IoOps.ConsoleInOp(context.loc(n), BuiltinTypes.IntegerT.INT64()));
         return EmitResult.of(Optional.of(result.getResult()));
       }
       case "Dungeon.IO.nextLine()" -> {
-        var result =
-            context.insert(new IoOps.ConsoleInOp(context.loc(n), StrTypes.StringT.INSTANCE()));
+        var result = context.insert(new IoOps.ConsoleInOp(context.loc(n), StrTypes.StringT.INSTANCE()));
         return EmitResult.of(Optional.of(result.getResult()));
       }
 
@@ -156,90 +153,100 @@ public class Intrinsics {
           "Dungeon.Arrays.copyOf(long[], int)",
           "Dungeon.Arrays.copyOf(float[], int)",
           "Dungeon.Arrays.copyOf(double[], int)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         Value arrayValue = args.getFirst();
         Value newLengthValue = args.get(1);
         var op = context.insert(new MemOps.ReallocGcOp(context.loc(n), arrayValue, newLengthValue));
-        op.setOutputValue(arrayValue);
-        return EmitResult.of(Optional.of(op.getResult()));
+        context.insert(new CellOps.SetCellOp(context.loc(n), arrayValue, op.getResult()));
+        return EmitResult.of(Optional.of(arrayValue));
       }
 
       // String Operations
 
       case "java.lang.String.length()" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.LengthOp(context.loc(n), args.getFirst()));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.equals(java.lang.Object)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.EqualsOp(context.loc(n), args.getFirst(), args.get(1)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.charAt(int)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.CharAtOp(context.loc(n), args.getFirst(), args.get(1)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.isEmpty()" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.IsEmptyOp(context.loc(n), args.getFirst()));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.toLowerCase()" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.ToLowerCaseOp(context.loc(n), args.getFirst()));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.toUpperCase()" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.ToUpperCaseOp(context.loc(n), args.getFirst()));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.trim()" -> {
-        if (args.size() != 1) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 1)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.TrimOp(context.loc(n), args.getFirst()));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.substring(int)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
-        var op =
-            context.insert(new StrOps.SubstringOp(context.loc(n), args.getFirst(), args.get(1)));
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
+        var op = context.insert(new StrOps.SubstringOp(context.loc(n), args.getFirst(), args.get(1)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.substring(int, int)" -> {
-        if (args.size() != 3) return EmitResult.failure(context, n, "Invalid number of arguments");
-        var op =
-            context.insert(
-                new StrOps.SubstringOp(context.loc(n), args.getFirst(), args.get(1), args.get(2)));
+        if (args.size() != 3)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
+        var op = context.insert(
+            new StrOps.SubstringOp(context.loc(n), args.getFirst(), args.get(1), args.get(2)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.concat(java.lang.String)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.ConcatOp(context.loc(n), args.getFirst(), args.get(1)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.startsWith(java.lang.String)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
-        var op =
-            context.insert(new StrOps.StartsWithOp(context.loc(n), args.getFirst(), args.get(1)));
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
+        var op = context.insert(new StrOps.StartsWithOp(context.loc(n), args.getFirst(), args.get(1)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.endsWith(java.lang.String)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
-        var op =
-            context.insert(new StrOps.EndsWithOp(context.loc(n), args.getFirst(), args.get(1)));
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
+        var op = context.insert(new StrOps.EndsWithOp(context.loc(n), args.getFirst(), args.get(1)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.indexOf(java.lang.String)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
         var op = context.insert(new StrOps.IndexOfOp(context.loc(n), args.getFirst(), args.get(1)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
       case "java.lang.String.lastIndexOf(java.lang.String)" -> {
-        if (args.size() != 2) return EmitResult.failure(context, n, "Invalid number of arguments");
-        var op =
-            context.insert(new StrOps.LastIndexOfOp(context.loc(n), args.getFirst(), args.get(1)));
+        if (args.size() != 2)
+          return EmitResult.failure(context, n, "Invalid number of arguments");
+        var op = context.insert(new StrOps.LastIndexOfOp(context.loc(n), args.getFirst(), args.get(1)));
         return EmitResult.of(Optional.of(op.getResult()));
       }
 

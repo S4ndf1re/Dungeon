@@ -7,6 +7,8 @@ import static dgir.dialect.func.FuncOps.FuncOp;
 import static dgir.dialect.func.FuncOps.ReturnOp;
 import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.io.IoOps.PrintOp;
+import static dgir.dialect.cell.CellOps.SetCellOp;
+import static dgir.dialect.cell.CellOps.CreateCellOp;
 import static org.junit.jupiter.api.Assertions.*;
 
 import dgir.core.debug.Location;
@@ -245,28 +247,31 @@ public class CoreTests {
     ProgramOp programOp = entry.getLeft();
     FuncOp funcOp = entry.getRight();
 
-    Value c = new Value(IntegerT.INT64());
-
     Block entryBlock = funcOp.getEntryBlock();
     Block leftBlock = funcOp.addBlock(new Block());
     Block rightBlock = funcOp.addBlock(new Block());
     Block endBlock = funcOp.addBlock(new Block());
 
-    var a = entryBlock.addOperation(new ConstantOp(LOC, 47L));
-    var b = entryBlock.addOperation(new ConstantOp(LOC, 42L));
-    var cond = entryBlock.addOperation(new ConstantOp(LOC, true));
-    entryBlock.addOperation(new BranchCondOp(LOC, cond.getResult(), leftBlock, rightBlock));
+    var a = entryBlock.addOperation(new ConstantOp(LOC, 47L)).getResult();
+    var b = entryBlock.addOperation(new ConstantOp(LOC, 42L)).getResult();
+    var c = entryBlock.addOperation(new CreateCellOp(LOC, IntegerT.INT64())).getResult();
+    var cond = entryBlock.addOperation(new ConstantOp(LOC, true)).getResult();
+    entryBlock.addOperation(new BranchCondOp(LOC, cond, leftBlock, rightBlock));
 
-    leftBlock.addOperation(new ConstantOp(LOC, 1L)).setOutputValue(b.getResult());
-    leftBlock.addOperation(new ConstantOp(LOC, 5L)).setOutputValue(c);
+    var newB = leftBlock.addOperation(new ConstantOp(LOC, 1L)).getResult();
+    var newC = leftBlock.addOperation(new ConstantOp(LOC, 5L)).getResult();
+    leftBlock.addOperation(new SetCellOp(LOC, b, newB));
+    leftBlock.addOperation(new SetCellOp(LOC, c, newC));
     leftBlock.addOperation(new BranchOp(LOC, endBlock));
 
-    rightBlock.addOperation(new ConstantOp(LOC, 2L)).setOutputValue(a.getResult());
-    rightBlock.addOperation(new ConstantOp(LOC, 10L)).setOutputValue(c);
+    var newA = rightBlock.addOperation(new ConstantOp(LOC, 2L)).getResult();
+    newC = rightBlock.addOperation(new ConstantOp(LOC, 10L)).getResult();
+    rightBlock.addOperation(new SetCellOp(LOC, a, newA));
+    rightBlock.addOperation(new SetCellOp(LOC, c, newC));
     rightBlock.addOperation(new BranchOp(LOC, endBlock));
 
     endBlock.addOperation(
-        new ArithOps.BinaryOp(LOC, a.getResult(), c, ArithAttrs.BinModeAttr.BinMode.SUB));
+        new ArithOps.BinaryOp(LOC, a, c, ArithAttrs.BinModeAttr.BinMode.SUB));
     endBlock.addOperation(new ReturnOp(LOC));
 
     assertTrue(DgirTestUtils.testValidityAndSerialization(programOp));
@@ -278,28 +283,31 @@ public class CoreTests {
     ProgramOp programOp = entry.getLeft();
     FuncOp funcOp = entry.getRight();
 
-    Value c = new Value(IntegerT.INT64());
-
     Block entryBlock = funcOp.getEntryBlock();
     Block leftBlock = funcOp.addBlock(new Block());
     Block rightBlock = funcOp.addBlock(new Block());
     Block endBlock = funcOp.addBlock(new Block());
 
-    var a = entryBlock.addOperation(new ConstantOp(LOC, 47L));
-    var b = entryBlock.addOperation(new ConstantOp(LOC, 42L));
+    var a = entryBlock.addOperation(new ConstantOp(LOC, 47L)).getResult();
+    var b = entryBlock.addOperation(new ConstantOp(LOC, 42L)).getResult();
+    var c = entryBlock.addOperation(new CreateCellOp(LOC, IntegerT.INT64())).getResult();
     var cond = entryBlock.addOperation(new ConstantOp(LOC, true));
     entryBlock.addOperation(new BranchCondOp(LOC, cond.getResult(), leftBlock, rightBlock));
 
-    leftBlock.addOperation(new ConstantOp(LOC, 1L)).setOutputValue(b.getResult());
-    leftBlock.addOperation(new ConstantOp(LOC, 5L)).setOutputValue(c);
+    var newB = leftBlock.addOperation(new ConstantOp(LOC, 1L)).getResult();
+    var newC = leftBlock.addOperation(new ConstantOp(LOC, 5L)).getResult();
+    leftBlock.addOperation(new SetCellOp(LOC, b, newB));
+    leftBlock.addOperation(new SetCellOp(LOC, c, newC));
     leftBlock.addOperation(new BranchOp(LOC, endBlock));
 
-    rightBlock.addOperation(new ConstantOp(LOC, 2L)).setOutputValue(a.getResult());
-    rightBlock.addOperation(new ConstantOp(LOC, 10L)).setOutputValue(c);
+    var newA = rightBlock.addOperation(new ConstantOp(LOC, 2L)).getResult();
+    newC = rightBlock.addOperation(new ConstantOp(LOC, 10L)).getResult();
+    rightBlock.addOperation(new SetCellOp(LOC, a, newA));
+    rightBlock.addOperation(new SetCellOp(LOC, c, newC));
     rightBlock.addOperation(new BranchOp(LOC, endBlock));
 
     endBlock.addOperation(
-        new ArithOps.BinaryOp(LOC, a.getResult(), c, ArithAttrs.BinModeAttr.BinMode.SUB));
+        new ArithOps.BinaryOp(LOC, a, c, ArithAttrs.BinModeAttr.BinMode.SUB));
     endBlock.addOperation(new ReturnOp(LOC));
 
     assertTrue(DgirTestUtils.testValidityAndSerialization(programOp));
