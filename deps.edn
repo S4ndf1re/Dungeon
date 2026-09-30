@@ -1,1 +1,0 @@
-{:paths ["dsl/src/clj" "dsl/test/clj"] :deps {org.clojure/clojure {:mvn/version "1.12.1"} metosin/malli {:mvn/version "0.20.2"} com.taoensso/nippy {:mvn/version "3.9.0"} com.phronemophobic/clj-graphviz {:mvn/version "0.6.4"}}}

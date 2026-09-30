@@ -160,6 +160,10 @@ public final class Region {
     return Collections.unmodifiableList(blocks);
   }
 
+  public Optional<Block> getBlockAt(int idx) {
+    return Optional.ofNullable(this.blocks.get(idx));
+  }
+
   public Block addBlock(@NotNull Block block) {
     return addBlockAt(blocks.size(), block);
   }
@@ -183,6 +187,12 @@ public final class Region {
   public Block removeBlock(@NotNull Block block) {
     assert blocks.contains(block) : "Block is not part of this region.";
     return removeBlockAt(blocks.indexOf(block));
+  }
+
+  public void removeAllBlocks() {
+    while (!this.blocks.isEmpty()) {
+      removeBlockAt(blocks.size() - 1);
+    }
   }
 
   public Block removeBlockAt(int index) {
