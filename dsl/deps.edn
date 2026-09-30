@@ -1,7 +1,8 @@
-;; Tooling-only classpath descriptor (clojure-lsp, clj-kondo, CIDER).
-;; The Gradle build in build.gradle remains the source of truth for compilation.
-{:paths ["src/clj" "test/clj"]
+{:paths ["src/clj" "test/clj"
+         "../dgir/build/classes/java/main"
+         "../dgir/vm/build/classes/java/main"
+         "../dgir/src"
+         "../dgir/vm/src"]
  :deps  {org.clojure/clojure            {:mvn/version "1.12.1"}
-         metosin/malli                  {:mvn/version "0.10.4"}
-         com.taoensso/nippy             {:mvn/version "3.9.0"}
+         metosin/malli                  {:mvn/version "0.20.2"}
          com.phronemophobic/clj-graphviz {:mvn/version "0.6.4"}}}
