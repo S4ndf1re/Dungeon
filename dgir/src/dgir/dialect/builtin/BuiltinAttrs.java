@@ -8,6 +8,8 @@ import static dgir.dialect.func.FuncOps.FuncOp;
 import dgir.core.ir.*;
 import dgir.core.serialization.IntegerAttributeDeserializer;
 import dgir.core.serialization.IntegerAttributeSerializer;
+import dgir.dialect.builtin.BuiltinTypes.UnitType;
+
 import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -54,6 +56,22 @@ public sealed interface BuiltinAttrs {
       }
     }
 
+    final class UnitAttributeDescriptor implements BuiltinAttrDescriptor {
+      public static AttributeDescriptor defaultInstance() {
+        return new UnitAttributeDescriptor();
+      }
+
+      @Override
+      public @NotNull Class<? extends Attribute> getAttributeClass() {
+        return UnitAttribute.class;
+      }
+
+      @Override
+      public @NotNull String getIdent() {
+        return "unitAttr";
+      }
+    }
+
     final class SymbolRefAttributeDescriptor implements BuiltinAttrDescriptor {
       public static AttributeDescriptor defaultInstance() {
         return new SymbolRefAttributeDescriptor();
@@ -88,9 +106,12 @@ public sealed interface BuiltinAttrs {
   }
 
   /**
-   * Attribute that carries an integer value together with its {@link IntegerT} type.
+   * Attribute that carries an integer value together with its {@link IntegerT}
+   * type.
    *
-   * <p>Ident: {@code integerAttr}. The stored value is always the narrowest Java numeric type that
+   * <p>
+   * Ident: {@code integerAttr}. The stored value is always the narrowest Java
+   * numeric type that
    * matches the integer width — e.g. {@link Integer} for {@link IntegerT#INT32}.
    */
   @JsonSerialize(using = IntegerAttributeSerializer.class)
@@ -107,14 +128,18 @@ public sealed interface BuiltinAttrs {
     // Constructors
     // =========================================================================
 
-    /** Create a default integer attribute (value {@code null}, type {@link IntegerT#INT64}). */
+    /**
+     * Create a default integer attribute (value {@code null}, type
+     * {@link IntegerT#INT64}).
+     */
     public IntegerAttribute() {
       super(IntegerT.INT64());
       value = 0L;
     }
 
     /**
-     * Create an integer attribute with the given value and the default type {@link IntegerT#INT64}.
+     * Create an integer attribute with the given value and the default type
+     * {@link IntegerT#INT64}.
      *
      * @param value the integer value.
      */
@@ -126,9 +151,10 @@ public sealed interface BuiltinAttrs {
     /**
      * Create an integer attribute with an explicit value and type
      *
-     * @param value the integer value; will be converted to the correct Java type via {@link
-     *     IntegerT#convertToValidNumber(long)}.
-     * @param type the integer type that determines the bit-width.
+     * @param value the integer value; will be converted to the correct Java type
+     *              via {@link
+     *              IntegerT#convertToValidNumber(long)}.
+     * @param type  the integer type that determines the bit-width.
      */
     public IntegerAttribute(long value, IntegerT type) {
       super(type);
@@ -156,7 +182,8 @@ public sealed interface BuiltinAttrs {
     }
 
     /**
-     * Sets the integer value of this attribute. The provided value will be converted to the correct
+     * Sets the integer value of this attribute. The provided value will be
+     * converted to the correct
      * Java type based on the attribute's {@link IntegerT} type.
      *
      * @param value the new integer value.
@@ -170,7 +197,10 @@ public sealed interface BuiltinAttrs {
     }
   }
 
-  /** Attribute that carries a floating-point value together with its {@link FloatT} type. */
+  /**
+   * Attribute that carries a floating-point value together with its
+   * {@link FloatT} type.
+   */
   final class FloatAttribute extends TypedAttribute implements BuiltinAttrs {
     private @NotNull Number value;
 
@@ -205,10 +235,28 @@ public sealed interface BuiltinAttrs {
     }
   }
 
+  /** Attribute that carries no value wiht a unit type */
+  final class UnitAttribute extends TypedAttribute implements BuiltinAttrs {
+    private Object storage;
+
+    public UnitAttribute() {
+      super(TypeUniquer.uniqueInstance(new UnitType()));
+      this.storage = new Object();
+    }
+
+    @Contract(pure = true)
+    @Override
+    public @NotNull Object getStorage() {
+      return storage;
+    }
+  }
+
   /**
    * Attribute that holds a reference to a symbol by its string name.
    *
-   * <p>Ident: {@code symbolRefAttr}. Used by operations such as {@link CallOp} to record the name
+   * <p>
+   * Ident: {@code symbolRefAttr}. Used by operations such as {@link CallOp} to
+   * record the name
    * of a callee function without hard-linking the IR nodes together.
    */
   final class SymbolRefAttribute extends Attribute implements BuiltinAttrs {
@@ -270,7 +318,9 @@ public sealed interface BuiltinAttrs {
   /**
    * Attribute that wraps a {@link Type} instance as an IR attribute.
    *
-   * <p>Ident: {@code typeAttr}. Used by operations such as {@link FuncOp} to embed the full
+   * <p>
+   * Ident: {@code typeAttr}. Used by operations such as {@link FuncOp} to embed
+   * the full
    * function type into the operation's attribute dictionary.
    */
   final class TypeAttribute extends Attribute implements BuiltinAttrs {
