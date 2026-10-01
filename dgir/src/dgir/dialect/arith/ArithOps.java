@@ -4,6 +4,7 @@ import static dgir.dialect.arith.ArithAttrs.BinModeAttr;
 import static dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode;
 import static dgir.dialect.arith.ArithAttrs.UnaryModeAttr;
 import static dgir.dialect.builtin.BuiltinAttrs.IntegerAttribute;
+import static dgir.dialect.builtin.BuiltinAttrs.UnitAttribute;
 import static dgir.dialect.builtin.BuiltinAttrs.TypeAttribute;
 import static dgir.dialect.builtin.BuiltinTypes.*;
 
@@ -494,6 +495,16 @@ public sealed interface ArithOps {
     public ConstantOp(@NotNull Location location, @NotNull TypedAttribute value) {
       setOperation(Operation.Create(location, this, null, null, value.getType()));
       getAttributesMap().get("value").setAttribute(value);
+    }
+
+    /**
+     * Create a unit constant.
+     *
+     * @param location the source location of this operation.
+     * @param value    the string literal to embed.
+     */
+    public ConstantOp(@NotNull Location location) {
+      this(location, new UnitAttribute());
     }
 
     /**
