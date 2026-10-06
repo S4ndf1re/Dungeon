@@ -15,7 +15,7 @@
    [dgir.core.ir.types.compatibility ConverterRegistry]
    [dgir.dialect.arith ArithAlgoWConversion ArithHMXConversion]
    [dgir.dialect.builtin BuiltinAlgoWConversion BuiltinHMXConversion]
-   [dgir.dialect.cf CfAlgoWConversion]
+   [dgir.dialect.cf CfAlgoWConversion CfHMXConversion]
    [dgir.dialect.func FuncAlgoWConversion FuncHMXConversion]
    [dgir.dialect.io IoAlgoWConversion IoHMXConversion]
    [dgir.dialect.scf ScfAlgoWConversion ScfHMXConversion]))
@@ -191,7 +191,8 @@
   (BuiltinHMXConversion/registerBuiltinAlgoWConversion)
   (ArithHMXConversion/registerBuiltinAlgoWConversion)
   (IoHMXConversion/registerBuiltinAlgoWConversion)
-  (ScfHMXConversion/registerBuiltinAlgoWConversion))
+  (ScfHMXConversion/registerBuiltinAlgoWConversion)
+  (CfHMXConversion/registerBuiltinAlgoWConversion))
 
 (defn init-algow []
   (ConverterRegistry/registerDialect AlgorithmWInference)

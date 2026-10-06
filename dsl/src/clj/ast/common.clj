@@ -16,7 +16,7 @@
   [cond-fn collection]
   (loop [splitted (vector)
          running (vector)
-         [x xs] collection]
+         [x & xs] collection]
     (if x
       (if (cond-fn x)
         (recur (conj splitted (conj running x)) (vector) xs)
@@ -39,7 +39,6 @@
   ast/AstNode
   (validate [_this] (run! ast/validate expressions))
   (emit [_this context]
-    (println "Emitting Program: " location expressions)
     (let [child-context (em/new-context context)
           program-op (new BuiltinOps$ProgramOp (token-location-to-ir-location location))]
       (doseq [expr expressions] (ast/emit expr child-context))
@@ -71,14 +70,13 @@
   ast/AstNode
   (validate [_this] (run! ast/validate expressions))
   (emit [_this context]
-    (println "Emitting Do " location expressions)
       ;; this has to be reversed, as the successor blocks must be known beforehand!
       ;; Remember to reverse the resulting blocks as well, to get the correct starting block!
     (let [splitted (reverse (split-all-at ast/is-jump expressions))
           ;; the context is only emporary, all its blocks will get placed within the old context after emission
           new-context (em/new-context context)]
       ;; We have to remove the blocks, as the loop creates its own blocks, otherwise leaving a block empty and invalid for further emission
-      (em/remove-blocks-unsafe context)
+      (em/remove-blocks-unsafe new-context)
       (doseq [block-like splitted]
         (let [succ-block (em/get-current-block new-context)
               new-block (em/add-new-block new-context)]

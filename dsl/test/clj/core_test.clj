@@ -1,45 +1,42 @@
 (ns core-test
   (:require
    [ast.ast :as ast]
-   [clojure.pprint :as pprint]
    [clojure.test :as t :refer [deftest testing]]
    [core :as c]
    [emission :as em]
    [filebuffer :as fb]
    [glr-parser.parser.parser :as par])
   (:import
-   [dgir.core.ir.types.builtin.algorithmw AlgorithmWInference]
+   [dgir.core.ir.types.builtin.hmx HMXInference]
    [dgir.core.ir.types.compatibility ExprOrOperator]))
 
 (def parser (-> (c/build-lexer) (c/build-parser)))
 
 (defn simple-test-fn []
-  (par/run-lr-1 parser "(add (mul 1 3) 2)" "test")
-  (println "Done simple-test-fn"))
+  (par/run-lr-1 parser "(add (mul 1 3) 2)" "test"))
 
 (defn function-def-test-fn []
   (par/run-lr-1 parser "(defn hello-fn [foo bar] foo)
-                  (hello-fn 1 \"test string\")" "test")
-  (println "Done function-def-test-fn"))
+                  (hello-fn 1 \"test string\")" "test"))
 
 (defn simple-prog-test []
-  (c/init-algow)
+  (c/init-hmx)
   (fb/add-file "test" "
-                 (defn abc [a b] (+ a b))
-                 (abc 1 2)
+                 (defn abc [a b] (return (+ a b)))
+                 (defn main []
+                   (abc 1 2))
                  ")
   (let [ctx (em/new-context)]
     (-> "test"
         (fb/get-file-content)
         (#(par/run-lr-1 parser % "test"))
-        (#(do (pprint/pprint (:data %)) %))
         (:data)
         (ast/emit ctx))
     (let [program (.getFirst (.getOperations (first (em/get-blocks ctx))))
-          inference (AlgorithmWInference.)
+          inference (HMXInference.)
           solver (.getNewSolverInstance inference)
           exprOrOp (ExprOrOperator/of program)]
-      (println (.solve solver exprOrOp)))))
+      (.solve solver exprOrOp))))
 
 (simple-test-fn)
 (function-def-test-fn)
