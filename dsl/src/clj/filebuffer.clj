@@ -12,7 +12,7 @@
 
 (defn position-to-line-column [filename position]
   (if (get-file-content filename)
-    (loop [[x xs] (seq (get-file-content filename))
+    (loop [[x & xs] (seq (get-file-content filename))
            lines 0
            columns 0
            counter 0]
@@ -22,4 +22,3 @@
           (recur xs lines (inc columns) (inc counter)))
         [lines columns]))
     nil))
-
