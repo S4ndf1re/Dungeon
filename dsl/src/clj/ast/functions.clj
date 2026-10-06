@@ -17,7 +17,6 @@
                       (run! ast/validate arg-idents)
                       (ast/validate body)))
   (emit [_this context]
-    (println "Emitting Function Definition " location ident arg-idents body)
     (let [child-context (em/new-context context)
           arg-count (count arg-idents)
           fn-op (new FuncOps$FuncOp
@@ -34,6 +33,9 @@
       (doseq [[ident value] arg-values]
         (em/set-ident-value child-context ident value))
       ;; Emit the children!
+      ;; But first, remove all blocks.
+      ;; NOTE: This is only safe, because the body is always a do operation that creates its own blocks!
+      (em/remove-blocks-unsafe child-context)
       (ast/emit body child-context)
       (em/emit-into-op child-context fn-op)
       ;; Add the fn operation to the parent scope emission context!
@@ -63,7 +65,7 @@
      (com/token-location-to-ir-location location)
      (:ident ident)
      params
-     (FuncTypes$FuncType/empty))))
+     (MaybeType/of))))
 
 (defrecord FnCall [location fn-ident params]
   AstNode
@@ -71,7 +73,6 @@
                       (ast/validate fn-ident)
                       (run! ast/validate params)))
   (emit [_this context]
-    (println "Emitting Function Call " location fn-ident params)
     ;; TODO: this function call needs special handling based on builtin operations (+, -, *, /, etc.)
     ;; NOTE: the emission has side effects, the mapv is only present for the actuall operator values!
     (let [arg-values (mapv #(ast/emit % context) params)

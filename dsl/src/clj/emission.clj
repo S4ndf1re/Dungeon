@@ -56,7 +56,7 @@
   "remove blocks in an unsafe manner, leaving the context invalid, until a new block is pushed!"
   [context]
   (vswap! context assoc :blocks [])
-  ;; This line here is the unsafe part!
+  ;; This line here is the actual unsafe part!
   (vswap! context assoc :current-block nil))
 
 (defn add-new-block

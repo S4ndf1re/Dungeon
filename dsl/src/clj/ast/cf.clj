@@ -4,7 +4,8 @@
    [ast.common :as com]
    [emission :as em])
   (:import [dgir.core.ir Value]
-           dgir.dialect.scf.ScfOps$IfOp))
+           dgir.dialect.scf.ScfOps$IfOp
+           dgir.dialect.func.FuncOps$ReturnOp))
 
 (defrecord If [location condition then else]
   AstNode
@@ -37,7 +38,13 @@
 (defrecord Return [location expression]
   AstNode
   (validate [_this] (ast/validate expression))
-  (emit [_this _context] nil)
+  (emit [_this context]
+    (let [value (if expression (ast/emit expression context) nil)]
+      (if value
+        (em/add-expression context (FuncOps$ReturnOp. (com/token-location-to-ir-location location) value))
+        (em/add-expression context (FuncOps$ReturnOp. (com/token-location-to-ir-location location))))
+      nil))
+
   (is-jump [_this] true))
 
 (defrecord Break [location]
