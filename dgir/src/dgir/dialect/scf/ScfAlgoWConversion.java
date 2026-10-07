@@ -234,7 +234,7 @@ public final class ScfAlgoWConversion {
       InferResult resCond = eng.infer(data.cond(), env);
       var condType = resCond.type();
 
-      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
+      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
 
       InferResult resBody = eng.infer(data.body(), env);
       var bodyType = resBody.type();

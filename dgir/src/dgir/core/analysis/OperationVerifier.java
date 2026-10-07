@@ -397,6 +397,10 @@ public class OperationVerifier {
     }
 
     if (!isValidWithoutTerminator(block) && !block.hasTerminator()) {
+      for (var op : block.getTerminalOperations()) {
+        System.out.println("TermOp: " + op.getLeft() + " in Block " + block);
+        System.out.println(op.getRight().getOperations());
+      }
       block
           .getParentOperation()
           .orElse(block.getOperations().getLast())

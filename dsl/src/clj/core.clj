@@ -18,7 +18,8 @@
    [dgir.dialect.cf CfAlgoWConversion CfHMXConversion]
    [dgir.dialect.func FuncAlgoWConversion FuncHMXConversion]
    [dgir.dialect.io IoAlgoWConversion IoHMXConversion]
-   [dgir.dialect.scf ScfAlgoWConversion ScfHMXConversion]))
+   [dgir.dialect.scf ScfAlgoWConversion ScfHMXConversion]
+   [dgir.dialect.cell CellHMXConversion CellAlgoWConversion]))
 
 (def int-regex
   (rgx/->OneOrMore (rgx/->Digit)))
@@ -67,11 +68,19 @@
       (lex/add-const :return "return")
       (lex/add-const :break "break")
       (lex/add-const :continue "continue")
+      (lex/add-const :set "set")
       ;; Symbols
       (lex/add-const :colon ":")
       (lex/add-const :plus "+")
       (lex/add-const :minus "-")
       (lex/add-const :asteric "*")
+      (lex/add-const :lt "<")
+      (lex/add-const :lte "<=")
+      (lex/add-const :gt ">")
+      (lex/add-const :gte ">=")
+      (lex/add-const :and "and")
+      (lex/add-const :or "or")
+      (lex/add-const :not "not")
       (lex/add-const :slash "/")
       (lex/add-const :lparen "(")
       (lex/add-const :rparen ")")
@@ -90,6 +99,8 @@
       (lex/add-rule :float float-regex)
       (lex/add-rule :string string-regex)
       (lex/add-rule :id id-regex)
+      (lex/add-const :true "true")
+      (lex/add-const :false "false")
       (lex/build)))
 
 (defn fn-def-to-ast [loc [_ _ ident _ arg-idents _ children _]]
@@ -98,6 +109,12 @@
 
 (defn fn-call-to-ast [loc [_ ident args _]]
   (func/->FnCall loc (:data ident) (:data args)))
+
+(defn bin-call-to-ast [loc [_ ident lhs rhs _]]
+  (func/->FnCall loc (:data ident) (vector (:data lhs) (:data rhs))))
+
+(defn unary-call-to-ast [loc [_ ident lhs _]]
+  (func/->FnCall loc (:data ident) (vector (:data lhs))))
 
 (defn int-lit-to-ast [loc [lit-str]]
   (->> (:data lit-str)
@@ -117,18 +134,22 @@
   (->> (:data ident)
        (com/->Ident loc)))
 
+(defn false-value [loc _] (lit/->BoolLit loc false))
+(defn true-value [loc _] (lit/->BoolLit loc true))
+
 ; (defn annotation-to-ast [loc [expr _ type-ident]]
 ;   (com/->Typed loc (:data expr) (:data type-ident)))
 
+(defn set-to-ast [loc [_ _ id expr _]] (com/->Set loc (:data id) (:data expr)))
 (defn if-to-ast [loc [_ _ condition then-case else-case _]] (cf/->If loc (:data condition) (:data then-case) (:data else-case)))
 (defn while-to-ast [loc [_ _ condition body-exprs _]] (cf/->While loc (:data condition) (com/->Do (tok/location body-exprs) (:data body-exprs))))
 (defn do-to-ast [loc [_ _ exprs _]] (com/->Do loc (:data exprs)))
-(defn let-to-ast [loc [_ _ _ bindings _ body  _]] (com/->Let loc (:data bindings) (:data body)))
+(defn let-to-ast [loc [_ _ _ bindings _ body  _]] (com/->Let loc (:data bindings) (com/->Do (tok/location body) (:data body))))
 (defn return-to-ast [loc [_ _ expr _]] (cf/->Return loc (:data expr)))
 (defn break-to-ast [loc [_ _ _]] (cf/->Break loc))
 (defn continue-to-ast [loc [_ _ _]] (cf/->Continue loc))
-(defn build-untyped-binding [loc [ident expr]] {:loc loc :ident ident :expr expr :type nil})
-(defn build-typed-binding [loc [ident _ ty expr]] {:loc loc :ident ident :expr expr :type ty})
+(defn build-untyped-binding [loc [ident expr]] (com/->LetBinding loc (:data ident) (:data expr) nil))
+(defn build-typed-binding [loc [ident _ ty expr]] (com/->LetBinding loc (:data ident) (:data expr) (:data ty)))
 (defn program-to-ast [loc [expressions]] (com/->Program loc (:data expressions)))
 (defn unwarp-single [[single]] (:data single))
 
@@ -137,20 +158,33 @@
       (par/add-rule :ID [:id id-to-ast])
       (par/add-rule :Program [:TopLevelSExpr* program-to-ast])
 
-      ;; ============== Supported Arithmetic Operations ==============
-      (par/add-rule :Arith [[:plus id-to-ast]
+      ;; ============== Supported IR Ops ==============
+      (par/add-rule :BinOp [[:plus id-to-ast]
                             [:minus id-to-ast]
                             [:asteric id-to-ast]
-                            [:slash id-to-ast]])
+                            [:slash id-to-ast]
+                            [:lt id-to-ast]
+                            [:lte id-to-ast]
+                            [:gt id-to-ast]
+                            [:gte id-to-ast]
+                            [:and id-to-ast]
+                            [:or id-to-ast]])
+
+      (par/add-rule :UnaryOp [[:not id-to-ast]])
 
       ;; ============== Normal S-Exprs with all supported function arguments (excluding special keywords) ==============
-      (par/add-rule :SExprFn [[:ID unwarp-single]
-                              [:Arith unwarp-single]])
       (par/add-rule :SExprLit [[:ID unwarp-single]
                                [:int int-lit-to-ast]
                                [:float float-lit-to-ast]
-                               [:string string-lit-to-ast]])
-      (par/add-rule :SExpr [[:lparen :SExprFn :SExpr* :rparen fn-call-to-ast]
+                               [:string string-lit-to-ast]
+                               [:true true-value]
+                               [:false false-value]])
+      (par/add-rule :SExprFuncCall [:lparen :ID :SExpr* :rparen fn-call-to-ast])
+      (par/add-rule :SExprBinOp [:lparen :BinOp :SExpr :SExpr :rparen bin-call-to-ast])
+      (par/add-rule :SExprUnaryOp [:lparen :UnaryOp :SExpr :rparen unary-call-to-ast])
+      (par/add-rule :SExpr [[:SExprFuncCall unwarp-single]
+                            [:SExprUnaryOp unwarp-single]
+                            [:SExprBinOp unwarp-single]
                             [:SExprLit unwarp-single]
                             [:lparen :rparen (fn [loc _] (lit/->UnitLit loc))]])
 
@@ -169,6 +203,7 @@
       (par/add-rule :Return [:lparen :return :SExpr :rparen return-to-ast])
       (par/add-rule :Break [:lparen :break :rparen break-to-ast])
       (par/add-rule :Continue [:lparen :continue :rparen continue-to-ast])
+      (par/add-rule :Set [:lparen :set :ID :SExpr :rparen set-to-ast])
 
       ;; ============== All Allowed Top level expressions ==============
       (par/add-rule :TopLevelSExpr [[:BodySExpr unwarp-single]
@@ -180,7 +215,9 @@
                                 [:Do unwarp-single]
                                 [:Return unwarp-single]
                                 [:Break unwarp-single]
-                                [:Continue unwarp-single]])
+                                [:Continue unwarp-single]
+                                [:Set unwarp-single]
+                                [:Let unwarp-single]])
 
       (par/build-lr-1 :Program)))
 
@@ -192,7 +229,8 @@
   (ArithHMXConversion/registerBuiltinAlgoWConversion)
   (IoHMXConversion/registerBuiltinAlgoWConversion)
   (ScfHMXConversion/registerBuiltinAlgoWConversion)
-  (CfHMXConversion/registerBuiltinAlgoWConversion))
+  (CfHMXConversion/registerBuiltinAlgoWConversion)
+  (CellHMXConversion/registerBuiltinAlgoWConversion))
 
 (defn init-algow []
   (ConverterRegistry/registerDialect AlgorithmWInference)
@@ -202,4 +240,5 @@
   (ArithAlgoWConversion/registerBuiltinAlgoWConversion)
   (IoAlgoWConversion/registerBuiltinAlgoWConversion)
   (ScfAlgoWConversion/registerBuiltinAlgoWConversion)
-  (CfAlgoWConversion/registerBuiltinAlgoWConversion))
+  (CfAlgoWConversion/registerBuiltinAlgoWConversion)
+  (CellAlgoWConversion/registerBuiltinAlgoWConversion))

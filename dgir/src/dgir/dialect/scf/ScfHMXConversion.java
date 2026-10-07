@@ -249,7 +249,7 @@ public final class ScfHMXConversion {
 
       return new Constraint.Exists(List.of(condTyVar, bodyTyVar),
           new Constraint.And(resCond.constr(), resBody.constr(),
-              new Constraint.Equal(condType, new HMXType.LitType(TypeIdent.TYPE_IDENT_BOOL)),
+              new Constraint.Equal(condType, new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT)),
               new Constraint.Equal(bodyType, new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT)),
               new Constraint.Equal(type, new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT))));
     };
