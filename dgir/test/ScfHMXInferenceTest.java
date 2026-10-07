@@ -31,6 +31,8 @@ import dgir.dialect.builtin.BuiltinOps.ProgramOp;
 import dgir.dialect.func.FuncHMXConversion;
 import dgir.dialect.func.FuncOps.FuncOp;
 import dgir.dialect.func.FuncOps.ReturnOp;
+import dgir.dialect.func.FuncOps.CallOp;
+import dgir.dialect.func.FuncTypes.FuncType;
 import dgir.dialect.scf.ScfHMXConversion;
 import dgir.dialect.scf.ScfOps.ContinueOp;
 import dgir.dialect.scf.ScfOps.EndOp;
@@ -269,5 +271,109 @@ public class ScfHMXInferenceTest {
     assertEquals(1, countOps(solved.getRight(), BinaryOp.class), "rebuilt condition missing from result tree");
 
     assertEquals(TypeIdent.TYPE_IDENT_UNIT, ((HMXType.LitType) solved.getLeft()).tyName);
+  }
+
+  /**
+   * Two globally defined functions, one called from main. The called function
+   * must keep its full body after type inference + instantiation. Regression
+   * test: the function whose call produces a Sub constraint lost its entire
+   * body (empty block) in the reconstructed program.
+   *
+   * NOTE: the program order matters here (abc first, main second)! This is a
+   * workaround for a known solver bug: {@code ExprLetRec.solve} generalizes its
+   * bindings strictly in order. When {@code main} comes first, its constraints
+   * are solved while {@code abc} is still an env shell with a fresh, unbound
+   * type var, leaving abc's return type unresolved (fails with
+   * "Type int32 -> int32 -> tXX is not fully specified" or an unbound variable
+   * in convertReturnOp). See {@link #mainBeforeCalleeBreaksInference}.
+   */
+  @Test
+  public void calledFunctionKeepsBodyAfterSolve() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    FuncOp abcFuncOp = programOp.addOperation(
+        new FuncOp(LOC, "abc", FuncType.of(List.of(dgir.dialect.builtin.BuiltinTypes.IntegerT.INT32(),
+            dgir.dialect.builtin.BuiltinTypes.IntegerT.INT32()),
+            dgir.dialect.builtin.BuiltinTypes.IntegerT.INT32())));
+    var binOp = abcFuncOp.addOperation(
+        new BinaryOp(LOC, abcFuncOp.getArgument(0).orElseThrow(), abcFuncOp.getArgument(1).orElseThrow(),
+            BinMode.ADD),
+        0);
+    abcFuncOp.addOperation(new ReturnOp(LOC, binOp.getResult()), 0);
+
+    // int32 main() { abc(1, 2); return; }
+    FuncOp funcMainOp = programOp.addOperation(
+        new FuncOp(LOC, "main", FuncType.of(List.of(), dgir.core.ir.MaybeType.of())));
+    var one = funcMainOp.addOperation(new ConstantOp(LOC, 1), 0);
+    var two = funcMainOp.addOperation(new ConstantOp(LOC, 2), 0);
+    funcMainOp.addOperation(new CallOp(LOC, abcFuncOp, one.getResult(), two.getResult()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC), 0);
+    var solved = solve(programOp);
+    var rebuiltAbc = solved.getRight().stream().map(Operation::asOp)
+        .filter(o -> o instanceof FuncOp).map(o -> (FuncOp) o)
+        .filter(o -> "abc".equals(o.getFuncName()))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("rebuilt abc function missing from result tree"));
+
+    var abcBody = rebuiltAbc.getEntryBlock().getOperations();
+    assertTrue(abcBody.stream().anyMatch(o -> o.asOp() instanceof BinaryOp),
+        "abc lost its body after instantiation: " + abcBody);
+    assertTrue(abcBody.stream().anyMatch(o -> o.asOp() instanceof ReturnOp),
+        "abc lost its return after instantiation: " + abcBody);
+  }
+
+  /**
+   * BUG (this test is INTENTIONALLY failing until the solver is fixed): the SAME
+   * defining order flipped — {@code main} first, {@code abc} second.
+   *
+   * ExprLetRec.solve generalizes its bindings strictly in definition order.
+   * main is generalized first while abc is still only an env shell with a
+   * fresh, unbound type var; the Sub constraint of main's call then leaves
+   * abc's return type var unresolved. Depending on the declared types this
+   * surfaces as either
+   * "Type int32 -> int32 -> tXX is not fully specified" (TypingException)
+   * or an unbound variable thrown from convertReturnOp during instantiation.
+   *
+   * Fix direction: generalize in dependency order (or defer/iterate instead of
+   * a single ordered pass). The dsl never hits this only because its source
+   * order always lists callees before callers.
+   */
+  @Test
+  public void mainBeforeCalleeBreaksInference() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    // int32 main() { abc(1, 2); return; }
+    FuncOp funcMainOp = programOp.addOperation(
+        new FuncOp(LOC, "main", FuncType.of(List.of(), dgir.core.ir.MaybeType.of())));
+
+    // int32 abc(int32 a, int32 b) { return a + b; }
+    FuncOp abcFuncOp = programOp.addOperation(
+        new FuncOp(LOC, "abc", FuncType.of(List.of(dgir.dialect.builtin.BuiltinTypes.IntegerT.INT32(),
+            dgir.dialect.builtin.BuiltinTypes.IntegerT.INT32()),
+            dgir.dialect.builtin.BuiltinTypes.IntegerT.INT32())));
+    var binOp = abcFuncOp.addOperation(
+        new BinaryOp(LOC, abcFuncOp.getArgument(0).orElseThrow(), abcFuncOp.getArgument(1).orElseThrow(),
+            BinMode.ADD),
+        0);
+    abcFuncOp.addOperation(new ReturnOp(LOC, binOp.getResult()), 0);
+
+    var one = funcMainOp.addOperation(new ConstantOp(LOC, 1), 0);
+    var two = funcMainOp.addOperation(new ConstantOp(LOC, 2), 0);
+    funcMainOp.addOperation(new CallOp(LOC, abcFuncOp, one.getResult(), two.getResult()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC), 0);
+
+    var solved = solve(programOp);
+
+    var rebuiltAbc = solved.getRight().stream().map(Operation::asOp)
+        .filter(o -> o instanceof FuncOp).map(o -> (FuncOp) o)
+        .filter(o -> "abc".equals(o.getFuncName()))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("rebuilt abc function missing from result tree"));
+
+    var abcBody = rebuiltAbc.getEntryBlock().getOperations();
+    assertTrue(abcBody.stream().anyMatch(o -> o.asOp() instanceof BinaryOp),
+        "abc lost its body after instantiation: " + abcBody);
+    assertTrue(abcBody.stream().anyMatch(o -> o.asOp() instanceof ReturnOp),
+        "abc lost its return after instantiation: " + abcBody);
   }
 }

@@ -138,6 +138,30 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
     this.parentScopePosition = position;
   }
 
+  /**
+   * Re-points every parent-scope reference within the tree rooted at this
+   * expression from {@code originalScope} to {@code newScope}.
+   *
+   * <p>
+   * Parent-scope references are only ever created by let-style scopes (let rec /
+   * let seq), since those are the only expressions acting as a parent scope.
+   * Whenever such a scope is rebuilt (e.g. through {@link #replaceSymbol}), all
+   * children still referencing the old instance
+   * must be re-pointed to the new instance, or scope-based block reconstruction
+   * ({@link #getAllChildrenForScopeExpression}) silently finds nothing.
+   *
+   * @param originalScope the old scope instance children currently reference
+   * @param newScope      the new scope instance children should reference
+   */
+  @SuppressWarnings("unchecked")
+  public void replaceParentScopeReferences(E originalScope, E newScope) {
+    new ExpressionVisitor<E, T>(ExpressionVisitor.VisitOrder.IN_ORDER).visit((E) this, e -> {
+      if (e.parentScopeExpression.isPresent() && e.parentScopeExpression.get() == originalScope) {
+        e.setParentScopeExpression(Optional.of(newScope), e.parentScopePosition);
+      }
+    });
+  }
+
   public void setInstantiateOperationCallback(InstantiateOperation<E, T> callback) {
     this.instantiationCallback = Optional.ofNullable(callback);
   }

@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
@@ -878,7 +877,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       var bodyExpr = this.body;
 
       for (int i = 0; i < newParams.size(); i++) {
-        bodyExpr = bodyExpr.replaceSymbol(newParams.get(i), oldParams.get(i));
+        bodyExpr = bodyExpr.replaceSymbol(oldParams.get(i), newParams.get(i));
       }
 
       this.body = bodyExpr;
@@ -1047,7 +1046,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprLetRec other && this.bindings.equals(other.bindings)
+      return obj instanceof ExprLetSeq other && this.bindings.equals(other.bindings)
           && this.body.equals(other.body)
           && super.equals(obj);
     }
@@ -1177,34 +1176,33 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       String input = env + " |- " + this;
 
       Env newEnv = env.copy();
-      ArrayList<Triple<Symbol<Expr, AlgorithmWType>, AlgorithmWType, Expr>> notUnified = new ArrayList<>(
-          this.bindings.size());
+      ArrayList<InferenceTree> trees = new ArrayList<>();
+      var typeVars = new ArrayList<TypeVar<AlgorithmWType>>(this.bindings.size());
+
+      // Fill env with new variables
       for (var binding : this.bindings) {
         var typeVar = new TypeVar<AlgorithmWType>(engine.getCurrentLevel());
-        notUnified.add(Triple.of(binding.getLeft(), new AlgorithmWType.Var(typeVar), binding.getRight()));
-        newEnv.put(binding.getLeft(), new AlgorithmWType.Var(typeVar).generalize(engine.getCurrentLevel()));
+        typeVars.add(typeVar);
+        newEnv.put(binding.getLeft(), new Scheme(List.of(), new AlgorithmWType.Var(typeVar)));
       }
 
-      ArrayList<InferenceTree> trees = new ArrayList<>();
-
-      for (var binding : notUnified) {
-        var param = binding.getLeft();
-        var typeVar = binding.getMiddle();
-        var value = binding.getRight();
-
-        InferResult res1 = engine.infer(value, newEnv);
-
-        var unifyRes = engine.unify(typeVar, res1.type());
+      // Solve and unify with new type vars from step 1
+      for (int i = 0; i < this.bindings.size(); i++) {
+        var binding = this.bindings.get(i);
+        InferResult res1 = engine.infer(binding.getRight(), newEnv);
+        var unifyRes = engine.unify(new AlgorithmWType.Var(typeVars.get(i)), res1.type());
         trees.add(unifyRes);
-
-        Scheme generalizedType = res1.type().generalize(engine.getCurrentLevel());
-
-        newEnv.put(param, generalizedType);
         trees.add(res1.tree());
       }
 
-      InferResult res2 = engine.infer(body, newEnv);
+      // Fill env with generalized, this step requires full solve of all previous
+      // bindings!
+      for (int i = 0; i < this.bindings.size(); i++) {
+        newEnv.put(this.bindings.get(i).getLeft(),
+            new AlgorithmWType.Var(typeVars.get(i)).generalize(engine.getCurrentLevel()));
+      }
 
+      InferResult res2 = engine.infer(body, newEnv);
       trees.add(res2.tree());
 
       return new InferResult(
@@ -1213,7 +1211,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
               "T-Let*",
               input,
               "" + res2.type(),
-              List.copyOf(trees)));
+              trees));
     }
 
     @Override
