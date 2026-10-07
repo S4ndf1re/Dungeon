@@ -6,13 +6,17 @@ import dgir.core.debug.Location;
 import dgir.core.debug.ValueDebugInfo;
 import dgir.core.serialization.OperationDeserializer;
 import dgir.core.serialization.OperationSerializer;
+import dgir.core.traits.IIsPermeableTerminator;
 import dgir.core.traits.IOpTrait;
+import dgir.core.traits.ITerminator;
 import dgir.core.utility.DgirCoreUtils;
 import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1202,6 +1206,28 @@ public final class Operation implements Serializable, Cloneable {
 
   public Optional<Operation> getCopyFrom() {
     return this.copyFrom;
+  }
+
+  public List<Pair<Operation, Block>> getTerminalOperations() {
+    var op = this.asOp();
+    if (op instanceof ITerminator) {
+      return List.of(Pair.of(this, this.getParentOrThrow()));
+    }
+
+    if (this.asOp() instanceof IIsPermeableTerminator perm) {
+      var regions = perm.getPermeableRegion();
+      if (regions.isEmpty()) {
+        return List.of(Pair.of(null, this.getParentOrThrow()));
+      }
+
+      ArrayList<Pair<Operation, Block>> collected = new ArrayList<>();
+      for (var region : regions) {
+        collected.addAll(region.getTerminalOperations());
+      }
+      return List.copyOf(collected);
+    }
+
+    return List.of(Pair.of(null, this.getParentOrThrow()));
   }
 
 }

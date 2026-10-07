@@ -11,19 +11,27 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
 /**
- * Constrains an operation to be directly nested inside one of a specific set of parent op types.
+ * Constrains an operation to be directly nested inside one of a specific set of
+ * parent op types.
  *
- * <p>The verifier walks to the immediate parent operation and checks its type against the list
- * returned by {@link #getValidParentTypes()}. An op with no parent passes unconditionally.
+ * <p>
+ * The verifier walks to the immediate parent operation and checks its type
+ * against the list
+ * returned by {@link #getValidParentTypes()}. An op with no parent passes
+ * unconditionally.
  *
- * Examples: {@link ScfOps.EndOp} (only valid inside {@link ScfOps.IfOp}, {@link ScfOps.ScopeOp},
- * {@link ScfOps.WhileOp}, or {@link ScfOps.ForOp}), {@link ScfOps.ContinueOp} (loop back-edge,
- * valid inside {@link ScfOps.ForOp} or {@link ScfOps.WhileOp}), {@link FuncOps.ReturnOp} (only
+ * Examples: {@link ScfOps.EndOp} (only valid inside {@link ScfOps.IfOp},
+ * {@link ScfOps.ScopeOp},
+ * {@link ScfOps.WhileOp}, or {@link ScfOps.ForOp}), {@link ScfOps.ContinueOp}
+ * (loop back-edge,
+ * valid inside {@link ScfOps.ForOp} or {@link ScfOps.WhileOp}),
+ * {@link FuncOps.ReturnOp} (only
  * valid inside {@link FuncOps.FuncOp}).
  */
 public interface ISpecificParentOp extends IOpTrait {
   /**
-   * Verifies that the direct parent operation matches one of {@link #getValidParentTypes()}.
+   * Verifies that the direct parent operation matches one of
+   * {@link #getValidParentTypes()}.
    *
    * @param operation the operation to verify.
    * @return {@code true} if there is no parent or the parent type is allowed.
@@ -32,15 +40,25 @@ public interface ISpecificParentOp extends IOpTrait {
   static boolean verify(@NotNull Operation operation) {
     var trait = operation.asTrait(ISpecificParentOp.class).orElseThrow();
     Optional<Operation> parentOp = operation.getParentOperation();
-    if (parentOp.isEmpty()) {
+
+    var hasVaildParent = false;
+
+    var current = parentOp;
+    var validParentTypes = trait.getValidParentTypes();
+    // Check if the parent op has one of the valid types.
+    while (current.isPresent() && !hasVaildParent) {
+      for (Class<? extends Op> validParentType : validParentTypes) {
+        if (current.get().isa(validParentType)) {
+          hasVaildParent = true;
+        }
+      }
+      current = current.get().getParentOperation();
+    }
+
+    if (hasVaildParent) {
       return true;
     }
-    // Check if the parent op has one of the valid types.
-    for (Class<? extends Op> validParentType : trait.getValidParentTypes()) {
-      if (parentOp.get().isa(validParentType)) {
-        return true;
-      }
-    }
+
     // If we get here, the parent op is not valid.
     operation.emitError(
         "Operation can only be nested in the following parent operation types: "
@@ -49,12 +67,13 @@ public interface ISpecificParentOp extends IOpTrait {
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("")
             + ". Found parent operation of type: "
-            + parentOp.get().getDetails().ident());
+            + (parentOp.isPresent() ? parentOp.get().getDetails().ident() : " empty"));
     return false;
   }
 
   /**
-   * Returns the list of op classes that are allowed as the immediate parent of this operation.
+   * Returns the list of op classes that are allowed as the immediate parent of
+   * this operation.
    *
    * @return an unmodifiable list of valid parent op classes.
    */

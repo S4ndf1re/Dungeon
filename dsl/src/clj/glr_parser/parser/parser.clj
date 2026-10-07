@@ -527,7 +527,7 @@
           (= (:associativity reduce) :right) shift
           :else (throw (ex-info "cannot parse as associativity of type none is invalid during conflicts" {}))))
       (= (count filtered-actions) 1) (first filtered-actions)
-      :else (throw (ex-info "CRITICAL: cannot parse next token: no rule found" {:token token})))))
+      :else (throw (ex-info (str "CRITICAL: cannot parse next token: " token "; no rule found") {:token token})))))
 
 (defn- call-callback
   [table rule-ident variant location data]

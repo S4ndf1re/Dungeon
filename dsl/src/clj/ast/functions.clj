@@ -5,7 +5,9 @@
    [emission :as em])
   (:import [dgir.core.ir MaybeType Value]
            dgir.dialect.arith.ArithAttrs$BinModeAttr$BinMode
+           dgir.dialect.arith.ArithAttrs$UnaryModeAttr$UnaryMode
            dgir.dialect.arith.ArithOps$BinaryOp
+           dgir.dialect.arith.ArithOps$UnaryOp
            dgir.dialect.func.FuncOps$CallOp
            dgir.dialect.func.FuncOps$FuncOp
            dgir.dialect.func.FuncTypes$FuncType))
@@ -61,6 +63,34 @@
          (com/token-location-to-ir-location location)
          ^Value (first params) ^Value (second params)
          ArithAttrs$BinModeAttr$BinMode/DIV)
+    "<" (ArithOps$BinaryOp.
+         (com/token-location-to-ir-location location)
+         ^Value (first params) ^Value (second params)
+         ArithAttrs$BinModeAttr$BinMode/LT)
+    "<=" (ArithOps$BinaryOp.
+          (com/token-location-to-ir-location location)
+          ^Value (first params) ^Value (second params)
+          ArithAttrs$BinModeAttr$BinMode/LE)
+    ">" (ArithOps$BinaryOp.
+         (com/token-location-to-ir-location location)
+         ^Value (first params) ^Value (second params)
+         ArithAttrs$BinModeAttr$BinMode/GT)
+    ">=" (ArithOps$BinaryOp.
+          (com/token-location-to-ir-location location)
+          ^Value (first params) ^Value (second params)
+          ArithAttrs$BinModeAttr$BinMode/GE)
+    "and" (ArithOps$BinaryOp.
+           (com/token-location-to-ir-location location)
+           ^Value (first params) ^Value (second params)
+           ArithAttrs$BinModeAttr$BinMode/AND)
+    "or" (ArithOps$BinaryOp.
+          (com/token-location-to-ir-location location)
+          ^Value (first params) ^Value (second params)
+          ArithAttrs$BinModeAttr$BinMode/OR)
+    "not" (ArithOps$UnaryOp.
+           (com/token-location-to-ir-location location)
+           ^Value (first params)
+           ArithAttrs$UnaryModeAttr$UnaryMode/NEGATE)
     (FuncOps$CallOp.
      (com/token-location-to-ir-location location)
      (:ident ident)

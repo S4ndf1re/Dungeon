@@ -14,6 +14,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.*;
 
 /**
@@ -201,7 +203,7 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   public boolean hasTerminator() {
     if (operations.isEmpty())
       return false;
-    return operations.getLast().hasTrait(ITerminator.class);
+    return operations.getLast().getTerminalOperations().stream().filter(term -> term.getLeft() == null).count() == 0;
   }
 
   /**
@@ -529,5 +531,17 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
         }
       }
     }
+  }
+
+  @JsonIgnore
+  public List<Pair<Operation, Block>> getTerminalOperations() {
+    ArrayList<Pair<Operation, Block>> collected = new ArrayList<>();
+    if (this.operations.isEmpty()) {
+      return List.of(Pair.of(null, this));
+    }
+
+    collected.addAll(operations.getLast().getTerminalOperations());
+
+    return List.copyOf(collected);
   }
 }
