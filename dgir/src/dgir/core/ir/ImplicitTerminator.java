@@ -6,13 +6,16 @@ import java.lang.reflect.Constructor;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Utility interface that allows creating default terminators for every block that currently has
+ * Utility interface that allows creating default terminators for every block
+ * that currently has
  * none. The type of terminator is specified by the implementing class
  */
 public interface ImplicitTerminator {
   /**
-   * Get the type of the implicit terminator to add to blocks without terminators. The constructor
-   * must take a single Location argument, which will be the location of the block to which the
+   * Get the type of the implicit terminator to add to blocks without terminators.
+   * The constructor
+   * must take a single Location argument, which will be the location of the block
+   * to which the
    * terminator is being added.
    *
    * @return the type of the implicit terminator.
@@ -24,16 +27,16 @@ public interface ImplicitTerminator {
     Op op = (Op) this;
     for (Region region : op.getRegions())
       for (Block block : region.getBlocks()) {
-        if (block.getTerminator().isEmpty()) {
+        if (!block.hasTerminator()) {
           try {
             Location debugLocation;
-            if (op.getLocation().equals(Location.IGNORE)) debugLocation = Location.IGNORE;
+            if (op.getLocation().equals(Location.IGNORE))
+              debugLocation = Location.IGNORE;
             else {
               Location trueLocation = op.getLocation();
               if (!block.getOperations().isEmpty())
                 trueLocation = block.getOperations().getLast().getLocation();
-              debugLocation =
-                  new Location(trueLocation.file(), trueLocation.line() + 1, trueLocation.column());
+              debugLocation = new Location(trueLocation.file(), trueLocation.line() + 1, trueLocation.column());
             }
             Op terminator = (Op) getImplicitTerminatorType().newInstance(debugLocation);
             block.addOperation(terminator);

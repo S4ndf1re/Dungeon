@@ -2,6 +2,8 @@ package dgir.core.ir;
 
 import com.fasterxml.jackson.annotation.*;
 import java.util.*;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.*;
 
 /**
@@ -339,5 +341,15 @@ public final class Region {
     builder.append("\n}");
 
     return builder.toString();
+  }
+
+  @JsonIgnore
+  public List<Pair<Operation, Block>> getTerminalOperations() {
+    ArrayList<Pair<Operation, Block>> collected = new ArrayList<>();
+    for (var block : this.blocks) {
+      collected.addAll(block.getTerminalOperations());
+    }
+
+    return List.copyOf(collected);
   }
 }

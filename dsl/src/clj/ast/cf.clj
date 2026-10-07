@@ -3,9 +3,14 @@
    [ast.ast :refer [AstNode] :as ast]
    [ast.common :as com]
    [emission :as em])
-  (:import [dgir.core.ir Value]
+  (:import [dgir.core.debug Location]
+           [dgir.core.ir Value]
+           [dgir.dialect.cf CfOps$BranchCondOp]
+           dgir.dialect.func.FuncOps$ReturnOp
+           dgir.dialect.scf.ScfOps$ContinueOp
+           dgir.dialect.scf.ScfOps$EndOp
            dgir.dialect.scf.ScfOps$IfOp
-           dgir.dialect.func.FuncOps$ReturnOp))
+           dgir.dialect.scf.ScfOps$WhileOp))
 
 (defrecord If [location condition then else]
   AstNode
@@ -32,7 +37,31 @@
   AstNode
   (validate [_this] (do (ast/validate condition)
                         (ast/validate body)))
-  (emit [_this _context] nil)
+  (emit [_this context]
+    (let [while-op (ScfOps$WhileOp. (com/token-location-to-ir-location location))]
+        ;; Condition
+      (let [condition-context (em/new-context context)
+            _ (em/set-in-loop condition-context true)
+            then-context (em/new-context condition-context)
+            else-context (em/new-context condition-context)
+            cond-value (ast/emit condition condition-context)]
+        (em/add-expression then-context (ScfOps$ContinueOp. (Location/UNKNOWN)))
+        (em/add-expression else-context (ScfOps$EndOp. (Location/UNKNOWN)))
+        (em/add-expression condition-context (CfOps$BranchCondOp.
+                                              (com/token-location-to-ir-location location)
+                                              cond-value
+                                              (em/get-current-block then-context)
+                                              (em/get-current-block else-context)))
+        (em/add-blocks condition-context (em/get-blocks then-context))
+        (em/add-blocks condition-context (em/get-blocks else-context))
+        (em/emit-into-region condition-context (.getConditionRegion while-op)))
+      ;; Body
+      (let [new-context (em/new-context context)]
+        (em/set-in-loop new-context true)
+        (ast/emit body new-context)
+        (em/emit-into-region new-context (.getBodyRegion while-op)))
+      (em/add-expression context while-op))
+    nil)
   (is-jump [_this] false))
 
 (defrecord Return [location expression]
@@ -50,11 +79,18 @@
 (defrecord Break [location]
   AstNode
   (validate [_this] nil)
-  (emit [_this _context] nil)
+  (emit [_this context]
+    (when-not (em/get-is-in-loop context)
+      (throw (ex-info "Cannot break out of non-loop context" {})))
+    (em/add-expression context (ScfOps$EndOp. (com/token-location-to-ir-location location))))
+
   (is-jump [_this] true))
 
 (defrecord Continue [location]
   AstNode
   (validate [_this] nil)
-  (emit [_this _context] nil)
+  (emit [_this context]
+    (when-not (em/get-is-in-loop context)
+      (throw (ex-info "Cannot continue out of non-loop context" {})))
+    (em/add-expression context (ScfOps$ContinueOp. (com/token-location-to-ir-location location))))
   (is-jump [_this] true))

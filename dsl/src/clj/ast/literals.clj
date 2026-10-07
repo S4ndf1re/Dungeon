@@ -16,6 +16,16 @@
 
   (is-jump [_this] false))
 
+(defrecord BoolLit [location value]
+  AstNode
+  (validate [_this] (when-not (boolean? value) (throw (ex-info (str "Value " value " is not of type bool") {:value value}))))
+  (emit [_this context]
+    (let [expr (ArithOps$ConstantOp. (com/token-location-to-ir-location location) value)]
+      (emit/add-expression context expr)
+      (.getResult expr)))
+
+  (is-jump [_this] false))
+
 (defrecord FloatLit [location value]
   AstNode
   (validate [_this] (when-not (float? value) (throw (ex-info (str "Value " value " is not of type float") {:value value}))))

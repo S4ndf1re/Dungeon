@@ -2,10 +2,10 @@ package dgir.dialect.scf;
 
 import dgir.core.debug.Location;
 import dgir.core.ir.*;
-import dgir.core.ir.Dialect;
 import dgir.core.traits.*;
 import dgir.dialect.builtin.BuiltinTypes;
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -16,14 +16,20 @@ import org.jetbrains.annotations.Unmodifiable;
 /**
  * Sealed marker interface for all operations in the {@link ScfDialect}.
  *
- * <p>Every concrete op must both extend {@link ScfOp} and implement this interface so that {@link
- * Dialect#allOpsFromSealedInterface(Class)} can discover it automatically via reflection.
+ * <p>
+ * Every concrete op must both extend {@link ScfOp} and implement this interface
+ * so that {@link
+ * Dialect#allOpsFromSealedInterface(Class)} can discover it automatically via
+ * reflection.
  */
 public sealed interface ScfOps {
   /**
-   * Abstract base class for all operations in the {@code scf} (structured control flow) dialect.
+   * Abstract base class for all operations in the {@code scf} (structured control
+   * flow) dialect.
    *
-   * <p>Concrete subclasses must implement {@link #getIdent()} and {@link #getVerifier()}, and must
+   * <p>
+   * Concrete subclasses must implement {@link #getIdent()} and
+   * {@link #getVerifier()}, and must
    * implement {@link ScfOps} to be enumerated by {@link ScfDialect}.
    */
   abstract class ScfOp extends Op {
@@ -51,7 +57,8 @@ public sealed interface ScfOps {
   /**
    * Explicit scope/branch terminator for SCF constructs.
    *
-   * <p>Ident: {@code scf.end}
+   * <p>
+   * Ident: {@code scf.end}
    */
   final class EndOp extends ScfOp implements ScfOps, ITerminator, ISpecificParentOp {
 
@@ -64,7 +71,9 @@ public sealed interface ScfOps {
     /**
      * Verifier for {@code scf.end}.
      *
-     * <p>Structural placement constraints are enforced via {@link ISpecificParentOp}; therefore
+     * <p>
+     * Structural placement constraints are enforced via {@link ISpecificParentOp};
+     * therefore
      * this verifier itself is a no-op.
      */
     @Override
@@ -78,7 +87,8 @@ public sealed interface ScfOps {
     }
 
     /**
-     * Restricts {@code scf.end} to direct parents that represent explicit region boundaries in this
+     * Restricts {@code scf.end} to direct parents that represent explicit region
+     * boundaries in this
      * dialect.
      */
     @Override
@@ -87,7 +97,8 @@ public sealed interface ScfOps {
     }
 
     /**
-     * Returns the required single-{@link Location} constructor so this terminator can be
+     * Returns the required single-{@link Location} constructor so this terminator
+     * can be
      * materialized by generic IR utilities.
      */
     @Override
@@ -104,7 +115,8 @@ public sealed interface ScfOps {
     }
 
     /** Default constructor used during dialect registration. */
-    private EndOp() {}
+    private EndOp() {
+    }
 
     /**
      * Create an explicit {@code scf.end} terminator.
@@ -117,12 +129,16 @@ public sealed interface ScfOps {
   }
 
   /**
-   * Marks the end of a structured control-flow region body in the {@code scf} dialect.
+   * Marks the end of a structured control-flow region body in the {@code scf}
+   * dialect.
    *
-   * <p>This is a terminator that tells a loop to proceed to the next iteration (in the case of a
+   * <p>
+   * This is a terminator that tells a loop to proceed to the next iteration (in
+   * the case of a
    * for-loop) or to re-evaluate its condition (in the case of a while-loop).
    *
-   * <p>Ident: {@code scf.continue}
+   * <p>
+   * Ident: {@code scf.continue}
    *
    * <pre>{@code
    * scf.for (%i = ...) {
@@ -157,7 +173,8 @@ public sealed interface ScfOps {
     // =========================================================================
 
     /** Default constructor used during dialect registration. */
-    private ContinueOp() {}
+    private ContinueOp() {
+    }
 
     /**
      * Create a continue op.
@@ -214,7 +231,8 @@ public sealed interface ScfOps {
       return operation -> new YieldOp().setOperation(operation);
     }
 
-    private YieldOp() {}
+    private YieldOp() {
+    }
 
     public YieldOp(@NotNull Location location, @NotNull Value value) {
       setOperation(Operation.Create(location, this, List.of(value), null, null));
@@ -234,20 +252,25 @@ public sealed interface ScfOps {
   /**
    * Counted for-loop in the {@code scf} dialect.
    *
-   * <p>The loop body occupies a single region. The region receives four body values that are
+   * <p>
+   * The loop body occupies a single region. The region receives four body values
+   * that are
    * accessible inside the body as the loop parameters:
    *
    * <ol>
-   *   <li>the induction variable (current iteration value, {@code int32})
-   *   <li>the lower bound (inclusive)
-   *   <li>the upper bound (exclusive)
-   *   <li>the step size
+   * <li>the induction variable (current iteration value, {@code int32})
+   * <li>the lower bound (inclusive)
+   * <li>the upper bound (exclusive)
+   * <li>the step size
    * </ol>
    *
-   * <p>The four operands passed at construction time seed the initial induction variable, lower
+   * <p>
+   * The four operands passed at construction time seed the initial induction
+   * variable, lower
    * bound, upper bound, and step respectively.
    *
-   * <p>Ident: {@code scf.for}
+   * <p>
+   * Ident: {@code scf.for}
    *
    * <pre>{@code
    * scf.for (%i = %init to %upper step %step) {
@@ -280,16 +303,17 @@ public sealed interface ScfOps {
     // Constructors
     // =========================================================================
 
-    private ForOp() {}
+    private ForOp() {
+    }
 
     /**
      * Create a for-loop with the given loop parameters.
      *
-     * @param location the source location of this operation.
-     * @param initValue the initial value of the induction variable.
+     * @param location   the source location of this operation.
+     * @param initValue  the initial value of the induction variable.
      * @param lowerBound the lower bound of the loop (inclusive).
      * @param upperBound the upper bound of the loop (exclusive).
-     * @param step the step size per iteration.
+     * @param step       the step size per iteration.
      */
     public ForOp(
         @NotNull Location location,
@@ -312,7 +336,8 @@ public sealed interface ScfOps {
     // =========================================================================
 
     /**
-     * Returns the induction variable of this loop, which is the first region value of its single
+     * Returns the induction variable of this loop, which is the first region value
+     * of its single
      * region.
      *
      * @return the induction variable.
@@ -323,7 +348,8 @@ public sealed interface ScfOps {
     }
 
     /**
-     * Returns operand 0: the initial value used to seed the induction variable before loop entry.
+     * Returns operand 0: the initial value used to seed the induction variable
+     * before loop entry.
      *
      * @return the initial induction value operand.
      */
@@ -366,12 +392,17 @@ public sealed interface ScfOps {
   /**
    * Conditional operation in the {@code scf} dialect.
    *
-   * <p>The condition operand must be of type {@link BuiltinTypes.IntegerT#BOOL} ({@code int1}). The
-   * op has one mandatory {@code then} region and an optional {@code else} region. Control enters
-   * the then-region when the condition is {@code true} ({@code 1}) and the else-region (if present)
+   * <p>
+   * The condition operand must be of type {@link BuiltinTypes.IntegerT#BOOL}
+   * ({@code int1}). The
+   * op has one mandatory {@code then} region and an optional {@code else} region.
+   * Control enters
+   * the then-region when the condition is {@code true} ({@code 1}) and the
+   * else-region (if present)
    * when it is {@code false} ({@code 0}).
    *
-   * <p>Ident: {@code scf.if}
+   * <p>
+   * Ident: {@code scf.if}
    *
    * <pre>{@code
    * scf.if %cond {
@@ -381,7 +412,7 @@ public sealed interface ScfOps {
    * }
    * }</pre>
    */
-  final class IfOp extends ScfOp implements ScfOps, IControlFlow, ImplicitTerminator {
+  final class IfOp extends ScfOp implements ScfOps, IControlFlow, ImplicitTerminator, IIsPermeableTerminator {
 
     // =========================================================================
     // Type Info
@@ -442,13 +473,15 @@ public sealed interface ScfOps {
     // Constructors
     // =========================================================================
 
-    private IfOp() {}
+    private IfOp() {
+    }
 
     /**
      * Create an if-op with the given boolean condition.
      *
-     * @param location the source location of this operation.
-     * @param condition a {@link BuiltinTypes.IntegerT#BOOL} value controlling the branch.
+     * @param location      the source location of this operation.
+     * @param condition     a {@link BuiltinTypes.IntegerT#BOOL} value controlling
+     *                      the branch.
      * @param withElseBlock {@code true} to also create an else region.
      */
     public IfOp(@NotNull Location location, @NotNull Value condition, boolean withElseBlock) {
@@ -485,7 +518,8 @@ public sealed interface ScfOps {
      * @return the second region, or empty if no else branch was created.
      */
     public Optional<Region> getElseRegion() {
-      if (getRegions().size() == 1) return Optional.empty();
+      if (getRegions().size() == 1)
+        return Optional.empty();
       return Optional.of(getRegions().get(1));
     }
 
@@ -498,19 +532,33 @@ public sealed interface ScfOps {
       return new EndOp()
           .getLocationConstructor()
           .orElseThrow(
-              () ->
-                  new AssertionError("EndOp must have a public constructor that takes a location"));
+              () -> new AssertionError("EndOp must have a public constructor that takes a location"));
+    }
+
+    @Override
+    public List<Region> getPermeableRegion() {
+      ArrayList<Region> collectedRegions = new ArrayList<>();
+      collectedRegions.add(this.getThenRegion());
+      var elseRegion = this.getElseRegion();
+      if (elseRegion.isPresent()) {
+        collectedRegions.add(elseRegion.get());
+      }
+      return List.copyOf(collectedRegions);
     }
   }
 
   /**
    * Opens a new lexical scope in the {@code scf} dialect.
    *
-   * <p>A {@code ScopeOp} has no semantic effect other than restricting the visibility of values
-   * defined inside it — they are not accessible outside the scope's single region. The verifier
+   * <p>
+   * A {@code ScopeOp} has no semantic effect other than restricting the
+   * visibility of values
+   * defined inside it — they are not accessible outside the scope's single
+   * region. The verifier
    * always passes.
    *
-   * <p>Ident: {@code scf.scope}
+   * <p>
+   * Ident: {@code scf.scope}
    *
    * <pre>{@code
    * scf.scope {
@@ -545,7 +593,8 @@ public sealed interface ScfOps {
     // =========================================================================
 
     /** Default constructor used during dialect registration. */
-    private ScopeOp() {}
+    private ScopeOp() {
+    }
 
     /**
      * Create a scope op.
@@ -561,26 +610,32 @@ public sealed interface ScfOps {
       return new EndOp()
           .getLocationConstructor()
           .orElseThrow(
-              () ->
-                  new AssertionError(
-                      "ContinueOp must have a public constructor that takes a location"));
+              () -> new AssertionError(
+                  "ContinueOp must have a public constructor that takes a location"));
     }
   }
 
   /**
    * Structured while-loop in the {@code scf} dialect.
    *
-   * <p>The op owns two regions:
+   * <p>
+   * The op owns two regions:
    *
    * <ol>
-   *   <li><b>condition region</b> ({@link #getConditionRegion()}) that decides whether to continue
-   *   <li><b>body region</b> ({@link #getBodyRegion()}) containing loop-body operations
+   * <li><b>condition region</b> ({@link #getConditionRegion()}) that decides
+   * whether to continue
+   * <li><b>body region</b> ({@link #getBodyRegion()}) containing loop-body
+   * operations
    * </ol>
    *
-   * <p>Setting the break value to {@code true} will terminate the loop early even if the condition
-   * region would otherwise evaluate to true, allowing constructs like "break" in most languages.
+   * <p>
+   * Setting the break value to {@code true} will terminate the loop early even if
+   * the condition
+   * region would otherwise evaluate to true, allowing constructs like "break" in
+   * most languages.
    *
-   * <p>Ident: {@code scf.while}
+   * <p>
+   * Ident: {@code scf.while}
    */
   final class WhileOp extends ScfOp implements ScfOps, ImplicitTerminator, IControlFlow {
     /** {@inheritDoc} */
@@ -592,7 +647,9 @@ public sealed interface ScfOps {
     /**
      * Verifier for {@code scf.while}.
      *
-     * <p>No additional structural/type checks are performed here beyond generic IR invariants.
+     * <p>
+     * No additional structural/type checks are performed here beyond generic IR
+     * invariants.
      */
     @Override
     public @NotNull Function<Operation, Boolean> getVerifier() {
@@ -605,7 +662,8 @@ public sealed interface ScfOps {
     }
 
     /** Default constructor used during dialect registration. */
-    private WhileOp() {}
+    private WhileOp() {
+    }
 
     /**
      * Create a while-loop with two regions (condition and body).
@@ -637,7 +695,8 @@ public sealed interface ScfOps {
     }
 
     /**
-     * Declares the implicit terminator type used by while regions when one is not present
+     * Declares the implicit terminator type used by while regions when one is not
+     * present
      * explicitly.
      *
      * @return constructor for {@link EndOp}.
@@ -682,7 +741,8 @@ public sealed interface ScfOps {
       return operation -> new SelectOp().setOperation(operation);
     }
 
-    private SelectOp() {}
+    private SelectOp() {
+    }
 
     public SelectOp(@NotNull Location location, Value cond, Value trueVal, Value falseVal) {
       setOperation(
