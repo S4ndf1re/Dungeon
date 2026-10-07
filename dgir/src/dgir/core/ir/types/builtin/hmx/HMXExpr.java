@@ -883,7 +883,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       var bodyExpr = this.body;
 
       for (int i = 0; i < newParams.size(); i++) {
-        bodyExpr = bodyExpr.replaceSymbol(newParams.get(i), oldParams.get(i));
+        bodyExpr = bodyExpr.replaceSymbol(oldParams.get(i), newParams.get(i));
       }
 
       this.body = bodyExpr;
@@ -1046,7 +1046,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof ExprLetRec other && this.bindings.equals(other.bindings)
+      return obj instanceof ExprLetSeq other && this.bindings.equals(other.bindings)
           && this.body.equals(other.body)
           && super.equals(obj);
     }
@@ -1064,10 +1064,15 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
         return this;
       }
 
-      var newBody = this.body.replaceSymbol(original, replacement);
-      var newBindings = this.bindings.stream()
-          .map(binding -> Pair.of(binding.getLeft(), binding.getRight().replaceSymbol(original, replacement))).toList();
-      return new ExprLetSeq(this, newBindings, newBody);
+      var newLetExpr = new ExprLetSeq(this, this.bindings.stream()
+          .map(binding -> Pair.of(binding.getLeft(), binding.getRight().replaceSymbol(original, replacement)))
+          .toList(),
+          this.body.replaceSymbol(original, replacement));
+
+      // Children of the new subtree still reference THIS instance as their parent
+      // scope. Re-point them, or scope-based block reconstruction finds nothing.
+      newLetExpr.replaceParentScopeReferences(this, newLetExpr);
+      return newLetExpr;
     }
   }
 
@@ -1144,7 +1149,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       }
 
       newLetExpr.body = this.body.instantiate(engine, newEnv, solution);
-
       return newLetExpr;
     }
 
@@ -1183,7 +1187,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
         GenerateResult res1 = engine.generate(value, env, new HMXType.Var(freshTypeVar));
         bindings.add(
-            new LetBinding(param, new Scheme(List.of(freshTypeVar), new HMXType.Var(freshTypeVar), res1.constr())));
+            new LetBinding(param, new Scheme(List.of(freshTypeVar), new HMXType.Var(freshTypeVar.find()), res1.constr())));
       }
 
       GenerateResult res2 = engine.generate(body, env, type);
@@ -1217,10 +1221,15 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
         return this;
       }
 
-      var newBody = this.body.replaceSymbol(original, replacement);
-      var newBindings = this.bindings.stream()
-          .map(binding -> Pair.of(binding.getLeft(), binding.getRight().replaceSymbol(original, replacement))).toList();
-      return new ExprLetRec(this, newBindings, newBody);
+      var newLetExpr = new ExprLetRec(this, this.bindings.stream()
+          .map(binding -> Pair.of(binding.getLeft(), binding.getRight().replaceSymbol(original, replacement)))
+          .toList(),
+          this.body.replaceSymbol(original, replacement));
+
+      // Children of the new subtree still reference THIS instance as their parent
+      // scope. Re-point them, or scope-based block reconstruction finds nothing.
+      newLetExpr.replaceParentScopeReferences(this, newLetExpr);
+      return newLetExpr;
     }
   }
 

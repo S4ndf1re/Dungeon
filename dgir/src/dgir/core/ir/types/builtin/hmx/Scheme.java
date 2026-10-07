@@ -3,6 +3,7 @@ package dgir.core.ir.types.builtin.hmx;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,17 @@ public final class Scheme {
 
   public Constraint constr() {
     return this.constraint;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof Scheme sch && this.vars.equals(sch.vars) && this.type.equals(sch.type)
+        && this.constraint.equals(sch.constraint);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.type, this.vars, this.constraint);
   }
 
   /**

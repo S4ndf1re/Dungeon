@@ -96,7 +96,7 @@ public final class ArithAlgoWConversion {
           eng.unify(lhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
           firstError = Optional.empty();
           break;
-        } catch (TypingException e) {
+        } catch (TypingException.UnificationFailed e) {
           firstError = firstError.or(() -> Optional.of(e));
         }
       }
@@ -111,7 +111,7 @@ public final class ArithAlgoWConversion {
           eng.unify(rhsType, new AlgorithmWType.LitType(TypeIdent.from(floatDesc.getIdent())));
           firstError = Optional.empty();
           break;
-        } catch (TypingException e) {
+        } catch (TypingException.UnificationFailed e) {
           firstError = firstError.or(() -> Optional.of(e));
         }
       }

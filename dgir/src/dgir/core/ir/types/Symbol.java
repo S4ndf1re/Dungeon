@@ -94,12 +94,12 @@ public sealed abstract class Symbol<E extends Expression<E, T>, T extends Type<T
 
     @Override
     public int hashCode() {
-      return value.hashCode();
+      return value.ident().hashCode();
     }
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof TableSymbol sym && this.value.equals(sym.value);
+      return obj instanceof TableSymbol sym && this.value.ident().equals(sym.value.ident());
     }
 
   }

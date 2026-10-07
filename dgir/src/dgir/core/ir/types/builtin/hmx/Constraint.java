@@ -1,7 +1,10 @@
 package dgir.core.ir.types.builtin.hmx;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeVar;
@@ -10,9 +13,35 @@ import dgir.core.ir.types.builtin.hmx.traits.OneShotConstraint;
 
 public abstract class Constraint {
 
+  @Override
+  public abstract boolean equals(Object obj);
+
+  @Override
+  public abstract int hashCode();
+
   public abstract void solve(TypeInference engine, Env env);
 
   public abstract Constraint applySubst(Subst subst);
+
+  public abstract List<Constraint> getChildren();
+
+  public class ConstraintVisitor {
+    @FunctionalInterface
+    public static interface VisitCallback {
+      void visit(Constraint c);
+    }
+
+    public void visit(Constraint c, VisitCallback callback) {
+      ArrayDeque<Constraint> toVisit = new ArrayDeque<>();
+      toVisit.add(c);
+
+      while (toVisit.isEmpty()) {
+        var current = toVisit.removeFirst();
+        callback.visit(current);
+        toVisit.addAll(current.getChildren());
+      }
+    }
+  }
 
   /**
    * Equal constraint t==t' (Often solved with unification)
@@ -35,6 +64,21 @@ public abstract class Constraint {
     public Constraint applySubst(Subst subst) {
       return new Equal(subst.apply(this.tLeft), subst.apply(tRight));
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Equal eq && this.tLeft.equals(eq.tLeft) && this.tRight.equals(eq.tRight);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.tLeft, this.tRight);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      return List.of();
+    }
   }
 
   /**
@@ -52,6 +96,20 @@ public abstract class Constraint {
       return this;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      return List.of();
+    }
   }
 
   /**
@@ -88,6 +146,21 @@ public abstract class Constraint {
     @Override
     public Constraint applySubst(Subst subst) {
       return new Sub(subst.apply(this.tLeft), subst.apply(this.tRight));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Sub sb && this.tLeft.equals(sb.tLeft) && this.tRight.equals(sb.tRight);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.tLeft, this.tRight);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      return List.of();
     }
   }
 
@@ -133,6 +206,23 @@ public abstract class Constraint {
           .toArray(newTypes);
 
       return new DetermineByCallbackAndUnify(this.callback, this.unifyAgainst, newTypes);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof DetermineByCallbackAndUnify dt
+          && List.of(this.originalTypes).equals(List.of(dt.originalTypes))
+          && this.callback.equals(dt.callback) && this.unifyAgainst.equals(dt.unifyAgainst);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.unifyAgainst, this.callback, List.of(this.originalTypes));
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      return List.of();
     }
 
   }
@@ -183,6 +273,22 @@ public abstract class Constraint {
     public Constraint applySubst(Subst subst) {
       return new Inst(this, subst.apply(this.type));
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Inst in && this.type.equals(in.type) && this.variable.equals(in.variable)
+          && this.solved == in.solved;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.type, this.variable, this.solved);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      return List.of();
+    }
   }
 
   public static final class And extends Constraint {
@@ -208,6 +314,21 @@ public abstract class Constraint {
     @Override
     public Constraint applySubst(Subst subst) {
       return new And(this.constraints.stream().map(c -> c.applySubst(subst)).toList());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof And and && this.constraints.equals(and.constraints);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.constraints);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      return List.copyOf(this.constraints);
     }
   }
 
@@ -243,6 +364,21 @@ public abstract class Constraint {
       return new Exists(this.toQuantify.stream().map(tv -> new HMXType.Var(tv)).map(tv -> tv.deref())
           .map(tv -> subst.apply(tv)).filter(tv -> tv instanceof HMXType.Var)
           .map(tv -> ((HMXType.Var) tv).tyVar).toList(), this.inner.applySubst(subst));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof Exists ext && this.toQuantify.equals(ext.toQuantify) && this.inner.equals(ext.inner);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.toQuantify, this.inner);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      return List.of(this.inner);
     }
   }
 
@@ -284,16 +420,32 @@ public abstract class Constraint {
         // Instead of putting the real scheme with the real constraint into the env,
         // build a shell first!
         newEnv.put(binding.name,
-            new Scheme(binding.scheme.vars(), binding.scheme.type(), new Constraint.Trivial()));
+            new Scheme(List.of(), binding.scheme.type(), binding.scheme.constr()));
       }
 
       for (var binding : this.bindings) {
-        binding.scheme.vars().forEach(v -> v.setLevel(engine.getCurrentLevel()));
         var scheme = engine.solveConstraintAndGeneralize(binding.scheme.constr(), newEnv,
             binding.scheme.type());
-        newEnv.put(binding.name, scheme);
+        // This scheme is a shell scheme, that just holds the unsolved constraints (i.e.
+        // Sub constrs)
+        var emptyVarScheme = new Scheme(List.of(), scheme.type(), scheme.constr());
+        newEnv.put(binding.name, emptyVarScheme);
       }
 
+      // As a final stage, try to resolve the schemes whereever possible, before
+      // moving to the body!
+      for (var binding : this.bindings) {
+        var scheme = newEnv.get(binding.name);
+        // Solve the shell scheme. After that, all unsolved schemes are actually
+        // errornous!
+        var newScheme = engine.solveConstraintAndGeneralize(scheme.constr(), newEnv,
+            scheme.type());
+
+        newEnv.put(binding.name, newScheme);
+      }
+
+      // There is another problem here: While some schemes are fully solved, others
+      // have dropped their constraints needed for full solutions!
       engine.solveConstraint(this.inner, newEnv);
     }
 
@@ -301,6 +453,29 @@ public abstract class Constraint {
     public Constraint applySubst(Subst subst) {
       return new LetRec(this.bindings.stream().map(b -> b.applySubst(subst)).toList(),
           this.inner.applySubst(subst));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof LetRec rec && this.bindings.equals(rec.bindings) && this.inner.equals(rec.inner);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.bindings, this.inner);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      var children = new ArrayList<Constraint>();
+
+      for (var binding : this.bindings) {
+        children.add(binding.scheme().constr());
+      }
+
+      children.add(this.inner);
+
+      return List.copyOf(children);
     }
   }
 
@@ -341,6 +516,29 @@ public abstract class Constraint {
     public Constraint applySubst(Subst subst) {
       return new LetSeq(this.bindings.stream().map(b -> b.applySubst(subst)).toList(),
           this.inner.applySubst(subst));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof LetRec rec && this.bindings.equals(rec.bindings) && this.inner.equals(rec.inner);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.bindings, this.inner);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      var children = new ArrayList<Constraint>();
+
+      for (var binding : this.bindings) {
+        children.add(binding.scheme().constr());
+      }
+
+      children.add(this.inner);
+
+      return List.copyOf(children);
     }
   }
 

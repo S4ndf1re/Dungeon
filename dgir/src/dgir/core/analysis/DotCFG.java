@@ -214,7 +214,10 @@ public class DotCFG {
       // operation
       for (Operation op : operations) {
         for (Region region : op.getRegions()) {
-          Operation entryOp = region.getEntryBlock().getOperations().getFirst();
+          var entryOps = region.getEntryBlock().getOperations();
+          if (entryOps.isEmpty())
+            continue;
+          Operation entryOp = entryOps.getFirst();
           bodyBuilder
               .append(identGenerator.apply(op))
               .append(" -> ")
@@ -226,9 +229,14 @@ public class DotCFG {
       // Add edges from all operations in the child blocks to their target blocks
       for (Cluster region : children) {
         for (Cluster block : region.getChildren()) {
+          if (block.getOperations().isEmpty())
+            continue;
           Operation lastOp = block.getOperations().getLast();
           for (Block successor : lastOp.getSuccessors()) {
-            Operation entryOp = successor.getOperations().getFirst();
+            var entryOps = successor.getOperations();
+            if (entryOps.isEmpty())
+              continue;
+            Operation entryOp = entryOps.getFirst();
             bodyBuilder
                 .append(identGenerator.apply(lastOp))
                 .append(" -> ")

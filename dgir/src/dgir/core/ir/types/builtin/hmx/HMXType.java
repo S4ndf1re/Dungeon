@@ -24,11 +24,12 @@ public abstract sealed class HMXType extends Type<HMXType> {
   public abstract int hashCode();
 
   public Scheme generalize(int level, Constraint constr) {
-    Set<TypeVar<HMXType>> ftv = this.freeTypeVars();
+    var type = this.deref();
+    Set<TypeVar<HMXType>> ftv = type.freeTypeVars();
 
     List<TypeVar<HMXType>> unboundFtv = ftv.stream().map(v -> v.find()).filter(v -> v.getLevel() >= level).toList();
 
-    return new Scheme(unboundFtv, this, constr);
+    return new Scheme(unboundFtv, type, constr);
   }
 
   /**

@@ -280,13 +280,14 @@ public final class TypeInference
       return;
     }
 
+    if (constr instanceof OneShotConstraint oneShotSolved) {
+      oneShotSolved.markSolved();
+    }
+
     this.currentLevel += 1;
     constr.solve(this, env);
     this.currentLevel -= 1;
 
-    if (constr instanceof OneShotConstraint oneShotSolved) {
-      oneShotSolved.markSolved();
-    }
   }
 
   public Scheme solveConstraintAndGeneralize(Constraint constr, Env env, HMXType type) {
@@ -300,7 +301,11 @@ public final class TypeInference
 
     var finalType = type.deref();
     var idx = this.deferredConstraints.indexOf(markConstraint);
-    var deferred = this.deferredConstraints.subList(idx + 1, this.deferredConstraints.size());
+
+    List<Constraint> deferred = List.of();
+    if (this.deferredConstraints.size() > 1) {
+      deferred = this.deferredConstraints.subList(idx + 1, this.deferredConstraints.size());
+    }
     this.deferredConstraints = new ArrayList<>(this.deferredConstraints.subList(0, idx));
 
     return finalType.generalize(this.currentLevel, new Constraint.And(deferred));
