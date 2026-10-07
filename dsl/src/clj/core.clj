@@ -18,7 +18,8 @@
    [dgir.dialect.cf CfAlgoWConversion CfHMXConversion]
    [dgir.dialect.func FuncAlgoWConversion FuncHMXConversion]
    [dgir.dialect.io IoAlgoWConversion IoHMXConversion]
-   [dgir.dialect.scf ScfAlgoWConversion ScfHMXConversion]))
+   [dgir.dialect.scf ScfAlgoWConversion ScfHMXConversion]
+   [dgir.dialect.cell CellHMXConversion CellAlgoWConversion]))
 
 (def int-regex
   (rgx/->OneOrMore (rgx/->Digit)))
@@ -67,6 +68,7 @@
       (lex/add-const :return "return")
       (lex/add-const :break "break")
       (lex/add-const :continue "continue")
+      (lex/add-const :set "set")
       ;; Symbols
       (lex/add-const :colon ":")
       (lex/add-const :plus "+")
@@ -120,15 +122,16 @@
 ; (defn annotation-to-ast [loc [expr _ type-ident]]
 ;   (com/->Typed loc (:data expr) (:data type-ident)))
 
+(defn set-to-ast [loc [_ _ id expr _]] (com/->Set loc (:data id) (:data expr)))
 (defn if-to-ast [loc [_ _ condition then-case else-case _]] (cf/->If loc (:data condition) (:data then-case) (:data else-case)))
 (defn while-to-ast [loc [_ _ condition body-exprs _]] (cf/->While loc (:data condition) (com/->Do (tok/location body-exprs) (:data body-exprs))))
 (defn do-to-ast [loc [_ _ exprs _]] (com/->Do loc (:data exprs)))
-(defn let-to-ast [loc [_ _ _ bindings _ body  _]] (com/->Let loc (:data bindings) (:data body)))
+(defn let-to-ast [loc [_ _ _ bindings _ body  _]] (com/->Let loc (:data bindings) (com/->Do (tok/location body) (:data body))))
 (defn return-to-ast [loc [_ _ expr _]] (cf/->Return loc (:data expr)))
 (defn break-to-ast [loc [_ _ _]] (cf/->Break loc))
 (defn continue-to-ast [loc [_ _ _]] (cf/->Continue loc))
-(defn build-untyped-binding [loc [ident expr]] {:loc loc :ident ident :expr expr :type nil})
-(defn build-typed-binding [loc [ident _ ty expr]] {:loc loc :ident ident :expr expr :type ty})
+(defn build-untyped-binding [loc [ident expr]] (com/->LetBinding loc (:data ident) (:data expr) nil))
+(defn build-typed-binding [loc [ident _ ty expr]] (com/->LetBinding loc (:data ident) (:data expr) (:data ty)))
 (defn program-to-ast [loc [expressions]] (com/->Program loc (:data expressions)))
 (defn unwarp-single [[single]] (:data single))
 
@@ -169,6 +172,7 @@
       (par/add-rule :Return [:lparen :return :SExpr :rparen return-to-ast])
       (par/add-rule :Break [:lparen :break :rparen break-to-ast])
       (par/add-rule :Continue [:lparen :continue :rparen continue-to-ast])
+      (par/add-rule :Set [:lparen :set :ID :SExpr :rparen set-to-ast])
 
       ;; ============== All Allowed Top level expressions ==============
       (par/add-rule :TopLevelSExpr [[:BodySExpr unwarp-single]
@@ -180,7 +184,9 @@
                                 [:Do unwarp-single]
                                 [:Return unwarp-single]
                                 [:Break unwarp-single]
-                                [:Continue unwarp-single]])
+                                [:Continue unwarp-single]
+                                [:Set unwarp-single]
+                                [:Let unwarp-single]])
 
       (par/build-lr-1 :Program)))
 
@@ -192,7 +198,8 @@
   (ArithHMXConversion/registerBuiltinAlgoWConversion)
   (IoHMXConversion/registerBuiltinAlgoWConversion)
   (ScfHMXConversion/registerBuiltinAlgoWConversion)
-  (CfHMXConversion/registerBuiltinAlgoWConversion))
+  (CfHMXConversion/registerBuiltinAlgoWConversion)
+  (CellHMXConversion/registerBuiltinAlgoWConversion))
 
 (defn init-algow []
   (ConverterRegistry/registerDialect AlgorithmWInference)
@@ -202,4 +209,5 @@
   (ArithAlgoWConversion/registerBuiltinAlgoWConversion)
   (IoAlgoWConversion/registerBuiltinAlgoWConversion)
   (ScfAlgoWConversion/registerBuiltinAlgoWConversion)
-  (CfAlgoWConversion/registerBuiltinAlgoWConversion))
+  (CfAlgoWConversion/registerBuiltinAlgoWConversion)
+  (CellAlgoWConversion/registerBuiltinAlgoWConversion))

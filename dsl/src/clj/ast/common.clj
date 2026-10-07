@@ -7,6 +7,7 @@
   (:import
    [dgir.core.debug Location]
    [dgir.dialect.builtin BuiltinOps$ProgramOp]
+   [dgir.dialect.cell CellOps$SetCellOp]
    [dgir.dialect.scf ScfOps$ScopeOp]))
 
 (defn split-all-at
@@ -72,36 +73,59 @@
   (emit [_this context]
       ;; this has to be reversed, as the successor blocks must be known beforehand!
       ;; Remember to reverse the resulting blocks as well, to get the correct starting block!
-    (let [splitted (reverse (split-all-at ast/is-jump expressions))
+    (let [splitted (split-all-at ast/is-jump expressions)
           ;; the context is only emporary, all its blocks will get placed within the old context after emission
           new-context (em/new-context context)]
       ;; We have to remove the blocks, as the loop creates its own blocks, otherwise leaving a block empty and invalid for further emission
       (em/remove-blocks-unsafe new-context)
       (doseq [block-like splitted]
-        (let [succ-block (em/get-current-block new-context)
+        (let [pred-block (em/get-current-block new-context)
               new-block (em/add-new-block new-context)]
           ;; TODO: before emission, make sure to insert default branch operations to the previous
           ;; (next, due to reverse of the block list) blocks, in order to generate correct IR trees
           (doseq [expr block-like]
             (ast/emit expr new-context))
-          (dt/block-insert-default-terminal new-block succ-block (em/get-is-in-loop new-context))))
-      (em/add-blocks context (reverse (em/get-blocks new-context))))
+          (dt/block-insert-default-terminal pred-block new-block (em/get-is-in-loop new-context))))
+      (dt/block-insert-default-terminal (em/get-current-block new-context) nil (em/get-is-in-loop new-context))
+      (dt/block-insert-default-terminal (em/get-current-block context) (first (em/get-blocks new-context)) (em/get-is-in-loop context))
+      (em/add-blocks context (em/get-blocks new-context)))
     nil)
   (is-jump [_this] true))
+
+(defrecord LetBinding [location ident expr type-of]
+  ast/AstNode
+  (validate [_this]
+    (run! ast/validate expr))
+  (emit [_this context]
+    (println "Emitting binding: " ident expr)
+    (em/set-ident-value context (:ident ident) (ast/emit expr context)))
+  (is-jump [_this] false))
 
 (defrecord Let [location bindings body]
   ast/AstNode
   (validate [_this]
-    (run! ast/validate (map :expr bindings))
+    (run! ast/validate bindings)
     (ast/validate body))
   (emit [_this context]
-    (let [child-context (em/new-context context)
-          scope-op (ScfOps$ScopeOp. (token-location-to-ir-location location))]
-      (doseq [binding bindings]
-        (let [bound-value (ast/emit (:expr binding) child-context)]
-          (em/set-ident-value child-context (:ident binding) (bound-value))))
-      (let [body-value (ast/emit body child-context)]
-        (em/emit-into-op child-context scope-op)
-        (em/add-expression context scope-op)
-        body-value)))
+    (println "emitting let: " bindings body)
+    (doseq [bnd bindings]
+      (ast/emit bnd context))
+    (println "BODY: " body)
+    (let [body-value (ast/emit body context)]
+      body-value))
   (is-jump [_this] true))
+
+(defrecord Set [location ident expr]
+  ast/AstNode
+  (validate [_this]
+    (ast/validate expr))
+  (emit [_this context]
+    (println "EXPR: " expr)
+    (let [expr-value (ast/emit expr context)
+          ident-value (em/lookup-ident context (:ident ident))]
+      (when-not ident-value
+        (throw (ex-info (str "could not resolve ident " (:ident ident)) {})))
+      (em/add-expression context
+                         (CellOps$SetCellOp. (token-location-to-ir-location location) ident-value expr-value))
+      nil))
+  (is-jump [_this] false))
