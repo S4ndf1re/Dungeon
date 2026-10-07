@@ -304,7 +304,11 @@ public sealed interface ArithOps {
           case AND, OR, XOR, EQ, NE, LT, LE, GT, GE -> MaybeType.of(IntegerT.BOOL());
         };
       } catch (Exception e) {
-        outputType = MaybeType.of();
+        if (lhs.getType().isUnknown() || rhs.getType().isUnknown()) {
+          outputType = MaybeType.of();
+        } else {
+          throw e;
+        }
       }
 
       setOperation(Operation.Create(loc, this, List.of(lhs, rhs), null, outputType));

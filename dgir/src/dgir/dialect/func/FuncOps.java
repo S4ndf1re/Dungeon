@@ -196,8 +196,8 @@ public sealed interface FuncOps {
         @NotNull Location location,
         @NotNull String name,
         @NotNull List<Value> operands,
-        @Nullable Type returnType) {
-      var funcType = FuncType.of(operands.stream().map(Value::getType).toList(), MaybeType.of(returnType));
+        @Nullable MaybeType returnType) {
+      var funcType = FuncType.of(operands.stream().map(Value::getType).toList(), returnType);
       setOperation(Operation.Create(location, this, operands, null, returnType));
       setCallee(name, funcType);
     }

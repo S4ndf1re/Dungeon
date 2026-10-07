@@ -113,7 +113,6 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
 
     env.getCellsForExpressions(expr).stream().forEach(e -> e.replaceIfMatches(expr, instantiated));
     var instantiatedTarget = env.getConsed(instantiated);
-
     // The beta-reduction for variables.
     // When the variable is in scope, actually replace the returned
     // expression with the referenced instantiated Expr instance.
