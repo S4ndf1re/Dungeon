@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
@@ -31,6 +32,10 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     implements IInstantiable<Expr, AlgorithmWType, Subst, TypeInference> {
 
   protected Expr() {
+  }
+
+  protected Expr(Location loc) {
+    super(loc);
   }
 
   protected Expr(Expr other) {
@@ -204,6 +209,12 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       this.type = type;
     }
 
+    public ExprAnn(Location loc, Expr expr, AlgorithmWType type) {
+      super(loc);
+      this.expr = expr;
+      this.type = type;
+    }
+
     public ExprAnn(ExprAnn other) {
       super(other);
       this.expr = other.expr;
@@ -279,6 +290,11 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     }
 
     public ExprLit(Literal value) {
+      this.value = value;
+    }
+
+    public ExprLit(Location loc, Literal value) {
+      super(loc);
       this.value = value;
     }
 
@@ -358,7 +374,22 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       this.elements = elements;
     }
 
+    public ExprTuple(Location loc, List<Expr> elements) {
+      super(loc);
+      this.elements = elements;
+    }
+
     public ExprTuple(Expr... elements) {
+      ArrayList<Expr> elems = new ArrayList<>();
+      for (var elem : elements) {
+        elems.add(elem);
+      }
+
+      this.elements = List.copyOf(elems);
+    }
+
+    public ExprTuple(Location loc, Expr... elements) {
+      super(loc);
       ArrayList<Expr> elems = new ArrayList<>();
       for (var elem : elements) {
         elems.add(elem);
@@ -411,7 +442,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
         trees.add(res.tree());
       }
 
-      var resultType = new AlgorithmWType.Tuple(List.copyOf(types));
+      var resultType = new AlgorithmWType.Tuple(this.getLocation(), List.copyOf(types));
 
       return new InferResult(
           resultType,
@@ -453,6 +484,11 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     }
 
     public ExprVar(Symbol<Expr, AlgorithmWType> name) {
+      this.name = name;
+    }
+
+    public ExprVar(Location loc, Symbol<Expr, AlgorithmWType> name) {
+      super(loc);
       this.name = name;
     }
 
@@ -560,8 +596,28 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     }
 
     public ExprApp(
+        Location loc,
+        Expr func,
+        Expr arg) {
+      super(loc);
+      this.func = func;
+      this.args = List.of(arg);
+      this.inferredFunctionType = Optional.empty();
+    }
+
+    public ExprApp(
         Expr func,
         List<Expr> args) {
+      this.func = func;
+      this.args = List.copyOf(args);
+      this.inferredFunctionType = Optional.empty();
+    }
+
+    public ExprApp(
+        Location loc,
+        Expr func,
+        List<Expr> args) {
+      super(loc);
       this.func = func;
       this.args = List.copyOf(args);
       this.inferredFunctionType = Optional.empty();
@@ -643,7 +699,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     public InferResult infer(TypeInference engine, Env env) {
       String input = env + " |- " + this;
 
-      AlgorithmWType resultType = new AlgorithmWType.Var(new TypeVar<>(engine.getCurrentLevel()));
+      AlgorithmWType resultType = new AlgorithmWType.Var(this.getLocation(), new TypeVar<>(engine.getCurrentLevel()));
 
       InferResult funcInferRes = engine.infer(func, env);
 
@@ -653,7 +709,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
 
       for (var arg : this.args.reversed()) {
         InferResult argRes = engine.infer(arg, env);
-        builtArrowType = new AlgorithmWType.Arrow(argRes.type(), builtArrowType);
+        builtArrowType = new AlgorithmWType.Arrow(this.getLocation(), argRes.type(), builtArrowType);
         trees.add(argRes.tree());
       }
 
@@ -663,8 +719,8 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       // final
       // type is an arrow type that accepts a unit value as a parameter.
       if (builtArrowType == resultType) {
-        builtArrowType = new AlgorithmWType.Arrow(new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT),
-            builtArrowType);
+        builtArrowType = new AlgorithmWType.Arrow(this.getLocation(),
+            new AlgorithmWType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT), builtArrowType);
       }
 
       this.inferredFunctionType = Optional.of(funcInferRes.type());
@@ -724,7 +780,19 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       this.body = body;
     }
 
+    public ExprAbs(Location loc, Symbol<Expr, AlgorithmWType> param, Expr body) {
+      super(loc);
+      this.params = List.of(param);
+      this.body = body;
+    }
+
     public ExprAbs(List<Symbol<Expr, AlgorithmWType>> params, Expr body) {
+      this.params = List.copyOf(params);
+      this.body = body;
+    }
+
+    public ExprAbs(Location loc, List<Symbol<Expr, AlgorithmWType>> params, Expr body) {
+      super(loc);
       this.params = List.copyOf(params);
       this.body = body;
     }
@@ -780,14 +848,14 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       ArrayList<Pair<Symbol<Expr, AlgorithmWType>, TypeVar<AlgorithmWType>>> paramsAndTypeVars = new ArrayList<>();
       for (var param : this.params) {
         var typeVar = new TypeVar<AlgorithmWType>(engine.getCurrentLevel());
-        AlgorithmWType freshTypeVar = new AlgorithmWType.Var(typeVar);
+        AlgorithmWType freshTypeVar = new AlgorithmWType.Var(this.getLocation(), typeVar);
         Scheme newScheme = new Scheme(List.of(), freshTypeVar);
         newEnv.put(param, newScheme);
         paramsAndTypeVars.add(Pair.of(param, typeVar));
       }
 
       Scope<AlgorithmWType> functionScope = newEnv.addScope();
-      AlgorithmWType retTypeVar = new AlgorithmWType.Var(new TypeVar<>(engine.getCurrentLevel()));
+      AlgorithmWType retTypeVar = new AlgorithmWType.Var(this.getLocation(), new TypeVar<>(engine.getCurrentLevel()));
       InferResult res = engine.infer(body, newEnv);
       ArrayList<InferenceTree> trees = new ArrayList<>();
 
@@ -811,8 +879,8 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       AlgorithmWType appliedRetType = retTypeVar;
       AlgorithmWType resultType = appliedRetType;
       for (var paramAndTypeVar : paramsAndTypeVars.reversed()) {
-        resultType = new AlgorithmWType.Arrow(new AlgorithmWType.Var(paramAndTypeVar.getRight()),
-            resultType);
+        resultType = new AlgorithmWType.Arrow(this.getLocation(),
+            new AlgorithmWType.Var(this.getLocation(), paramAndTypeVar.getRight()), resultType);
       }
 
       // NOTE: in case the ABS parameters are empty, i.e. a function without
@@ -821,7 +889,8 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       // final
       // type is an arrow type that accepts a unit value as a parameter.
       if (resultType == appliedRetType) {
-        resultType = new AlgorithmWType.Arrow(new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT), resultType);
+        resultType = new AlgorithmWType.Arrow(this.getLocation(),
+            new AlgorithmWType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT), resultType);
       }
 
       return new InferResult(
@@ -935,8 +1004,22 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       this.body = body;
     }
 
+    public ExprLetSeq(Location loc, Symbol<Expr, AlgorithmWType> param, Expr value,
+        Expr body) {
+      super(loc);
+      this.bindings = List.of(Pair.of(param, value));
+      this.body = body;
+    }
+
     public ExprLetSeq(List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings,
         Expr body) {
+      this.bindings = List.copyOf(bindings);
+      this.body = body;
+    }
+
+    public ExprLetSeq(Location loc, List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings,
+        Expr body) {
+      super(loc);
       this.bindings = List.copyOf(bindings);
       this.body = body;
     }
@@ -1101,8 +1184,22 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       this.body = body;
     }
 
+    public ExprLetRec(Location loc, Symbol<Expr, AlgorithmWType> param, Expr value,
+        Expr body) {
+      super(loc);
+      this.bindings = List.of(Pair.of(param, value));
+      this.body = body;
+    }
+
     public ExprLetRec(List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings,
         Expr body) {
+      this.bindings = List.copyOf(bindings);
+      this.body = body;
+    }
+
+    public ExprLetRec(Location loc, List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings,
+        Expr body) {
+      super(loc);
       this.bindings = List.copyOf(bindings);
       this.body = body;
     }
@@ -1183,14 +1280,15 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       for (var binding : this.bindings) {
         var typeVar = new TypeVar<AlgorithmWType>(engine.getCurrentLevel());
         typeVars.add(typeVar);
-        newEnv.put(binding.getLeft(), new Scheme(List.of(), new AlgorithmWType.Var(typeVar)));
+        newEnv.put(binding.getLeft(),
+            new Scheme(List.of(), new AlgorithmWType.Var(this.getLocation(), typeVar)));
       }
 
       // Solve and unify with new type vars from step 1
       for (int i = 0; i < this.bindings.size(); i++) {
         var binding = this.bindings.get(i);
         InferResult res1 = engine.infer(binding.getRight(), newEnv);
-        var unifyRes = engine.unify(new AlgorithmWType.Var(typeVars.get(i)), res1.type());
+        var unifyRes = engine.unify(new AlgorithmWType.Var(this.getLocation(), typeVars.get(i)), res1.type());
         trees.add(unifyRes);
         trees.add(res1.tree());
       }
@@ -1199,7 +1297,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       // bindings!
       for (int i = 0; i < this.bindings.size(); i++) {
         newEnv.put(this.bindings.get(i).getLeft(),
-            new AlgorithmWType.Var(typeVars.get(i)).generalize(engine.getCurrentLevel()));
+            new AlgorithmWType.Var(this.getLocation(), typeVars.get(i)).generalize(engine.getCurrentLevel()));
       }
 
       InferResult res2 = engine.infer(body, newEnv);
@@ -1253,8 +1351,18 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       this.expressions = List.of(expr);
     }
 
+    public ExprSeq(Location loc, Expr expr) {
+      super(loc);
+      this.expressions = List.of(expr);
+    }
+
     public ExprSeq(List<Expr> exprs) {
       super();
+      this.expressions = List.copyOf(exprs);
+    }
+
+    public ExprSeq(Location loc, List<Expr> exprs) {
+      super(loc);
       this.expressions = List.copyOf(exprs);
     }
 
@@ -1298,7 +1406,7 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
       String input = env + " |- " + this;
 
       ArrayList<InferenceTree> trees = new ArrayList<>();
-      AlgorithmWType lastType = new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT);
+      AlgorithmWType lastType = new AlgorithmWType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT);
       for (var expr : this.expressions) {
         var infRes = engine.infer(expr, env);
         trees.add(infRes.tree());
@@ -1329,6 +1437,11 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     }
 
     public ExprReturn(Expr value) {
+      this.value = value;
+    }
+
+    public ExprReturn(Location loc, Expr value) {
+      super(loc);
       this.value = value;
     }
 
@@ -1432,6 +1545,17 @@ public abstract class Expr extends Expression<Expr, AlgorithmWType>
     public ExprCustom(
         D data, InferFunction<D> inferFn, InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
         ReplaceSymbolFunction<D> replaceSymbolFn) {
+      this.data = data;
+      this.inferFn = inferFn;
+      this.instFn = Optional.ofNullable(instFn);
+      this.getChildrenFn = Optional.ofNullable(getChildrenFn);
+      this.replaceSymbolFn = Optional.ofNullable(replaceSymbolFn);
+    }
+
+    public ExprCustom(
+        Location loc, D data, InferFunction<D> inferFn, InstantiateFunction<D> instFn,
+        GetChildrenFunction<D> getChildrenFn, ReplaceSymbolFunction<D> replaceSymbolFn) {
+      super(loc);
       this.data = data;
       this.inferFn = inferFn;
       this.instFn = Optional.ofNullable(instFn);

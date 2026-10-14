@@ -48,7 +48,7 @@ public final class ScfAlgoWConversion {
 
     ScfOps.IfOp ifOp = (ScfOps.IfOp) op.asOp();
 
-    var condExpr = new Expr.ExprVar(Symbol.of(ifOp.getOperandValue(0).orElseThrow()));
+    var condExpr = new Expr.ExprVar(op.getLocation(), Symbol.of(ifOp.getOperandValue(0).orElseThrow()));
     var thenCase = OperationExprConversionUtils.regionToExpr(engine, ifOp.getThenRegion());
     Optional<Expr> elseCase = ifOp.getElseRegion()
         .map(region -> OperationExprConversionUtils.regionToExpr(engine, region));
@@ -172,13 +172,15 @@ public final class ScfAlgoWConversion {
         Symbol.of(forOp.getStep()),
         Symbol.of(forOp.getInductionValue()));
 
+    var loc = op.getLocation();
     var result = new Expr.ExprApp(
-        new Expr.ExprAbs(params, OperationExprConversionUtils.regionToExpr(engine, forOp.getRegion())),
+        loc,
+        new Expr.ExprAbs(loc, params, OperationExprConversionUtils.regionToExpr(engine, forOp.getRegion())),
         List.of(
-            new Expr.ExprVar(Symbol.of(forOp.getInitialValue())),
-            new Expr.ExprVar(Symbol.of(forOp.getLowerBound())),
-            new Expr.ExprVar(Symbol.of(forOp.getUpperBound())),
-            new Expr.ExprVar(Symbol.of(forOp.getStep()))));
+            new Expr.ExprVar(loc, Symbol.of(forOp.getInitialValue())),
+            new Expr.ExprVar(loc, Symbol.of(forOp.getLowerBound())),
+            new Expr.ExprVar(loc, Symbol.of(forOp.getUpperBound())),
+            new Expr.ExprVar(loc, Symbol.of(forOp.getStep()))));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprApp;
@@ -289,9 +291,9 @@ public final class ScfAlgoWConversion {
     ScfOps.SelectOp selectOp = (ScfOps.SelectOp) op.asOp();
 
     var selectData = new SelectData(
-        new Expr.ExprVar(Symbol.of(selectOp.getCondition())),
-        new Expr.ExprVar(Symbol.of(selectOp.getTrue())),
-        new Expr.ExprVar(Symbol.of(selectOp.getFalse())));
+        new Expr.ExprVar(selectOp.getLocation(), Symbol.of(selectOp.getCondition())),
+        new Expr.ExprVar(selectOp.getLocation(), Symbol.of(selectOp.getTrue())),
+        new Expr.ExprVar(selectOp.getLocation(), Symbol.of(selectOp.getFalse())));
 
     InferFunction<SelectData> infFunc = (eng, env, data) -> {
 
@@ -358,7 +360,7 @@ public final class ScfAlgoWConversion {
     ScfOps.YieldOp yieldOp = (ScfOps.YieldOp) op.asOp();
 
     var selectData = new YieldData(
-        new Expr.ExprVar(Symbol.of(yieldOp.getOperand())));
+        new Expr.ExprVar(yieldOp.getLocation(), Symbol.of(yieldOp.getOperand())));
 
     InferFunction<YieldData> infFunc = (eng, env, data) -> {
 

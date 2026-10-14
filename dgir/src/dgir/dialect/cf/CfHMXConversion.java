@@ -92,7 +92,7 @@ public final class CfHMXConversion {
 
     CfOps.BranchCondOp castOp = (CfOps.BranchCondOp) op.asOp();
 
-    var condExpr = new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(castOp.getCond()));
+    var condExpr = new HMXExpr.ExprVar(castOp.getLocation(), Symbol.<HMXExpr, HMXType>of(castOp.getCond()));
     var thenCase = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(castOp.getCondTrueBlock()));
     var elseCase = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(castOp.getCondFalseBlock()));
     var branchOpData = new BranchData(condExpr, thenCase, elseCase);
@@ -165,9 +165,9 @@ public final class CfHMXConversion {
 
     CfOps.AssertOp assertOp = (CfOps.AssertOp) op.asOp();
 
-    HMXExpr condExpr = new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(assertOp.getCond()));
+    HMXExpr condExpr = new HMXExpr.ExprVar(assertOp.getLocation(), Symbol.<HMXExpr, HMXType>of(assertOp.getCond()));
     Optional<HMXExpr> messageExpr = assertOp.getMessage()
-        .map(msg -> new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(msg)));
+        .map(msg -> new HMXExpr.ExprVar(assertOp.getLocation(), Symbol.<HMXExpr, HMXType>of(msg)));
     var assertData = new AssertData(condExpr, messageExpr);
 
     GenerateFunction<AssertData> infFunc = (eng, env, type, data) -> {

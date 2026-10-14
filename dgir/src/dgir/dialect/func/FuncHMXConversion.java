@@ -52,7 +52,7 @@ public final class FuncHMXConversion {
       throw new IllegalArgumentException("Invalid, as the engine is not of type hmx");
     }
 
-    var expr = new HMXExpr.ExprAbs(List.copyOf(params), (HMXExpr) blockAsExpr);
+    var expr = new HMXExpr.ExprAbs(op.getLocation(), List.copyOf(params), (HMXExpr) blockAsExpr);
 
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
 
@@ -93,9 +93,9 @@ public final class FuncHMXConversion {
 
     HMXExpr result = null;
     if (returnOp.getReturnValue().isPresent()) {
-      result = new HMXExpr.ExprReturn(new HMXExpr.ExprVar(Symbol.of(returnOp.getReturnValue().get())));
+      result = new HMXExpr.ExprReturn(returnOp.getLocation(), new HMXExpr.ExprVar(returnOp.getLocation(), Symbol.of(returnOp.getReturnValue().get())));
     } else {
-      result = new HMXExpr.ExprReturn(new HMXExpr.ExprLit(new Literal.Unit()));
+      result = new HMXExpr.ExprReturn(returnOp.getLocation(), new HMXExpr.ExprLit(returnOp.getLocation(), new Literal.Unit()));
     }
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
@@ -123,9 +123,9 @@ public final class FuncHMXConversion {
       TypeInference engine) {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
 
-    var result = new HMXExpr.ExprApp(new HMXExpr.ExprVar(Symbol.of(callOp.getCallee())),
+    var result = new HMXExpr.ExprApp(callOp.getLocation(), new HMXExpr.ExprVar(callOp.getLocation(), Symbol.of(callOp.getCallee())),
         callOp.getOperands().stream()
-            .map(operand -> (HMXExpr) new HMXExpr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
+            .map(operand -> (HMXExpr) new HMXExpr.ExprVar(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof HMXExpr.ExprApp;
@@ -160,9 +160,9 @@ public final class FuncHMXConversion {
     var functionValue = callOp.getOperandValue(0).get();
     var params = callOp.getOperands().subList(1, callOp.getOperands().size());
 
-    var result = new HMXExpr.ExprApp(new HMXExpr.ExprVar(Symbol.of(functionValue)),
+    var result = new HMXExpr.ExprApp(callOp.getLocation(), new HMXExpr.ExprVar(callOp.getLocation(), Symbol.of(functionValue)),
         params.stream()
-            .map(operand -> (HMXExpr) new HMXExpr.ExprVar(Symbol.of(operand.getValueOrThrow()))).toList());
+            .map(operand -> (HMXExpr) new HMXExpr.ExprVar(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof HMXExpr.ExprApp;
@@ -204,9 +204,9 @@ public final class FuncHMXConversion {
       values.add(Symbol.of(new Value()));
     }
 
-    var result = new HMXExpr.ExprAbs(List.copyOf(values),
-        new HMXExpr.ExprApp(new HMXExpr.ExprVar(Symbol.of(new SymbolTableSymbol(funcName, funcType))),
-            values.stream().map(arg -> (HMXExpr) new HMXExpr.ExprVar(arg)).toList()));
+    var result = new HMXExpr.ExprAbs(constOp.getLocation(), List.copyOf(values),
+        new HMXExpr.ExprApp(constOp.getLocation(), new HMXExpr.ExprVar(constOp.getLocation(), Symbol.of(new SymbolTableSymbol(funcName, funcType))),
+            values.stream().map(arg -> (HMXExpr) new HMXExpr.ExprVar(constOp.getLocation(), arg)).toList()));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof HMXExpr.ExprAbs;

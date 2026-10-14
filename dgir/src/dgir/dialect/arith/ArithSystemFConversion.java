@@ -43,7 +43,7 @@ public final class ArithSystemFConversion {
       TypeInference engine) {
     ArithOps.ConstantOp constOp = (ArithOps.ConstantOp) op.asOp();
 
-    var expr = new Expr.LitExpr(new Literal.Generic(constOp.getResult()));
+    var expr = new Expr.LitExpr(constOp.getLocation(), new Literal.Generic(constOp.getResult()));
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
       var inferredType = instantiatedExpr.getInferredType();
       assert inferredType.isPresent();
@@ -82,7 +82,7 @@ public final class ArithSystemFConversion {
 
     var lhs = Symbol.<Expr, SystemFType>of(binOp.getLhs());
     var rhs = Symbol.<Expr, SystemFType>of(binOp.getRhs());
-    var binOpData = new BinOpData(new Expr.Var(lhs), new Expr.Var(rhs), binMode);
+    var binOpData = new BinOpData(new Expr.Var(binOp.getLocation(), lhs), new Expr.Var(binOp.getLocation(), rhs), binMode);
 
     InferFunction<BinOpData> infFunc = (eng, ctx, data) -> {
       var resLhs = eng.infer(ctx, data.lhs);
@@ -156,7 +156,7 @@ public final class ArithSystemFConversion {
     ArithOps.UnaryOp unaryOp = (ArithOps.UnaryOp) op.asOp();
     var lhs = Symbol.<Expr, SystemFType>of(unaryOp.getOperand());
     var unaryMode = unaryOp.getMode();
-    var unaryOpData = new UnaryData(new Expr.Var(lhs), unaryMode);
+    var unaryOpData = new UnaryData(new Expr.Var(unaryOp.getLocation(), lhs), unaryMode);
 
     InferFunction<UnaryData> infFunc = (eng, ctx, data) -> {
       var resLhs = eng.infer(ctx, data.lhs);
@@ -218,7 +218,7 @@ public final class ArithSystemFConversion {
     ArithOps.CastOp castOp = (ArithOps.CastOp) op.asOp();
     var value = Symbol.<Expr, SystemFType>of(castOp.getOperand());
     var targetType = castOp.getTargetType();
-    var castOpData = new CastData(new Expr.Var(value), targetType);
+    var castOpData = new CastData(new Expr.Var(castOp.getLocation(), value), targetType);
 
     InferFunction<CastData> infFunc = (eng, ctx, data) -> {
       var resValue = eng.infer(ctx, data.value);

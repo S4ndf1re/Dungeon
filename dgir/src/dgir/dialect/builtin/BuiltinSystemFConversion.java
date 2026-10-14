@@ -105,8 +105,10 @@ public final class BuiltinSystemFConversion {
     ReplaceSymbolFunction<IdData> replaceSymbolFn = (oldExpr, original, replacement, data) -> new Expr.Custom<>(
         oldExpr, new IdData(data.param.replaceSymbol(original, replacement)));
 
+    var loc = idOp.getLocation();
     var expr = new Expr.Custom<IdData>(
-        new IdData(new Expr.Var(Symbol.of(idOp.getOperand()))),
+        loc,
+        new IdData(new Expr.Var(loc, Symbol.of(idOp.getOperand()))),
         infFunc,
         null,
         instFn,

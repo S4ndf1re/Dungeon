@@ -156,10 +156,11 @@ public final class StringAlgoWConversion {
         .map(operand -> Symbol.<Expr, AlgorithmWType>of(new Value()))
         .toList();
 
-    var result = new Expr.ExprApp(
-        new Expr.ExprAbs(params, new Expr.ExprLit(new Literal.Generic(op.getOutputValueOrThrow()))),
+    var result = new Expr.ExprApp(op.getLocation(),
+        new Expr.ExprAbs(op.getLocation(), params,
+            new Expr.ExprLit(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow()))),
         op.getOperands().stream()
-            .<Expr>map(operand -> new Expr.ExprVar(Symbol.of(operand.getValueOrThrow())))
+            .<Expr>map(operand -> new Expr.ExprVar(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
             .toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {

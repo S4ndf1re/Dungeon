@@ -171,20 +171,20 @@ public final class StringSystemFConversion {
       paramTypes.add(SystemFConversionUtils.irTypeToSystemFType(engine, value.getType().getAsKnownOrThrow()));
     }
 
-    Expr abs = new Expr.LitExpr(new Literal.Generic(op.getOutputValueOrThrow()));
+    Expr abs = new Expr.LitExpr(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow()));
     for (int i = params.size() - 1; i >= 0; i--) {
-      abs = new Expr.Abs(params.get(i), paramTypes.get(i), abs);
+      abs = new Expr.Abs(op.getLocation(), params.get(i), paramTypes.get(i), abs);
     }
     if (params.isEmpty()) {
       // A zero operand op is a function taking the unit placeholder
-      abs = new Expr.Abs(abs);
+      abs = new Expr.Abs(op.getLocation(), abs);
     }
 
     var args = op.getOperands().stream()
-        .<Expr>map(operand -> new Expr.Var(Symbol.of(operand.getValueOrThrow())))
+        .<Expr>map(operand -> new Expr.Var(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
         .toList();
 
-    var result = buildApplication(abs, args);
+    var result = buildApplication(op.getLocation(), abs, args);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       // The operands are taken from the instantiated application chain, as
@@ -204,14 +204,18 @@ public final class StringSystemFConversion {
   /**
    * Builds a curried function application from plain `App` nodes. A zero
    * argument application supplies the unit input placeholder implicitly.
+   *
+   * @param loc  the location assigned to every constructed application node
+   * @param fun  the head expression of the application chain
+   * @param args the arguments in application order
    */
-  private static Expr buildApplication(Expr fun, List<Expr> args) {
+  private static Expr buildApplication(Location loc, Expr fun, List<Expr> args) {
     if (args.isEmpty()) {
-      return new Expr.App(fun);
+      return new Expr.App(loc, fun);
     }
     Expr app = fun;
     for (var arg : args) {
-      app = new Expr.App(app, arg);
+      app = new Expr.App(loc, app, arg);
     }
     return app;
   }

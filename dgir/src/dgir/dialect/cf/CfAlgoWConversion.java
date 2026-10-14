@@ -93,7 +93,7 @@ public final class CfAlgoWConversion {
 
     CfOps.BranchCondOp castOp = (CfOps.BranchCondOp) op.asOp();
 
-    var condExpr = new Expr.ExprVar(Symbol.of(castOp.getCond()));
+    var condExpr = new Expr.ExprVar(castOp.getLocation(), Symbol.of(castOp.getCond()));
     var thenCase = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(castOp.getCondTrueBlock()));
     var elseCase = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(castOp.getCondFalseBlock()));
     var branchOpData = new BranchData(condExpr, thenCase, elseCase);
@@ -169,8 +169,9 @@ public final class CfAlgoWConversion {
 
     CfOps.AssertOp assertOp = (CfOps.AssertOp) op.asOp();
 
-    Expr condExpr = new Expr.ExprVar(Symbol.of(assertOp.getCond()));
-    Optional<Expr> messageExpr = assertOp.getMessage().map(msg -> new Expr.ExprVar(Symbol.of(msg)));
+    Expr condExpr = new Expr.ExprVar(assertOp.getLocation(), Symbol.of(assertOp.getCond()));
+    Optional<Expr> messageExpr =
+        assertOp.getMessage().map(msg -> new Expr.ExprVar(assertOp.getLocation(), Symbol.of(msg)));
     var assertData = new AssertData(condExpr, messageExpr);
 
     InferFunction<AssertData> infFunc = (eng, env, data) -> {

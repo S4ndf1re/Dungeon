@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import dgir.core.debug.Location;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InferenceTree;
@@ -16,6 +17,14 @@ import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 
 public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
+
+  protected AlgorithmWType() {
+    super();
+  }
+
+  protected AlgorithmWType(Location loc) {
+    super(loc);
+  }
 
   @Override
   public abstract boolean equals(Object obj);
@@ -59,6 +68,11 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     public final TypeVar<AlgorithmWType> tyVar;
 
     public Var(TypeVar<AlgorithmWType> tyVar) {
+      this.tyVar = tyVar;
+    }
+
+    public Var(Location loc, TypeVar<AlgorithmWType> tyVar) {
+      super(loc);
       this.tyVar = tyVar;
     }
 
@@ -181,6 +195,12 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       this.to = to;
     }
 
+    public Arrow(Location loc, AlgorithmWType from, AlgorithmWType to) {
+      super(loc);
+      this.from = from;
+      this.to = to;
+    }
+
     @Override
     public String toString() {
       return from + " -> " + to;
@@ -269,7 +289,19 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       this.parameters = List.of();
     }
 
+    public LitType(Location loc, TypeIdent tyName) {
+      super(loc);
+      this.tyName = tyName;
+      this.parameters = List.of();
+    }
+
     public LitType(TypeIdent tyName, List<AlgorithmWType> parameters) {
+      this.tyName = tyName;
+      this.parameters = List.copyOf(parameters);
+    }
+
+    public LitType(Location loc, TypeIdent tyName, List<AlgorithmWType> parameters) {
+      super(loc);
       this.tyName = tyName;
       this.parameters = List.copyOf(parameters);
     }
@@ -362,6 +394,11 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       this.size = size;
     }
 
+    public NumericType(Location loc, long size) {
+      super(loc);
+      this.size = size;
+    }
+
     @Override
     public String toString() {
       return "" + this.size;
@@ -421,6 +458,11 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     public final List<AlgorithmWType> elements;
 
     public Tuple(List<AlgorithmWType> elements) {
+      this.elements = elements;
+    }
+
+    public Tuple(Location loc, List<AlgorithmWType> elements) {
+      super(loc);
       this.elements = elements;
     }
 

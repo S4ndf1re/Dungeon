@@ -7,6 +7,7 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
+import dgir.core.debug.Location;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
@@ -43,13 +44,13 @@ public final class FuncSystemFConversion {
    * inferred. A zero argument application supplies the unit input placeholder
    * implicitly.
    */
-  private static Expr buildApplication(Expr fun, List<Expr> args) {
+  private static Expr buildApplication(Location loc, Expr fun, List<Expr> args) {
     if (args.isEmpty()) {
-      return new Expr.App(fun);
+      return new Expr.App(loc, fun);
     }
     Expr app = fun;
     for (var arg : args) {
-      app = new Expr.App(app, arg);
+      app = new Expr.App(loc, app, arg);
     }
     return app;
   }
@@ -90,12 +91,12 @@ public final class FuncSystemFConversion {
 
     Expr expr = blockAsExpr;
     for (int i = params.size() - 1; i >= 0; i--) {
-      expr = new Expr.Abs(params.get(i), paramTypes.get(i), expr);
+      expr = new Expr.Abs(op.getLocation(), params.get(i), paramTypes.get(i), expr);
     }
     if (params.isEmpty()) {
       // A zero parameter function is a function taking the unit placeholder:
       // unit -> body
-      expr = new Expr.Abs(expr);
+      expr = new Expr.Abs(op.getLocation(), expr);
     }
 
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
@@ -158,9 +159,9 @@ public final class FuncSystemFConversion {
 
     Expr result;
     if (returnOp.getReturnValue().isPresent()) {
-      result = new Expr.Return(new Expr.Var(Symbol.of(returnOp.getReturnValue().get())));
+      result = new Expr.Return(returnOp.getLocation(), new Expr.Var(returnOp.getLocation(), Symbol.of(returnOp.getReturnValue().get())));
     } else {
-      result = new Expr.Return(new Expr.LitExpr(new Literal.Unit()));
+      result = new Expr.Return(returnOp.getLocation(), new Expr.LitExpr(returnOp.getLocation(), new Literal.Unit()));
     }
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
@@ -188,11 +189,11 @@ public final class FuncSystemFConversion {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
     var calleeType = (FuncType) callOp.getCalleeType();
 
-    var fun = new Expr.Var(Symbol.of(callOp.getCallee()));
+    var fun = new Expr.Var(callOp.getLocation(), Symbol.of(callOp.getCallee()));
     var args = callOp.getOperands().stream()
-        .map(operand -> (Expr) new Expr.Var(Symbol.of(operand.getValueOrThrow()))).toList();
+        .map(operand -> (Expr) new Expr.Var(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList();
 
-    var result = buildApplication(fun, args);
+    var result = buildApplication(callOp.getLocation(), fun, args);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       // The operands are taken from the instantiated application chain, as
@@ -222,11 +223,11 @@ public final class FuncSystemFConversion {
     var functionValue = callOp.getOperandValue(0).get();
     var params = callOp.getOperands().subList(1, callOp.getOperands().size());
 
-    var fun = new Expr.Var(Symbol.of(functionValue));
+    var fun = new Expr.Var(callOp.getLocation(), Symbol.of(functionValue));
     var args = params.stream()
-        .map(operand -> (Expr) new Expr.Var(Symbol.of(operand.getValueOrThrow()))).toList();
+        .map(operand -> (Expr) new Expr.Var(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList();
 
-    var result = buildApplication(fun, args);
+    var result = buildApplication(callOp.getLocation(), fun, args);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       var application = peelApplication(instantiatedExpr);
@@ -275,17 +276,17 @@ public final class FuncSystemFConversion {
       paramTypes.add(SystemFConversionUtils.irTypeToSystemFType(engine, input.getAsKnownOrThrow()));
     }
 
-    var fun = new Expr.Var(Symbol.of(new SymbolTableSymbol(funcName, funcType)));
-    var args = values.stream().map(arg -> (Expr) new Expr.Var(arg)).toList();
+    var fun = new Expr.Var(constOp.getLocation(), Symbol.of(new SymbolTableSymbol(funcName, funcType)));
+    var args = values.stream().map(arg -> (Expr) new Expr.Var(constOp.getLocation(), arg)).toList();
 
-    Expr result = buildApplication(fun, args);
+    Expr result = buildApplication(constOp.getLocation(), fun, args);
     for (int i = values.size() - 1; i >= 0; i--) {
-      result = new Expr.Abs(values.get(i), paramTypes.get(i), result);
+      result = new Expr.Abs(constOp.getLocation(), values.get(i), paramTypes.get(i), result);
     }
     if (values.isEmpty()) {
       // A first-class reference to a zero parameter function is a value of
       // function type (unit -> r), not of the result type!
-      result = new Expr.Abs(result);
+      result = new Expr.Abs(constOp.getLocation(), result);
     }
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
