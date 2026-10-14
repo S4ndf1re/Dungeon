@@ -8,7 +8,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
-import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
@@ -110,11 +109,12 @@ public final class TypeInference
     return res;
   }
 
-  public InferenceTree unify(HMXType left, HMXType right) {
+  public void unify(HMXType left, HMXType right) {
     if (right instanceof HMXType.Var) {
-      return right.unify(this, left);
+      right.unify(this, left);
+      return;
     }
-    return left.unify(this, right);
+    left.unify(this, right);
   }
 
   public static final class UnresolvedSubtypeException extends RuntimeException {
@@ -128,7 +128,7 @@ public final class TypeInference
     }
   }
 
-  public InferenceTree subtype(HMXType left, HMXType right) {
+  public void subtype(HMXType left, HMXType right) {
     var l = left.deref();
 
     var r = right.deref();
@@ -137,11 +137,9 @@ public final class TypeInference
       if (r instanceof HMXType.Var rv) {
         var unifyRes = lv.tyVar.unify(rv.tyVar);
         if (unifyRes.isPresent()) {
-          return this.subtype(unifyRes.get().getLeft(), unifyRes.get().getRight());
+          this.subtype(unifyRes.get().getLeft(), unifyRes.get().getRight());
         }
-        return new InferenceTree(
-            "Sub-Var-Var",
-            l + " <: " + r);
+        return;
       }
 
       // Within scheme generalization, an open variable must NOT be equated
@@ -161,10 +159,7 @@ public final class TypeInference
 
       r.occursCheckAjustLevel(lv.tyVar);
       lv.tyVar.assignType(r);
-      return new InferenceTree(
-          "Sub-Var",
-          l + " <: " + r,
-          r + "/" + l);
+      return;
     }
 
     if (r instanceof HMXType.Var rv) {
@@ -178,23 +173,15 @@ public final class TypeInference
 
       l.occursCheckAjustLevel(rv.tyVar);
       rv.tyVar.assignType(l);
-      return new InferenceTree(
-          "Sub-Var-Reverse",
-          l + " <: " + r,
-          l + "/" + r);
+      return;
     }
 
     if (l instanceof HMXType.Arrow a && r instanceof HMXType.Arrow b) {
       // Contravariant in the parameter, covariant in the result: the
       // operands of the parameter check are swapped.
-      var fromCheck = this.subtype(b.from, a.from);
-      var toCheck = this.subtype(a.to, b.to);
-
-      return new InferenceTree(
-          "Sub-Arrow",
-          l + " <: " + r,
-          "",
-          List.of(fromCheck, toCheck));
+      this.subtype(b.from, a.from);
+      this.subtype(a.to, b.to);
+      return;
     }
 
     if (l instanceof HMXType.LitType a && r instanceof HMXType.LitType b) {
@@ -203,9 +190,7 @@ public final class TypeInference
         var bType = b.toIrType();
 
         if (aType.isSubtypeOf(bType)) {
-          return new InferenceTree(
-              "Sub-Base",
-              l + " <: " + r);
+          return;
         }
       } catch (TypingException.NotFullySpecified e) {
         // Do nothing, this case may be ok, but only if the rest matches!
@@ -221,14 +206,11 @@ public final class TypeInference
         }
 
         // Covariant type parameters.
-        var trees = new ArrayList<InferenceTree>();
         for (int i = 0; i < a.parameters.size(); i++) {
-          trees.add(this.subtype(a.parameters.get(i), b.parameters.get(i)));
+          this.subtype(a.parameters.get(i), b.parameters.get(i));
         }
 
-        return new InferenceTree(
-            "Sub-Base",
-            l + " <: " + r);
+        return;
       }
 
       throw new TypingException.SubtypingFailed(l, r);
@@ -236,9 +218,7 @@ public final class TypeInference
 
     if (l instanceof HMXType.NumericType a && r instanceof HMXType.NumericType b) {
       if (a.size <= b.size) {
-        return new InferenceTree(
-            "Sub-NumericType",
-            l + " <: " + r);
+        return;
       }
 
       throw new TypingException.SubtypingFailed(l, r);
@@ -252,16 +232,11 @@ public final class TypeInference
       }
 
       // Covariant element-wise.
-      var trees = new ArrayList<InferenceTree>();
       for (int i = 0; i < a.elements.size(); i++) {
-        trees.add(this.subtype(a.elements.get(i), b.elements.get(i)));
+        this.subtype(a.elements.get(i), b.elements.get(i));
       }
 
-      return new InferenceTree(
-          "Sub-Tuple",
-          l + " <: " + r,
-          "",
-          List.copyOf(trees));
+      return;
     }
 
     throw new TypingException.SubtypingFailed(l, r);

@@ -13,7 +13,6 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression;
-import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
@@ -67,8 +66,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
    *
    * @param engine
    * @param env
-   * @return the inferred {@link HMXType} and the resulting {@link Subst},
-   *         combined into an {@link InferenceTree}
+   * @return the resulting {@link Constraint} of the inference
    */
   public abstract GenerateResult generate(TypeInference engine, Env env, HMXType type);
 
@@ -237,12 +235,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       GenerateResult res = engine.generate(expr, env, type);
 
       return new GenerateResult(
-          new Constraint.And(new Constraint.Equal(this.type, type), res.constr()),
-          new InferenceTree(
-              "T-Ann",
-              env + " |- " + this,
-              type.toString(),
-              List.of(res.tree())));
+          new Constraint.And(new Constraint.Equal(this.type, type), res.constr()));
     }
 
     @Override
@@ -320,12 +313,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
       var hmxType = engine.generalNominalTypeToInferenceType(value.toParameterizedNominalType(), null);
       return new GenerateResult(
-          new Constraint.Equal(type, hmxType.getLeft()),
-          new InferenceTree(
-              "T-" + hmxType,
-              env + " |- " + this,
-              hmxType.toString(),
-              List.of()));
+          new Constraint.Equal(type, hmxType.getLeft()));
     }
 
     @Override
@@ -428,11 +416,9 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
       ArrayList<TypeVar<HMXType>> typeVars = new ArrayList<>();
       ArrayList<HMXType> types = new ArrayList<>();
       ArrayList<Constraint> constraints = new ArrayList<>();
-      ArrayList<InferenceTree> trees = new ArrayList<>();
       Env currentEnv = env.copy();
 
       for (var expr : elements) {
@@ -440,7 +426,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
         typeVars.add(freshTypVar);
         var res = engine.generate(expr, currentEnv, new HMXType.Var(this.getLocation(), freshTypVar));
         types.add(new HMXType.Var(this.getLocation(), freshTypVar));
-        trees.add(res.tree());
         constraints.add(res.constr());
       }
 
@@ -448,12 +433,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
       return new GenerateResult(
           new Constraint.Exists(typeVars,
-              new Constraint.And(new Constraint.Equal(resultType, type), new Constraint.And(constraints))),
-          new InferenceTree(
-              "T-Tuple",
-              input,
-              "" + resultType,
-              List.copyOf(trees)));
+              new Constraint.And(new Constraint.Equal(resultType, type), new Constraint.And(constraints))));
     }
 
     @Override
@@ -528,15 +508,8 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
-
       return new GenerateResult(
-          new Constraint.Inst(this.name, type),
-          new InferenceTree(
-              "T-Var",
-              input,
-              "" + type,
-              List.of()));
+          new Constraint.Inst(this.name, type));
     }
 
     @Override
@@ -694,14 +667,11 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
-
       HMXType resultType = type;
 
       HMXType builtArrowType = resultType;
       ArrayList<TypeVar<HMXType>> quantifiedVars = new ArrayList<>();
       ArrayList<Constraint> argConstraints = new ArrayList<>();
-      ArrayList<InferenceTree> trees = new ArrayList<>();
 
       for (var arg : this.args.reversed()) {
         var freshTypeVar = new TypeVar<HMXType>();
@@ -710,7 +680,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
         argConstraints.add(argRes.constr());
         builtArrowType = new HMXType.Arrow(this.getLocation(),
             new HMXType.Var(this.getLocation(), freshTypeVar), builtArrowType);
-        trees.add(argRes.tree());
       }
 
       // NOTE: in case the APP parameters are empty, i.e. a function without
@@ -726,7 +695,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       var fnTypeVar = new TypeVar<HMXType>();
       var fnType = new HMXType.Var(this.getLocation(), fnTypeVar);
       GenerateResult funcInferRes = engine.generate(func, env, fnType);
-      trees.add(funcInferRes.tree());
       quantifiedVars.add(fnTypeVar);
 
       this.inferredFunctionType = Optional.of(builtArrowType);
@@ -734,12 +702,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       return new GenerateResult(
           new Constraint.Exists(quantifiedVars,
               new Constraint.And(new Constraint.Sub(fnType, builtArrowType), funcInferRes.constr(),
-                  new Constraint.And(argConstraints))),
-          new InferenceTree(
-              "T-App",
-              input,
-              "" + builtArrowType,
-              List.copyOf(trees)));
+                  new Constraint.And(argConstraints))));
     }
 
     @Override
@@ -847,8 +810,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
-
       ArrayList<TypeVar<HMXType>> paramsAndTypeVars = new ArrayList<>();
       ArrayList<LetBinding> bindings = new ArrayList<>();
       for (var param : this.params) {
@@ -902,12 +863,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
               new Constraint.Equal(type, resultType),
               new Constraint.And(functionScope.getAllReturnTypesInScope().stream()
                   .map(t -> (Constraint) new Constraint.Equal(new HMXType.Var(this.getLocation(), retTypeVar), t))
-                  .toList())),
-          new InferenceTree(
-              "T-Abs",
-              input,
-              resultType.toString(),
-              List.of()));
+                  .toList())));
     }
 
     @Override
@@ -1105,8 +1061,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
-
       var bindings = new ArrayList<LetBinding>();
       for (var binding : this.bindings) {
         var param = binding.getLeft();
@@ -1123,12 +1077,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       GenerateResult res2 = engine.generate(body, env, type);
 
       return new GenerateResult(
-          new Constraint.LetSeq(bindings, res2.constr()),
-          new InferenceTree(
-              "T-Let*",
-              input,
-              "" + type,
-              List.of()));
+          new Constraint.LetSeq(bindings, res2.constr()));
     }
 
     @Override
@@ -1279,8 +1228,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
-
       var bindings = new ArrayList<LetBinding>();
       for (var binding : this.bindings) {
         var param = binding.getLeft();
@@ -1297,12 +1244,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       GenerateResult res2 = engine.generate(body, env, type);
 
       return new GenerateResult(
-          new Constraint.LetRec(bindings, res2.constr()),
-          new InferenceTree(
-              "T-Let*",
-              input,
-              "" + type,
-              List.of()));
+          new Constraint.LetRec(bindings, res2.constr()));
     }
 
     @Override
@@ -1401,8 +1343,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
-
       var sequentialTypes = new ArrayList<TypeVar<HMXType>>();
       var sequentialConstraints = new ArrayList<Constraint>();
       for (var expr : this.expressions) {
@@ -1419,8 +1359,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
       return new GenerateResult(
           new Constraint.Exists(sequentialTypes,
-              new Constraint.And(new Constraint.Equal(resType, type), new Constraint.And(sequentialConstraints))),
-          new InferenceTree("Inf-Seq", input, "" + resType, List.of()));
+              new Constraint.And(new Constraint.Equal(resType, type), new Constraint.And(sequentialConstraints))));
     }
 
     @Override
@@ -1478,8 +1417,6 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
-
       GenerateResult inferred = engine.generate(this.value, env, type);
       var topScope = env.topScope();
 
@@ -1487,8 +1424,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
         topScope.get().addReturnType(type);
       }
 
-      return new GenerateResult(inferred.constr(),
-          new InferenceTree("T-Return", input, "" + inferredType, List.of(inferred.tree())));
+      return new GenerateResult(inferred.constr());
     }
 
     @Override
@@ -1623,10 +1559,8 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
-      String input = env + " |- " + this;
       var infRes = this.generateFn.generate(engine, env, type, data);
-      return new GenerateResult(infRes,
-          new InferenceTree("T-Cust", input, "" + infRes, List.of()));
+      return new GenerateResult(infRes);
     }
 
     @Override
