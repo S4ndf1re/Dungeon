@@ -9,10 +9,14 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class CellAlgoWConversion {
@@ -44,14 +48,14 @@ public final class CellAlgoWConversion {
       var param = Symbol.<Expr, AlgorithmWType>of(operand);
       var absParam = Symbol.<Expr, AlgorithmWType>of(new Value());
 
-      var result = new Expr.ExprApp(cellOp.getLocation(),
-          new Expr.ExprAbs(cellOp.getLocation(), absParam,
-              new Expr.ExprVar(cellOp.getLocation(), absParam)),
-          new Expr.ExprVar(cellOp.getLocation(), param));
+      var result = new App(cellOp.getLocation(),
+          new Abs(cellOp.getLocation(), absParam,
+              new Var(cellOp.getLocation(), absParam)),
+          new Var(cellOp.getLocation(), param));
 
       result.setInstantiateOperationCallback(instantiatedExpr -> {
-        assert instantiatedExpr instanceof Expr.ExprApp;
-        var app = (Expr.ExprApp) instantiatedExpr;
+        assert instantiatedExpr instanceof App;
+        var app = (App) instantiatedExpr;
 
         var returnType = app.getInferredType();
         assert returnType.isPresent();
@@ -75,14 +79,14 @@ public final class CellAlgoWConversion {
               + " be inferred: %s".formatted(op));
     }
 
-    var literalResult = new Expr.ExprApp(cellOp.getLocation(),
-        new Expr.ExprAbs(cellOp.getLocation(), List.of(),
-            new Expr.ExprLit(cellOp.getLocation(), new Literal.Generic(resultValue))),
+    var literalResult = new App(cellOp.getLocation(),
+        new Abs(cellOp.getLocation(), List.of(),
+            new Lit(cellOp.getLocation(), new Literal.Generic(resultValue))),
         List.of());
 
     literalResult.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprApp;
-      var app = (Expr.ExprApp) instantiatedExpr;
+      assert instantiatedExpr instanceof App;
+      var app = (App) instantiatedExpr;
 
       assert app.getInferredType().isPresent();
       assert app.getInferredType().get().isFullySpecified();
@@ -111,16 +115,16 @@ public final class CellAlgoWConversion {
     var cellParam = Symbol.<Expr, AlgorithmWType>of(new Value());
     var assigneeParam = Symbol.<Expr, AlgorithmWType>of(new Value());
 
-    var result = new Expr.ExprApp(setCellOp.getLocation(),
-        new Expr.ExprAbs(setCellOp.getLocation(), List.of(cellParam, assigneeParam),
-            new Expr.ExprLit(setCellOp.getLocation(), new Literal.Unit())),
+    var result = new App(setCellOp.getLocation(),
+        new Abs(setCellOp.getLocation(), List.of(cellParam, assigneeParam),
+            new Lit(setCellOp.getLocation(), new Literal.Unit())),
         List.of(
-            new Expr.ExprVar(setCellOp.getLocation(), cell),
-            new Expr.ExprVar(setCellOp.getLocation(), assignee)));
+            new Var(setCellOp.getLocation(), cell),
+            new Var(setCellOp.getLocation(), assignee)));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprApp;
-      var app = (Expr.ExprApp) instantiatedExpr;
+      assert instantiatedExpr instanceof App;
+      var app = (App) instantiatedExpr;
 
       var cellValue = app.args().get(0).getOutputValue();
       var assigneeValue = app.args().get(1).getOutputValue();

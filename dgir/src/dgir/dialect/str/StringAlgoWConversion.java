@@ -10,10 +10,14 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class StringAlgoWConversion {
@@ -156,17 +160,17 @@ public final class StringAlgoWConversion {
         .map(operand -> Symbol.<Expr, AlgorithmWType>of(new Value()))
         .toList();
 
-    var result = new Expr.ExprApp(op.getLocation(),
-        new Expr.ExprAbs(op.getLocation(), params,
-            new Expr.ExprLit(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow()))),
+    var result = new App(op.getLocation(),
+        new Abs(op.getLocation(), params,
+            new Lit(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow()))),
         op.getOperands().stream()
-            .<Expr>map(operand -> new Expr.ExprVar(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
+            .<Expr>map(operand -> new Var(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
             .toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
-      var app = (Expr.ExprApp) instantiatedExpr;
+      var app = (App) instantiatedExpr;
 
       List<Value> argResults = app.args().stream()
           .map(e -> e.getOutputValue())

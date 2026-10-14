@@ -10,10 +10,14 @@ import dgir.core.ir.Value;
 import dgir.core.ir.ValueOperand;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class IoAlgoWConversion {
@@ -38,15 +42,15 @@ public final class IoAlgoWConversion {
     List<Symbol<Expr, AlgorithmWType>> paramsCopy = params.stream()
         .map(param -> Symbol.<Expr, AlgorithmWType>of(new Value())).toList();
 
-    var result = new Expr.ExprApp(op.getLocation(),
-        new Expr.ExprAbs(op.getLocation(), paramsCopy,
-            new Expr.ExprLit(op.getLocation(), new Literal.Unit())),
-        params.stream().map(param -> (Expr) new Expr.ExprVar(op.getLocation(), param)).toList());
+    var result = new App(op.getLocation(),
+        new Abs(op.getLocation(), paramsCopy,
+            new Lit(op.getLocation(), new Literal.Unit())),
+        params.stream().map(param -> (Expr) new Var(op.getLocation(), param)).toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
-      var app = (Expr.ExprApp) instantiatedExpr;
+      var app = (App) instantiatedExpr;
 
       return new IoOps.PrintOp(op.getLocation(),
           app.args().stream()
@@ -63,12 +67,12 @@ public final class IoAlgoWConversion {
 
     IoOps.ConsoleInOp castOp = (IoOps.ConsoleInOp) op.asOp();
 
-    var result = new Expr.ExprApp(op.getLocation(),
-        new Expr.ExprAbs(op.getLocation(), List.of(),
-            new Expr.ExprLit(op.getLocation(), new Literal.Generic(castOp.getResult()))), List.of());
+    var result = new App(op.getLocation(),
+        new Abs(op.getLocation(), List.of(),
+            new Lit(op.getLocation(), new Literal.Generic(castOp.getResult()))), List.of());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
       assert instantiatedExpr.getInferredType().isPresent();
       assert instantiatedExpr.getInferredType().get().isFullySpecified();

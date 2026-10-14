@@ -9,10 +9,14 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.builtin.hmx.expr.Abs;
+import dgir.core.ir.types.builtin.hmx.expr.App;
 import dgir.core.ir.types.builtin.hmx.HMXExpr;
 import dgir.core.ir.types.builtin.hmx.HMXInference;
 import dgir.core.ir.types.builtin.hmx.HMXType;
+import dgir.core.ir.types.builtin.hmx.expr.Lit;
 import dgir.core.ir.types.builtin.hmx.TypeInference;
+import dgir.core.ir.types.builtin.hmx.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class CellHMXConversion {
@@ -44,14 +48,14 @@ public final class CellHMXConversion {
       var param = Symbol.<HMXExpr, HMXType>of(operand);
       var absParam = Symbol.<HMXExpr, HMXType>of(new Value());
 
-      var result = new HMXExpr.ExprApp(cellOp.getLocation(),
-          new HMXExpr.ExprAbs(cellOp.getLocation(), absParam,
-              new HMXExpr.ExprVar(cellOp.getLocation(), absParam)),
-          new HMXExpr.ExprVar(cellOp.getLocation(), param));
+      var result = new App(cellOp.getLocation(),
+          new Abs(cellOp.getLocation(), absParam,
+              new Var(cellOp.getLocation(), absParam)),
+          new Var(cellOp.getLocation(), param));
 
       result.setInstantiateOperationCallback(instantiatedExpr -> {
-        assert instantiatedExpr instanceof HMXExpr.ExprApp;
-        var app = (HMXExpr.ExprApp) instantiatedExpr;
+        assert instantiatedExpr instanceof App;
+        var app = (App) instantiatedExpr;
 
         var returnType = app.getInferredType();
         assert returnType.isPresent();
@@ -75,14 +79,14 @@ public final class CellHMXConversion {
               + " be inferred: %s".formatted(op));
     }
 
-    var literalResult = new HMXExpr.ExprApp(cellOp.getLocation(),
-        new HMXExpr.ExprAbs(cellOp.getLocation(), List.of(),
-            new HMXExpr.ExprLit(cellOp.getLocation(), new Literal.Generic(resultValue))),
+    var literalResult = new App(cellOp.getLocation(),
+        new Abs(cellOp.getLocation(), List.of(),
+            new Lit(cellOp.getLocation(), new Literal.Generic(resultValue))),
         List.of());
 
     literalResult.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof HMXExpr.ExprApp;
-      var app = (HMXExpr.ExprApp) instantiatedExpr;
+      assert instantiatedExpr instanceof App;
+      var app = (App) instantiatedExpr;
 
       assert app.getInferredType().isPresent();
       assert app.getInferredType().get().isFullySpecified();
@@ -111,16 +115,16 @@ public final class CellHMXConversion {
     var cellParam = Symbol.<HMXExpr, HMXType>of(new Value());
     var assigneeParam = Symbol.<HMXExpr, HMXType>of(new Value());
 
-    var result = new HMXExpr.ExprApp(setCellOp.getLocation(),
-        new HMXExpr.ExprAbs(setCellOp.getLocation(), List.of(cellParam, assigneeParam),
-            new HMXExpr.ExprLit(setCellOp.getLocation(), new Literal.Unit())),
+    var result = new App(setCellOp.getLocation(),
+        new Abs(setCellOp.getLocation(), List.of(cellParam, assigneeParam),
+            new Lit(setCellOp.getLocation(), new Literal.Unit())),
         List.of(
-            new HMXExpr.ExprVar(setCellOp.getLocation(), cell),
-            new HMXExpr.ExprVar(setCellOp.getLocation(), assignee)));
+            new Var(setCellOp.getLocation(), cell),
+            new Var(setCellOp.getLocation(), assignee)));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof HMXExpr.ExprApp;
-      var app = (HMXExpr.ExprApp) instantiatedExpr;
+      assert instantiatedExpr instanceof App;
+      var app = (App) instantiatedExpr;
 
       var cellValue = app.args().get(0).getOutputValue();
       var assigneeValue = app.args().get(1).getOutputValue();

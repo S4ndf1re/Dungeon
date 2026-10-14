@@ -37,10 +37,10 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
    * Normally, a default implementation is provided,
    * that just applies the solution {@link Subst} to to the previous inferred
    * type.
-   * Some expressions, like {@link ExprAbs} or {@link ExprApp} need to implement a
+   * Some expressions, like {@link Abs} or {@link App} need to implement a
    * different
    * version of `instantiateInner`.
-   * Especially {@link ExprAbs} needs to collect all fully instantiated instances.
+   * Especially {@link Abs} needs to collect all fully instantiated instances.
    *
    * <p>
    * The {@link InstEnv} will act as an {@link Env}, but does not store types but
