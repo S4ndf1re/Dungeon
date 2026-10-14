@@ -9,8 +9,12 @@ import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.builtin.hmx.HMXInference;
 import dgir.core.ir.types.builtin.hmx.HMXType;
+import dgir.core.ir.types.builtin.hmx.expr.LetRec;
+import dgir.core.ir.types.builtin.hmx.expr.Abs;
+import dgir.core.ir.types.builtin.hmx.expr.App;
 import dgir.core.ir.types.builtin.hmx.HMXExpr;
 import dgir.core.ir.types.builtin.hmx.TypeInference;
+import dgir.core.ir.types.builtin.hmx.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.traits.IGlobal;
 import dgir.dialect.builtin.BuiltinOps.IdOp;
@@ -58,8 +62,8 @@ public final class BuiltinHMXConversion {
 
     convertedBlock.setInstantiateOperationCallback(instantiatedExpr -> {
 
-      assert instantiatedExpr instanceof HMXExpr.ExprLetRec;
-      var instantiatedLetExpr = (HMXExpr.ExprLetRec) instantiatedExpr;
+      assert instantiatedExpr instanceof LetRec;
+      var instantiatedLetExpr = (LetRec) instantiatedExpr;
 
       var exprsInBlock = instantiatedLetExpr.getAllChildrenForScopeExpression(instantiatedLetExpr.body());
 
@@ -94,12 +98,12 @@ public final class BuiltinHMXConversion {
     var absParam = Symbol.<HMXExpr, HMXType>of(new Value());
 
     var loc = idOp.getLocation();
-    var expr = new HMXExpr.ExprApp(new HMXExpr.ExprAbs(loc, absParam, new HMXExpr.ExprVar(loc, absParam)),
-        new HMXExpr.ExprVar(loc, param));
+    var expr = new App(new Abs(loc, absParam, new Var(loc, absParam)),
+        new Var(loc, param));
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
 
-      assert instantiatedExpr instanceof HMXExpr.ExprApp;
-      var app = (HMXExpr.ExprApp) instantiatedExpr;
+      assert instantiatedExpr instanceof App;
+      var app = (App) instantiatedExpr;
 
       var returnType = app.getInferredType();
       assert returnType.get().isFullySpecified();

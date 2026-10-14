@@ -7,10 +7,14 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.expr.LetRec;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.traits.IGlobal;
 import dgir.dialect.builtin.BuiltinOps.IdOp;
@@ -58,8 +62,8 @@ public final class BuiltinAlgoWConversion {
 
     convertedBlock.setInstantiateOperationCallback(instantiatedExpr -> {
 
-      assert instantiatedExpr instanceof Expr.ExprLetRec;
-      var instantiatedLetExpr = (Expr.ExprLetRec) instantiatedExpr;
+      assert instantiatedExpr instanceof LetRec;
+      var instantiatedLetExpr = (LetRec) instantiatedExpr;
 
       var exprsInBlock = instantiatedLetExpr.getAllChildrenForScopeExpression(instantiatedLetExpr.body());
 
@@ -94,12 +98,12 @@ public final class BuiltinAlgoWConversion {
     var absParam = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     var loc = idOp.getLocation();
-    var expr = new Expr.ExprApp(new Expr.ExprAbs(loc, absParam, new Expr.ExprVar(loc, absParam)),
-        new Expr.ExprVar(loc, param));
+    var expr = new App(new Abs(loc, absParam, new Var(loc, absParam)),
+        new Var(loc, param));
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
 
-      assert instantiatedExpr instanceof Expr.ExprApp;
-      var app = (Expr.ExprApp) instantiatedExpr;
+      assert instantiatedExpr instanceof App;
+      var app = (App) instantiatedExpr;
 
       var returnType = app.getInferredType();
       assert returnType.get().isFullySpecified();

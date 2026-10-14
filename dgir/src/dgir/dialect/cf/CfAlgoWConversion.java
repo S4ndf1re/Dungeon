@@ -1,6 +1,5 @@
 package dgir.dialect.cf;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -9,16 +8,13 @@ import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.GetChildrenFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InstantiateFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.ReplaceSymbolFunction;
-import dgir.core.ir.types.builtin.algorithmw.InferResult;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.expr.Assert;
+import dgir.core.ir.types.builtin.algorithmw.expr.Branch;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class CfAlgoWConversion {
@@ -35,43 +31,17 @@ public final class CfAlgoWConversion {
   public static Expr convertBranchOp(
       Operation op,
       TypeInference engine) {
-
-    record BranchData(Expr body) {
-    }
-
     CfOps.BranchOp branchOp = (CfOps.BranchOp) op.asOp();
 
     var expr = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(branchOp.getTarget()));
-    var branchOpData = new BranchData(expr);
 
-    InferFunction<BranchData> infFunc = (eng, env, data) -> {
-
-      InferResult resValue = eng.infer(data.body, env);
-      var valueType = resValue.type().deref();
-
-      return valueType;
-    };
-
-    GetChildrenFunction<BranchData> getChildrenFn = (data) -> {
-      return List.of(data.body);
-    };
-
-    InstantiateFunction<BranchData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.ExprCustom<BranchData>(toInstantiate, new BranchData(data.body.instantiate(eng, env, solution)));
-    };
-
-    ReplaceSymbolFunction<BranchData> replaceSymbolFn = (oldExpr, original, replacement, data) -> {
-      return new Expr.ExprCustom<BranchData>(oldExpr, new BranchData(data.body.replaceSymbol(original, replacement)));
-    };
-
-    var result = new Expr.ExprCustom<BranchData>(branchOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
+    var result = new Branch(branchOp.getLocation(), expr);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprCustom;
+      assert instantiatedExpr instanceof Branch;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.ExprCustom<BranchData>) instantiatedExpr;
-      var body = custExpr.getData().body;
+      var custExpr = (Branch) instantiatedExpr;
+      var body = custExpr.block;
 
       var block = new Block();
       body.fillBlockScoped(block);
@@ -88,67 +58,27 @@ public final class CfAlgoWConversion {
       Operation op,
       TypeInference engine) {
 
-    record BranchData(Expr cond, Expr thenCase, Expr elseCase) {
-    }
+    CfOps.BranchCondOp branchCondOp = (CfOps.BranchCondOp) op.asOp();
 
-    CfOps.BranchCondOp castOp = (CfOps.BranchCondOp) op.asOp();
+    var condExpr = new Var(branchCondOp.getLocation(), Symbol.of(branchCondOp.getCond()));
+    var thenCase = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(branchCondOp.getCondTrueBlock()));
+    var elseCase = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(branchCondOp.getCondFalseBlock()));
 
-    var condExpr = new Expr.ExprVar(castOp.getLocation(), Symbol.of(castOp.getCond()));
-    var thenCase = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(castOp.getCondTrueBlock()));
-    var elseCase = engine.generalBlockToInferenceExpr(GeneralBlock.fromBlock(castOp.getCondFalseBlock()));
-    var branchOpData = new BranchData(condExpr, thenCase, elseCase);
-
-    InferFunction<BranchData> infFunc = (eng, env, data) -> {
-
-      InferResult resCond = eng.infer(data.cond(), env);
-      var condType = resCond.type();
-
-      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.from("bool")));
-
-      InferResult resThen = eng.infer(data.thenCase(), env);
-      var thenType = resThen.type();
-
-      InferResult resElse = eng.infer(data.elseCase(), env);
-      var elseType = resElse.type();
-
-      // TODO: figure out if it would actually be better if unit is returned,
-      // always!
-      eng.unify(thenType, elseType);
-      var finalType = thenType.deref();
-
-      return finalType;
-    };
-
-    GetChildrenFunction<BranchData> getChildrenFn = (data) -> {
-      return List.of(data.cond, data.thenCase, data.elseCase);
-    };
-
-    InstantiateFunction<BranchData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.ExprCustom<BranchData>(toInstantiate, new BranchData(data.cond.instantiate(eng, env, solution),
-          data.thenCase.instantiate(eng, env, solution), data.elseCase.instantiate(eng, env, solution)));
-    };
-
-    ReplaceSymbolFunction<BranchData> replaceSymbolFn = (oldExpr, original, replacement, data) -> {
-      return new Expr.ExprCustom<BranchData>(oldExpr, new BranchData(data.cond.replaceSymbol(original, replacement),
-          data.thenCase.replaceSymbol(original, replacement), data.elseCase.replaceSymbol(original, replacement)));
-    };
-
-    var result = new Expr.ExprCustom<BranchData>(branchOpData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
+    var result = new Branch(branchCondOp.getLocation(), condExpr, thenCase, elseCase);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprCustom;
+      assert instantiatedExpr instanceof Branch;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.ExprCustom<BranchData>) instantiatedExpr;
-      var data = custExpr.getData();
+      var branchExpr = (Branch) instantiatedExpr;
+      assert branchExpr.condition.isPresent();
 
-      var condValue = data.cond.getOutputValue();
+      var condValue = branchExpr.condition.get().getLeft().getOutputValue();
 
       var thenBlock = new Block();
-      data.thenCase.fillBlockScoped(thenBlock);
+      branchExpr.condition.get().getRight().fillBlockScoped(thenBlock);
 
       var elseBlock = new Block();
-      data.elseCase.fillBlockScoped(elseBlock);
+      branchExpr.block.fillBlockScoped(elseBlock);
 
       var newCfOp = new CfOps.BranchCondOp(op.getLocation(), condValue, thenBlock, elseBlock).getOperation();
       newCfOp.getTemporaryRegion().addBlock(thenBlock);
@@ -164,64 +94,23 @@ public final class CfAlgoWConversion {
       Operation op,
       TypeInference engine) {
 
-    record AssertData(Expr cond, Optional<Expr> message) {
-    }
-
     CfOps.AssertOp assertOp = (CfOps.AssertOp) op.asOp();
 
-    Expr condExpr = new Expr.ExprVar(assertOp.getLocation(), Symbol.of(assertOp.getCond()));
-    Optional<Expr> messageExpr =
-        assertOp.getMessage().map(msg -> new Expr.ExprVar(assertOp.getLocation(), Symbol.of(msg)));
-    var assertData = new AssertData(condExpr, messageExpr);
+    Expr condExpr = new Var(assertOp.getLocation(), Symbol.of(assertOp.getCond()));
+    Optional<Expr> messageExpr = assertOp.getMessage()
+        .map(msg -> new Var(assertOp.getLocation(), Symbol.of(msg)));
 
-    InferFunction<AssertData> infFunc = (eng, env, data) -> {
-
-      InferResult resCond = eng.infer(data.cond(), env);
-      var condType = resCond.type();
-
-      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.from("bool")));
-
-      if (data.message.isPresent()) {
-        InferResult resMessage = eng.infer(data.message.get(), env);
-        var messageType = resMessage.type();
-
-        eng.unify(messageType, new AlgorithmWType.LitType(TypeIdent.from("string")));
-      }
-
-      return new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT);
-    };
-
-    GetChildrenFunction<AssertData> getChildrenFn = (data) -> {
-      if (data.message.isPresent()) {
-        return List.of(data.cond, data.message.get());
-      } else {
-        return List.of(data.cond);
-      }
-    };
-
-    InstantiateFunction<AssertData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.ExprCustom<AssertData>(toInstantiate, new AssertData(data.cond.instantiate(eng, env, solution),
-          data.message.map(msg -> msg.instantiate(engine, env, solution))));
-    };
-
-    ReplaceSymbolFunction<AssertData> replaceSymbolFn = (oldExpr, original, replacement, data) -> {
-      return new Expr.ExprCustom<AssertData>(oldExpr, new AssertData(data.cond.replaceSymbol(original, replacement),
-          data.message.map(msg -> msg.replaceSymbol(original, replacement))));
-    };
-
-    var result = new Expr.ExprCustom<AssertData>(assertData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
+    var result = new Assert(assertOp.getLocation(), condExpr, messageExpr);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprCustom;
+      assert instantiatedExpr instanceof Assert;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.ExprCustom<AssertData>) instantiatedExpr;
-      var data = custExpr.getData();
+      var custExpr = (Assert) instantiatedExpr;
 
-      var condValue = data.cond.getOutputValue();
+      var condValue = custExpr.cond.getOutputValue();
 
-      if (data.message.isPresent()) {
-        var messageValue = data.message.get().getOutputValue();
+      if (custExpr.message.isPresent()) {
+        var messageValue = custExpr.message.get().getOutputValue();
 
         return new CfOps.AssertOp(op.getLocation(), condValue, messageValue).getOperation();
       } else {

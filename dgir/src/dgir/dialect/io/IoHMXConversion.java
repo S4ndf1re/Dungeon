@@ -10,10 +10,14 @@ import dgir.core.ir.Value;
 import dgir.core.ir.ValueOperand;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.builtin.hmx.expr.Abs;
+import dgir.core.ir.types.builtin.hmx.expr.App;
 import dgir.core.ir.types.builtin.hmx.HMXExpr;
 import dgir.core.ir.types.builtin.hmx.HMXInference;
 import dgir.core.ir.types.builtin.hmx.HMXType;
+import dgir.core.ir.types.builtin.hmx.expr.Lit;
 import dgir.core.ir.types.builtin.hmx.TypeInference;
+import dgir.core.ir.types.builtin.hmx.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class IoHMXConversion {
@@ -38,15 +42,15 @@ public final class IoHMXConversion {
     List<Symbol<HMXExpr, HMXType>> paramsCopy = params.stream()
         .map(param -> Symbol.<HMXExpr, HMXType>of(new Value())).toList();
 
-    var result = new HMXExpr.ExprApp(op.getLocation(),
-        new HMXExpr.ExprAbs(op.getLocation(), paramsCopy,
-            new HMXExpr.ExprLit(op.getLocation(), new Literal.Unit())),
-        params.stream().map(param -> (HMXExpr) new HMXExpr.ExprVar(op.getLocation(), param)).toList());
+    var result = new App(op.getLocation(),
+        new Abs(op.getLocation(), paramsCopy,
+            new Lit(op.getLocation(), new Literal.Unit())),
+        params.stream().map(param -> (HMXExpr) new Var(op.getLocation(), param)).toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof HMXExpr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
-      var app = (HMXExpr.ExprApp) instantiatedExpr;
+      var app = (App) instantiatedExpr;
 
       return new IoOps.PrintOp(op.getLocation(),
           app.args().stream()
@@ -63,12 +67,12 @@ public final class IoHMXConversion {
 
     IoOps.ConsoleInOp castOp = (IoOps.ConsoleInOp) op.asOp();
 
-    var result = new HMXExpr.ExprApp(op.getLocation(),
-        new HMXExpr.ExprAbs(op.getLocation(), List.of(),
-            new HMXExpr.ExprLit(op.getLocation(), new Literal.Generic(castOp.getResult()))), List.of());
+    var result = new App(op.getLocation(),
+        new Abs(op.getLocation(), List.of(),
+            new Lit(op.getLocation(), new Literal.Generic(castOp.getResult()))), List.of());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof HMXExpr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
       assert instantiatedExpr.getInferredType().isPresent();
       assert instantiatedExpr.getInferredType().get().isFullySpecified();
