@@ -105,14 +105,7 @@ public final class ArithSystemFConversion {
 
       var resultType = expectedResultType(eng, resultIrType);
 
-      return new TypeResult(
-          resultType,
-          currentCtx,
-          new dgir.core.ir.types.InferenceTree(
-              "InfBinOp",
-              ctx + " |- " + data,
-              resultType.toString(),
-              List.of(resLhs.tree(), resRhs.tree())));
+      return new TypeResult(resultType, currentCtx);
     };
 
     GetChildrenFunction<BinOpData> getChildrenFn = (data) -> List.of(data.lhs, data.rhs);
@@ -170,14 +163,7 @@ public final class ArithSystemFConversion {
 
       var resultType = expectedResultType(eng, resultIrType);
 
-      return new TypeResult(
-          resultType,
-          currentCtx,
-          new dgir.core.ir.types.InferenceTree(
-              "InfUnaryOp",
-              ctx + " |- " + data,
-              resultType.toString(),
-              List.of(resLhs.tree())));
+      return new TypeResult(resultType, currentCtx);
     };
 
     GetChildrenFunction<UnaryData> getChildrenFn = (data) -> List.of(data.lhs);
@@ -235,14 +221,7 @@ public final class ArithSystemFConversion {
 
       var resultType = expectedResultType(eng, resultIrType);
 
-      return new TypeResult(
-          resultType,
-          currentCtx,
-          new dgir.core.ir.types.InferenceTree(
-              "InfCast",
-              ctx + " |- " + data,
-              resultType.toString(),
-              List.of(resValue.tree())));
+      return new TypeResult(resultType, currentCtx);
     };
 
     GetChildrenFunction<CastData> getChildrenFn = (data) -> List.of(data.value);
