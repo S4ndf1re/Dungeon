@@ -12,10 +12,15 @@ import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
+import dgir.core.ir.types.builtin.algorithmw.expr.Return;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.traits.ISymbol.SymbolTableSymbol;
 import dgir.dialect.func.FuncOps.CallIndirectOp;
@@ -52,12 +57,12 @@ public final class FuncAlgoWConversion {
       throw new IllegalArgumentException("Invalid, as the engine is not of type algorithm w");
     }
 
-    var expr = new Expr.ExprAbs(op.getLocation(), List.copyOf(params), (Expr) blockAsExpr);
+    var expr = new Abs(op.getLocation(), List.copyOf(params), (Expr) blockAsExpr);
 
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
 
-      assert instantiatedExpr instanceof Expr.ExprAbs;
-      var abs = (Expr.ExprAbs) instantiatedExpr;
+      assert instantiatedExpr instanceof Abs;
+      var abs = (Abs) instantiatedExpr;
       var body = abs.body();
 
       Type funcType = abs.inferredTypeToIrType();
@@ -93,14 +98,14 @@ public final class FuncAlgoWConversion {
 
     Expr result = null;
     if (returnOp.getReturnValue().isPresent()) {
-      result = new Expr.ExprReturn(returnOp.getLocation(), new Expr.ExprVar(returnOp.getLocation(), Symbol.of(returnOp.getReturnValue().get())));
+      result = new Return(returnOp.getLocation(), new Var(returnOp.getLocation(), Symbol.of(returnOp.getReturnValue().get())));
     } else {
-      result = new Expr.ExprReturn(returnOp.getLocation(), new Expr.ExprLit(returnOp.getLocation(), new Literal.Unit()));
+      result = new Return(returnOp.getLocation(), new Lit(returnOp.getLocation(), new Literal.Unit()));
     }
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprReturn;
-      var retExpr = (Expr.ExprReturn) instantiatedExpr;
+      assert instantiatedExpr instanceof Return;
+      var retExpr = (Return) instantiatedExpr;
 
       var type = retExpr.getInferredType();
 
@@ -123,14 +128,14 @@ public final class FuncAlgoWConversion {
       TypeInference engine) {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
 
-    var result = new Expr.ExprApp(callOp.getLocation(), new Expr.ExprVar(callOp.getLocation(), Symbol.of(callOp.getCallee())),
+    var result = new App(callOp.getLocation(), new Var(callOp.getLocation(), Symbol.of(callOp.getCallee())),
         callOp.getOperands().stream()
-            .map(operand -> (Expr) new Expr.ExprVar(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList());
+            .map(operand -> (Expr) new Var(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
-      var app = (Expr.ExprApp) instantiatedExpr;
+      var app = (App) instantiatedExpr;
 
       var funcType = app.getInferredFunctionType();
       assert funcType.isPresent();
@@ -160,14 +165,14 @@ public final class FuncAlgoWConversion {
     var functionValue = callOp.getOperandValue(0).get();
     var params = callOp.getOperands().subList(1, callOp.getOperands().size());
 
-    var result = new Expr.ExprApp(callOp.getLocation(), new Expr.ExprVar(callOp.getLocation(), Symbol.of(functionValue)),
+    var result = new App(callOp.getLocation(), new Var(callOp.getLocation(), Symbol.of(functionValue)),
         params.stream()
-            .map(operand -> (Expr) new Expr.ExprVar(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList());
+            .map(operand -> (Expr) new Var(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
-      var app = (Expr.ExprApp) instantiatedExpr;
+      var app = (App) instantiatedExpr;
 
       var applicationArgs = app.getAllApplicationParameters();
 
@@ -204,17 +209,17 @@ public final class FuncAlgoWConversion {
       values.add(Symbol.of(new Value()));
     }
 
-    var result = new Expr.ExprAbs(constOp.getLocation(), List.copyOf(values),
-        new Expr.ExprApp(constOp.getLocation(), new Expr.ExprVar(constOp.getLocation(), Symbol.of(new SymbolTableSymbol(funcName, funcType))),
-            values.stream().map(arg -> (Expr) new Expr.ExprVar(constOp.getLocation(), arg)).toList()));
+    var result = new Abs(constOp.getLocation(), List.copyOf(values),
+        new App(constOp.getLocation(), new Var(constOp.getLocation(), Symbol.of(new SymbolTableSymbol(funcName, funcType))),
+            values.stream().map(arg -> (Expr) new Var(constOp.getLocation(), arg)).toList()));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprAbs;
+      assert instantiatedExpr instanceof Abs;
 
-      var abs = (Expr.ExprAbs) instantiatedExpr;
+      var abs = (Abs) instantiatedExpr;
 
-      assert abs.body() instanceof Expr.ExprApp;
-      var app = (Expr.ExprApp) abs.body();
+      assert abs.body() instanceof App;
+      var app = (App) abs.body();
 
       var irType = app.inferredTypeToIrType();
       assert irType instanceof FuncTypes.FuncType;

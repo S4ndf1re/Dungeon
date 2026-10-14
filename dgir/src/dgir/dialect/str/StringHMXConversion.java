@@ -10,10 +10,14 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.builtin.hmx.HMXExpr;
 import dgir.core.ir.types.builtin.hmx.HMXInference;
 import dgir.core.ir.types.builtin.hmx.HMXType;
-import dgir.core.ir.types.builtin.hmx.HMXExpr;
 import dgir.core.ir.types.builtin.hmx.TypeInference;
+import dgir.core.ir.types.builtin.hmx.expr.Lit;
+import dgir.core.ir.types.builtin.hmx.expr.Abs;
+import dgir.core.ir.types.builtin.hmx.expr.App;
+import dgir.core.ir.types.builtin.hmx.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class StringHMXConversion {
@@ -156,17 +160,17 @@ public final class StringHMXConversion {
         .map(operand -> Symbol.<HMXExpr, HMXType>of(new Value()))
         .toList();
 
-    var result = new HMXExpr.ExprApp(op.getLocation(),
-        new HMXExpr.ExprAbs(op.getLocation(), params,
-            new HMXExpr.ExprLit(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow()))),
+    var result = new App(op.getLocation(),
+        new Abs(op.getLocation(), params,
+            new Lit(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow()))),
         op.getOperands().stream()
-            .<HMXExpr>map(operand -> new HMXExpr.ExprVar(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
+            .<HMXExpr>map(operand -> new Var(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
             .toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof HMXExpr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
-      var app = (HMXExpr.ExprApp) instantiatedExpr;
+      var app = (App) instantiatedExpr;
 
       List<Value> argResults = app.args().stream()
           .map(e -> e.getOutputValue())

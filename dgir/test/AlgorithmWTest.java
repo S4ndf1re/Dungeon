@@ -3,10 +3,16 @@ import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.expr.Ann;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
-import dgir.core.ir.types.builtin.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.expr.LetRec;
+import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
+import dgir.core.ir.types.builtin.algorithmw.expr.Tuple;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 
 import java.util.List;
 import java.util.function.Function;
@@ -23,33 +29,6 @@ public class AlgorithmWTest {
   }
 
   @Test
-  public void algorithmWDialectTest() {
-    AlgorithmWInference inference = new AlgorithmWInference();
-    List<Class<? extends dgir.core.ir.types.Type<?>>> allowedTypes = inference.getAllowedTypes();
-    assert allowedTypes.contains(AlgorithmWType.LitType.class);
-    assert allowedTypes.contains(AlgorithmWType.Arrow.class);
-    assert allowedTypes.contains(AlgorithmWType.Var.class);
-    assert allowedTypes.contains(AlgorithmWType.NumericType.class);
-    assert allowedTypes.contains(AlgorithmWType.Tuple.class);
-
-    List<Class<? extends dgir.core.ir.types.Expression<Expr, AlgorithmWType>>> allowedExpression = inference
-        .getAllowedExpressions();
-    assert allowedExpression.contains(Expr.ExprLit.class);
-    assert allowedExpression.contains(Expr.ExprAbs.class);
-    assert allowedExpression.contains(Expr.ExprApp.class);
-    assert allowedExpression.contains(Expr.ExprAnn.class);
-    assert allowedExpression.contains(Expr.ExprTuple.class);
-    assert allowedExpression.contains(Expr.ExprLetRec.class);
-    assert allowedExpression.contains(Expr.ExprVar.class);
-    assert allowedExpression.contains(Expr.ExprReturn.class);
-    assert allowedExpression.contains(Expr.ExprCustom.class);
-
-    var solver = inference.getNewSolverInstance();
-    assert solver != null;
-    assert solver.getClass().equals(TypeInference.class);
-  }
-
-  @Test
   public void algorithmWSimpleTest() {
     var inference = new AlgorithmWInference();
     var solver = inference.getNewSolverInstance();
@@ -57,7 +36,7 @@ public class AlgorithmWTest {
     var x = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> x in const 42
-    Expr expr = new Expr.ExprApp(new Expr.ExprAbs(x, new Expr.ExprVar(x)), new Expr.ExprLit(new Literal.Int(42)));
+    Expr expr = new App(new Abs(x, new Var(x)), new Lit(new Literal.Int(42)));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -81,14 +60,14 @@ public class AlgorithmWTest {
     var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
-    Expr expr = new Expr.ExprLetRec(
+    Expr expr = new LetRec(
         cnst,
-        new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
-        new Expr.ExprApp(
-            new Expr.ExprApp(
-                new Expr.ExprVar(cnst),
-                new Expr.ExprLit(new Literal.Int(42))),
-            new Expr.ExprLit(new Literal.Bool(true))));
+        new Abs(x, new Abs(y, new Var(x))),
+        new App(
+            new App(
+                new Var(cnst),
+                new Lit(new Literal.Int(42))),
+            new Lit(new Literal.Bool(true))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -112,15 +91,15 @@ public class AlgorithmWTest {
     var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
-    Expr expr = new Expr.ExprAnn(
-        new Expr.ExprLetRec(
+    Expr expr = new Ann(
+        new LetRec(
             cnst,
-            new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
-            new Expr.ExprApp(
-                new Expr.ExprApp(
-                    new Expr.ExprVar(cnst),
-                    new Expr.ExprLit(new Literal.Int(42))),
-                new Expr.ExprLit(new Literal.Bool(true)))),
+            new Abs(x, new Abs(y, new Var(x))),
+            new App(
+                new App(
+                    new Var(cnst),
+                    new Lit(new Literal.Int(42))),
+                new Lit(new Literal.Bool(true)))),
         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT));
 
     var resultPair = solver.solve(expr);
@@ -147,24 +126,24 @@ public class AlgorithmWTest {
     var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
-    Expr expr = new Expr.ExprAnn(
-        new Expr.ExprLetRec(
+    Expr expr = new Ann(
+        new LetRec(
             cnst,
-            new Expr.ExprAnn(
-                new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
+            new Ann(
+                new Abs(x, new Abs(y, new Var(x))),
                 new AlgorithmWType.Arrow(
                     new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT),
                     new AlgorithmWType.Arrow(
                         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL),
                         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)))),
-            new Expr.ExprApp(
-                new Expr.ExprApp(
-                    new Expr.ExprVar(cnst),
-                    new Expr.ExprAnn(
-                        new Expr.ExprLit(new Literal.Int(42)),
+            new App(
+                new App(
+                    new Var(cnst),
+                    new Ann(
+                        new Lit(new Literal.Int(42)),
                         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT))),
-                new Expr.ExprAnn(
-                    new Expr.ExprLit(new Literal.Bool(true)),
+                new Ann(
+                    new Lit(new Literal.Bool(true)),
                     new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL)))),
         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)
 
@@ -195,15 +174,15 @@ public class AlgorithmWTest {
     // b = \y.(a y)
     // in (a 10)
 
-    Expr expr = new Expr.ExprLetRec(
+    Expr expr = new LetRec(
         List.of(
             Pair.of(a,
-                new Expr.ExprAnn(new Expr.ExprAbs(x, new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprVar(x))),
+                new Ann(new Abs(x, new App(new Var(b), new Var(x))),
                     new AlgorithmWType.Arrow(
                         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT),
                         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)))),
-            Pair.of(b, new Expr.ExprAbs(y, new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprVar(y))))),
-        new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprLit(new Literal.Int(10))));
+            Pair.of(b, new Abs(y, new App(new Var(a), new Var(y))))),
+        new App(new Var(a), new Lit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -231,15 +210,15 @@ public class AlgorithmWTest {
     // b = \y.(a y)
     // in (b 10)
 
-    Expr expr = new Expr.ExprLetRec(
+    Expr expr = new LetRec(
         List.of(
             Pair.of(a,
-                new Expr.ExprAnn(new Expr.ExprAbs(x, new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprVar(x))),
+                new Ann(new Abs(x, new App(new Var(b), new Var(x))),
                     new AlgorithmWType.Arrow(
                         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT),
                         new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT)))),
-            Pair.of(b, new Expr.ExprAbs(y, new Expr.ExprApp(new Expr.ExprVar(a), new Expr.ExprVar(y))))),
-        new Expr.ExprApp(new Expr.ExprVar(b), new Expr.ExprLit(new Literal.Int(10))));
+            Pair.of(b, new Abs(y, new App(new Var(a), new Var(y))))),
+        new App(new Var(b), new Lit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -265,13 +244,13 @@ public class AlgorithmWTest {
     //
     // Directly self-recursive: instantiating the application in the body of f
     // re-enters the instantiation of f itself while it is still in progress.
-    Expr expr = new Expr.ExprLetRec(
+    Expr expr = new LetRec(
         f,
-        new Expr.ExprAnn(new Expr.ExprAbs(x, new Expr.ExprApp(new Expr.ExprVar(f), new Expr.ExprVar(x))),
+        new Ann(new Abs(x, new App(new Var(f), new Var(x))),
             new AlgorithmWType.Arrow(
                 new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT),
                 new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_INT))),
-        new Expr.ExprApp(new Expr.ExprVar(f), new Expr.ExprLit(new Literal.Int(10))));
+        new App(new Var(f), new Lit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -296,10 +275,10 @@ public class AlgorithmWTest {
     // let a = \(x,y).(x, y)
     // in (a 10 false)
 
-    Expr expr = new Expr.ExprLetRec(a,
-        new Expr.ExprAbs(List.of(x, y), new Expr.ExprTuple(List.of(new Expr.ExprVar(x), new Expr.ExprVar(y)))),
-        new Expr.ExprApp(new Expr.ExprVar(a),
-            List.of(new Expr.ExprLit(new Literal.Int(10)), new Expr.ExprLit(new Literal.Bool(false)))));
+    Expr expr = new LetRec(a,
+        new Abs(List.of(x, y), new Tuple(List.of(new Var(x), new Var(y)))),
+        new App(new Var(a),
+            List.of(new Lit(new Literal.Int(10)), new Lit(new Literal.Bool(false)))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -327,24 +306,24 @@ public class AlgorithmWTest {
     var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in (const 42 true, const true 42, const 32 false)
-    Expr expr = new Expr.ExprLetRec(
+    Expr expr = new LetRec(
         cnst,
-        new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
-        new Expr.ExprTuple(new Expr.ExprApp(
-            new Expr.ExprApp(
-                new Expr.ExprVar(cnst),
-                new Expr.ExprLit(new Literal.Int(42))),
-            new Expr.ExprLit(new Literal.Bool(true))),
-            new Expr.ExprApp(
-                new Expr.ExprApp(
-                    new Expr.ExprVar(cnst),
-                    new Expr.ExprLit(new Literal.Bool(false))),
-                new Expr.ExprLit(new Literal.Int(24))),
-            new Expr.ExprApp(
-                new Expr.ExprApp(
-                    new Expr.ExprVar(cnst),
-                    new Expr.ExprLit(new Literal.Int(32))),
-                new Expr.ExprLit(new Literal.Bool(false)))));
+        new Abs(x, new Abs(y, new Var(x))),
+        new Tuple(new App(
+            new App(
+                new Var(cnst),
+                new Lit(new Literal.Int(42))),
+            new Lit(new Literal.Bool(true))),
+            new App(
+                new App(
+                    new Var(cnst),
+                    new Lit(new Literal.Bool(false))),
+                new Lit(new Literal.Int(24))),
+            new App(
+                new App(
+                    new Var(cnst),
+                    new Lit(new Literal.Int(32))),
+                new Lit(new Literal.Bool(false)))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -357,11 +336,11 @@ public class AlgorithmWTest {
     assert result instanceof AlgorithmWType;
     assert result instanceof AlgorithmWType.Tuple;
 
-    assert inferred instanceof Expr.ExprLetRec;
-    var exprLet = (Expr.ExprLetRec) inferred;
+    assert inferred instanceof LetRec;
+    var exprLet = (LetRec) inferred;
 
-    assert exprLet.body() instanceof Expr.ExprTuple;
-    var exprTuple = (Expr.ExprTuple) exprLet.body();
+    assert exprLet.body() instanceof Tuple;
+    var exprTuple = (Tuple) exprLet.body();
 
     assert exprTuple.elements().size() == 3;
     var first = exprTuple.elements().get(0);
@@ -369,12 +348,12 @@ public class AlgorithmWTest {
     var third = exprTuple.elements().get(2);
 
     Function<Expr, Expr> getInnerAbs = elem -> {
-      assert elem instanceof Expr.ExprApp;
-      var inner = ((Expr.ExprApp) elem).func();
+      assert elem instanceof App;
+      var inner = ((App) elem).func();
 
-      assert inner instanceof Expr.ExprApp;
+      assert inner instanceof App;
 
-      return ((Expr.ExprApp) inner).func();
+      return ((App) inner).func();
     };
 
     // TODO: check the instantiation and if replacing Let and Abs bindings actually

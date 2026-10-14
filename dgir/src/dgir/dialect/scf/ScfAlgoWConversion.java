@@ -7,19 +7,19 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
+import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.TypeIdent;
-import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.GetChildrenFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InferFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.InstantiateFunction;
-import dgir.core.ir.types.builtin.algorithmw.Expr.ExprCustom.ReplaceSymbolFunction;
-import dgir.core.ir.types.builtin.algorithmw.InferResult;
+import dgir.core.ir.types.builtin.algorithmw.expr.If;
+import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
+import dgir.core.ir.types.builtin.algorithmw.expr.While;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 
 public final class ScfAlgoWConversion {
@@ -43,77 +43,22 @@ public final class ScfAlgoWConversion {
       Operation op,
       TypeInference engine) {
 
-    record IfData(Expr cond, Expr thenCase, Optional<Expr> elseCase) {
-    }
-
     ScfOps.IfOp ifOp = (ScfOps.IfOp) op.asOp();
 
-    var condExpr = new Expr.ExprVar(op.getLocation(), Symbol.of(ifOp.getOperandValue(0).orElseThrow()));
-    var thenCase = OperationExprConversionUtils.regionToExpr(engine, ifOp.getThenRegion());
+    Expr condExpr = new Var(op.getLocation(), Symbol.of(ifOp.getOperandValue(0).orElseThrow()));
+    Expr thenCase = OperationExprConversionUtils.regionToExpr(engine, ifOp.getThenRegion());
     Optional<Expr> elseCase = ifOp.getElseRegion()
         .map(region -> OperationExprConversionUtils.regionToExpr(engine, region));
-    var ifData = new IfData(condExpr, thenCase, elseCase);
 
-    InferFunction<IfData> infFunc = (eng, env, data) -> {
-
-      InferResult resCond = eng.infer(data.cond(), env);
-      var condType = resCond.type();
-
-      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
-
-      InferResult resThen = eng.infer(data.thenCase(), env);
-      var thenType = resThen.type();
-
-      if (data.elseCase().isPresent()) {
-        InferResult resElse = eng.infer(data.elseCase().get(), env);
-        var elseType = resElse.type();
-
-        eng.unify(thenType, elseType);
-      }
-
-      AlgorithmWType resultType;
-      if (op.getOutput().isPresent()) {
-        resultType = thenType;
-      } else {
-        // An if without results is only well-typed when both branches are unit.
-        eng.unify(thenType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
-        resultType = new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT);
-      }
-
-      return resultType;
-    };
-
-    GetChildrenFunction<IfData> getChildrenFn = (data) -> {
-      if (data.elseCase().isPresent()) {
-        return List.of(data.cond(), data.thenCase(), data.elseCase().get());
-      } else {
-        return List.of(data.cond(), data.thenCase());
-      }
-    };
-
-    InstantiateFunction<IfData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.ExprCustom<IfData>(toInstantiate, new IfData(data.cond().instantiate(eng, env, solution),
-          data.thenCase().instantiate(eng, env, solution),
-          data.elseCase().map(elseExpr -> elseExpr.instantiate(eng, env, solution))));
-    };
-
-    ReplaceSymbolFunction<IfData> replaceSymbolFn = (oldExpr, original, replacement, data) -> {
-      return new Expr.ExprCustom<IfData>(oldExpr, new IfData(data.cond().replaceSymbol(original, replacement),
-          data.thenCase().replaceSymbol(original, replacement),
-          data.elseCase().map(elseExpr -> elseExpr.replaceSymbol(original, replacement))));
-    };
-
-    var result = new Expr.ExprCustom<IfData>(ifData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
+    var result = new If(ifOp.getLocation(), condExpr, thenCase, elseCase);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprCustom;
+      assert instantiatedExpr instanceof If;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.ExprCustom<IfData>) instantiatedExpr;
-      var data = custExpr.getData();
+      var custExpr = (If) instantiatedExpr;
 
-      var condValue = data.cond().getOutputValue();
-      boolean withElse = data.elseCase().isPresent();
+      var condValue = custExpr.cond.getOutputValue();
+      boolean withElse = custExpr.elseExpr.isPresent();
 
       ScfOps.IfOp newIf;
       if (op.getOutput().isPresent()) {
@@ -124,9 +69,9 @@ public final class ScfAlgoWConversion {
       }
       var newOp = newIf.getOperation();
 
-      data.thenCase.fillOpScoped(newOp, 0);
+      custExpr.thenExpr.fillOpScoped(newOp, 0);
       if (withElse) {
-        data.elseCase.get().fillOpScoped(newOp, 1);
+        custExpr.elseExpr.get().fillOpScoped(newOp, 1);
       }
 
       return newOp;
@@ -173,19 +118,19 @@ public final class ScfAlgoWConversion {
         Symbol.of(forOp.getInductionValue()));
 
     var loc = op.getLocation();
-    var result = new Expr.ExprApp(
+    var result = new App(
         loc,
-        new Expr.ExprAbs(loc, params, OperationExprConversionUtils.regionToExpr(engine, forOp.getRegion())),
+        new Abs(loc, params, OperationExprConversionUtils.regionToExpr(engine, forOp.getRegion())),
         List.of(
-            new Expr.ExprVar(loc, Symbol.of(forOp.getInitialValue())),
-            new Expr.ExprVar(loc, Symbol.of(forOp.getLowerBound())),
-            new Expr.ExprVar(loc, Symbol.of(forOp.getUpperBound())),
-            new Expr.ExprVar(loc, Symbol.of(forOp.getStep()))));
+            new Var(loc, Symbol.of(forOp.getInitialValue())),
+            new Var(loc, Symbol.of(forOp.getLowerBound())),
+            new Var(loc, Symbol.of(forOp.getUpperBound())),
+            new Var(loc, Symbol.of(forOp.getStep()))));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprApp;
+      assert instantiatedExpr instanceof App;
 
-      var app = (Expr.ExprApp) instantiatedExpr;
+      var app = (App) instantiatedExpr;
       assert app.args().size() == 4;
 
       List<Value> argResults = app.args().stream()
@@ -195,8 +140,8 @@ public final class ScfAlgoWConversion {
           argResults.get(3));
       var newOp = newForOp.getOperation();
 
-      assert app.func() instanceof Expr.ExprAbs;
-      var instantiatedAbs = (Expr.ExprAbs) app.func();
+      assert app.func() instanceof Abs;
+      var instantiatedAbs = (Abs) app.func();
       instantiatedAbs.body().fillOpScoped(newOp, 0);
 
       var newRegion = newForOp.getRegion();
@@ -222,58 +167,23 @@ public final class ScfAlgoWConversion {
       Operation op,
       TypeInference engine) {
 
-    record WhileData(Expr cond, Expr body) {
-    }
-
     ScfOps.WhileOp whileOp = (ScfOps.WhileOp) op.asOp();
 
-    var whileData = new WhileData(
-        OperationExprConversionUtils.regionToExpr(engine, whileOp.getConditionRegion()),
-        OperationExprConversionUtils.regionToExpr(engine, whileOp.getBodyRegion()));
+    Expr cond = OperationExprConversionUtils.regionToExpr(engine, whileOp.getConditionRegion());
+    Expr body = OperationExprConversionUtils.regionToExpr(engine, whileOp.getBodyRegion());
 
-    InferFunction<WhileData> infFunc = (eng, env, data) -> {
-
-      InferResult resCond = eng.infer(data.cond(), env);
-      var condType = resCond.type();
-
-      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
-
-      InferResult resBody = eng.infer(data.body(), env);
-      var bodyType = resBody.type();
-
-      eng.unify(bodyType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
-
-      return new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT);
-    };
-
-    GetChildrenFunction<WhileData> getChildrenFn = (data) -> {
-      return List.of(data.cond(), data.body());
-    };
-
-    InstantiateFunction<WhileData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.ExprCustom<WhileData>(toInstantiate, new WhileData(
-          data.cond().instantiate(eng, env, solution), data.body().instantiate(eng, env, solution)));
-    };
-
-    ReplaceSymbolFunction<WhileData> replaceSymbolFn = (oldExpr, original, replacement, data) -> {
-      return new Expr.ExprCustom<WhileData>(oldExpr, new WhileData(
-          data.cond().replaceSymbol(original, replacement), data.body().replaceSymbol(original, replacement)));
-    };
-
-    var result = new Expr.ExprCustom<WhileData>(whileData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
+    var result = new While(whileOp.getLocation(), cond, body);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprCustom;
+      assert instantiatedExpr instanceof While;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.ExprCustom<WhileData>) instantiatedExpr;
-      var data = custExpr.getData();
+      var custExpr = (While) instantiatedExpr;
 
       var newWhile = new ScfOps.WhileOp(op.getLocation());
       var newOp = newWhile.getOperation();
 
-      data.cond().fillOpScoped(newOp, 0);
-      data.body().fillOpScoped(newOp, 1);
+      custExpr.cond.fillOpScoped(newOp, 0);
+      custExpr.body.fillOpScoped(newOp, 1);
 
       return newOp;
     });
@@ -285,66 +195,24 @@ public final class ScfAlgoWConversion {
       Operation op,
       TypeInference engine) {
 
-    record SelectData(Expr cond, Expr trueVal, Expr falseVal) {
-    }
-
     ScfOps.SelectOp selectOp = (ScfOps.SelectOp) op.asOp();
 
-    var selectData = new SelectData(
-        new Expr.ExprVar(selectOp.getLocation(), Symbol.of(selectOp.getCondition())),
-        new Expr.ExprVar(selectOp.getLocation(), Symbol.of(selectOp.getTrue())),
-        new Expr.ExprVar(selectOp.getLocation(), Symbol.of(selectOp.getFalse())));
+    Expr cond = new Var(selectOp.getLocation(), Symbol.of(selectOp.getCondition()));
+    Expr thenExpr = new Var(selectOp.getLocation(), Symbol.of(selectOp.getTrue()));
+    Expr elseExpr = new Var(selectOp.getLocation(), Symbol.of(selectOp.getFalse()));
 
-    InferFunction<SelectData> infFunc = (eng, env, data) -> {
-
-      InferResult resCond = eng.infer(data.cond(), env);
-      var condType = resCond.type();
-
-      eng.unify(condType, new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_BOOL));
-
-      InferResult resTrue = eng.infer(data.trueVal(), env);
-      var trueType = resTrue.type();
-
-      InferResult resFalse = eng.infer(data.falseVal(), env);
-      var falseType = resFalse.type();
-
-      eng.unify(trueType, falseType);
-      var resultType = trueType;
-
-      return resultType;
-    };
-
-    GetChildrenFunction<SelectData> getChildrenFn = (data) -> {
-      return List.of(data.cond(), data.trueVal(), data.falseVal());
-    };
-
-    InstantiateFunction<SelectData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.ExprCustom<SelectData>(toInstantiate, new SelectData(
-          data.cond().instantiate(eng, env, solution),
-          data.trueVal().instantiate(eng, env, solution),
-          data.falseVal().instantiate(eng, env, solution)));
-    };
-
-    ReplaceSymbolFunction<SelectData> replaceSymbolFn = (oldExpr, original, replacement, data) -> {
-      return new Expr.ExprCustom<SelectData>(oldExpr, new SelectData(
-          data.cond().replaceSymbol(original, replacement),
-          data.trueVal().replaceSymbol(original, replacement),
-          data.falseVal().replaceSymbol(original, replacement)));
-    };
-
-    var result = new Expr.ExprCustom<SelectData>(selectData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
+    var result = new If(selectOp.getLocation(), cond, thenExpr, elseExpr);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprCustom;
+      assert instantiatedExpr instanceof If;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.ExprCustom<SelectData>) instantiatedExpr;
-      var data = custExpr.getData();
+      var custExpr = (If) instantiatedExpr;
+      assert custExpr.elseExpr.isPresent();
 
       return new ScfOps.SelectOp(op.getLocation(),
-          data.cond().getOutputValue(),
-          data.trueVal().getOutputValue(),
-          data.falseVal().getOutputValue()).getOperation();
+          custExpr.cond.getOutputValue(),
+          custExpr.thenExpr.getOutputValue(),
+          custExpr.elseExpr.get().getOutputValue()).getOperation();
     });
 
     return result;
@@ -354,47 +222,19 @@ public final class ScfAlgoWConversion {
       Operation op,
       TypeInference engine) {
 
-    record YieldData(Expr value) {
-    }
-
     ScfOps.YieldOp yieldOp = (ScfOps.YieldOp) op.asOp();
 
-    var selectData = new YieldData(
-        new Expr.ExprVar(yieldOp.getLocation(), Symbol.of(yieldOp.getOperand())));
+    Expr yieldExpr = new Var(yieldOp.getLocation(), Symbol.of(yieldOp.getOperand()));
 
-    InferFunction<YieldData> infFunc = (eng, env, data) -> {
+    Symbol<Expr, AlgorithmWType> param = Symbol.of(new Value());
 
-      InferResult resValue = eng.infer(data.value(), env);
-      var valueType = resValue.type();
-
-      return valueType;
-    };
-
-    GetChildrenFunction<YieldData> getChildrenFn = (data) -> {
-      return List.of(data.value);
-    };
-
-    InstantiateFunction<YieldData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.ExprCustom<YieldData>(toInstantiate,
-          new YieldData(data.value.instantiate(engine, env, solution)));
-    };
-
-    ReplaceSymbolFunction<YieldData> replaceSymbolFn = (oldExpr, original, replacement, data) -> {
-      return new Expr.ExprCustom<YieldData>(oldExpr, new YieldData(
-          data.value.replaceSymbol(original, replacement)));
-    };
-
-    var result = new Expr.ExprCustom<YieldData>(selectData, infFunc, instFn, getChildrenFn, replaceSymbolFn);
+    var result = new App(yieldOp.getLocation(), new Abs(yieldOp.getLocation(), param, new Var(param)), yieldExpr);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.ExprCustom;
-
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.ExprCustom<YieldData>) instantiatedExpr;
-      var data = custExpr.getData();
+      var app = (App) instantiatedExpr;
 
       return new ScfOps.YieldOp(op.getLocation(),
-          data.value().getOutputValue()).getOperation();
+          app.args().getFirst().getOutputValue()).getOperation();
     });
 
     return result;
@@ -404,12 +244,7 @@ public final class ScfAlgoWConversion {
       Operation op,
       TypeInference engine) {
 
-    record JumpData() {
-    }
-
-    InferFunction<JumpData> infFunc = (eng, env, data) -> new AlgorithmWType.Var(new TypeVar<>(engine.getCurrentLevel()));
-
-    var result = new Expr.ExprCustom<JumpData>(new JumpData(), infFunc, null, null, null);
+    var result = new Lit(op.getLocation(), new Literal.Unit());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> new ScfOps.ContinueOp(op.getLocation()).getOperation());
 
@@ -420,12 +255,7 @@ public final class ScfAlgoWConversion {
       Operation op,
       TypeInference engine) {
 
-    record EndData() {
-    }
-
-    InferFunction<EndData> infFunc = (eng, env, data) -> new AlgorithmWType.Var(new TypeVar<>(engine.getCurrentLevel()));
-
-    var result = new Expr.ExprCustom<EndData>(new EndData(), infFunc, null, null, null);
+    var result = new Lit(op.getLocation(), new Literal.Unit());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> new ScfOps.EndOp(op.getLocation()).getOperation());
 

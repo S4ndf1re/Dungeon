@@ -11,7 +11,7 @@ public interface IVariable<E extends Expression<E, T>, T extends Type<T>> {
    * this function is expected to return the {@link Symbol} to that reference.
    *
    * <p>
-   * For an {@link Expression} like {@link ExprVar}, this is a trivial {@link Env}
+   * For an {@link Expression} like {@link Var}, this is a trivial {@link Env}
    * lookup.
    * However, custom
    * {@link Expression}s may also provide this functionality in some way, and

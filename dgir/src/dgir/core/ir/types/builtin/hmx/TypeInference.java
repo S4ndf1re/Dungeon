@@ -14,6 +14,10 @@ import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
+import dgir.core.ir.types.builtin.hmx.expr.LetRec;
+import dgir.core.ir.types.builtin.hmx.expr.Lit;
+import dgir.core.ir.types.builtin.hmx.expr.Seq;
+import dgir.core.ir.types.builtin.hmx.expr.Var;
 import dgir.core.ir.types.builtin.hmx.traits.OneShotConstraint;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
@@ -54,22 +58,22 @@ public final class TypeInference
 
   @Override
   public HMXExpr newLetExpr(List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings, HMXExpr body) {
-    return new HMXExpr.ExprLetRec(bindings, body);
+    return new LetRec(bindings, body);
   }
 
   @Override
   public HMXExpr newSeqExpr(List<HMXExpr> exprs) {
-    return new HMXExpr.ExprSeq(exprs);
+    return new Seq(exprs);
   }
 
   @Override
   public HMXExpr newVarExpr(Symbol<HMXExpr, HMXType> symbol) {
-    return new HMXExpr.ExprVar(symbol);
+    return new Var(symbol);
   }
 
   @Override
   public HMXExpr newLit(Literal lit) {
-    return new HMXExpr.ExprLit(lit);
+    return new Lit(lit);
   }
 
   @Override

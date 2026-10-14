@@ -15,9 +15,14 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
+import dgir.core.ir.types.builtin.algorithmw.expr.LetRec;
+import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 
 public class DotTests {
 
@@ -32,14 +37,14 @@ public class DotTests {
     var y = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     // let const = \x -> \y -> x in (const 42 true)
-    return new Expr.ExprLetRec(
+    return new LetRec(
         cnst,
-        new Expr.ExprAbs(x, new Expr.ExprAbs(y, new Expr.ExprVar(x))),
-        new Expr.ExprApp(
-            new Expr.ExprApp(
-                new Expr.ExprVar(cnst),
-                new Expr.ExprLit(new Literal.Int(42))),
-            new Expr.ExprLit(new Literal.Bool(true))));
+        new Abs(x, new Abs(y, new Var(x))),
+        new App(
+            new App(
+                new Var(cnst),
+                new Lit(new Literal.Int(42))),
+            new Lit(new Literal.Bool(true))));
   }
 
   @Test
@@ -54,9 +59,9 @@ public class DotTests {
     System.out.println(dot);
 
     assertTrue(dot.startsWith("digraph expr {"));
-    assertTrue(dot.contains("ExprLetRec"));
-    assertTrue(dot.contains("ExprAbs"));
-    assertTrue(dot.contains("ExprApp"));
+    assertTrue(dot.contains("LetRec"));
+    assertTrue(dot.contains("Abs"));
+    assertTrue(dot.contains("App"));
     assertTrue(dot.contains(" -> "));
 
     DgirTestUtils.saveDotExpr(expr);
@@ -82,7 +87,7 @@ public class DotTests {
 
   @Test
   public void unresolvedTypeDotRendersAsLeaf() {
-    var unresolved = new AlgorithmWType.Var(new TypeVar());
+    var unresolved = new AlgorithmWType.Var(new TypeVar<>());
     String dot = DotType.toDot(unresolved);
     System.out.println(dot);
 

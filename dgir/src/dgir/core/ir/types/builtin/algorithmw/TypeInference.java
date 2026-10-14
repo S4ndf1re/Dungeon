@@ -12,6 +12,10 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.builtin.algorithmw.expr.LetRec;
+import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
+import dgir.core.ir.types.builtin.algorithmw.expr.Seq;
+import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 
@@ -44,22 +48,22 @@ public final class TypeInference
 
   @Override
   public Expr newLetExpr(List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings, Expr body) {
-    return new Expr.ExprLetRec(bindings, body);
+    return new LetRec(bindings, body);
   }
 
   @Override
   public Expr newVarExpr(Symbol<Expr, AlgorithmWType> symbol) {
-    return new Expr.ExprVar(symbol);
+    return new Var(symbol);
   }
 
   @Override
   public Expr newSeqExpr(List<Expr> exprs) {
-    return new Expr.ExprSeq(exprs);
+    return new Seq(exprs);
   }
 
   @Override
   public Expr newLit(Literal lit) {
-    return new Expr.ExprLit(lit);
+    return new Lit(lit);
   }
 
   @Override

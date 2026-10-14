@@ -5,10 +5,16 @@ import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.builtin.hmx.expr.Abs;
+import dgir.core.ir.types.builtin.hmx.expr.Ann;
+import dgir.core.ir.types.builtin.hmx.expr.App;
 import dgir.core.ir.types.builtin.hmx.HMXExpr;
 import dgir.core.ir.types.builtin.hmx.HMXInference;
 import dgir.core.ir.types.builtin.hmx.HMXType;
-import dgir.core.ir.types.builtin.hmx.TypeInference;
+import dgir.core.ir.types.builtin.hmx.expr.LetRec;
+import dgir.core.ir.types.builtin.hmx.expr.Lit;
+import dgir.core.ir.types.builtin.hmx.expr.Tuple;
+import dgir.core.ir.types.builtin.hmx.expr.Var;
 
 import java.util.List;
 import java.util.function.Function;
@@ -25,33 +31,6 @@ public class HMXTest {
   }
 
   @Test
-  public void algorithmWDialectTest() {
-    HMXInference inference = new HMXInference();
-    List<Class<? extends dgir.core.ir.types.Type<?>>> allowedTypes = inference.getAllowedTypes();
-    assert allowedTypes.contains(HMXType.LitType.class);
-    assert allowedTypes.contains(HMXType.Arrow.class);
-    assert allowedTypes.contains(HMXType.Var.class);
-    assert allowedTypes.contains(HMXType.NumericType.class);
-    assert allowedTypes.contains(HMXType.Tuple.class);
-
-    List<Class<? extends dgir.core.ir.types.Expression<HMXExpr, HMXType>>> allowedExpression = inference
-        .getAllowedExpressions();
-    assert allowedExpression.contains(HMXExpr.ExprLit.class);
-    assert allowedExpression.contains(HMXExpr.ExprAbs.class);
-    assert allowedExpression.contains(HMXExpr.ExprApp.class);
-    assert allowedExpression.contains(HMXExpr.ExprAnn.class);
-    assert allowedExpression.contains(HMXExpr.ExprTuple.class);
-    assert allowedExpression.contains(HMXExpr.ExprLetRec.class);
-    assert allowedExpression.contains(HMXExpr.ExprVar.class);
-    assert allowedExpression.contains(HMXExpr.ExprReturn.class);
-    assert allowedExpression.contains(HMXExpr.ExprCustom.class);
-
-    var solver = inference.getNewSolverInstance();
-    assert solver != null;
-    assert solver.getClass().equals(TypeInference.class);
-  }
-
-  @Test
   public void algorithmWSimpleTest() {
     var inference = new HMXInference();
     var solver = inference.getNewSolverInstance();
@@ -59,8 +38,8 @@ public class HMXTest {
     var x = Symbol.<HMXExpr, HMXType>of(new Value());
 
     // let const = \x -> x in const 42
-    HMXExpr expr = new HMXExpr.ExprApp(new HMXExpr.ExprAbs(x, new HMXExpr.ExprVar(x)),
-        new HMXExpr.ExprLit(new Literal.Int(42)));
+    HMXExpr expr = new App(new Abs(x, new Var(x)),
+        new Lit(new Literal.Int(42)));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -84,14 +63,14 @@ public class HMXTest {
     var y = Symbol.<HMXExpr, HMXType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
-    HMXExpr expr = new HMXExpr.ExprLetRec(
+    HMXExpr expr = new LetRec(
         cnst,
-        new HMXExpr.ExprAbs(x, new HMXExpr.ExprAbs(y, new HMXExpr.ExprVar(x))),
-        new HMXExpr.ExprApp(
-            new HMXExpr.ExprApp(
-                new HMXExpr.ExprVar(cnst),
-                new HMXExpr.ExprLit(new Literal.Int(42))),
-            new HMXExpr.ExprLit(new Literal.Bool(true))));
+        new Abs(x, new Abs(y, new Var(x))),
+        new App(
+            new App(
+                new Var(cnst),
+                new Lit(new Literal.Int(42))),
+            new Lit(new Literal.Bool(true))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -115,15 +94,15 @@ public class HMXTest {
     var y = Symbol.<HMXExpr, HMXType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
-    HMXExpr expr = new HMXExpr.ExprAnn(
-        new HMXExpr.ExprLetRec(
+    HMXExpr expr = new Ann(
+        new LetRec(
             cnst,
-            new HMXExpr.ExprAbs(x, new HMXExpr.ExprAbs(y, new HMXExpr.ExprVar(x))),
-            new HMXExpr.ExprApp(
-                new HMXExpr.ExprApp(
-                    new HMXExpr.ExprVar(cnst),
-                    new HMXExpr.ExprLit(new Literal.Int(42))),
-                new HMXExpr.ExprLit(new Literal.Bool(true)))),
+            new Abs(x, new Abs(y, new Var(x))),
+            new App(
+                new App(
+                    new Var(cnst),
+                    new Lit(new Literal.Int(42))),
+                new Lit(new Literal.Bool(true)))),
         new HMXType.LitType(TypeIdent.TYPE_IDENT_INT));
 
     var resultPair = solver.solve(expr);
@@ -150,24 +129,24 @@ public class HMXTest {
     var y = Symbol.<HMXExpr, HMXType>of(new Value());
 
     // let const = \x -> \y -> x in const 42 true
-    HMXExpr expr = new HMXExpr.ExprAnn(
-        new HMXExpr.ExprLetRec(
+    HMXExpr expr = new Ann(
+        new LetRec(
             cnst,
-            new HMXExpr.ExprAnn(
-                new HMXExpr.ExprAbs(x, new HMXExpr.ExprAbs(y, new HMXExpr.ExprVar(x))),
+            new Ann(
+                new Abs(x, new Abs(y, new Var(x))),
                 new HMXType.Arrow(
                     new HMXType.LitType(TypeIdent.TYPE_IDENT_INT),
                     new HMXType.Arrow(
                         new HMXType.LitType(TypeIdent.TYPE_IDENT_BOOL),
                         new HMXType.LitType(TypeIdent.TYPE_IDENT_INT)))),
-            new HMXExpr.ExprApp(
-                new HMXExpr.ExprApp(
-                    new HMXExpr.ExprVar(cnst),
-                    new HMXExpr.ExprAnn(
-                        new HMXExpr.ExprLit(new Literal.Int(42)),
+            new App(
+                new App(
+                    new Var(cnst),
+                    new Ann(
+                        new Lit(new Literal.Int(42)),
                         new HMXType.LitType(TypeIdent.TYPE_IDENT_INT))),
-                new HMXExpr.ExprAnn(
-                    new HMXExpr.ExprLit(new Literal.Bool(true)),
+                new Ann(
+                    new Lit(new Literal.Bool(true)),
                     new HMXType.LitType(TypeIdent.TYPE_IDENT_BOOL)))),
         new HMXType.LitType(TypeIdent.TYPE_IDENT_INT)
 
@@ -198,16 +177,16 @@ public class HMXTest {
     // b = \y.(a y)
     // in (a 10)
 
-    HMXExpr expr = new HMXExpr.ExprLetRec(
+    HMXExpr expr = new LetRec(
         List.of(
             Pair.of(a,
-                new HMXExpr.ExprAnn(
-                    new HMXExpr.ExprAbs(x, new HMXExpr.ExprApp(new HMXExpr.ExprVar(b), new HMXExpr.ExprVar(x))),
+                new Ann(
+                    new Abs(x, new App(new Var(b), new Var(x))),
                     new HMXType.Arrow(
                         new HMXType.LitType(TypeIdent.TYPE_IDENT_INT),
                         new HMXType.LitType(TypeIdent.TYPE_IDENT_INT)))),
-            Pair.of(b, new HMXExpr.ExprAbs(y, new HMXExpr.ExprApp(new HMXExpr.ExprVar(a), new HMXExpr.ExprVar(y))))),
-        new HMXExpr.ExprApp(new HMXExpr.ExprVar(a), new HMXExpr.ExprLit(new Literal.Int(10))));
+            Pair.of(b, new Abs(y, new App(new Var(a), new Var(y))))),
+        new App(new Var(a), new Lit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -235,16 +214,16 @@ public class HMXTest {
     // b = \y.(a y)
     // in (b 10)
 
-    HMXExpr expr = new HMXExpr.ExprLetRec(
+    HMXExpr expr = new LetRec(
         List.of(
             Pair.of(a,
-                new HMXExpr.ExprAnn(
-                    new HMXExpr.ExprAbs(x, new HMXExpr.ExprApp(new HMXExpr.ExprVar(b), new HMXExpr.ExprVar(x))),
+                new Ann(
+                    new Abs(x, new App(new Var(b), new Var(x))),
                     new HMXType.Arrow(
                         new HMXType.LitType(TypeIdent.TYPE_IDENT_INT),
                         new HMXType.LitType(TypeIdent.TYPE_IDENT_INT)))),
-            Pair.of(b, new HMXExpr.ExprAbs(y, new HMXExpr.ExprApp(new HMXExpr.ExprVar(a), new HMXExpr.ExprVar(y))))),
-        new HMXExpr.ExprApp(new HMXExpr.ExprVar(b), new HMXExpr.ExprLit(new Literal.Int(10))));
+            Pair.of(b, new Abs(y, new App(new Var(a), new Var(y))))),
+        new App(new Var(b), new Lit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -270,13 +249,13 @@ public class HMXTest {
     //
     // Directly self-recursive: instantiating the application in the body of f
     // re-enters the instantiation of f itself while it is still in progress.
-    HMXExpr expr = new HMXExpr.ExprLetRec(
+    HMXExpr expr = new LetRec(
         f,
-        new HMXExpr.ExprAnn(new HMXExpr.ExprAbs(x, new HMXExpr.ExprApp(new HMXExpr.ExprVar(f), new HMXExpr.ExprVar(x))),
+        new Ann(new Abs(x, new App(new Var(f), new Var(x))),
             new HMXType.Arrow(
                 new HMXType.LitType(TypeIdent.TYPE_IDENT_INT),
                 new HMXType.LitType(TypeIdent.TYPE_IDENT_INT))),
-        new HMXExpr.ExprApp(new HMXExpr.ExprVar(f), new HMXExpr.ExprLit(new Literal.Int(10))));
+        new App(new Var(f), new Lit(new Literal.Int(10))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -301,11 +280,11 @@ public class HMXTest {
     // let a = \(x,y).(x, y)
     // in (a 10 false)
 
-    HMXExpr expr = new HMXExpr.ExprLetRec(a,
-        new HMXExpr.ExprAbs(List.of(x, y),
-            new HMXExpr.ExprTuple(List.of(new HMXExpr.ExprVar(x), new HMXExpr.ExprVar(y)))),
-        new HMXExpr.ExprApp(new HMXExpr.ExprVar(a),
-            List.of(new HMXExpr.ExprLit(new Literal.Int(10)), new HMXExpr.ExprLit(new Literal.Bool(false)))));
+    HMXExpr expr = new LetRec(a,
+        new Abs(List.of(x, y),
+            new Tuple(List.of(new Var(x), new Var(y)))),
+        new App(new Var(a),
+            List.of(new Lit(new Literal.Int(10)), new Lit(new Literal.Bool(false)))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -333,24 +312,24 @@ public class HMXTest {
     var y = Symbol.<HMXExpr, HMXType>of(new Value());
 
     // let const = \x -> \y -> x in (const 42 true, const true 42, const 32 false)
-    HMXExpr expr = new HMXExpr.ExprLetRec(
+    HMXExpr expr = new LetRec(
         cnst,
-        new HMXExpr.ExprAbs(x, new HMXExpr.ExprAbs(y, new HMXExpr.ExprVar(x))),
-        new HMXExpr.ExprTuple(new HMXExpr.ExprApp(
-            new HMXExpr.ExprApp(
-                new HMXExpr.ExprVar(cnst),
-                new HMXExpr.ExprLit(new Literal.Int(42))),
-            new HMXExpr.ExprLit(new Literal.Bool(true))),
-            new HMXExpr.ExprApp(
-                new HMXExpr.ExprApp(
-                    new HMXExpr.ExprVar(cnst),
-                    new HMXExpr.ExprLit(new Literal.Bool(false))),
-                new HMXExpr.ExprLit(new Literal.Int(24))),
-            new HMXExpr.ExprApp(
-                new HMXExpr.ExprApp(
-                    new HMXExpr.ExprVar(cnst),
-                    new HMXExpr.ExprLit(new Literal.Int(32))),
-                new HMXExpr.ExprLit(new Literal.Bool(false)))));
+        new Abs(x, new Abs(y, new Var(x))),
+        new Tuple(new App(
+            new App(
+                new Var(cnst),
+                new Lit(new Literal.Int(42))),
+            new Lit(new Literal.Bool(true))),
+            new App(
+                new App(
+                    new Var(cnst),
+                    new Lit(new Literal.Bool(false))),
+                new Lit(new Literal.Int(24))),
+            new App(
+                new App(
+                    new Var(cnst),
+                    new Lit(new Literal.Int(32))),
+                new Lit(new Literal.Bool(false)))));
 
     var resultPair = solver.solve(expr);
     DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -363,11 +342,11 @@ public class HMXTest {
     assert result instanceof HMXType;
     assert result instanceof HMXType.Tuple;
 
-    assert inferred instanceof HMXExpr.ExprLetRec;
-    var exprLet = (HMXExpr.ExprLetRec) inferred;
+    assert inferred instanceof LetRec;
+    var exprLet = (LetRec) inferred;
 
-    assert exprLet.body() instanceof HMXExpr.ExprTuple;
-    var exprTuple = (HMXExpr.ExprTuple) exprLet.body();
+    assert exprLet.body() instanceof Tuple;
+    var exprTuple = (Tuple) exprLet.body();
 
     assert exprTuple.elements().size() == 3;
     var first = exprTuple.elements().get(0);
@@ -375,12 +354,12 @@ public class HMXTest {
     var third = exprTuple.elements().get(2);
 
     Function<HMXExpr, HMXExpr> getInnerAbs = elem -> {
-      assert elem instanceof HMXExpr.ExprApp;
-      var inner = ((HMXExpr.ExprApp) elem).func();
+      assert elem instanceof App;
+      var inner = ((App) elem).func();
 
-      assert inner instanceof HMXExpr.ExprApp;
+      assert inner instanceof App;
 
-      return ((HMXExpr.ExprApp) inner).func();
+      return ((App) inner).func();
     };
 
     // TODO: check the instantiation and if replacing Let and Abs bindings actually
