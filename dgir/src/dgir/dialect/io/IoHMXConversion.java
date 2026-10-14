@@ -38,8 +38,10 @@ public final class IoHMXConversion {
     List<Symbol<HMXExpr, HMXType>> paramsCopy = params.stream()
         .map(param -> Symbol.<HMXExpr, HMXType>of(new Value())).toList();
 
-    var result = new HMXExpr.ExprApp(new HMXExpr.ExprAbs(paramsCopy, new HMXExpr.ExprLit(new Literal.Unit())),
-        params.stream().map(param -> (HMXExpr) new HMXExpr.ExprVar(param)).toList());
+    var result = new HMXExpr.ExprApp(op.getLocation(),
+        new HMXExpr.ExprAbs(op.getLocation(), paramsCopy,
+            new HMXExpr.ExprLit(op.getLocation(), new Literal.Unit())),
+        params.stream().map(param -> (HMXExpr) new HMXExpr.ExprVar(op.getLocation(), param)).toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof HMXExpr.ExprApp;
@@ -61,8 +63,9 @@ public final class IoHMXConversion {
 
     IoOps.ConsoleInOp castOp = (IoOps.ConsoleInOp) op.asOp();
 
-    var result = new HMXExpr.ExprApp(
-        new HMXExpr.ExprAbs(List.of(), new HMXExpr.ExprLit(new Literal.Generic(castOp.getResult()))), List.of());
+    var result = new HMXExpr.ExprApp(op.getLocation(),
+        new HMXExpr.ExprAbs(op.getLocation(), List.of(),
+            new HMXExpr.ExprLit(op.getLocation(), new Literal.Generic(castOp.getResult()))), List.of());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof HMXExpr.ExprApp;

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Type;
 import dgir.core.ir.Value;
@@ -31,6 +32,10 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
     implements IInstantiable<HMXExpr, HMXType, Subst, TypeInference> {
 
   protected HMXExpr() {
+  }
+
+  protected HMXExpr(Location loc) {
+    super(loc);
   }
 
   protected HMXExpr(HMXExpr other) {
@@ -204,6 +209,12 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       this.type = type;
     }
 
+    public ExprAnn(Location loc, HMXExpr expr, HMXType type) {
+      super(loc);
+      this.expr = expr;
+      this.type = type;
+    }
+
     public ExprAnn(ExprAnn other) {
       super(other);
       this.expr = other.expr;
@@ -276,6 +287,11 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
     }
 
     public ExprLit(Literal value) {
+      this.value = value;
+    }
+
+    public ExprLit(Location loc, Literal value) {
+      super(loc);
       this.value = value;
     }
 
@@ -355,7 +371,22 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       this.elements = elements;
     }
 
+    public ExprTuple(Location loc, List<HMXExpr> elements) {
+      super(loc);
+      this.elements = elements;
+    }
+
     public ExprTuple(HMXExpr... elements) {
+      ArrayList<HMXExpr> elems = new ArrayList<>();
+      for (var elem : elements) {
+        elems.add(elem);
+      }
+
+      this.elements = List.copyOf(elems);
+    }
+
+    public ExprTuple(Location loc, HMXExpr... elements) {
+      super(loc);
       ArrayList<HMXExpr> elems = new ArrayList<>();
       for (var elem : elements) {
         elems.add(elem);
@@ -407,13 +438,13 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       for (var expr : elements) {
         var freshTypVar = new TypeVar<HMXType>();
         typeVars.add(freshTypVar);
-        var res = engine.generate(expr, currentEnv, new HMXType.Var(freshTypVar));
-        types.add(new HMXType.Var(freshTypVar));
+        var res = engine.generate(expr, currentEnv, new HMXType.Var(this.getLocation(), freshTypVar));
+        types.add(new HMXType.Var(this.getLocation(), freshTypVar));
         trees.add(res.tree());
         constraints.add(res.constr());
       }
 
-      var resultType = new HMXType.Tuple(List.copyOf(types));
+      var resultType = new HMXType.Tuple(this.getLocation(), List.copyOf(types));
 
       return new GenerateResult(
           new Constraint.Exists(typeVars,
@@ -456,6 +487,11 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
     }
 
     public ExprVar(Symbol<HMXExpr, HMXType> name) {
+      this.name = name;
+    }
+
+    public ExprVar(Location loc, Symbol<HMXExpr, HMXType> name) {
+      super(loc);
       this.name = name;
     }
 
@@ -557,8 +593,28 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
     }
 
     public ExprApp(
+        Location loc,
+        HMXExpr func,
+        HMXExpr arg) {
+      super(loc);
+      this.func = func;
+      this.args = List.of(arg);
+      this.inferredFunctionType = Optional.empty();
+    }
+
+    public ExprApp(
         HMXExpr func,
         List<HMXExpr> args) {
+      this.func = func;
+      this.args = List.copyOf(args);
+      this.inferredFunctionType = Optional.empty();
+    }
+
+    public ExprApp(
+        Location loc,
+        HMXExpr func,
+        List<HMXExpr> args) {
+      super(loc);
       this.func = func;
       this.args = List.copyOf(args);
       this.inferredFunctionType = Optional.empty();
@@ -650,9 +706,10 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       for (var arg : this.args.reversed()) {
         var freshTypeVar = new TypeVar<HMXType>();
         quantifiedVars.add(freshTypeVar);
-        GenerateResult argRes = engine.generate(arg, env, new HMXType.Var(freshTypeVar));
+        GenerateResult argRes = engine.generate(arg, env, new HMXType.Var(this.getLocation(), freshTypeVar));
         argConstraints.add(argRes.constr());
-        builtArrowType = new HMXType.Arrow(new HMXType.Var(freshTypeVar), builtArrowType);
+        builtArrowType = new HMXType.Arrow(this.getLocation(),
+            new HMXType.Var(this.getLocation(), freshTypeVar), builtArrowType);
         trees.add(argRes.tree());
       }
 
@@ -662,12 +719,12 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       // final
       // type is an arrow type that accepts a unit value as a parameter.
       if (builtArrowType == resultType) {
-        builtArrowType = new HMXType.Arrow(new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT),
-            builtArrowType);
+        builtArrowType = new HMXType.Arrow(this.getLocation(),
+            new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT), builtArrowType);
       }
 
       var fnTypeVar = new TypeVar<HMXType>();
-      var fnType = new HMXType.Var(fnTypeVar);
+      var fnType = new HMXType.Var(this.getLocation(), fnTypeVar);
       GenerateResult funcInferRes = engine.generate(func, env, fnType);
       trees.add(funcInferRes.tree());
       quantifiedVars.add(fnTypeVar);
@@ -728,7 +785,19 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       this.body = body;
     }
 
+    public ExprAbs(Location loc, Symbol<HMXExpr, HMXType> param, HMXExpr body) {
+      super(loc);
+      this.params = List.of(param);
+      this.body = body;
+    }
+
     public ExprAbs(List<Symbol<HMXExpr, HMXType>> params, HMXExpr body) {
+      this.params = List.copyOf(params);
+      this.body = body;
+    }
+
+    public ExprAbs(Location loc, List<Symbol<HMXExpr, HMXType>> params, HMXExpr body) {
+      super(loc);
       this.params = List.copyOf(params);
       this.body = body;
     }
@@ -784,7 +853,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       ArrayList<LetBinding> bindings = new ArrayList<>();
       for (var param : this.params) {
         var typeVar = new TypeVar<HMXType>();
-        HMXType freshTypeVar = new HMXType.Var(typeVar);
+        HMXType freshTypeVar = new HMXType.Var(this.getLocation(), typeVar);
         paramsAndTypeVars.add(typeVar);
         bindings.add(new LetBinding(param, freshTypeVar));
       }
@@ -793,7 +862,7 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       Scope<HMXType> functionScope = newEnv.addScope();
 
       TypeVar<HMXType> retTypeVar = new TypeVar<>();
-      GenerateResult b = engine.generate(body, newEnv, new HMXType.Var(retTypeVar));
+      GenerateResult b = engine.generate(body, newEnv, new HMXType.Var(this.getLocation(), retTypeVar));
 
       // In terms of IR, the body will not have a direct return parameter. Though it
       // can be assumed,
@@ -805,11 +874,11 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       // statements (if present)
       // var retTypeUnify = engine.unify(res.type(), retTypeVar);
 
-      HMXType appliedRetType = new HMXType.Var(retTypeVar);
+      HMXType appliedRetType = new HMXType.Var(this.getLocation(), retTypeVar);
       HMXType resultType = appliedRetType;
       for (var paramAndTypeVar : paramsAndTypeVars.reversed()) {
-        resultType = new HMXType.Arrow(new HMXType.Var(paramAndTypeVar),
-            resultType);
+        resultType = new HMXType.Arrow(this.getLocation(),
+            new HMXType.Var(this.getLocation(), paramAndTypeVar), resultType);
       }
 
       // NOTE: in case the ABS parameters are empty, i.e. a function without
@@ -818,7 +887,8 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       // final
       // type is an arrow type that accepts a unit value as a parameter.
       if (resultType == appliedRetType) {
-        resultType = new HMXType.Arrow(new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT), resultType);
+        resultType = new HMXType.Arrow(this.getLocation(),
+            new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT), resultType);
       }
 
       paramsAndTypeVars.add(retTypeVar);
@@ -831,7 +901,8 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
                   new Constraint.LetSeq(bindings, b.constr())),
               new Constraint.Equal(type, resultType),
               new Constraint.And(functionScope.getAllReturnTypesInScope().stream()
-                  .map(t -> (Constraint) new Constraint.Equal(new HMXType.Var(retTypeVar), t)).toList())),
+                  .map(t -> (Constraint) new Constraint.Equal(new HMXType.Var(this.getLocation(), retTypeVar), t))
+                  .toList())),
           new InferenceTree(
               "T-Abs",
               input,
@@ -941,8 +1012,23 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       this.body = body;
     }
 
+    public ExprLetSeq(Location loc, Symbol<HMXExpr, HMXType> param, HMXExpr value,
+        HMXExpr body) {
+      super(loc);
+      this.bindings = List.of(Pair.of(param, value));
+      this.body = body;
+    }
+
     public ExprLetSeq(List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings,
         HMXExpr body) {
+      this.bindings = List.copyOf(bindings);
+      this.body = body;
+    }
+
+    public ExprLetSeq(Location loc,
+        List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings,
+        HMXExpr body) {
+      super(loc);
       this.bindings = List.copyOf(bindings);
       this.body = body;
     }
@@ -1027,10 +1113,11 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
         var value = binding.getRight();
         var freshTypeVar = new TypeVar<HMXType>();
 
-        GenerateResult res1 = engine.generate(value, env, new HMXType.Var(freshTypeVar));
+        GenerateResult res1 = engine.generate(value, env, new HMXType.Var(this.getLocation(), freshTypeVar));
         bindings.add(
             new LetBinding(param,
-                new Scheme(List.of(freshTypeVar.find()), new HMXType.Var(freshTypeVar), res1.constr())));
+                new Scheme(List.of(freshTypeVar.find()),
+                    new HMXType.Var(this.getLocation(), freshTypeVar), res1.constr())));
       }
 
       GenerateResult res2 = engine.generate(body, env, type);
@@ -1106,8 +1193,23 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       this.body = body;
     }
 
+    public ExprLetRec(Location loc, Symbol<HMXExpr, HMXType> param, HMXExpr value,
+        HMXExpr body) {
+      super(loc);
+      this.bindings = List.of(Pair.of(param, value));
+      this.body = body;
+    }
+
     public ExprLetRec(List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings,
         HMXExpr body) {
+      this.bindings = List.copyOf(bindings);
+      this.body = body;
+    }
+
+    public ExprLetRec(Location loc,
+        List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings,
+        HMXExpr body) {
+      super(loc);
       this.bindings = List.copyOf(bindings);
       this.body = body;
     }
@@ -1185,9 +1287,11 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
         var value = binding.getRight();
         var freshTypeVar = new TypeVar<HMXType>();
 
-        GenerateResult res1 = engine.generate(value, env, new HMXType.Var(freshTypeVar));
+        GenerateResult res1 = engine.generate(value, env, new HMXType.Var(this.getLocation(), freshTypeVar));
         bindings.add(
-            new LetBinding(param, new Scheme(List.of(freshTypeVar), new HMXType.Var(freshTypeVar.find()), res1.constr())));
+            new LetBinding(param,
+                new Scheme(List.of(freshTypeVar),
+                    new HMXType.Var(this.getLocation(), freshTypeVar.find()), res1.constr())));
       }
 
       GenerateResult res2 = engine.generate(body, env, type);
@@ -1245,8 +1349,18 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       this.expressions = List.of(expr);
     }
 
+    public ExprSeq(Location loc, HMXExpr expr) {
+      super(loc);
+      this.expressions = List.of(expr);
+    }
+
     public ExprSeq(List<HMXExpr> exprs) {
       super();
+      this.expressions = List.copyOf(exprs);
+    }
+
+    public ExprSeq(Location loc, List<HMXExpr> exprs) {
+      super(loc);
       this.expressions = List.copyOf(exprs);
     }
 
@@ -1293,14 +1407,14 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
       var sequentialConstraints = new ArrayList<Constraint>();
       for (var expr : this.expressions) {
         var freshTypeVar = new TypeVar<HMXType>();
-        var infRes = engine.generate(expr, env, new HMXType.Var(freshTypeVar));
+        var infRes = engine.generate(expr, env, new HMXType.Var(this.getLocation(), freshTypeVar));
         sequentialTypes.add(freshTypeVar);
         sequentialConstraints.add(infRes.constr());
       }
 
-      HMXType resType = new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT);
+      HMXType resType = new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT);
       if (!sequentialTypes.isEmpty()) {
-        resType = new HMXType.Var(sequentialTypes.getLast());
+        resType = new HMXType.Var(this.getLocation(), sequentialTypes.getLast());
       }
 
       return new GenerateResult(
@@ -1329,6 +1443,11 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
     }
 
     public ExprReturn(HMXExpr value) {
+      this.value = value;
+    }
+
+    public ExprReturn(Location loc, HMXExpr value) {
+      super(loc);
       this.value = value;
     }
 
@@ -1431,6 +1550,18 @@ public abstract class HMXExpr extends Expression<HMXExpr, HMXType>
     public ExprCustom(
         D data, GenerateFunction<D> generateFn, InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
         ReplaceSymbolFunction<D> replaceSymbolFn) {
+      this.data = data;
+      this.generateFn = generateFn;
+      this.instFn = Optional.ofNullable(instFn);
+      this.getChildrenFn = Optional.ofNullable(getChildrenFn);
+      this.replaceSymbolFn = Optional.ofNullable(replaceSymbolFn);
+    }
+
+    public ExprCustom(
+        Location loc, D data, GenerateFunction<D> generateFn, InstantiateFunction<D> instFn,
+        GetChildrenFunction<D> getChildrenFn,
+        ReplaceSymbolFunction<D> replaceSymbolFn) {
+      super(loc);
       this.data = data;
       this.generateFn = generateFn;
       this.instFn = Optional.ofNullable(instFn);

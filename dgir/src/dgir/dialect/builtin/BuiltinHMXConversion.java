@@ -93,7 +93,9 @@ public final class BuiltinHMXConversion {
     var param = Symbol.<HMXExpr, HMXType>of(idOp.getOperand());
     var absParam = Symbol.<HMXExpr, HMXType>of(new Value());
 
-    var expr = new HMXExpr.ExprApp(new HMXExpr.ExprAbs(absParam, new HMXExpr.ExprVar(absParam)), new HMXExpr.ExprVar(param));
+    var loc = idOp.getLocation();
+    var expr = new HMXExpr.ExprApp(new HMXExpr.ExprAbs(loc, absParam, new HMXExpr.ExprVar(loc, absParam)),
+        new HMXExpr.ExprVar(loc, param));
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
 
       assert instantiatedExpr instanceof HMXExpr.ExprApp;

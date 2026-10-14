@@ -156,10 +156,11 @@ public final class StringHMXConversion {
         .map(operand -> Symbol.<HMXExpr, HMXType>of(new Value()))
         .toList();
 
-    var result = new HMXExpr.ExprApp(
-        new HMXExpr.ExprAbs(params, new HMXExpr.ExprLit(new Literal.Generic(op.getOutputValueOrThrow()))),
+    var result = new HMXExpr.ExprApp(op.getLocation(),
+        new HMXExpr.ExprAbs(op.getLocation(), params,
+            new HMXExpr.ExprLit(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow()))),
         op.getOperands().stream()
-            .<HMXExpr>map(operand -> new HMXExpr.ExprVar(Symbol.of(operand.getValueOrThrow())))
+            .<HMXExpr>map(operand -> new HMXExpr.ExprVar(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
             .toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
