@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 import dgir.core.debug.Location;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
-import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
@@ -45,11 +44,9 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
    * inference
    *
    * @param other The other type to unify with.
-   * @return The unification result consisting of a substitution and an inference
-   *         tree.
    * @throws RuntimeException if unimplemented
    */
-  public abstract InferenceTree unify(
+  public abstract void unify(
       TypeInference engine,
       AlgorithmWType other);
 
@@ -105,16 +102,12 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public void unify(TypeInference engine, AlgorithmWType other) {
       // Maybe the two types (this and other) are actually the same type variable
       if (other instanceof Var b) {
         var unifyRes = this.tyVar.unify(b.tyVar);
         if (unifyRes.isPresent()) {
-          return engine.unify(unifyRes.get().getLeft(), unifyRes.get().getRight());
-        } else {
-          return new InferenceTree(
-              "Unify-Var-Unify",
-              this.toString() + " ~ " + b.toString());
+          engine.unify(unifyRes.get().getLeft(), unifyRes.get().getRight());
         }
       } else if (other.occursCheck(this.tyVar)) {
         throw new TypingException.OccursCheckFailed(other, this.tyVar);
@@ -125,12 +118,6 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
           other.occursCheckAjustLevel(this.tyVar);
           this.tyVar.assignType(other);
         }
-        // In every other case, the type variable can be substituded with the concrete
-        // type that is other
-        return new InferenceTree(
-            "Unify-Var",
-            this.toString() + " ~ " + other.toString(),
-            other.toString() + "/" + this.toString());
       }
     }
 
@@ -237,18 +224,12 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public void unify(TypeInference engine, AlgorithmWType other) {
       if (other instanceof Arrow b) {
-        InferenceTree u1 = engine.unify(this.from, b.from);
-        InferenceTree u2 = engine.unify(
+        engine.unify(this.from, b.from);
+        engine.unify(
             this.to,
             b.to);
-
-        return new InferenceTree(
-            "Unify-Arrow",
-            this.toString() + " ~ " + b.toString(),
-            "",
-            List.of(u1, u2));
       } else {
         throw new TypingException.UnificationFailed(this, other);
       }
@@ -338,11 +319,9 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public void unify(TypeInference engine, AlgorithmWType other) {
       if (other instanceof LitType otherLit &&
           otherLit.tyName.equals(this.tyName)) {
-        var trees = new ArrayList<InferenceTree>();
-
         if (this.parameters.size() != otherLit.parameters.size()) {
           throw new RuntimeException(
               "Parameter count mismatch: " +
@@ -352,15 +331,10 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
         }
 
         for (int i = 0; i < this.parameters.size(); i++) {
-          var result = engine.unify(
+          engine.unify(
               this.parameters.get(i),
               otherLit.parameters.get(i));
-          trees.add(result);
         }
-
-        return new InferenceTree(
-            "Unify-Base",
-            this.toString() + " ~ " + other.toString());
       } else {
         throw new TypingException.UnificationFailed(this, other);
       }
@@ -405,13 +379,9 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public void unify(TypeInference engine, AlgorithmWType other) {
 
-      if (other instanceof NumericType otherNum && this.size == otherNum.size) {
-        return new InferenceTree(
-            "Unify-NumericType",
-            this.toString() + " ~ " + other.toString());
-      } else {
+      if (!(other instanceof NumericType otherNum && this.size == otherNum.size)) {
         throw new TypingException.UnificationFailed(this, other);
       }
     }
@@ -497,27 +467,19 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public InferenceTree unify(TypeInference engine, AlgorithmWType other) {
+    public void unify(TypeInference engine, AlgorithmWType other) {
       if (other instanceof Tuple b) {
         if (this.elements.size() != b.elements.size()) {
           throw new TypingException.TupleSizeMismatch(
               this.elements.size(),
               b.elements.size());
         }
-        ArrayList<InferenceTree> trees = new ArrayList<>();
 
         for (int i = 0; i < this.elements.size(); i++) {
-          InferenceTree result = engine.unify(
+          engine.unify(
               this.elements.get(i),
               b.elements.get(i));
-          trees.add(result);
         }
-
-        return new InferenceTree(
-            "Unify-Tuple",
-            this + " ~ " + other,
-            "",
-            List.copyOf(trees));
       } else {
         throw new TypingException.UnificationFailed(this, other);
       }

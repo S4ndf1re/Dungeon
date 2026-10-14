@@ -7,7 +7,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
-import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
@@ -94,11 +93,12 @@ public final class TypeInference
     return res;
   }
 
-  public InferenceTree unify(AlgorithmWType left, AlgorithmWType right) {
+  public void unify(AlgorithmWType left, AlgorithmWType right) {
     if (right instanceof AlgorithmWType.Var) {
-      return right.unify(this, left);
+      right.unify(this, left);
+      return;
     }
-    return left.unify(this, right);
+    left.unify(this, right);
   }
 
   public int getCurrentLevel() {

@@ -8,7 +8,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
-import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
@@ -42,7 +41,7 @@ public final class CfSystemFConversion {
 
     var subRes = engine.subtype(finalCtx, exprType,
         new SystemFType.Lit(TypeIdent.from("bool")));
-    return new CheckResult(subRes.ctx(), subRes.tree());
+    return new CheckResult(subRes.ctx());
   }
 
   public static Expr convertBranchOp(
@@ -125,14 +124,7 @@ public final class CfSystemFConversion {
       var unifiedRes = eng.subtype(currentCtx, thenType, elseType);
       var finalType = unifiedRes.ctx().apply(thenType);
 
-      return new TypeResult(
-          finalType,
-          unifiedRes.ctx(),
-          new InferenceTree(
-              "InfCond",
-              ctx + " |- " + data,
-              finalType.toString(),
-              List.of(condChecked.tree(), resThen.tree(), resElse.tree(), unifiedRes.tree())));
+      return new TypeResult(finalType, unifiedRes.ctx());
     };
 
     GetChildrenFunction<BranchData> getChildrenFn = (data) -> List.of(data.cond, data.thenCase, data.elseCase);
@@ -206,12 +198,7 @@ public final class CfSystemFConversion {
 
       return new TypeResult(
           new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT),
-          currentCtx,
-          new InferenceTree(
-              "InfAssert",
-              ctx + " |- " + data,
-              "unit",
-              List.of()));
+          currentCtx);
     };
 
     GetChildrenFunction<AssertData> getChildrenFn = (data) -> {

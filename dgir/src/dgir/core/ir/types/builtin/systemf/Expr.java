@@ -18,7 +18,6 @@ import org.apache.commons.lang3.tuple.Triple;
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
-import dgir.core.ir.types.InferenceTree;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeVar;
@@ -168,7 +167,6 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       TypeInference engine,
       Context ctx,
       SystemFType ty) {
-    var input = ctx + " |- " + this + " <=" + ty;
     if (ty instanceof SystemFType.ForAll forall) {
       var newCtx = ctx.copy();
       var mark = new Entry.Mark();
@@ -181,26 +179,14 @@ public abstract class Expr extends Expression<Expr, SystemFType>
               m.equals(mark));
 
       Context finalCtx = new Context(breakRes.left(), checkRes.ctx());
-      return new CheckResult(
-          finalCtx,
-          new InferenceTree(
-              "ChkAll",
-              input,
-              "" + finalCtx,
-              List.of(checkRes.tree())));
+      return new CheckResult(finalCtx);
     }
 
     var inferred = engine.infer(ctx, this);
     var inferredApplied = inferred.ctx().apply(inferred.type());
     var typeApplied = inferred.ctx().apply(ty);
     var subtyped = engine.subtype(inferred.ctx(), inferredApplied, typeApplied);
-    return new CheckResult(
-        subtyped.ctx(),
-        new InferenceTree(
-            "ChkSub",
-            input,
-            "" + inferred.ctx(),
-            List.of(inferred.tree(), subtyped.tree())));
+    return new CheckResult(subtyped.ctx());
   }
 
   public static final class Var extends Expr implements IVariable<Expr, SystemFType> {
@@ -233,20 +219,12 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       var boundVariable = ctx.find(
           entry -> entry instanceof Entry.VarBnd bnd && bnd.tmVar().equals(this.name));
 
       if (boundVariable.isPresent()) {
         var varBnd = (Entry.VarBnd) boundVariable.get();
-        return new TypeResult(
-            varBnd.type(),
-            ctx.copy(),
-            new InferenceTree(
-                "InfVar",
-                ctx + " |- " + this,
-                input + " => " + varBnd.type() + " -| " + ctx,
-                List.of()));
+        return new TypeResult(varBnd.type(), ctx.copy());
       }
 
       throw new TypingException.UnboundVariable(this.name);
@@ -353,7 +331,6 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       var funcInferred = engine.infer(ctx, this.fun);
       var funcTypeApplied = funcInferred.ctx().apply(funcInferred.type());
 
@@ -372,14 +349,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
           currentCtx = placeholderCheck.ctx();
         }
 
-        result = new TypeResult(
-            resultTy,
-            currentCtx,
-            new InferenceTree(
-                "InfAppArr",
-                input,
-                input + " =>=> " + resultTy + currentCtx,
-                List.of()));
+        result = new TypeResult(resultTy, currentCtx);
       } else if (funcTypeApplied instanceof SystemFType.EtVar etvar) {
         var a = etvar.tyVar;
 
@@ -416,32 +386,14 @@ public abstract class Expr extends Expression<Expr, SystemFType>
           newCtx.push(new Entry.ETVarBnd(a2));
           newCtx.extend(breakRes.right());
 
-          checkRes = new CheckResult(
-              newCtx,
-              new InferenceTree("InfAppETVarNone", input, input, List.of()));
+          checkRes = new CheckResult(newCtx);
         }
 
-        var output = input + " =>=> ^" + a2 + " -| " + checkRes.ctx();
-        result = new TypeResult(
-            new SystemFType.EtVar(this.getLocation(), a2),
-            checkRes.ctx(),
-            new InferenceTree(
-                "InfAppETVar",
-                input,
-                output,
-                List.of(checkRes.tree())));
+        result = new TypeResult(new SystemFType.EtVar(this.getLocation(), a2), checkRes.ctx());
       } else {
         throw new TypingException.ApplicationTypeError();
       }
-      var output = input + " => " + result.type() + " -| " + result.ctx();
-      return new TypeResult(
-          result.type(),
-          result.ctx(),
-          new InferenceTree(
-              "InfApp",
-              input,
-              output,
-              List.of(funcInferred.tree(), result.tree())));
+      return new TypeResult(result.type(), result.ctx());
     }
 
     public List<Expr> getChildren() {
@@ -530,7 +482,6 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       var b = new TypeVar<SystemFType>();
       var newCtx = ctx.copy();
       Scope<SystemFType> scope = newCtx.addScope();
@@ -545,12 +496,10 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
       Context furtherCtx = c1.ctx().copy();
       SystemFType resultType = new SystemFType.EtVar(this.getLocation(), b);
-      ArrayList<InferenceTree> trees = new ArrayList<>();
 
       for (var retType : scope.getAllReturnTypesInScope()) {
         SubtypeResult subTypeRes = engine.subtype(furtherCtx, retType, resultType);
         furtherCtx = subTypeRes.ctx();
-        trees.add(subTypeRes.tree());
         resultType = furtherCtx.apply(resultType);
       }
 
@@ -569,14 +518,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
           this.type.orElseGet(() -> new SystemFType.Lit(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT)),
           resultType);
 
-      return new TypeResult(
-          resType,
-          finalCtx,
-          new InferenceTree(
-              "InfLam",
-              input,
-              input + " => " + resType + " -| " + finalCtx,
-              List.of(c1.tree())));
+      return new TypeResult(resType, finalCtx);
     }
 
     @Override
@@ -584,7 +526,6 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         TypeInference engine,
         Context ctx,
         SystemFType ty) {
-      var input = ctx + " |- " + this + " <=" + ty;
       if (ty instanceof SystemFType.Arrow arrow) {
         var newCtx = ctx.copy();
         var mark = new Entry.Mark();
@@ -600,13 +541,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
             Optional
                 .of(finalCtx.apply(new SystemFType.Arrow(this.getLocation(), arrow.from, finalCtx.apply(arrow.to)))));
 
-        return new CheckResult(
-            finalCtx,
-            new InferenceTree(
-                "ChkLam",
-                input,
-                "" + finalCtx,
-                List.of(bodyCheck.tree())));
+        return new CheckResult(finalCtx);
       } else {
         return super.check(engine, ctx, ty);
       }
@@ -703,22 +638,13 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       var funcInferred = engine.infer(ctx, this.func);
       if (funcInferred.type() instanceof SystemFType.ForAll forall) {
         var resultType = engine.substType(
             forall.boundVar,
             this.type,
             forall.body);
-        var output = input + " => " + resultType + " -| " + funcInferred.ctx();
-        return new TypeResult(
-            resultType,
-            funcInferred.ctx(),
-            new InferenceTree(
-                "InfTApp",
-                input,
-                output,
-                List.of(funcInferred.tree())));
+        return new TypeResult(resultType, funcInferred.ctx());
       } else {
         throw new TypingException.ExpectedForAllType();
       }
@@ -805,17 +731,9 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       var checked = engine.check(ctx, this.expr, this.type);
 
-      return new TypeResult(
-          this.type,
-          checked.ctx(),
-          new InferenceTree(
-              "InfAnn",
-              input,
-              input + " => " + this.type + " -| " + checked.ctx(),
-              List.of(checked.tree())));
+      return new TypeResult(this.type, checked.ctx());
     }
 
     @Override
@@ -892,7 +810,6 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       var newCtx = ctx.copy();
       var mark = new Entry.Mark();
       newCtx.push(mark);
@@ -915,16 +832,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       var finalCtx = new Context(solvedFinalCtxEntries, bodyInferred.ctx());
       var resType = new SystemFType.ForAll(this.getLocation(), this.variable, resolvedBodyType);
 
-      var output = input + " => " + resType + " -| " + finalCtx;
-
-      return new TypeResult(
-          resType,
-          finalCtx,
-          new InferenceTree(
-              "InfTAbs",
-              input,
-              output,
-              List.of(bodyInferred.tree())));
+      return new TypeResult(resType, finalCtx);
     }
 
     @Override
@@ -990,16 +898,10 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       var res = engine.generalNominalTypeToInferenceType(lit.toParameterizedNominalType(), Optional.of(ctx));
       return new TypeResult(
           res.getLeft(),
-          ((Context) res.getRight().get()).copy(), // This is safe, as the ctx is provided as a Some(ctx)
-          new InferenceTree(
-              "InfLit" + res,
-              input,
-              input + " => " + res + " -| " + ctx,
-              List.of()));
+          ((Context) res.getRight().get()).copy()); // This is safe, as the ctx is provided as a Some(ctx)
     }
 
     @Override
@@ -1094,8 +996,6 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
-      var trees = new ArrayList<InferenceTree>();
       var currentCtx = ctx.copy();
       var types = new ArrayList<SystemFType>();
 
@@ -1103,18 +1003,10 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         var res = engine.infer(currentCtx, elem);
         currentCtx = res.ctx();
         types.add(currentCtx.apply(res.type()));
-        trees.add(res.tree());
       }
 
       var resultType = new SystemFType.Tuple(this.getLocation(), List.copyOf(types));
-      return new TypeResult(
-          resultType,
-          currentCtx,
-          new InferenceTree(
-              "InfTuple",
-              input,
-              resultType.toString(),
-              List.copyOf(trees)));
+      return new TypeResult(resultType, currentCtx);
     }
 
     @Override
@@ -1197,9 +1089,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       Context newCtx = ctx.copy();
-      ArrayList<InferenceTree> trees = new ArrayList<>();
       ArrayList<Triple<Symbol<Expr, SystemFType>, TypeVar<SystemFType>, ExprOrOperator<Expr, SystemFType>>> nonUnified = new ArrayList<>(
           this.bindings.size());
 
@@ -1219,11 +1109,9 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         var valueInferred = engine.check(newCtx, expr,
             newCtx.apply(new SystemFType.EtVar(this.getLocation(), typeVar)));
         newCtx = valueInferred.ctx().copy();
-        trees.add(valueInferred.tree());
       }
 
       var bodyInferred = engine.infer(newCtx, this.body);
-      trees.add(bodyInferred.tree());
 
       var break3Result = bodyInferred.ctx().break3(
           entry -> entry instanceof Entry.Mark m && m.equals(mark));
@@ -1236,14 +1124,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
           .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
       var finalCtx = new Context(solvedFinalCtxEntries, bodyInferred.ctx());
 
-      return new TypeResult(
-          bodyInferred.type(),
-          finalCtx,
-          new InferenceTree(
-              "InfLet*",
-              input,
-              input + " => " + bodyInferred.type() + " -| " + finalCtx,
-              List.copyOf(trees)));
+      return new TypeResult(bodyInferred.type(), finalCtx);
     }
 
     @Override
@@ -1344,12 +1225,10 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
       TypeResult res = engine.infer(ctx, this.value);
       SystemFType resultType = res.ctx().apply(res.type());
 
-      var output = input + " => Bool -| " + res.ctx();
-      return new TypeResult(resultType, res.ctx(), new InferenceTree("InfRet", input, output, List.of(res.tree())));
+      return new TypeResult(resultType, res.ctx());
     }
 
     @Override
@@ -1457,9 +1336,6 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
-      var input = ctx + " |- " + this;
-
-      var trees = new ArrayList<InferenceTree>();
       var currentCtx = ctx.copy();
       SystemFType lastType = new SystemFType.Lit(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT);
 
@@ -1467,17 +1343,9 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         var infRes = engine.infer(currentCtx, expr);
         currentCtx = infRes.ctx();
         lastType = currentCtx.apply(infRes.type());
-        trees.add(infRes.tree());
       }
 
-      return new TypeResult(
-          lastType,
-          currentCtx,
-          new InferenceTree(
-              "InfSeq",
-              input,
-              lastType.toString(),
-              List.copyOf(trees)));
+      return new TypeResult(lastType, currentCtx);
     }
 
     @Override
