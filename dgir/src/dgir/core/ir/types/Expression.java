@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import dgir.core.debug.Location;
 import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
@@ -16,11 +17,12 @@ import dgir.core.ir.types.traits.IExpressionCell;
 import dgir.core.ir.types.traits.IVariable;
 
 public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> extends ExprOrOperator<E, T> {
-  public Optional<T> inferredType;
-  public Optional<Operation> underlyingOperation;
-  public Optional<E> parentScopeExpression;
-  public Optional<Integer> parentScopePosition;
-  public Optional<InstantiateOperation<E, T>> instantiationCallback;
+  protected Optional<T> inferredType;
+  protected Optional<Operation> underlyingOperation;
+  protected Optional<E> parentScopeExpression;
+  protected Optional<Integer> parentScopePosition;
+  protected Optional<InstantiateOperation<E, T>> instantiationCallback;
+  public final Location location;
 
   public Expression() {
     this.inferredType = Optional.empty();
@@ -28,6 +30,16 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
     this.parentScopeExpression = Optional.empty();
     this.parentScopePosition = Optional.empty();
     this.instantiationCallback = Optional.empty();
+    this.location = Location.UNKNOWN;
+  }
+
+  public Expression(Location loc) {
+    this.inferredType = Optional.empty();
+    this.underlyingOperation = Optional.empty();
+    this.parentScopeExpression = Optional.empty();
+    this.parentScopePosition = Optional.empty();
+    this.instantiationCallback = Optional.empty();
+    this.location = loc;
   }
 
   public Expression(Expression<E, T> other) {
@@ -36,6 +48,7 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
     this.parentScopeExpression = other.parentScopeExpression;
     this.parentScopePosition = other.parentScopePosition;
     this.instantiationCallback = other.instantiationCallback;
+    this.location = other.location;
   }
 
   @FunctionalInterface
@@ -72,6 +85,10 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
   @Override
   public E getExpr() {
     return (E) this;
+  }
+
+  public Location getLocation() {
+    return this.location;
   }
 
   public void setInferredType(Optional<T> inferredType) {

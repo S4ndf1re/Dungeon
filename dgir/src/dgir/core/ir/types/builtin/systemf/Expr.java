@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
+import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.InferenceTree;
@@ -35,6 +36,10 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
   public Expr() {
     super();
+  }
+
+  public Expr(Location loc) {
+    super(loc);
   }
 
   public Expr(Expr other) {
@@ -206,6 +211,11 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.name = name;
     }
 
+    public Var(Location loc, Symbol<Expr, SystemFType> name) {
+      super(loc);
+      this.name = name;
+    }
+
     public Var(Var other) {
       super(other);
       this.name = other.name;
@@ -299,7 +309,19 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.arg = Optional.empty();
     }
 
+    public App(Location loc, Expr fun) {
+      super(loc);
+      this.fun = fun;
+      this.arg = Optional.empty();
+    }
+
     public App(Expr fun, Expr arg) {
+      this.fun = fun;
+      this.arg = Optional.of(arg);
+    }
+
+    public App(Location loc, Expr fun, Expr arg) {
+      super(loc);
       this.fun = fun;
       this.arg = Optional.of(arg);
     }
@@ -346,7 +368,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
           // Zero argument application: the unit input placeholder is supplied
           // implicitly!
           var placeholderCheck = engine.subtype(currentCtx,
-              new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT), arrow.from);
+              new SystemFType.Lit(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT), arrow.from);
           currentCtx = placeholderCheck.ctx();
         }
 
@@ -370,9 +392,9 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         CheckResult checkRes;
         if (this.arg.isPresent()) {
           var a1 = new TypeVar<SystemFType>();
-          var arrowType = new SystemFType.Arrow(
-              new SystemFType.EtVar(a1),
-              new SystemFType.EtVar(a2));
+          var arrowType = new SystemFType.Arrow(this.getLocation(),
+              new SystemFType.EtVar(this.getLocation(), a1),
+              new SystemFType.EtVar(this.getLocation(), a2));
 
           newCtx.push(new Entry.SETVarBnd(a, arrowType));
           newCtx.push(new Entry.ETVarBnd(a1));
@@ -382,13 +404,13 @@ public abstract class Expr extends Expression<Expr, SystemFType>
           checkRes = engine.check(
               newCtx,
               this.arg.get(),
-              new SystemFType.EtVar(a1));
+              new SystemFType.EtVar(this.getLocation(), a1));
         } else {
           // Zero argument application: the unit input placeholder is supplied
           // implicitly!
-          var arrowType = new SystemFType.Arrow(
-              new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT),
-              new SystemFType.EtVar(a2));
+          var arrowType = new SystemFType.Arrow(this.getLocation(),
+              new SystemFType.Lit(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT),
+              new SystemFType.EtVar(this.getLocation(), a2));
 
           newCtx.push(new Entry.SETVarBnd(a, arrowType));
           newCtx.push(new Entry.ETVarBnd(a2));
@@ -401,7 +423,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
         var output = input + " =>=> ^" + a2 + " -| " + checkRes.ctx();
         result = new TypeResult(
-            new SystemFType.EtVar(a2),
+            new SystemFType.EtVar(this.getLocation(), a2),
             checkRes.ctx(),
             new InferenceTree(
                 "InfAppETVar",
@@ -465,14 +487,23 @@ public abstract class Expr extends Expression<Expr, SystemFType>
     private final Expr body;
 
     public Abs(Symbol<Expr, SystemFType> name, SystemFType type, Expr body) {
-      this(Optional.of(name), Optional.of(type), body);
+      this(Location.UNKNOWN, Optional.of(name), Optional.of(type), body);
     }
 
     public Abs(Expr body) {
-      this(Optional.empty(), Optional.empty(), body);
+      this(Location.UNKNOWN, Optional.empty(), Optional.empty(), body);
     }
 
-    private Abs(Optional<Symbol<Expr, SystemFType>> name, Optional<SystemFType> type, Expr body) {
+    public Abs(Location loc, Symbol<Expr, SystemFType> name, SystemFType type, Expr body) {
+      this(loc, Optional.of(name), Optional.of(type), body);
+    }
+
+    public Abs(Location loc, Expr body) {
+      this(loc, Optional.empty(), Optional.empty(), body);
+    }
+
+    private Abs(Location loc, Optional<Symbol<Expr, SystemFType>> name, Optional<SystemFType> type, Expr body) {
+      super(loc);
       this.name = name;
       this.type = type;
       this.body = body;
@@ -510,10 +541,10 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.name.ifPresent(name -> newCtx.push(new Entry.VarBnd(name, this.type.get())));
       newCtx.push(new Entry.ETVarBnd(b));
 
-      var c1 = engine.check(newCtx, this.body, new SystemFType.EtVar(b));
+      var c1 = engine.check(newCtx, this.body, new SystemFType.EtVar(this.getLocation(), b));
 
       Context furtherCtx = c1.ctx().copy();
-      SystemFType resultType = new SystemFType.EtVar(b);
+      SystemFType resultType = new SystemFType.EtVar(this.getLocation(), b);
       ArrayList<InferenceTree> trees = new ArrayList<>();
 
       for (var retType : scope.getAllReturnTypesInScope()) {
@@ -534,8 +565,8 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
       var finalCtx = new Context(solvedFinalCtxEntries, furtherCtx);
       // A zero parameter abstraction is a function taking the unit placeholder!
-      var resType = new SystemFType.Arrow(
-          this.type.orElseGet(() -> new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT)),
+      var resType = new SystemFType.Arrow(this.getLocation(),
+          this.type.orElseGet(() -> new SystemFType.Lit(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT)),
           resultType);
 
       return new TypeResult(
@@ -566,7 +597,8 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         var finalCtx = new Context(break3Result.left(), bodyCheck.ctx());
 
         this.setInferredType(
-            Optional.of(finalCtx.apply(new SystemFType.Arrow(arrow.from, finalCtx.apply(arrow.to)))));
+            Optional
+                .of(finalCtx.apply(new SystemFType.Arrow(this.getLocation(), arrow.from, finalCtx.apply(arrow.to)))));
 
         return new CheckResult(
             finalCtx,
@@ -642,6 +674,12 @@ public abstract class Expr extends Expression<Expr, SystemFType>
     private final SystemFType type;
 
     public TApp(Expr func, SystemFType type) {
+      this.func = func;
+      this.type = type;
+    }
+
+    public TApp(Location loc, Expr func, SystemFType type) {
+      super(loc);
       this.func = func;
       this.type = type;
     }
@@ -742,6 +780,12 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.type = type;
     }
 
+    public Ann(Location loc, Expr expr, SystemFType type) {
+      super(loc);
+      this.expr = expr;
+      this.type = type;
+    }
+
     public Ann(Ann other) {
       super(other);
       this.expr = other.expr;
@@ -823,6 +867,12 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.body = body;
     }
 
+    public TAbs(Location loc, TypeVar<SystemFType> variable, Expr body) {
+      super(loc);
+      this.variable = variable;
+      this.body = body;
+    }
+
     public TAbs(TAbs other) {
       super(other);
       this.variable = other.variable;
@@ -863,7 +913,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
           .filter(entry -> entry instanceof Entry.SETVarBnd)
           .collect(Collectors.toCollection(() -> new ArrayList<Entry>())));
       var finalCtx = new Context(solvedFinalCtxEntries, bodyInferred.ctx());
-      var resType = new SystemFType.ForAll(this.variable, resolvedBodyType);
+      var resType = new SystemFType.ForAll(this.getLocation(), this.variable, resolvedBodyType);
 
       var output = input + " => " + resType + " -| " + finalCtx;
 
@@ -920,6 +970,11 @@ public abstract class Expr extends Expression<Expr, SystemFType>
     private final Literal lit;
 
     public LitExpr(Literal lit) {
+      this.lit = lit;
+    }
+
+    public LitExpr(Location loc, Literal lit) {
+      super(loc);
       this.lit = lit;
     }
 
@@ -992,7 +1047,17 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.elements = List.copyOf(elements);
     }
 
+    public Tuple(Location loc, List<Expr> elements) {
+      super(loc);
+      this.elements = List.copyOf(elements);
+    }
+
     public Tuple(Expr... elements) {
+      this.elements = List.of(elements);
+    }
+
+    public Tuple(Location loc, Expr... elements) {
+      super(loc);
       this.elements = List.of(elements);
     }
 
@@ -1041,7 +1106,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         trees.add(res.tree());
       }
 
-      var resultType = new SystemFType.Tuple(List.copyOf(types));
+      var resultType = new SystemFType.Tuple(this.getLocation(), List.copyOf(types));
       return new TypeResult(
           resultType,
           currentCtx,
@@ -1097,6 +1162,20 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.body = body;
     }
 
+    public Let(Location loc, Symbol<Expr, SystemFType> name, Expr value,
+        Expr body) {
+      super(loc);
+      this.bindings = List.of(Pair.of(name, value));
+      this.body = body;
+    }
+
+    public Let(Location loc, List<Pair<Symbol<Expr, SystemFType>, Expr>> bindings,
+        Expr body) {
+      super(loc);
+      this.bindings = List.copyOf(bindings);
+      this.body = body;
+    }
+
     public Let(Let other) {
       super(other);
       this.bindings = List.copyOf(other.bindings);
@@ -1131,13 +1210,14 @@ public abstract class Expr extends Expression<Expr, SystemFType>
         var typeVar = new TypeVar<SystemFType>();
         nonUnified.add(Triple.of(binding.getLeft(), typeVar, binding.getRight()));
         newCtx.push(new Entry.ETVarBnd(typeVar));
-        newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(typeVar)));
+        newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(this.getLocation(), typeVar)));
       }
 
       for (var binding : nonUnified) {
         var typeVar = binding.getMiddle();
         var expr = binding.getRight();
-        var valueInferred = engine.check(newCtx, expr, newCtx.apply(new SystemFType.EtVar(typeVar)));
+        var valueInferred = engine.check(newCtx, expr,
+            newCtx.apply(new SystemFType.EtVar(this.getLocation(), typeVar)));
         newCtx = valueInferred.ctx().copy();
         trees.add(valueInferred.tree());
       }
@@ -1243,6 +1323,11 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.value = value;
     }
 
+    public Return(Location loc, Expr value) {
+      super(loc);
+      this.value = value;
+    }
+
     public Return(Return other) {
       super(other);
       this.value = other.value;
@@ -1316,7 +1401,8 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
     private List<Expr> expressions;
 
-    public Seq(Expr expr) {
+    public Seq(Location loc, Expr expr) {
+      super(loc);
       this.expressions = List.of(expr);
     }
 
@@ -1324,7 +1410,17 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this.expressions = List.copyOf(exprs);
     }
 
+    public Seq(Location loc, List<Expr> exprs) {
+      super(loc);
+      this.expressions = List.copyOf(exprs);
+    }
+
     public Seq(Expr... exprs) {
+      this.expressions = List.of(exprs);
+    }
+
+    public Seq(Location loc, Expr... exprs) {
+      super(loc);
       this.expressions = List.of(exprs);
     }
 
@@ -1365,7 +1461,7 @@ public abstract class Expr extends Expression<Expr, SystemFType>
 
       var trees = new ArrayList<InferenceTree>();
       var currentCtx = ctx.copy();
-      SystemFType lastType = new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT);
+      SystemFType lastType = new SystemFType.Lit(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT);
 
       for (var expr : this.expressions) {
         var infRes = engine.infer(currentCtx, expr);
@@ -1451,13 +1547,33 @@ public abstract class Expr extends Expression<Expr, SystemFType>
       this(data, inferFn, null, null, null, null);
     }
 
+    public Custom(Location loc, D data, InferFunction<D> inferFn) {
+      this(loc, data, inferFn, null);
+    }
+
     public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn) {
       this(data, inferFn, checkFn, null, null, null);
+    }
+
+    public Custom(Location loc, D data, InferFunction<D> inferFn, CheckFunction<D> checkFn) {
+      this(loc, data, inferFn, checkFn, null, null, null);
     }
 
     public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn,
         InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
         ReplaceSymbolFunction<D> replaceSymbolFn) {
+      this.data = data;
+      this.inferFn = inferFn;
+      this.checkFn = Optional.ofNullable(checkFn);
+      this.instFn = Optional.ofNullable(instFn);
+      this.getChildrenFn = Optional.ofNullable(getChildrenFn);
+      this.replaceSymbolFn = Optional.ofNullable(replaceSymbolFn);
+    }
+
+    public Custom(Location loc, D data, InferFunction<D> inferFn, CheckFunction<D> checkFn,
+        InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
+        ReplaceSymbolFunction<D> replaceSymbolFn) {
+      super(loc);
       this.data = data;
       this.inferFn = inferFn;
       this.checkFn = Optional.ofNullable(checkFn);

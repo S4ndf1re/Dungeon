@@ -49,7 +49,7 @@ public final class ScfHMXConversion {
 
     ScfOps.IfOp ifOp = (ScfOps.IfOp) op.asOp();
 
-    var condExpr = new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(ifOp.getOperandValue(0).orElseThrow()));
+    var condExpr = new HMXExpr.ExprVar(ifOp.getLocation(), Symbol.<HMXExpr, HMXType>of(ifOp.getOperandValue(0).orElseThrow()));
     var thenCase = OperationExprConversionUtils.regionToExpr(engine, ifOp.getThenRegion());
     Optional<HMXExpr> elseCase = ifOp.getElseRegion()
         .map(region -> OperationExprConversionUtils.regionToExpr(engine, region));
@@ -180,13 +180,15 @@ public final class ScfHMXConversion {
         Symbol.<HMXExpr, HMXType>of(forOp.getStep()),
         Symbol.<HMXExpr, HMXType>of(forOp.getInductionValue()));
 
+    var loc = forOp.getLocation();
     var result = new HMXExpr.ExprApp(
-        new HMXExpr.ExprAbs(params, OperationExprConversionUtils.regionToExpr(engine, forOp.getRegion())),
+        loc,
+        new HMXExpr.ExprAbs(loc, params, OperationExprConversionUtils.regionToExpr(engine, forOp.getRegion())),
         List.of(
-            new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(forOp.getInitialValue())),
-            new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(forOp.getLowerBound())),
-            new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(forOp.getUpperBound())),
-            new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(forOp.getStep()))));
+            new HMXExpr.ExprVar(loc, Symbol.<HMXExpr, HMXType>of(forOp.getInitialValue())),
+            new HMXExpr.ExprVar(loc, Symbol.<HMXExpr, HMXType>of(forOp.getLowerBound())),
+            new HMXExpr.ExprVar(loc, Symbol.<HMXExpr, HMXType>of(forOp.getUpperBound())),
+            new HMXExpr.ExprVar(loc, Symbol.<HMXExpr, HMXType>of(forOp.getStep()))));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof HMXExpr.ExprApp;
@@ -299,9 +301,9 @@ public final class ScfHMXConversion {
     ScfOps.SelectOp selectOp = (ScfOps.SelectOp) op.asOp();
 
     var selectData = new SelectData(
-        new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(selectOp.getCondition())),
-        new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(selectOp.getTrue())),
-        new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(selectOp.getFalse())));
+        new HMXExpr.ExprVar(selectOp.getLocation(), Symbol.<HMXExpr, HMXType>of(selectOp.getCondition())),
+        new HMXExpr.ExprVar(selectOp.getLocation(), Symbol.<HMXExpr, HMXType>of(selectOp.getTrue())),
+        new HMXExpr.ExprVar(selectOp.getLocation(), Symbol.<HMXExpr, HMXType>of(selectOp.getFalse())));
 
     GenerateFunction<SelectData> infFunc = (eng, env, type, data) -> {
 
@@ -371,7 +373,7 @@ public final class ScfHMXConversion {
     ScfOps.YieldOp yieldOp = (ScfOps.YieldOp) op.asOp();
 
     var yieldData = new YieldData(
-        new HMXExpr.ExprVar(Symbol.<HMXExpr, HMXType>of(yieldOp.getOperand())));
+        new HMXExpr.ExprVar(yieldOp.getLocation(), Symbol.<HMXExpr, HMXType>of(yieldOp.getOperand())));
 
     GenerateFunction<YieldData> infFunc = (eng, env, type, data) -> {
       var valueTyVar = new TypeVar<HMXType>();

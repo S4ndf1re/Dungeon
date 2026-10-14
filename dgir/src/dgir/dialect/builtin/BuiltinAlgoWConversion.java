@@ -93,7 +93,9 @@ public final class BuiltinAlgoWConversion {
     var param = Symbol.<Expr, AlgorithmWType>of(idOp.getOperand());
     var absParam = Symbol.<Expr, AlgorithmWType>of(new Value());
 
-    var expr = new Expr.ExprApp(new Expr.ExprAbs(absParam, new Expr.ExprVar(absParam)), new Expr.ExprVar(param));
+    var loc = idOp.getLocation();
+    var expr = new Expr.ExprApp(new Expr.ExprAbs(loc, absParam, new Expr.ExprVar(loc, absParam)),
+        new Expr.ExprVar(loc, param));
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
 
       assert instantiatedExpr instanceof Expr.ExprApp;

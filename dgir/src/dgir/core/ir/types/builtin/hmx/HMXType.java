@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import dgir.core.debug.Location;
 import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 import dgir.core.ir.types.InferenceTree;
@@ -16,6 +17,14 @@ import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 
 public abstract sealed class HMXType extends Type<HMXType> {
+
+  protected HMXType() {
+    super();
+  }
+
+  protected HMXType(Location loc) {
+    super(loc);
+  }
 
   @Override
   public abstract boolean equals(Object obj);
@@ -60,6 +69,11 @@ public abstract sealed class HMXType extends Type<HMXType> {
     public final TypeVar<HMXType> tyVar;
 
     public Var(TypeVar<HMXType> tyVar) {
+      this.tyVar = tyVar;
+    }
+
+    public Var(Location loc, TypeVar<HMXType> tyVar) {
+      super(loc);
       this.tyVar = tyVar;
     }
 
@@ -187,6 +201,12 @@ public abstract sealed class HMXType extends Type<HMXType> {
       this.to = to;
     }
 
+    public Arrow(Location loc, HMXType from, HMXType to) {
+      super(loc);
+      this.from = from;
+      this.to = to;
+    }
+
     @Override
     public String toString() {
       return from.deref() + " -> " + to.deref();
@@ -275,7 +295,19 @@ public abstract sealed class HMXType extends Type<HMXType> {
       this.parameters = List.of();
     }
 
+    public LitType(Location loc, TypeIdent tyName) {
+      super(loc);
+      this.tyName = tyName;
+      this.parameters = List.of();
+    }
+
     public LitType(TypeIdent tyName, List<HMXType> parameters) {
+      this.tyName = tyName;
+      this.parameters = List.copyOf(parameters);
+    }
+
+    public LitType(Location loc, TypeIdent tyName, List<HMXType> parameters) {
+      super(loc);
       this.tyName = tyName;
       this.parameters = List.copyOf(parameters);
     }
@@ -369,6 +401,11 @@ public abstract sealed class HMXType extends Type<HMXType> {
       this.size = size;
     }
 
+    public NumericType(Location loc, long size) {
+      super(loc);
+      this.size = size;
+    }
+
     @Override
     public String toString() {
       return "" + this.size;
@@ -428,6 +465,11 @@ public abstract sealed class HMXType extends Type<HMXType> {
     public final List<HMXType> elements;
 
     public Tuple(List<HMXType> elements) {
+      this.elements = elements;
+    }
+
+    public Tuple(Location loc, List<HMXType> elements) {
+      super(loc);
       this.elements = elements;
     }
 

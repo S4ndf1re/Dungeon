@@ -2,9 +2,24 @@ package dgir.core.ir.types;
 
 import java.util.Set;
 
+import dgir.core.debug.Location;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 
 public abstract class Type<T extends Type<T>> {
+
+  public final Location location;
+
+  protected Type() {
+    this.location = Location.UNKNOWN;
+  }
+
+  protected Type(Location loc) {
+    this.location = loc;
+  }
+
+  public Location getLocation() {
+    return this.location;
+  }
 
   public abstract GeneralTypeParameter asTypeParameter();
 

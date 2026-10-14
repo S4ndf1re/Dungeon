@@ -38,8 +38,10 @@ public final class IoAlgoWConversion {
     List<Symbol<Expr, AlgorithmWType>> paramsCopy = params.stream()
         .map(param -> Symbol.<Expr, AlgorithmWType>of(new Value())).toList();
 
-    var result = new Expr.ExprApp(new Expr.ExprAbs(paramsCopy, new Expr.ExprLit(new Literal.Unit())),
-        params.stream().map(param -> (Expr) new Expr.ExprVar(param)).toList());
+    var result = new Expr.ExprApp(op.getLocation(),
+        new Expr.ExprAbs(op.getLocation(), paramsCopy,
+            new Expr.ExprLit(op.getLocation(), new Literal.Unit())),
+        params.stream().map(param -> (Expr) new Expr.ExprVar(op.getLocation(), param)).toList());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprApp;
@@ -61,8 +63,9 @@ public final class IoAlgoWConversion {
 
     IoOps.ConsoleInOp castOp = (IoOps.ConsoleInOp) op.asOp();
 
-    var result = new Expr.ExprApp(
-        new Expr.ExprAbs(List.of(), new Expr.ExprLit(new Literal.Generic(castOp.getResult()))), List.of());
+    var result = new Expr.ExprApp(op.getLocation(),
+        new Expr.ExprAbs(op.getLocation(), List.of(),
+            new Expr.ExprLit(op.getLocation(), new Literal.Generic(castOp.getResult()))), List.of());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprApp;

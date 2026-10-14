@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import dgir.core.debug.Location;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.Type;
@@ -14,6 +15,14 @@ import dgir.core.ir.types.GeneralParameterizedNominalType;
 import dgir.core.ir.types.GeneralParameterizedNominalType.GeneralTypeParameter;
 
 public abstract sealed class SystemFType extends Type<SystemFType> {
+
+  protected SystemFType() {
+    super();
+  }
+
+  protected SystemFType(Location loc) {
+    super(loc);
+  }
 
   @Override
   public GeneralTypeParameter asTypeParameter() {
@@ -40,6 +49,11 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
     public final TypeVar<SystemFType> tyVar;
 
     public Var(TypeVar<SystemFType> name) {
+      this.tyVar = name;
+    }
+
+    public Var(Location loc, TypeVar<SystemFType> name) {
+      super(loc);
       this.tyVar = name;
     }
 
@@ -109,6 +123,11 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
       this.tyVar = tyVar;
     }
 
+    public EtVar(Location loc, TypeVar<SystemFType> tyVar) {
+      super(loc);
+      this.tyVar = tyVar;
+    }
+
     @Override
     public String toString() {
       return tyVar.toString();
@@ -173,6 +192,12 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
     public final SystemFType to;
 
     public Arrow(SystemFType from, SystemFType to) {
+      this.from = from;
+      this.to = to;
+    }
+
+    public Arrow(Location loc, SystemFType from, SystemFType to) {
+      super(loc);
       this.from = from;
       this.to = to;
     }
@@ -261,6 +286,12 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
       this.body = type;
     }
 
+    public ForAll(Location loc, TypeVar<SystemFType> name, SystemFType type) {
+      super(loc);
+      this.boundVar = name;
+      this.body = type;
+    }
+
     @Override
     public String toString() {
       return "∀" + boundVar + ". " + body;
@@ -330,7 +361,19 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
       this.parameters = params;
     }
 
+    public Lit(Location loc, TypeIdent ident, List<SystemFType> params) {
+      super(loc);
+      this.ident = ident;
+      this.parameters = params;
+    }
+
     public Lit(TypeIdent ident) {
+      this.ident = ident;
+      this.parameters = List.of();
+    }
+
+    public Lit(Location loc, TypeIdent ident) {
+      super(loc);
       this.ident = ident;
       this.parameters = List.of();
     }
@@ -403,6 +446,11 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
       this.size = size;
     }
 
+    public NumericType(Location loc, long size) {
+      super(loc);
+      this.size = size;
+    }
+
     @Override
     public boolean isMono() {
       return true;
@@ -444,6 +492,11 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
     public final List<SystemFType> elements;
 
     public Tuple(List<SystemFType> elements) {
+      this.elements = List.copyOf(elements);
+    }
+
+    public Tuple(Location loc, List<SystemFType> elements) {
+      super(loc);
       this.elements = List.copyOf(elements);
     }
 

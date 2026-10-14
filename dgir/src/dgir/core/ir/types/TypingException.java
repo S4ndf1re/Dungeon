@@ -6,6 +6,14 @@ public abstract sealed class TypingException extends RuntimeException {
     super(message);
   }
 
+  protected static String located(Type<?> type) {
+    return type + " @ " + type.getLocation();
+  }
+
+  protected static String located(Expression<?, ?> expr) {
+    return expr + " @ " + expr.getLocation();
+  }
+
   public static final class InvalidLiteral extends TypingException {
 
     public final Object literal;
@@ -71,7 +79,7 @@ public abstract sealed class TypingException extends RuntimeException {
     public final Expression<?, ?> expr;
 
     public CyclicSymbolAssignment(Symbol<?, ?> symbol, Expression<?, ?> expr) {
-      super("Cyclic Symbol assignment was found. Symbol " + symbol + " was found within " + expr);
+      super("Cyclic Symbol assignment was found. Symbol " + symbol + " was found within " + located(expr));
       this.symbol = symbol;
       this.expr = expr;
     }
@@ -83,7 +91,7 @@ public abstract sealed class TypingException extends RuntimeException {
     public final TypeVar<?> symbol;
 
     public OccursCheckFailed(Type<?> type, TypeVar<?> symbol) {
-      super("Occurs-Check failed: " + symbol + " occurs in " + type);
+      super("Occurs-Check failed: " + symbol + " occurs in " + located(type));
       this.symbol = symbol;
       this.type = type;
     }
@@ -95,7 +103,7 @@ public abstract sealed class TypingException extends RuntimeException {
     public final Type<?> right;
 
     public UnificationFailed(Type<?> left, Type<?> right) {
-      super("Unification failed: " + left + " != " + right);
+      super("Unification failed: " + located(left) + " != " + located(right));
       this.left = left;
       this.right = right;
     }
@@ -133,7 +141,7 @@ public abstract sealed class TypingException extends RuntimeException {
     public final Type<?> right;
 
     public SubtypingFailed(Type<?> left, Type<?> right) {
-      super("Subtyping error between " + left + " and " + right);
+      super("Subtyping error between " + located(left) + " and " + located(right));
       this.left = left;
       this.right = right;
     }
@@ -164,7 +172,7 @@ public abstract sealed class TypingException extends RuntimeException {
     public final Type<?> type;
 
     public ExpectedLiteral(Symbol<?, ?> sym, Type<?> type) {
-      super(sym + " has an invalid type: " + type + ". Expected Literal");
+      super(sym + " has an invalid type: " + located(type) + ". Expected Literal");
       this.sym = sym;
       this.type = type;
     }
@@ -174,7 +182,7 @@ public abstract sealed class TypingException extends RuntimeException {
     public final Type<?> type;
 
     public NotFullySpecified(Type<?> type) {
-      super("Type " + type
+      super("Type " + located(type)
           + " is not fully specified. I.e. there are unresolved type variables contained wihtin the type");
       this.type = type;
     }

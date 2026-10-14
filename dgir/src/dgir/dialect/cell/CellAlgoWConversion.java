@@ -44,9 +44,10 @@ public final class CellAlgoWConversion {
       var param = Symbol.<Expr, AlgorithmWType>of(operand);
       var absParam = Symbol.<Expr, AlgorithmWType>of(new Value());
 
-      var result = new Expr.ExprApp(
-          new Expr.ExprAbs(absParam, new Expr.ExprVar(absParam)),
-          new Expr.ExprVar(param));
+      var result = new Expr.ExprApp(cellOp.getLocation(),
+          new Expr.ExprAbs(cellOp.getLocation(), absParam,
+              new Expr.ExprVar(cellOp.getLocation(), absParam)),
+          new Expr.ExprVar(cellOp.getLocation(), param));
 
       result.setInstantiateOperationCallback(instantiatedExpr -> {
         assert instantiatedExpr instanceof Expr.ExprApp;
@@ -74,8 +75,9 @@ public final class CellAlgoWConversion {
               + " be inferred: %s".formatted(op));
     }
 
-    var literalResult = new Expr.ExprApp(
-        new Expr.ExprAbs(List.of(), new Expr.ExprLit(new Literal.Generic(resultValue))),
+    var literalResult = new Expr.ExprApp(cellOp.getLocation(),
+        new Expr.ExprAbs(cellOp.getLocation(), List.of(),
+            new Expr.ExprLit(cellOp.getLocation(), new Literal.Generic(resultValue))),
         List.of());
 
     literalResult.setInstantiateOperationCallback(instantiatedExpr -> {
@@ -109,9 +111,12 @@ public final class CellAlgoWConversion {
     var cellParam = Symbol.<Expr, AlgorithmWType>of(new Value());
     var assigneeParam = Symbol.<Expr, AlgorithmWType>of(new Value());
 
-    var result = new Expr.ExprApp(
-        new Expr.ExprAbs(List.of(cellParam, assigneeParam), new Expr.ExprLit(new Literal.Unit())),
-        List.of(new Expr.ExprVar(cell), new Expr.ExprVar(assignee)));
+    var result = new Expr.ExprApp(setCellOp.getLocation(),
+        new Expr.ExprAbs(setCellOp.getLocation(), List.of(cellParam, assigneeParam),
+            new Expr.ExprLit(setCellOp.getLocation(), new Literal.Unit())),
+        List.of(
+            new Expr.ExprVar(setCellOp.getLocation(), cell),
+            new Expr.ExprVar(setCellOp.getLocation(), assignee)));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof Expr.ExprApp;

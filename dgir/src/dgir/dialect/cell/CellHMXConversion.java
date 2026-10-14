@@ -44,9 +44,10 @@ public final class CellHMXConversion {
       var param = Symbol.<HMXExpr, HMXType>of(operand);
       var absParam = Symbol.<HMXExpr, HMXType>of(new Value());
 
-      var result = new HMXExpr.ExprApp(
-          new HMXExpr.ExprAbs(absParam, new HMXExpr.ExprVar(absParam)),
-          new HMXExpr.ExprVar(param));
+      var result = new HMXExpr.ExprApp(cellOp.getLocation(),
+          new HMXExpr.ExprAbs(cellOp.getLocation(), absParam,
+              new HMXExpr.ExprVar(cellOp.getLocation(), absParam)),
+          new HMXExpr.ExprVar(cellOp.getLocation(), param));
 
       result.setInstantiateOperationCallback(instantiatedExpr -> {
         assert instantiatedExpr instanceof HMXExpr.ExprApp;
@@ -74,8 +75,9 @@ public final class CellHMXConversion {
               + " be inferred: %s".formatted(op));
     }
 
-    var literalResult = new HMXExpr.ExprApp(
-        new HMXExpr.ExprAbs(List.of(), new HMXExpr.ExprLit(new Literal.Generic(resultValue))),
+    var literalResult = new HMXExpr.ExprApp(cellOp.getLocation(),
+        new HMXExpr.ExprAbs(cellOp.getLocation(), List.of(),
+            new HMXExpr.ExprLit(cellOp.getLocation(), new Literal.Generic(resultValue))),
         List.of());
 
     literalResult.setInstantiateOperationCallback(instantiatedExpr -> {
@@ -109,9 +111,12 @@ public final class CellHMXConversion {
     var cellParam = Symbol.<HMXExpr, HMXType>of(new Value());
     var assigneeParam = Symbol.<HMXExpr, HMXType>of(new Value());
 
-    var result = new HMXExpr.ExprApp(
-        new HMXExpr.ExprAbs(List.of(cellParam, assigneeParam), new HMXExpr.ExprLit(new Literal.Unit())),
-        List.of(new HMXExpr.ExprVar(cell), new HMXExpr.ExprVar(assignee)));
+    var result = new HMXExpr.ExprApp(setCellOp.getLocation(),
+        new HMXExpr.ExprAbs(setCellOp.getLocation(), List.of(cellParam, assigneeParam),
+            new HMXExpr.ExprLit(setCellOp.getLocation(), new Literal.Unit())),
+        List.of(
+            new HMXExpr.ExprVar(setCellOp.getLocation(), cell),
+            new HMXExpr.ExprVar(setCellOp.getLocation(), assignee)));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof HMXExpr.ExprApp;
