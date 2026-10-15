@@ -1,7 +1,5 @@
 package dgir.dialect.str;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -11,9 +9,13 @@ import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.SystemFConversionUtils;
+import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IApplication;
+import dgir.core.ir.types.builtin.systemf.Entry;
 import dgir.core.ir.types.builtin.systemf.Expr;
 import dgir.core.ir.types.builtin.systemf.SystemFInference;
 import dgir.core.ir.types.builtin.systemf.SystemFType;
@@ -44,64 +46,126 @@ public final class StringSystemFConversion {
   public static Expr convertToStringOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine, loc -> vals -> new StrOps.ToStringOp(loc, vals.get(0)).getOperation());
+    var valueType = new TypeVar<SystemFType>();
+    engine.getStartContext().push(new Entry.ETVarBnd(valueType));
+
+    var fnType = engine
+        .ArrowChain(new SystemFType.EtVar(valueType), new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING));
+    return convertResultOp(op, engine, fnType, loc -> vals -> new StrOps.ToStringOp(loc, vals.get(0)).getOperation());
   }
 
   public static Expr convertConcatOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine,
+    var fnType = engine
+        .ArrowChain(
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING));
+
+    return convertResultOp(op, engine, fnType,
         loc -> vals -> new StrOps.ConcatOp(loc, vals.get(0), vals.get(1)).getOperation());
   }
 
   public static Expr convertLengthOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine, loc -> vals -> new StrOps.LengthOp(loc, vals.get(0)).getOperation());
+    var fnType = engine
+        .ArrowChain(
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.from("int32")));
+    return convertResultOp(op, engine, fnType, loc -> vals -> new StrOps.LengthOp(loc, vals.get(0)).getOperation());
   }
 
   public static Expr convertCharAtOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine,
+
+    var idxType = new TypeVar<SystemFType>();
+    engine.getStartContext().push(new Entry.ETVarBnd(idxType));
+
+    var fnType = engine
+        .ArrowChain(
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Var(idxType),
+            new SystemFType.Lit(TypeIdent.from("uint16")));
+
+    return convertResultOp(op, engine, fnType,
         loc -> vals -> new StrOps.CharAtOp(loc, vals.get(0), vals.get(1)).getOperation());
   }
 
   public static Expr convertEqualsOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine,
+
+    var fnType = engine
+        .ArrowChain(
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL));
+    return convertResultOp(op, engine, fnType,
         loc -> vals -> new StrOps.EqualsOp(loc, vals.get(0), vals.get(1)).getOperation());
   }
 
   public static Expr convertIsEmptyOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine, loc -> vals -> new StrOps.IsEmptyOp(loc, vals.get(0)).getOperation());
+    var fnType = engine
+        .ArrowChain(
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL));
+    return convertResultOp(op, engine, fnType, loc -> vals -> new StrOps.IsEmptyOp(loc, vals.get(0)).getOperation());
   }
 
   public static Expr convertToLowerCase(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine, loc -> vals -> new StrOps.ToLowerCaseOp(loc, vals.get(0)).getOperation());
+    var fnType = engine
+        .ArrowChain(
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING));
+    return convertResultOp(op, engine, fnType,
+        loc -> vals -> new StrOps.ToLowerCaseOp(loc, vals.get(0)).getOperation());
   }
 
   public static Expr convertToUpperCase(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine, loc -> vals -> new StrOps.ToUpperCaseOp(loc, vals.get(0)).getOperation());
+    var fnType = engine
+        .ArrowChain(
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING));
+    return convertResultOp(op, engine, fnType,
+        loc -> vals -> new StrOps.ToUpperCaseOp(loc, vals.get(0)).getOperation());
   }
 
   public static Expr convertTrimOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine, loc -> vals -> new StrOps.TrimOp(loc, vals.get(0)).getOperation());
+    var fnType = engine
+        .ArrowChain(
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING));
+    return convertResultOp(op, engine, fnType, loc -> vals -> new StrOps.TrimOp(loc, vals.get(0)).getOperation());
   }
 
   public static Expr convertSubstringOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine,
+    SystemFType fnType = null;
+    if (op.getOperands().size() == 3) {
+      fnType = engine
+          .ArrowChain(new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+              new SystemFType.Var(new TypeVar<>()),
+              new SystemFType.Var(new TypeVar<>()),
+              new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING));
+    } else {
+      fnType = engine
+          .ArrowChain(new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+              new SystemFType.Var(new TypeVar<>()),
+              new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING));
+    }
+    return convertResultOp(op, engine, fnType,
         loc -> vals -> vals.size() == 3
             ? new StrOps.SubstringOp(loc, vals.get(0), vals.get(1), vals.get(2)).getOperation()
             : new StrOps.SubstringOp(loc, vals.get(0), vals.get(1)).getOperation());
@@ -110,28 +174,44 @@ public final class StringSystemFConversion {
   public static Expr convertStartsWithOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine,
+    var fnType = engine
+        .ArrowChain(new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL));
+    return convertResultOp(op, engine, fnType,
         loc -> vals -> new StrOps.StartsWithOp(loc, vals.get(0), vals.get(1)).getOperation());
   }
 
   public static Expr convertEndsWithOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine,
+    var fnType = engine
+        .ArrowChain(new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL));
+    return convertResultOp(op, engine, fnType,
         loc -> vals -> new StrOps.EndsWithOp(loc, vals.get(0), vals.get(1)).getOperation());
   }
 
   public static Expr convertIndexOfOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine,
+    var fnType = engine
+        .ArrowChain(new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.from("int32")));
+    return convertResultOp(op, engine, fnType,
         loc -> vals -> new StrOps.IndexOfOp(loc, vals.get(0), vals.get(1)).getOperation());
   }
 
   public static Expr convertLastIndexOfOp(
       Operation op,
       TypeInference engine) {
-    return convertResultOp(op, engine,
+    var fnType = engine
+        .ArrowChain(new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING),
+            new SystemFType.Lit(TypeIdent.from("int32")));
+    return convertResultOp(op, engine, fnType,
         loc -> vals -> new StrOps.LastIndexOfOp(loc, vals.get(0), vals.get(1)).getOperation());
   }
 
@@ -158,38 +238,27 @@ public final class StringSystemFConversion {
   private static Expr convertResultOp(
       Operation op,
       TypeInference engine,
+      SystemFType expectedType,
       Function<Location, Function<List<Value>, Operation>> factory) {
 
     assert op.getOutput().isPresent();
 
-    List<Symbol<Expr, SystemFType>> params = new ArrayList<>();
-    List<SystemFType> paramTypes = new ArrayList<>();
-    for (var operand : op.getOperands()) {
-      var value = operand.getValueOrThrow();
-      assert value.getType().isKnown() : "str operands must have declared types for System F";
-      params.add(Symbol.<Expr, SystemFType>of(new Value()));
-      paramTypes.add(SystemFConversionUtils.irTypeToSystemFType(engine, value.getType().getAsKnownOrThrow()));
-    }
-
-    Expr abs = new Expr.LitExpr(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow()));
-    for (int i = params.size() - 1; i >= 0; i--) {
-      abs = new Expr.Abs(op.getLocation(), params.get(i), paramTypes.get(i), abs);
-    }
-    if (params.isEmpty()) {
-      // A zero operand op is a function taking the unit placeholder
-      abs = new Expr.Abs(op.getLocation(), abs);
-    }
-
     var args = op.getOperands().stream()
-        .<Expr>map(operand -> new Expr.Var(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
+        .map(operand -> engine.Var(op.getLocation(), Symbol.of(operand.getValueOrThrow())))
         .toList();
 
-    var result = buildApplication(op.getLocation(), abs, args);
+    var result = OperationExprConversionUtils.buildAnnotatedApplication(
+        engine,
+        args,
+        engine.Lit(op.getLocation(), new Literal.Generic(op.getOutputValueOrThrow())),
+        expectedType,
+        op.getLocation());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      // The operands are taken from the instantiated application chain, as
-      // beta reduction/substitution may have replaced the original values!
-      var argExprs = peelApplication(instantiatedExpr).getRight();
+      assert instantiatedExpr instanceof IApplication;
+
+      @SuppressWarnings("unchecked")
+      var argExprs = ((IApplication<Expr, SystemFType>) instantiatedExpr).getAllApplicationParameters();
 
       List<Value> argResults = argExprs.stream()
           .map(e -> e.getOutputValue())
@@ -199,38 +268,5 @@ public final class StringSystemFConversion {
     });
 
     return result;
-  }
-
-  /**
-   * Builds a curried function application from plain `App` nodes. A zero
-   * argument application supplies the unit input placeholder implicitly.
-   *
-   * @param loc  the location assigned to every constructed application node
-   * @param fun  the head expression of the application chain
-   * @param args the arguments in application order
-   */
-  private static Expr buildApplication(Location loc, Expr fun, List<Expr> args) {
-    if (args.isEmpty()) {
-      return new Expr.App(loc, fun);
-    }
-    Expr app = fun;
-    for (var arg : args) {
-      app = new Expr.App(loc, app, arg);
-    }
-    return app;
-  }
-
-  /**
-   * Peels an application chain into its head expression and the arguments in
-   * application order.
-   */
-  private static Pair<Expr, List<Expr>> peelApplication(Expr expr) {
-    var args = new ArrayDeque<Expr>();
-    var current = expr;
-    while (current instanceof Expr.App app) {
-      app.arg().ifPresent(args::addFirst);
-      current = app.fun();
-    }
-    return Pair.of(current, List.copyOf(args));
   }
 }

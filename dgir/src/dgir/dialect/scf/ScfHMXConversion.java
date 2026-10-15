@@ -25,7 +25,7 @@ import dgir.core.ir.types.compatibility.ConverterRegistry;
 public final class ScfHMXConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
-  public static void registerBuiltinAlgoWConversion() {
+  public static void registerBuiltinHMXConversion() {
     ConverterRegistry.<HMXExpr, HMXType, TypeInference>addOperatorsToDialect(HMXInference.class,
         Pair.of(ScfOps.IfOp.class, ScfHMXConversion::convertIfOp),
         Pair.of(ScfOps.ScopeOp.class, ScfHMXConversion::convertScopeOp),
@@ -223,9 +223,7 @@ public final class ScfHMXConversion {
 
     HMXExpr yieldExpr = new Var(yieldOp.getLocation(), Symbol.of(yieldOp.getOperand()));
 
-    Symbol<HMXExpr, HMXType> param = Symbol.of(new Value());
-
-    var result = new App(yieldOp.getLocation(), new Abs(yieldOp.getLocation(), param, new Var(param)), yieldExpr);
+    var result = OperationExprConversionUtils.buildIdentityApplication(engine, yieldExpr, yieldOp.getLocation());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       var app = (App) instantiatedExpr;

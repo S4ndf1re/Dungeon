@@ -2,10 +2,18 @@ import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.builtin.systemf.expr.Abs;
+import dgir.core.ir.types.builtin.systemf.expr.Ann;
+import dgir.core.ir.types.builtin.systemf.expr.App;
 import dgir.core.ir.types.builtin.systemf.Expr;
+import dgir.core.ir.types.builtin.systemf.expr.Let;
+import dgir.core.ir.types.builtin.systemf.expr.LitExpr;
 import dgir.core.ir.types.builtin.systemf.SystemFInference;
 import dgir.core.ir.types.builtin.systemf.SystemFType;
-
+import dgir.core.ir.types.builtin.systemf.expr.TAbs;
+import dgir.core.ir.types.builtin.systemf.expr.TApp;
+import dgir.core.ir.types.builtin.systemf.expr.Tuple;
+import dgir.core.ir.types.builtin.systemf.expr.Var;
 import dgir.core.ir.types.TypeVar;
 
 import java.util.List;
@@ -23,10 +31,10 @@ public class SystemFTest {
 
     var x = Symbol.<Expr, SystemFType>of(new Value());
 
-    var expr = new Expr.Abs(
+    var expr = new Abs(
         x,
         new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-        new Expr.Var(x));
+        new Var(x));
 
     var resTypePair = solver.solve(expr);
         DgirTestUtils.saveDotExprPreInstantiation(resTypePair.preInstantiation());
@@ -52,18 +60,18 @@ public class SystemFTest {
     var x = Symbol.<Expr, SystemFType>of(new Value());
     var y = Symbol.<Expr, SystemFType>of(new Value());
 
-    var expr = new Expr.Let(
+    var expr = new Let(
         add,
-        new Expr.Abs(
+        new Abs(
             x,
             new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-            new Expr.Abs(
+            new Abs(
                 y,
                 new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                new Expr.Var(x))),
-        new Expr.App(
-            new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1))),
-            new Expr.LitExpr(new Literal.Int(2))));
+                new Var(x))),
+        new App(
+            new App(new Var(add), new LitExpr(new Literal.Int(1))),
+            new LitExpr(new Literal.Int(2))));
 
     var resTypePair = solver.solve(expr);
         DgirTestUtils.saveDotExprPreInstantiation(resTypePair.preInstantiation());
@@ -90,13 +98,13 @@ public class SystemFTest {
     var add = Symbol.<Expr, SystemFType>of(new Value());
     var x = Symbol.<Expr, SystemFType>of(new Value());
 
-    var expr = new Expr.Ann(new Expr.Let(
+    var expr = new Ann(new Let(
         add,
-        new Expr.Abs(
+        new Abs(
             x,
             new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-            new Expr.LitExpr(new Literal.MyList())),
-        new Expr.App(new Expr.Var(add), new Expr.LitExpr(new Literal.Int(1)))),
+            new LitExpr(new Literal.MyList())),
+        new App(new Var(add), new LitExpr(new Literal.Int(1)))),
         new SystemFType.Lit(TypeIdent.TYPE_IDENT_LIST, List.of(new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL))));
 
     var resTypePair = solver.solve(expr);
@@ -127,21 +135,21 @@ public class SystemFTest {
     var x = Symbol.<Expr, SystemFType>of(new Value());
     var y = Symbol.<Expr, SystemFType>of(new Value());
 
-    var expr = new Expr.Let(
+    var expr = new Let(
         List.of(
-            Pair.of(add, new Expr.Abs(
+            Pair.of(add, new Abs(
                 x,
                 new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                new Expr.Abs(
+                new Abs(
                     y,
                     new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                    new Expr.Var(x)))),
+                    new Var(x)))),
 
-            Pair.of(a, new Expr.LitExpr(new Literal.Int(10))),
-            Pair.of(b, new Expr.LitExpr(new Literal.Int(20)))),
-        new Expr.App(
-            new Expr.App(new Expr.Var(add), new Expr.Var(a)),
-            new Expr.Var(b)));
+            Pair.of(a, new LitExpr(new Literal.Int(10))),
+            Pair.of(b, new LitExpr(new Literal.Int(20)))),
+        new App(
+            new App(new Var(add), new Var(a)),
+            new Var(b)));
 
     var resTypePair = solver.solve(expr);
         DgirTestUtils.saveDotExprPreInstantiation(resTypePair.preInstantiation());
@@ -169,19 +177,19 @@ public class SystemFTest {
     // b = \y.(a y)
     // in (a 10)
 
-    Expr expr = new Expr.Let(
+    Expr expr = new Let(
         List.of(
             Pair.of(a,
-                new Expr.Ann(
-                    new Expr.Abs(x, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                        new Expr.App(new Expr.Var(b), new Expr.Var(x))),
+                new Ann(
+                    new Abs(x, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
+                        new App(new Var(b), new Var(x))),
                     new SystemFType.Arrow(
                         new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
                         new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT)))),
             Pair.of(b,
-                new Expr.Abs(y, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                    new Expr.App(new Expr.Var(a), new Expr.Var(y))))),
-        new Expr.App(new Expr.Var(a), new Expr.LitExpr(new Literal.Int(10))));
+                new Abs(y, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
+                    new App(new Var(a), new Var(y))))),
+        new App(new Var(a), new LitExpr(new Literal.Int(10))));
 
     var resTypePair = solver.solve(expr);
         DgirTestUtils.saveDotExprPreInstantiation(resTypePair.preInstantiation());
@@ -209,19 +217,19 @@ public class SystemFTest {
     // b = \y.(a y)
     // in (a 10)
 
-    Expr expr = new Expr.Let(
+    Expr expr = new Let(
         List.of(
             Pair.of(a,
-                new Expr.Ann(
-                    new Expr.Abs(x, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                        new Expr.App(new Expr.Var(b), new Expr.Var(x))),
+                new Ann(
+                    new Abs(x, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
+                        new App(new Var(b), new Var(x))),
                     new SystemFType.Arrow(
                         new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
                         new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT)))),
             Pair.of(b,
-                new Expr.Abs(y, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
-                    new Expr.App(new Expr.Var(a), new Expr.Var(y))))),
-        new Expr.App(new Expr.Var(b), new Expr.LitExpr(new Literal.Int(10))));
+                new Abs(y, new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT),
+                    new App(new Var(a), new Var(y))))),
+        new App(new Var(b), new LitExpr(new Literal.Int(10))));
 
     var resTypePair = solver.solve(expr);
         DgirTestUtils.saveDotExprPreInstantiation(resTypePair.preInstantiation());
@@ -245,19 +253,19 @@ public class SystemFTest {
     var x = Symbol.<Expr, SystemFType>of(new Value());
     var y = Symbol.<Expr, SystemFType>of(new Value());
 
-    var cnst = new Expr.TAbs(a,
-        new Expr.TAbs(b,
-            new Expr.Abs(x, new SystemFType.Var(a),
-                new Expr.Abs(y, new SystemFType.Var(b), new Expr.Var(x)))));
+    var cnst = new TAbs(a,
+        new TAbs(b,
+            new Abs(x, new SystemFType.Var(a),
+                new Abs(y, new SystemFType.Var(b), new Var(x)))));
 
-    var expr = new Expr.App(
-        new Expr.App(
-            new Expr.TApp(
-                new Expr.TApp(cnst,
+    var expr = new App(
+        new App(
+            new TApp(
+                new TApp(cnst,
                     new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT)),
                 new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL)),
-            new Expr.LitExpr(new Literal.Int(42))),
-        new Expr.LitExpr(new Literal.Bool(true)));
+            new LitExpr(new Literal.Int(42))),
+        new LitExpr(new Literal.Bool(true)));
 
     var resultPair = solver.solve(expr);
         DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -280,28 +288,28 @@ public class SystemFTest {
     var x = Symbol.<Expr, SystemFType>of(new Value());
     var y = Symbol.<Expr, SystemFType>of(new Value());
 
-    var t = new Expr.TAbs(a,
-        new Expr.TAbs(b,
-            new Expr.Abs(x, new SystemFType.Var(a),
-                new Expr.Abs(y, new SystemFType.Var(b), new Expr.Var(x)))));
+    var t = new TAbs(a,
+        new TAbs(b,
+            new Abs(x, new SystemFType.Var(a),
+                new Abs(y, new SystemFType.Var(b), new Var(x)))));
 
     var intTy = new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT);
     var boolTy = new SystemFType.Lit(TypeIdent.TYPE_IDENT_BOOL);
 
-    var use1 = new Expr.App(
-        new Expr.App(new Expr.TApp(new Expr.TApp(t, intTy), boolTy),
-            new Expr.LitExpr(new Literal.Int(42))),
-        new Expr.LitExpr(new Literal.Bool(true)));
-    var use2 = new Expr.App(
-        new Expr.App(new Expr.TApp(new Expr.TApp(t, boolTy), intTy),
-            new Expr.LitExpr(new Literal.Bool(true))),
-        new Expr.LitExpr(new Literal.Int(42)));
-    var use3 = new Expr.App(
-        new Expr.App(new Expr.TApp(new Expr.TApp(t, intTy), boolTy),
-            new Expr.LitExpr(new Literal.Int(32))),
-        new Expr.LitExpr(new Literal.Bool(false)));
+    var use1 = new App(
+        new App(new TApp(new TApp(t, intTy), boolTy),
+            new LitExpr(new Literal.Int(42))),
+        new LitExpr(new Literal.Bool(true)));
+    var use2 = new App(
+        new App(new TApp(new TApp(t, boolTy), intTy),
+            new LitExpr(new Literal.Bool(true))),
+        new LitExpr(new Literal.Int(42)));
+    var use3 = new App(
+        new App(new TApp(new TApp(t, intTy), boolTy),
+            new LitExpr(new Literal.Int(32))),
+        new LitExpr(new Literal.Bool(false)));
 
-    var expr = new Expr.Tuple(use1, use2, use3);
+    var expr = new Tuple(use1, use2, use3);
 
     var resultPair = solver.solve(expr);
         DgirTestUtils.saveDotExprPreInstantiation(resultPair.preInstantiation());
@@ -319,15 +327,15 @@ public class SystemFTest {
     assert resultTuple.elements.get(2).equals(intTy);
 
     var instantiated = resultPair.instantiated();
-    assert instantiated instanceof Expr.Tuple;
-    var tupleExpr = (Expr.Tuple) instantiated;
+    assert instantiated instanceof Tuple;
+    var tupleExpr = (Tuple) instantiated;
     assert tupleExpr.elements().size() == 3;
 
     Function<Expr, Expr> getInnerAbs = elem -> {
-      assert elem instanceof Expr.App;
-      var inner = ((Expr.App) elem).fun();
-      assert inner instanceof Expr.App;
-      return ((Expr.App) inner).fun();
+      assert elem instanceof App;
+      var inner = ((App) elem).fun();
+      assert inner instanceof App;
+      return ((App) inner).fun();
     };
 
     var firstAbs = getInnerAbs.apply(tupleExpr.elements().get(0));

@@ -49,11 +49,11 @@ public class ScfHMXInferenceTest {
   public void setup() {
     ConverterRegistry.registerDialect(HMXInference.class);
     Dialect.registerAllDialects();
-    FuncHMXConversion.registerBuiltinAlgoWConversion();
-    BuiltinHMXConversion.registerBuiltinAlgoWConversion();
-    ArithHMXConversion.registerBuiltinAlgoWConversion();
-    dgir.dialect.io.IoHMXConversion.registerBuiltinAlgoWConversion();
-    ScfHMXConversion.registerBuiltinAlgoWConversion();
+    FuncHMXConversion.registerBuiltinHMXConversion();
+    BuiltinHMXConversion.registerBuiltinHMXConversion();
+    ArithHMXConversion.registerBuiltinHMXConversion();
+    dgir.dialect.io.IoHMXConversion.registerBuiltinHMXConversion();
+    ScfHMXConversion.registerBuiltinHMXConversion();
   }
 
   private static Pair<Type<HMXType>, List<Operation>> solve(ProgramOp programOp) {

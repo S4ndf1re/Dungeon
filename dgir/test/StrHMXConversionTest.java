@@ -40,10 +40,10 @@ public class StrHMXConversionTest {
   public void setup() {
     ConverterRegistry.registerDialect(HMXInference.class);
     Dialect.registerAllDialects();
-    FuncHMXConversion.registerBuiltinAlgoWConversion();
-    BuiltinHMXConversion.registerBuiltinAlgoWConversion();
-    ArithHMXConversion.registerBuiltinAlgoWConversion();
-    StringHMXConversion.registerBuiltinAlgoWConversion();
+    FuncHMXConversion.registerBuiltinHMXConversion();
+    BuiltinHMXConversion.registerBuiltinHMXConversion();
+    ArithHMXConversion.registerBuiltinHMXConversion();
+    StringHMXConversion.registerBuiltinHMXConversion();
   }
 
   private static Pair<HMXType, List<Operation>> solve(ProgramOp programOp) {

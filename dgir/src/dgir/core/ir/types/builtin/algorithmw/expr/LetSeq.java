@@ -179,6 +179,9 @@ import dgir.core.ir.types.builtin.algorithmw.TypeInference;
       var newBody = this.body.replaceSymbol(original, replacement);
       var newBindings = this.bindings.stream()
           .map(binding -> Pair.of(binding.getLeft(), binding.getRight().replaceSymbol(original, replacement))).toList();
-      return new LetSeq(this, newBindings, newBody);
+      var newLetExpr = new LetSeq(this, newBindings, newBody);
+
+      newLetExpr.replaceParentScopeReferences(this, newLetExpr);
+      return newLetExpr;
     }
   }

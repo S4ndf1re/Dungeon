@@ -98,20 +98,20 @@ public sealed interface MemTypes {
           var gpnt = typedArgs.getLeft();
           var typeParams = gpnt.getTypedParameters();
 
-          assert !typeParams.isEmpty() && typeParams.size() <= 2
-              : "Either type and width or only type must be supplied as types";
+          assert !typeParams.isEmpty() && typeParams.size() == 2
+              : "Element Type and array size (or -1) must be present!";
 
           OptionalInt width = OptionalInt.empty();
           Type elemType = null;
 
-          if (typeParams.size() >= 1) {
-            var elemTypeGntp = typeParams.get(0);
-            assert elemTypeGntp.isConcrete() : "the first parameter must always be a concrete type";
-            elemType = Type.fromGeneralParameterizedNominalType(elemTypeGntp.getConcrete());
-          }
-          if (typeParams.size() == 2) {
-            var arrayWidth = typeParams.get(1);
-            assert arrayWidth.isNumeric() : "the second parameter indicates the array width and must be numeric";
+          var elemTypeGntp = typeParams.get(0);
+          assert elemTypeGntp.isConcrete() : "the first parameter must always be a concrete type";
+          elemType = Type.fromGeneralParameterizedNominalType(elemTypeGntp.getConcrete());
+          var arrayWidth = typeParams.get(1);
+          assert arrayWidth.isNumeric() : "the second parameter indicates the array width and must be numeric";
+
+          // Only when positive: a static size is set!
+          if (arrayWidth.getNumeric() >= 0) {
             width = OptionalInt.of((int) arrayWidth.getNumeric());
           }
 
@@ -148,6 +148,8 @@ public sealed interface MemTypes {
       // Has width, is -1 otherwise
       if (this.width >= 0) {
         parameters.add(GeneralTypeParameter.of(this.width));
+      } else {
+        parameters.add(GeneralTypeParameter.of(-1));
       }
       return new GeneralParameterizedNominalType(
           TypeIdent.from(this.getIdent()), parameters);

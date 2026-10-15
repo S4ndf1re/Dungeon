@@ -6,16 +6,18 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
+import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.builtin.systemf.Expr;
 import dgir.core.ir.types.builtin.systemf.SystemFInference;
 import dgir.core.ir.types.builtin.systemf.SystemFType;
 import dgir.core.ir.types.builtin.systemf.TypeInference;
-import dgir.core.ir.types.builtin.systemf.Expr.Custom.InferFunction;
-import dgir.core.ir.types.builtin.systemf.Expr.Custom.InstantiateFunction;
-import dgir.core.ir.types.builtin.systemf.Expr.Custom.ReplaceSymbolFunction;
+import dgir.core.ir.types.builtin.systemf.expr.App;
+import dgir.core.ir.types.builtin.systemf.expr.Var;
+import dgir.core.ir.types.builtin.systemf.expr.Let;
 import dgir.core.traits.IGlobal;
 import dgir.dialect.builtin.BuiltinOps.IdOp;
 import dgir.dialect.builtin.BuiltinOps.ProgramOp;
@@ -61,8 +63,8 @@ public final class BuiltinSystemFConversion {
 
     convertedBlock.setInstantiateOperationCallback(instantiatedExpr -> {
 
-      assert instantiatedExpr instanceof Expr.Let;
-      var instantiatedLetExpr = (Expr.Let) instantiatedExpr;
+      assert instantiatedExpr instanceof Let;
+      var instantiatedLetExpr = (Let) instantiatedExpr;
 
       var exprsInBlock = instantiatedLetExpr.getAllChildrenForScopeExpression(instantiatedLetExpr.body());
 
@@ -93,38 +95,24 @@ public final class BuiltinSystemFConversion {
       TypeInference engine) {
     BuiltinOps.IdOp idOp = (BuiltinOps.IdOp) op.asOp();
 
-    record IdData(Expr param) {
-    }
-
-    InferFunction<IdData> infFunc = (eng, ctx, data) -> eng.infer(ctx, data.param);
-
-    InstantiateFunction<IdData> instFn = (toInstantiate, eng, env, solution, data) -> new Expr.Custom<IdData>(
-        toInstantiate,
-        new IdData(data.param.instantiate(eng, env, solution)));
-
-    ReplaceSymbolFunction<IdData> replaceSymbolFn = (oldExpr, original, replacement, data) -> new Expr.Custom<>(
-        oldExpr, new IdData(data.param.replaceSymbol(original, replacement)));
+    var param = Symbol.<Expr, SystemFType>of(idOp.getOperand());
+    var absParam = Symbol.<Expr, SystemFType>of(new Value());
 
     var loc = idOp.getLocation();
-    var expr = new Expr.Custom<IdData>(
-        loc,
-        new IdData(new Expr.Var(loc, Symbol.of(idOp.getOperand()))),
-        infFunc,
-        null,
-        instFn,
-        (d) -> List.of(d.param), replaceSymbolFn);
+
+    var expr = OperationExprConversionUtils.buildIdentityApplication(
+        engine, new Var(loc, param), loc);
 
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.Custom;
+      assert instantiatedExpr instanceof App;
+      var app = (App) instantiatedExpr;
 
-      @SuppressWarnings("unchecked")
-      var custom = (Expr.Custom<IdData>) instantiatedExpr;
+      var returnType = app.getInferredType();
+      assert returnType.get().isFullySpecified();
 
-      var param = custom.getData().param;
+      var paramValue = app.getAllApplicationParameters().getFirst().getOutputValue();
 
-      var paramSymbol = param.getOutputValue();
-
-      return new IdOp(idOp.getLocation(), paramSymbol).getOperation();
+      return new IdOp(idOp.getLocation(), paramValue).getOperation();
     });
     return expr;
   }

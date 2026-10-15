@@ -31,7 +31,7 @@ public class ConvertedOperationBuffer<E extends Expression<E, T>, T extends Type
 
     var exprConverted = buffered.orElseGet(() -> {
       @SuppressWarnings("unchecked")
-      ConverterFunction<E, T, SolverT> converter = (ConverterFunction< E, T, SolverT>) registry
+      ConverterFunction<E, T, SolverT> converter = (ConverterFunction<E, T, SolverT>) registry
           .getConverter(op.asOp().getClass());
       Expression<E, T> convertedExpr = converter.convertToExpression(op, engine);
 

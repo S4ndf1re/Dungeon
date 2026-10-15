@@ -24,7 +24,8 @@ public final class ArithAlgoWConversion {
         AlgorithmWInference.class,
         Pair.of(ArithOps.ConstantOp.class, ArithAlgoWConversion::convertConstOp),
         Pair.of(ArithOps.BinaryOp.class, ArithAlgoWConversion::convertBinOp),
-        Pair.of(ArithOps.UnaryOp.class, ArithAlgoWConversion::convertUnaryOp));
+        Pair.of(ArithOps.UnaryOp.class, ArithAlgoWConversion::convertUnaryOp),
+        Pair.of(ArithOps.CastOp.class, ArithAlgoWConversion::convertCastOp));
   }
 
   public static Expr convertConstOp(

@@ -226,9 +226,7 @@ public final class ScfAlgoWConversion {
 
     Expr yieldExpr = new Var(yieldOp.getLocation(), Symbol.of(yieldOp.getOperand()));
 
-    Symbol<Expr, AlgorithmWType> param = Symbol.of(new Value());
-
-    var result = new App(yieldOp.getLocation(), new Abs(yieldOp.getLocation(), param, new Var(param)), yieldExpr);
+    var result = OperationExprConversionUtils.buildIdentityApplication(engine, yieldExpr, yieldOp.getLocation());
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       var app = (App) instantiatedExpr;

@@ -6,6 +6,7 @@ import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.builtin.hmx.HMXInference;
 import dgir.core.ir.types.builtin.hmx.HMXType;
@@ -25,7 +26,7 @@ import dgir.dialect.func.FuncTypes;
 public final class BuiltinHMXConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
-  public static void registerBuiltinAlgoWConversion() {
+  public static void registerBuiltinHMXConversion() {
     ConverterRegistry.<HMXExpr, HMXType, TypeInference>addOperatorsToDialect(
         HMXInference.class,
         Pair.of(ProgramOp.class, BuiltinHMXConversion::convertProgramOp),
@@ -95,11 +96,9 @@ public final class BuiltinHMXConversion {
     BuiltinOps.IdOp idOp = (BuiltinOps.IdOp) op.asOp();
 
     var param = Symbol.<HMXExpr, HMXType>of(idOp.getOperand());
-    var absParam = Symbol.<HMXExpr, HMXType>of(new Value());
 
     var loc = idOp.getLocation();
-    var expr = new App(new Abs(loc, absParam, new Var(loc, absParam)),
-        new Var(loc, param));
+    var expr = OperationExprConversionUtils.buildIdentityApplication(engine, new Var(loc, param), loc);
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
 
       assert instantiatedExpr instanceof App;

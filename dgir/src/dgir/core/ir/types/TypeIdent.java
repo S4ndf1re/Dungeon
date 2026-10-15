@@ -11,6 +11,7 @@ public class TypeIdent {
   public static TypeIdent TYPE_IDENT_STRING = TypeIdent.from("string");
   public static TypeIdent TYPE_IDENT_LIST = TypeIdent.from("list");
   public static TypeIdent TYPE_IDENT_FUNC = TypeIdent.from("func.func");
+  public static TypeIdent TYPE_IDENT_ARRAY = TypeIdent.from("mem.array");
   public static TypeIdent TYPE_IDENT_NUMBER = TypeIdent.from("number");
 
   private final String ident;
