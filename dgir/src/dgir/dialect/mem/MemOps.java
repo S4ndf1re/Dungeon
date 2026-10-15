@@ -117,7 +117,7 @@ public sealed interface MemOps {
      * @param explicitBound whether the width should be encoded as a fixed bound.
      */
     public AllocGcOp(
-        @NotNull Location loc, @NotNull Type elementType, int staticSize, boolean explicitBound) {
+        @NotNull Location loc, @NotNull MaybeType elementType, int staticSize, boolean explicitBound) {
       setOperation(
           Operation.Create(
               loc,
@@ -128,6 +128,18 @@ public sealed interface MemOps {
                   elementType, explicitBound ? OptionalInt.of(staticSize) : OptionalInt.empty())));
     }
 
+    public AllocGcOp(
+        @NotNull Location loc, @NotNull MaybeType elementType, OptionalInt staticSize) {
+      setOperation(
+          Operation.Create(
+              loc,
+              this,
+              null,
+              null,
+              MemTypes.ArrayT.of(
+                  elementType, staticSize)));
+    }
+
     /**
      * Creates a GC allocation whose width is computed dynamically.
      *
@@ -135,7 +147,7 @@ public sealed interface MemOps {
      * @param elementType the array element type.
      * @param dynamicSize the runtime size operand.
      */
-    public AllocGcOp(@NotNull Location loc, @NotNull Type elementType, @NotNull Value dynamicSize) {
+    public AllocGcOp(@NotNull Location loc, @NotNull MaybeType elementType, @NotNull Value dynamicSize) {
       setOperation(
           Operation.Create(
               loc,
@@ -255,7 +267,7 @@ public sealed interface MemOps {
      *                      count.
      */
     public AllocGcFromElementsOp(
-        Location loc, Type elementType, List<Value> elements, boolean explicitBound) {
+        Location loc, MaybeType elementType, List<Value> elements, boolean explicitBound) {
       setOperation(
           Operation.Create(
               loc,

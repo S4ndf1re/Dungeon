@@ -9,6 +9,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.analysis.OperationVerifier;
 import dgir.core.analysis.OperationVerifier.VerifyOptions;
+import dgir.core.debug.Location;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
@@ -52,13 +53,74 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
 
   // TODO: implement this for all missing builtin functionalities (i.e. all
   // converters that relie on custom expressions / custom constraints)
-  public abstract E newVarExpr(Symbol<E, T> symbol);
+  public abstract E Var(Symbol<E, T> symbol);
 
-  public abstract E newLetExpr(List<Pair<Symbol<E, T>, E>> bindings, E body);
+  public abstract E Let(List<Pair<Symbol<E, T>, E>> bindings, E body);
 
-  public abstract E newSeqExpr(List<E> exprs);
+  public abstract E Seq(List<E> exprs);
 
-  public abstract E newLit(Literal lit);
+  public abstract E Lit(Literal lit);
+
+  public abstract E App(E func, List<E> args);
+
+  public abstract E Abs(List<Symbol<E, T>> params, E body);
+
+  public abstract E Ann(E body, T type);
+
+  public E Var(Location loc, Symbol<E, T> symbol) {
+    var expr = Var(symbol);
+    expr.setLocation(loc);
+    return expr;
+  }
+
+  public E Let(Location loc, List<Pair<Symbol<E, T>, E>> bindings, E body) {
+    var expr = Let(bindings, body);
+    expr.setLocation(loc);
+    return expr;
+  }
+
+  public E Seq(Location loc, List<E> exprs) {
+    var expr = Seq(exprs);
+    expr.setLocation(loc);
+    return expr;
+  }
+
+  public E Lit(Location loc, Literal lit) {
+    var expr = Lit(lit);
+    expr.setLocation(loc);
+    return expr;
+  }
+
+  public E App(Location loc, E func, List<E> args) {
+    var expr = App(func, args);
+    expr.setLocation(loc);
+    return expr;
+  }
+
+  public E Abs(Location loc, List<Symbol<E, T>> params, E body) {
+    var expr = Abs(params, body);
+    expr.setLocation(loc);
+    return expr;
+  }
+
+  public E Ann(Location loc, E body, T type) {
+    var expr = Ann(body, type);
+    expr.setLocation(loc);
+    return expr;
+  }
+
+  public abstract T Arrow(T from, T to);
+
+  public T ArrowChain(@SuppressWarnings("unchecked") T... types) {
+    assert types.length >= 2 : "to construct an arrow chain, at least two types are required";
+
+    T finalType = types[types.length - 1];
+    for (int i = types.length - 2; i >= 0; i--) {
+      finalType = Arrow(types[i], finalType);
+    }
+
+    return finalType;
+  }
 
   /**
    * Solve the full expression tree by applying algorithm specific logic, like
@@ -191,18 +253,18 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     if (lastValue.isPresent()) {
       var sequence = new ArrayList<>(
           bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IAbstraction) && !bnd.getLeft().isUsed())
-              .map(bnd -> this.newVarExpr(bnd.getLeft())).toList());
+              .map(bnd -> this.Var(bnd.getLeft())).toList());
 
       // In this case, the previous filter filtered the value, hence leading to
       // missing value within the sequence!
       if (bindings.getLast().getLeft().isUsed()) {
-        sequence.add(this.newVarExpr(bindings.getLast().getLeft()));
+        sequence.add(this.Var(bindings.getLast().getLeft()));
       }
 
-      return this.newLetExpr(bindings,
-          this.newSeqExpr(sequence));
+      return this.Let(bindings,
+          this.Seq(sequence));
     } else {
-      return this.newLetExpr(bindings, this.newLit(new Literal.Unit()));
+      return this.Let(bindings, this.Lit(new Literal.Unit()));
     }
   }
 

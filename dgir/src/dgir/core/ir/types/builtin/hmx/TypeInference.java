@@ -14,6 +14,9 @@ import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
+import dgir.core.ir.types.builtin.hmx.expr.Ann;
+import dgir.core.ir.types.builtin.hmx.expr.App;
+import dgir.core.ir.types.builtin.hmx.expr.Abs;
 import dgir.core.ir.types.builtin.hmx.expr.LetRec;
 import dgir.core.ir.types.builtin.hmx.expr.Lit;
 import dgir.core.ir.types.builtin.hmx.expr.Seq;
@@ -57,23 +60,38 @@ public final class TypeInference
   }
 
   @Override
-  public HMXExpr newLetExpr(List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings, HMXExpr body) {
+  public HMXExpr Let(List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings, HMXExpr body) {
     return new LetRec(bindings, body);
   }
 
   @Override
-  public HMXExpr newSeqExpr(List<HMXExpr> exprs) {
+  public HMXExpr Seq(List<HMXExpr> exprs) {
     return new Seq(exprs);
   }
 
   @Override
-  public HMXExpr newVarExpr(Symbol<HMXExpr, HMXType> symbol) {
+  public HMXExpr Var(Symbol<HMXExpr, HMXType> symbol) {
     return new Var(symbol);
   }
 
   @Override
-  public HMXExpr newLit(Literal lit) {
+  public HMXExpr Lit(Literal lit) {
     return new Lit(lit);
+  }
+
+  @Override
+  public HMXExpr App(HMXExpr func, List<HMXExpr> args) {
+    return new App(func, args);
+  }
+
+  @Override
+  public HMXExpr Abs(List<Symbol<HMXExpr, HMXType>> params, HMXExpr body) {
+    return new Abs(params, body);
+  }
+
+  @Override
+  public HMXExpr Ann(HMXExpr body, HMXType type) {
+    return new Ann(body, type);
   }
 
   @Override
@@ -118,7 +136,13 @@ public final class TypeInference
       right.unify(this, left);
       return;
     }
+
     left.unify(this, right);
+  }
+
+  @Override
+  public HMXType Arrow(HMXType from, HMXType to) {
+    return new HMXType.Arrow(from, to);
   }
 
   public static final class UnresolvedSubtypeException extends RuntimeException {

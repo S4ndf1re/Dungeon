@@ -347,7 +347,9 @@ public abstract sealed class HMXType extends Type<HMXType> {
 
     @Override
     public Set<TypeVar<HMXType>> freeTypeVars() {
-      return Set.of();
+      var set = new HashSet<TypeVar<HMXType>>();
+      this.parameters.forEach(p -> set.addAll(p.freeTypeVars()));
+      return Set.copyOf(set);
     }
 
     @Override

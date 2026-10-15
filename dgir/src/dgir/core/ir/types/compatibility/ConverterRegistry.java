@@ -1,7 +1,9 @@
 package dgir.core.ir.types.compatibility;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -38,6 +40,11 @@ public class ConverterRegistry {
         throw new RuntimeException("Op " + op + " is not registered");
       }
       return converter;
+    }
+
+    /** All op classes that have a registered converter for this dialect. */
+    public Set<Class<? extends Op>> registeredOps() {
+      return Collections.unmodifiableSet(this.converters.keySet());
     }
 
   }

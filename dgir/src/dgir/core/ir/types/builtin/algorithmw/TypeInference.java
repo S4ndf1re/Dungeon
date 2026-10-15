@@ -12,6 +12,9 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.builtin.algorithmw.expr.Ann;
+import dgir.core.ir.types.builtin.algorithmw.expr.App;
+import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.expr.LetRec;
 import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
 import dgir.core.ir.types.builtin.algorithmw.expr.Seq;
@@ -47,23 +50,38 @@ public final class TypeInference
   }
 
   @Override
-  public Expr newLetExpr(List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings, Expr body) {
+  public Expr Let(List<Pair<Symbol<Expr, AlgorithmWType>, Expr>> bindings, Expr body) {
     return new LetRec(bindings, body);
   }
 
   @Override
-  public Expr newVarExpr(Symbol<Expr, AlgorithmWType> symbol) {
+  public Expr Var(Symbol<Expr, AlgorithmWType> symbol) {
     return new Var(symbol);
   }
 
   @Override
-  public Expr newSeqExpr(List<Expr> exprs) {
+  public Expr Seq(List<Expr> exprs) {
     return new Seq(exprs);
   }
 
   @Override
-  public Expr newLit(Literal lit) {
+  public Expr Lit(Literal lit) {
     return new Lit(lit);
+  }
+
+  @Override
+  public Expr App(Expr func, List<Expr> args) {
+    return new App(func, args);
+  }
+
+  @Override
+  public Expr Abs(List<Symbol<Expr, AlgorithmWType>> params, Expr body) {
+    return new Abs(params, body);
+  }
+
+  @Override
+  public Expr Ann(Expr body, AlgorithmWType type) {
+    return new Ann(body, type);
   }
 
   @Override
@@ -103,6 +121,11 @@ public final class TypeInference
       return;
     }
     left.unify(this, right);
+  }
+
+  @Override
+  public AlgorithmWType Arrow(AlgorithmWType from, AlgorithmWType to) {
+    return new AlgorithmWType.Arrow(from, to);
   }
 
   public int getCurrentLevel() {

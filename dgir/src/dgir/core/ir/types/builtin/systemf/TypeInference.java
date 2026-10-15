@@ -14,6 +14,13 @@ import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypeVar.TypeVarScope;
 import dgir.core.ir.types.TypingException;
+import dgir.core.ir.types.builtin.systemf.expr.Abs;
+import dgir.core.ir.types.builtin.systemf.expr.Ann;
+import dgir.core.ir.types.builtin.systemf.expr.App;
+import dgir.core.ir.types.builtin.systemf.expr.Let;
+import dgir.core.ir.types.builtin.systemf.expr.LitExpr;
+import dgir.core.ir.types.builtin.systemf.expr.Seq;
+import dgir.core.ir.types.builtin.systemf.expr.Var;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
@@ -75,23 +82,59 @@ public final class TypeInference
   }
 
   @Override
-  public Expr newLetExpr(List<Pair<Symbol<Expr, SystemFType>, Expr>> bindings, Expr body) {
-    return new Expr.Let(bindings, body);
+  public Expr Let(List<Pair<Symbol<Expr, SystemFType>, Expr>> bindings, Expr body) {
+    return new Let(bindings, body);
   }
 
   @Override
-  public Expr newSeqExpr(List<Expr> exprs) {
-    return new Expr.Seq(exprs);
+  public Expr Seq(List<Expr> exprs) {
+    return new Seq(exprs);
   }
 
   @Override
-  public Expr newVarExpr(Symbol<Expr, SystemFType> symbol) {
-    return new Expr.Var(symbol);
+  public Expr Var(Symbol<Expr, SystemFType> symbol) {
+    return new Var(symbol);
   }
 
   @Override
-  public Expr newLit(Literal lit) {
-    return new Expr.LitExpr(lit);
+  public Expr Lit(Literal lit) {
+    return new LitExpr(lit);
+  }
+
+  @Override
+  public Expr App(Expr func, List<Expr> args) {
+    if (args.isEmpty()) {
+      return new App(func);
+    }
+    Expr app = func;
+    for (var arg : args) {
+      app = new App(app, arg);
+    }
+    return app;
+  }
+
+  @Override
+  public Expr Abs(List<Symbol<Expr, SystemFType>> params, Expr body) {
+    // System F abstractions require a type annotation per parameter. Following
+    // generalNominalTypeToInferenceType, unannotated parameters are introduced
+    // as fresh existentials. The conversion helpers always run before solve, so
+    // the existential binders can be pushed directly into the start context.
+    Expr expr = body;
+    if (params.isEmpty()) {
+      expr = new Abs(expr);
+    } else {
+      for (int i = params.size() - 1; i >= 0; i--) {
+        var etvar = new TypeVar<SystemFType>();
+        this.startContext.push(new Entry.ETVarBnd(etvar));
+        expr = new Abs(params.get(i), new SystemFType.EtVar(etvar), expr);
+      }
+    }
+    return expr;
+  }
+
+  @Override
+  public Expr Ann(Expr body, SystemFType type) {
+    return new Ann(body, type);
   }
 
   @Override
@@ -121,6 +164,11 @@ public final class TypeInference
       SystemFType replacement,
       SystemFType target) {
     return target.substType(tyVar, replacement);
+  }
+
+  @Override
+  public SystemFType Arrow(SystemFType from, SystemFType to) {
+    return new SystemFType.Arrow(from, to);
   }
 
   public TypeResult infer(Context ctx, Expr expr) {

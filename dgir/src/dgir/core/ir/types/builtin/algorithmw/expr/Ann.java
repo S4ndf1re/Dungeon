@@ -58,6 +58,12 @@ public final class Ann extends Expr {
 
     InferResult res = engine.infer(expr, env);
 
+    // Collect all possibly free type variables and let them exist as if introduced
+    // by the annotation!
+    for (var tv : this.type.deref().freeTypeVars()) {
+      tv.setLevel(engine.getCurrentLevel());
+    }
+
     engine.unify(res.type(), type);
 
     return new InferResult(type);

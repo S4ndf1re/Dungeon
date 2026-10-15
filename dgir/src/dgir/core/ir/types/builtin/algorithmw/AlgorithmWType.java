@@ -342,7 +342,9 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
     @Override
     public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
-      return Set.of();
+      var set = new HashSet<TypeVar<AlgorithmWType>>();
+      this.parameters.forEach(p -> set.addAll(p.freeTypeVars()));
+      return Set.copyOf(set);
     }
 
     @Override
