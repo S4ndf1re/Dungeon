@@ -23,7 +23,7 @@ import dgir.core.ir.types.compatibility.ConverterRegistry;
 public final class IoHMXConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
-  public static void registerBuiltinAlgoWConversion() {
+  public static void registerBuiltinHMXConversion() {
     ConverterRegistry.<HMXExpr, HMXType, TypeInference>addOperatorsToDialect(
         HMXInference.class,
         Pair.of(IoOps.PrintOp.class, IoHMXConversion::convertPrintOp),

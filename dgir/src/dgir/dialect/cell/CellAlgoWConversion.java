@@ -8,6 +8,7 @@ import dgir.core.ir.MaybeType;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
@@ -46,12 +47,9 @@ public final class CellAlgoWConversion {
     if (cellOp.getOperand().isPresent() && cellOp.getOperand().get().isPresent()) {
       var operand = cellOp.getOperand().get().get();
       var param = Symbol.<Expr, AlgorithmWType>of(operand);
-      var absParam = Symbol.<Expr, AlgorithmWType>of(new Value());
 
-      var result = new App(cellOp.getLocation(),
-          new Abs(cellOp.getLocation(), absParam,
-              new Var(cellOp.getLocation(), absParam)),
-          new Var(cellOp.getLocation(), param));
+      var result = OperationExprConversionUtils.buildIdentityApplication(
+          engine, new Var(cellOp.getLocation(), param), cellOp.getLocation());
 
       result.setInstantiateOperationCallback(instantiatedExpr -> {
         assert instantiatedExpr instanceof App;

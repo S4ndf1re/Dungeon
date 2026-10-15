@@ -21,11 +21,12 @@ import dgir.dialect.arith.ArithOps.ConstantOp;
 
 public final class ArithHMXConversion {
 
-  public static void registerBuiltinAlgoWConversion() {
+  public static void registerBuiltinHMXConversion() {
     ConverterRegistry.<HMXExpr, HMXType, TypeInference>addOperatorsToDialect(HMXInference.class,
         Pair.of(ConstantOp.class, ArithHMXConversion::convertConstOp),
         Pair.of(ArithOps.BinaryOp.class, ArithHMXConversion::convertBinOp),
-        Pair.of(ArithOps.UnaryOp.class, ArithHMXConversion::convertUnaryOp));
+        Pair.of(ArithOps.UnaryOp.class, ArithHMXConversion::convertUnaryOp),
+        Pair.of(ArithOps.CastOp.class, ArithHMXConversion::convertCastOp));
   }
 
   public static HMXExpr convertConstOp(Operation op, TypeInference engine) {

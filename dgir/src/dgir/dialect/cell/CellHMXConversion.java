@@ -8,6 +8,7 @@ import dgir.core.ir.MaybeType;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.builtin.hmx.expr.Abs;
 import dgir.core.ir.types.builtin.hmx.expr.App;
@@ -22,7 +23,7 @@ import dgir.core.ir.types.compatibility.ConverterRegistry;
 public final class CellHMXConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
   // perfectly. maybe there is a better way to do this in the future.
-  public static void registerBuiltinAlgoWConversion() {
+  public static void registerBuiltinHMXConversion() {
     ConverterRegistry.<HMXExpr, HMXType, TypeInference>addOperatorsToDialect(
         HMXInference.class,
         Pair.of(CellOps.CreateCellOp.class, CellHMXConversion::convertCreateCellOp),
@@ -46,12 +47,9 @@ public final class CellHMXConversion {
     if (cellOp.getOperand().isPresent() && cellOp.getOperand().get().isPresent()) {
       var operand = cellOp.getOperand().get().get();
       var param = Symbol.<HMXExpr, HMXType>of(operand);
-      var absParam = Symbol.<HMXExpr, HMXType>of(new Value());
 
-      var result = new App(cellOp.getLocation(),
-          new Abs(cellOp.getLocation(), absParam,
-              new Var(cellOp.getLocation(), absParam)),
-          new Var(cellOp.getLocation(), param));
+      var result = OperationExprConversionUtils.buildIdentityApplication(
+          engine, new Var(cellOp.getLocation(), param), cellOp.getLocation());
 
       result.setInstantiateOperationCallback(instantiatedExpr -> {
         assert instantiatedExpr instanceof App;

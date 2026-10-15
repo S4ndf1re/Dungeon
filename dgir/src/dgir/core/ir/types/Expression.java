@@ -22,7 +22,7 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
   protected Optional<E> parentScopeExpression;
   protected Optional<Integer> parentScopePosition;
   protected Optional<InstantiateOperation<E, T>> instantiationCallback;
-  public final Location location;
+  protected Location location;
 
   public Expression() {
     this.inferredType = Optional.empty();
@@ -89,6 +89,15 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
 
   public Location getLocation() {
     return this.location;
+  }
+
+  /**
+   * Set the location of the Expression.
+   * As the location is not included in the hashCode or equality,
+   * this is always safe
+   */
+  public void setLocation(Location loc) {
+    this.location = loc;
   }
 
   public void setInferredType(Optional<T> inferredType) {

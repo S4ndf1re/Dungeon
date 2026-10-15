@@ -1,10 +1,5 @@
 package dgir.dialect.arith;
 
-import static dgir.dialect.builtin.BuiltinTypes.isNumeric;
-
-import java.util.List;
-import java.util.Optional;
-
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
@@ -12,20 +7,15 @@ import dgir.core.ir.Type;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.builtin.systemf.expr.BinOp;
+import dgir.core.ir.types.builtin.systemf.expr.UnaryOp;
+import dgir.core.ir.types.builtin.systemf.expr.CastOp;
 import dgir.core.ir.types.builtin.systemf.Expr;
 import dgir.core.ir.types.builtin.systemf.SystemFInference;
 import dgir.core.ir.types.builtin.systemf.SystemFType;
 import dgir.core.ir.types.builtin.systemf.TypeInference;
-import dgir.core.ir.types.builtin.systemf.TypeResult;
-import dgir.core.ir.types.builtin.systemf.Expr.Custom.GetChildrenFunction;
-import dgir.core.ir.types.builtin.systemf.Expr.Custom.InferFunction;
-import dgir.core.ir.types.builtin.systemf.Expr.Custom.InstantiateFunction;
-import dgir.core.ir.types.builtin.systemf.Expr.Custom.ReplaceSymbolFunction;
-import dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode;
-import dgir.dialect.arith.ArithAttrs.UnaryModeAttr.UnaryMode;
-import dgir.dialect.arith.ArithOps.BinaryOp;
-import dgir.dialect.arith.ArithOps.CastOp;
-import dgir.dialect.arith.ArithOps.UnaryOp;
+import dgir.core.ir.types.builtin.systemf.expr.Var;
+import dgir.core.ir.types.builtin.systemf.expr.LitExpr;
 
 public final class ArithSystemFConversion {
 
@@ -33,9 +23,9 @@ public final class ArithSystemFConversion {
     ConverterRegistry.<Expr, SystemFType, TypeInference>addOperatorsToDialect(
         SystemFInference.class,
         Pair.of(ArithOps.ConstantOp.class, ArithSystemFConversion::convertConstOp),
-        Pair.of(BinaryOp.class, ArithSystemFConversion::convertBinOp),
-        Pair.of(UnaryOp.class, ArithSystemFConversion::convertUnaryOp),
-        Pair.of(CastOp.class, ArithSystemFConversion::convertCastOp));
+        Pair.of(ArithOps.BinaryOp.class, ArithSystemFConversion::convertBinOp),
+        Pair.of(ArithOps.UnaryOp.class, ArithSystemFConversion::convertUnaryOp),
+        Pair.of(ArithOps.CastOp.class, ArithSystemFConversion::convertCastOp));
   }
 
   public static Expr convertConstOp(
@@ -43,7 +33,7 @@ public final class ArithSystemFConversion {
       TypeInference engine) {
     ArithOps.ConstantOp constOp = (ArithOps.ConstantOp) op.asOp();
 
-    var expr = new Expr.LitExpr(constOp.getLocation(), new Literal.Generic(constOp.getResult()));
+    var expr = new LitExpr(constOp.getLocation(), new Literal.Generic(constOp.getResult()));
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
       var inferredType = instantiatedExpr.getInferredType();
       assert inferredType.isPresent();
@@ -58,82 +48,28 @@ public final class ArithSystemFConversion {
     return expr;
   }
 
-  /**
-   * Derives the IR result type for a known operand type and converts it back
-   * into a System F type. Mirrors the algorithm W conversion, where the numeric
-   * type lattice is applied to the already known operand types.
-   */
-  private static SystemFType expectedResultType(TypeInference engine, Type resultIrType) {
-    var resultType = engine.generalNominalTypeToInferenceType(
-        resultIrType.getAsKnownOrThrow().asParameterizedNominalType(),
-        Optional.empty()).getLeft();
-    return resultType;
-  }
-
   public static Expr convertBinOp(
       Operation op,
       TypeInference engine) {
 
-    record BinOpData(Expr lhs, Expr rhs, BinMode binMode) {
-    }
-
     ArithOps.BinaryOp binOp = (ArithOps.BinaryOp) op.asOp();
+
+    Expr lhs = new Var(Symbol.<Expr, SystemFType>of(binOp.getLhs()));
+    Expr rhs = new Var(Symbol.<Expr, SystemFType>of(binOp.getRhs()));
     var binMode = binOp.getMode();
 
-    var lhs = Symbol.<Expr, SystemFType>of(binOp.getLhs());
-    var rhs = Symbol.<Expr, SystemFType>of(binOp.getRhs());
-    var binOpData = new BinOpData(new Expr.Var(binOp.getLocation(), lhs), new Expr.Var(binOp.getLocation(), rhs), binMode);
+    var result = new BinOp(op.getLocation(), lhs, rhs, binMode);
 
-    InferFunction<BinOpData> infFunc = (eng, ctx, data) -> {
-      var resLhs = eng.infer(ctx, data.lhs);
-      var currentCtx = resLhs.ctx();
-      var lhsType = currentCtx.apply(resLhs.type());
-
-      var resRhs = eng.infer(currentCtx, data.rhs);
-      currentCtx = resRhs.ctx();
-      var rhsType = currentCtx.apply(resRhs.type());
-
-      // NOTE: as a numeric type lattice must be applied, the types must be known
-      // and cannot be partially inferred
-      assert lhsType.isFullySpecified() : "lhs type must be fully specified";
-      assert rhsType.isFullySpecified() : "rhs type must be fully specified";
-
-      var lhsIrType = Type.fromGeneralParameterizedNominalType(lhsType.asTypeParameter().getConcrete());
-      var rhsIrType = Type.fromGeneralParameterizedNominalType(rhsType.asTypeParameter().getConcrete());
-
-      var resultIrType = data.binMode.getExpectedResultTypeForParams(lhsIrType, rhsIrType).getAsKnownOrThrow();
-
-      var resultType = expectedResultType(eng, resultIrType);
-
-      return new TypeResult(resultType, currentCtx);
-    };
-
-    GetChildrenFunction<BinOpData> getChildrenFn = (data) -> List.of(data.lhs, data.rhs);
-
-    ReplaceSymbolFunction<BinOpData> replaceSymbolFunction = (oldExpr, original, replacement,
-        data) -> new Expr.Custom<>(oldExpr, new BinOpData(data.lhs.replaceSymbol(original, replacement),
-            data.rhs.replaceSymbol(original, replacement), data.binMode));
-
-    InstantiateFunction<BinOpData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.Custom<BinOpData>(toInstantiate,
-          new BinOpData(
-              data.lhs.instantiate(eng, env, solution),
-              data.rhs.instantiate(eng, env, solution),
-              data.binMode));
-    };
-
-    var result = new Expr.Custom<BinOpData>(binOpData, infFunc, null, instFn, getChildrenFn, replaceSymbolFunction);
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.Custom;
+      assert instantiatedExpr instanceof BinOp;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.Custom<BinOpData>) instantiatedExpr;
+      var custExpr = (BinOp) instantiatedExpr;
 
-      var lhsValue = custExpr.getData().lhs.getOutputValue();
-      var rhsValue = custExpr.getData().rhs.getOutputValue();
+      var lhsValue = custExpr.lhs.getOutputValue();
+      var rhsValue = custExpr.rhs.getOutputValue();
 
-      return new BinaryOp(op.getLocation(), lhsValue,
-          rhsValue, custExpr.getData().binMode).getOperation();
+      return new ArithOps.BinaryOp(op.getLocation(), lhsValue,
+          rhsValue, custExpr.mode).getOperation();
     });
 
     return result;
@@ -143,52 +79,19 @@ public final class ArithSystemFConversion {
       Operation op,
       TypeInference engine) {
 
-    record UnaryData(Expr lhs, UnaryMode unaryMode) {
-    }
-
     ArithOps.UnaryOp unaryOp = (ArithOps.UnaryOp) op.asOp();
-    var lhs = Symbol.<Expr, SystemFType>of(unaryOp.getOperand());
+    var lhs = engine.Var(Symbol.<Expr, SystemFType>of(unaryOp.getOperand()));
     var unaryMode = unaryOp.getMode();
-    var unaryOpData = new UnaryData(new Expr.Var(unaryOp.getLocation(), lhs), unaryMode);
 
-    InferFunction<UnaryData> infFunc = (eng, ctx, data) -> {
-      var resLhs = eng.infer(ctx, data.lhs);
-      var currentCtx = resLhs.ctx();
-      var lhsType = currentCtx.apply(resLhs.type());
-
-      assert lhsType.isFullySpecified() : "operand type must be fully specified";
-
-      var lhsIrType = Type.fromGeneralParameterizedNominalType(lhsType.asTypeParameter().getConcrete());
-      var resultIrType = data.unaryMode.getExpectedResultTypeForParams(lhsIrType);
-
-      var resultType = expectedResultType(eng, resultIrType);
-
-      return new TypeResult(resultType, currentCtx);
-    };
-
-    GetChildrenFunction<UnaryData> getChildrenFn = (data) -> List.of(data.lhs);
-
-    ReplaceSymbolFunction<UnaryData> replaceSymbolFunction = (oldExpr, original, replacement,
-        data) -> new Expr.Custom<>(oldExpr, new UnaryData(data.lhs.replaceSymbol(original, replacement),
-            data.unaryMode));
-
-    InstantiateFunction<UnaryData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.Custom<UnaryData>(toInstantiate,
-          new UnaryData(data.lhs.instantiate(eng, env, solution), data.unaryMode));
-    };
-
-    var result = new Expr.Custom<UnaryData>(unaryOpData, infFunc, null, instFn, getChildrenFn, replaceSymbolFunction);
+    var result = new UnaryOp(op.getLocation(), lhs, unaryMode);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.Custom;
+      assert instantiatedExpr instanceof UnaryOp;
+      var custExpr = (UnaryOp) instantiatedExpr;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.Custom<UnaryData>) instantiatedExpr;
-
-      var lhsValue = custExpr.getData().lhs.getOutputValue();
-
-      return new UnaryOp(op.getLocation(), lhsValue,
-          custExpr.getData().unaryMode).getOperation();
+      var lhsValue = custExpr.operand.getOutputValue();
+      return new ArithOps.UnaryOp(op.getLocation(), lhsValue,
+          custExpr.mode).getOperation();
     });
 
     return result;
@@ -198,55 +101,20 @@ public final class ArithSystemFConversion {
       Operation op,
       TypeInference engine) {
 
-    record CastData(Expr value, Type targetType) {
-    }
-
     ArithOps.CastOp castOp = (ArithOps.CastOp) op.asOp();
-    var value = Symbol.<Expr, SystemFType>of(castOp.getOperand());
+    var value = engine.Var(Symbol.<Expr, SystemFType>of(castOp.getOperand()));
     var targetType = castOp.getTargetType();
-    var castOpData = new CastData(new Expr.Var(castOp.getLocation(), value), targetType);
 
-    InferFunction<CastData> infFunc = (eng, ctx, data) -> {
-      var resValue = eng.infer(ctx, data.value);
-      var currentCtx = resValue.ctx();
-      var valueType = currentCtx.apply(resValue.type());
-
-      assert valueType.isFullySpecified() : "value type must be fully specified";
-
-      var valueIrType = Type.fromGeneralParameterizedNominalType(valueType.asTypeParameter().getConcrete());
-      var resultIrType = data.targetType;
-
-      assert isNumeric(valueIrType);
-      assert isNumeric(resultIrType);
-
-      var resultType = expectedResultType(eng, resultIrType);
-
-      return new TypeResult(resultType, currentCtx);
-    };
-
-    GetChildrenFunction<CastData> getChildrenFn = (data) -> List.of(data.value);
-
-    ReplaceSymbolFunction<CastData> replaceSymbolFunction = (oldExpr, original, replacement,
-        data) -> new Expr.Custom<>(oldExpr, new CastData(data.value.replaceSymbol(original, replacement),
-            data.targetType));
-
-    InstantiateFunction<CastData> instFn = (toInstantiate, eng, env, solution, data) -> {
-      return new Expr.Custom<CastData>(toInstantiate,
-          new CastData(data.value.instantiate(eng, env, solution), data.targetType));
-    };
-
-    var result = new Expr.Custom<CastData>(castOpData, infFunc, null, instFn, getChildrenFn, replaceSymbolFunction);
+    var result = new CastOp(op.getLocation(), value, targetType);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
-      assert instantiatedExpr instanceof Expr.Custom;
+      assert instantiatedExpr instanceof CastOp;
+      var custExpr = (CastOp) instantiatedExpr;
 
-      @SuppressWarnings("unchecked")
-      var custExpr = (Expr.Custom<CastData>) instantiatedExpr;
+      var lhsValue = custExpr.operand.getOutputValue();
 
-      var lhsValue = custExpr.getData().value.getOutputValue();
-
-      return new CastOp(op.getLocation(), lhsValue,
-          custExpr.getData().targetType).getOperation();
+      return new ArithOps.CastOp(op.getLocation(), lhsValue,
+          custExpr.targetType).getOperation();
     });
     return result;
   }

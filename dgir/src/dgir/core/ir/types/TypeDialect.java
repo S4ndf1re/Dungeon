@@ -16,7 +16,7 @@ public abstract class TypeDialect<TypeInferenceT extends TypeInferenceSolver<Typ
    * system.
    *
    * @return the static instance of the algorithm specific
-   *         {@link TypeInferenceSolver}
+   *         {@link newLet}
    */
   public TypeInferenceT getNewSolverInstance() {
     var converterRegistry = ConverterRegistry.getConverterForDialect(this.getClass());

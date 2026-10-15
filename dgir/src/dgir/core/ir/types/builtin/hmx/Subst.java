@@ -2,7 +2,6 @@ package dgir.core.ir.types.builtin.hmx;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import dgir.core.ir.types.TypeVar;

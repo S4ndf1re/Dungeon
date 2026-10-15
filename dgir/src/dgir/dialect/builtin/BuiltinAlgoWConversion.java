@@ -6,6 +6,7 @@ import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
+import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
@@ -95,11 +96,9 @@ public final class BuiltinAlgoWConversion {
     BuiltinOps.IdOp idOp = (BuiltinOps.IdOp) op.asOp();
 
     var param = Symbol.<Expr, AlgorithmWType>of(idOp.getOperand());
-    var absParam = Symbol.<Expr, AlgorithmWType>of(new Value());
 
     var loc = idOp.getLocation();
-    var expr = new App(new Abs(loc, absParam, new Var(loc, absParam)),
-        new Var(loc, param));
+    var expr = OperationExprConversionUtils.buildIdentityApplication(engine, new Var(loc, param), loc);
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
 
       assert instantiatedExpr instanceof App;
