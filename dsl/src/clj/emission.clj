@@ -4,6 +4,14 @@
             [util.identitySet :as idSet])
   (:import [dgir.core.ir Block Op Region]))
 
+(defn add-tracking-scope [context]
+  (let [scope (volatile! [])]
+    (vswap! context update :tracking-scopes conj scope)
+    scope))
+
+(defn remove-tracking-scope [context scope]
+  (vswap! context assoc :tracking-scopes (filter #(not (= scope %)) (:tracking-scopes @context))))
+
 (defn set-in-loop [context is-in-loop]
   (vswap! context assoc :is-in-loop is-in-loop))
 
@@ -22,6 +30,7 @@
                  :blocks [initial-block]
                  :current-block initial-block
                  :is-in-loop (get-is-in-loop parent)
+                 :tracking-scopes []
                  :env (env/new-env)}))))
 
 (defn pop-context
@@ -42,12 +51,24 @@
   [context]
   (get @context :blocks []))
 
+(defn get-first-block
+  "Get all blocks from the current emission context"
+  [context]
+  (first (get @context :blocks [])))
+
+(defn get-first-block
+  "Get all blocks from the current emission context"
+  [context]
+  (first (get @context :blocks [])))
+
 (defn get-current-block
   "Get the current block from the current emission context"
   [context]
   (get @context :current-block))
 
 (defn add-block [context block]
+  (doseq [scope (:tracking-scopes @context)]
+    (vswap! scope conj block))
   (vswap! context assoc :current-block block)
   (vswap! context update :blocks conj block)
   context)
@@ -78,13 +99,6 @@
       looked-up-value looked-up-value
       (:parent @context) (lookup-ident (:parent @context) ident)
       :else nil)))
-
-(defn reverse-blocks
-  "Reverse the blocks within this context"
-  [context]
-  (vswap! context update :blocks reverse)
-  (vswap! context assoc :current-block (last (:blocks @context)))
-  context)
 
 (defn set-ident-value [context ident value]
   (vswap! context update :env env/set-for-ident ident value))

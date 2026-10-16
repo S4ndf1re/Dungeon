@@ -104,7 +104,7 @@ public abstract sealed class HMXType extends Type<HMXType> {
       if (dereffed instanceof Var v && v.tyVar.find() == this.tyVar.find()) {
         return this.tyVar.find().hashCode();
       }
-      return Objects.hash(dereffed);
+      return dereffed.hashCode();
     }
 
     @Override

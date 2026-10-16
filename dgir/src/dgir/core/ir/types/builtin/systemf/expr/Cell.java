@@ -6,6 +6,7 @@ import java.util.Optional;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.traits.ICell;
 import dgir.core.ir.types.traits.IExpressionCell;
 import dgir.core.ir.types.builtin.systemf.Context;
 import dgir.core.ir.types.builtin.systemf.Expr;
@@ -26,7 +27,7 @@ import dgir.core.ir.types.builtin.systemf.TypeResult;
  * expression represents a dead end and is therefore a recursion breaker during
  * instantiation!
  */
-public final class Cell extends Expr implements IExpressionCell<Expr, SystemFType> {
+public final class Cell extends Expr implements IExpressionCell<Expr, SystemFType>, ICell {
   private Expr reference;
   private Expr cellValue;
 

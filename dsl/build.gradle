@@ -23,6 +23,8 @@ configurations {
 dependencies {
     api project(':dgir')
 
+    api project(':dgir:vm')
+
     api 'org.clojure:clojure:1.12.1'
 
     // Clojure Dependencies

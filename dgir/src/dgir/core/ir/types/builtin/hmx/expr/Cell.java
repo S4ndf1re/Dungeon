@@ -6,6 +6,7 @@ import java.util.Optional;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.traits.ICell;
 import dgir.core.ir.types.traits.IExpressionCell;
 import dgir.core.ir.types.builtin.hmx.Env;
 import dgir.core.ir.types.builtin.hmx.GenerateResult;
@@ -27,7 +28,7 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
    * Hence, this expression represents a dead end and is therefore a recursion
    * breaker during instantiation!
    */
-  public final class Cell extends HMXExpr implements IExpressionCell<HMXExpr, HMXType> {
+  public final class Cell extends HMXExpr implements IExpressionCell<HMXExpr, HMXType>, ICell {
     private HMXExpr reference;
     private HMXExpr cellValue;
 

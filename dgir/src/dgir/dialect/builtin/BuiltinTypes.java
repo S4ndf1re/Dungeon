@@ -726,7 +726,7 @@ public sealed interface BuiltinTypes {
 
     @Override
     public @NotNull Function<Object, Boolean> getValidator() {
-      return obj -> false;
+      return obj -> true;
     }
 
     @Override

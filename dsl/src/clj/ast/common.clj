@@ -7,8 +7,7 @@
   (:import
    [dgir.core.debug Location]
    [dgir.dialect.builtin BuiltinOps$ProgramOp]
-   [dgir.dialect.cell CellOps$SetCellOp]
-   [dgir.dialect.scf ScfOps$ScopeOp]))
+   [dgir.dialect.cell CellOps$SetCellOp]))
 
 (defn split-all-at
   "Split a list of expressions on jump expressions, resulting a list of pseudo blocks!
@@ -75,18 +74,26 @@
       ;; Remember to reverse the resulting blocks as well, to get the correct starting block!
     (let [splitted (split-all-at ast/is-jump expressions)
           ;; the context is only emporary, all its blocks will get placed within the old context after emission
-          new-context (em/new-context context)]
+          new-context (em/new-context context)
+          previous-emission-blocks (volatile! [])]
       ;; We have to remove the blocks, as the loop creates its own blocks, otherwise leaving a block empty and invalid for further emission
       (em/remove-blocks-unsafe new-context)
+      (println "Parsing Do block with: " expressions)
       (doseq [block-like splitted]
-        (let [pred-block (em/get-current-block new-context)
+        (let [scope (em/add-tracking-scope new-context)
               new-block (em/add-new-block new-context)]
           ;; TODO: before emission, make sure to insert default branch operations to the previous
           ;; (next, due to reverse of the block list) blocks, in order to generate correct IR trees
           (doseq [expr block-like]
             (ast/emit expr new-context))
-          (dt/block-insert-default-terminal pred-block new-block (em/get-is-in-loop new-context))))
-      (dt/block-insert-default-terminal (em/get-current-block new-context) nil (em/get-is-in-loop new-context))
+          (println "collected blocks: " @scope)
+          (println "previous blocks: " @previous-emission-blocks)
+          (em/remove-tracking-scope new-context scope)
+          (doseq [added-block @previous-emission-blocks]
+            (dt/block-insert-default-terminal added-block new-block (em/get-is-in-loop new-context)))
+          (vreset! previous-emission-blocks @scope)))
+      (doseq [added-block @previous-emission-blocks]
+        (dt/block-insert-default-terminal added-block nil (em/get-is-in-loop new-context)))
       (dt/block-insert-default-terminal (em/get-current-block context) (first (em/get-blocks new-context)) (em/get-is-in-loop context))
       (em/add-blocks context (em/get-blocks new-context)))
     nil)
