@@ -98,7 +98,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       if (dereffed instanceof Var v && v.tyVar.find() == this.tyVar.find()) {
         return this.tyVar.find().hashCode();
       }
-      return Objects.hash(dereffed);
+      return dereffed.hashCode();
     }
 
     @Override

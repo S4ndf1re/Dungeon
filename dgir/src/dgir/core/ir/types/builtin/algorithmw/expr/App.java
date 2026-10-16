@@ -126,10 +126,12 @@ public final class App extends Expr implements IApplication<Expr, AlgorithmWType
 
       var funcExpr = engine.asExpression(this.func);
       if (this.inferredFunctionType.isPresent() && funcExpr.getInferredType().isPresent()) {
-        var newSolution = solution.expand(engine, funcExpr, this.inferredFunctionType.get());
+        // var newSolution = solution.expand(engine, funcExpr, this.inferredFunctionType.get());
 
-        return new App(this, this.func.instantiate(engine, env, newSolution),
-            this.args.stream().map(arg -> arg.instantiate(engine, env, newSolution)).toList());
+        // return new App(this, this.func.instantiate(engine, env, newSolution),
+        //     this.args.stream().map(arg -> arg.instantiate(engine, env, newSolution)).toList());
+        return new App(this, this.func.instantiate(engine, env, solution),
+            this.args.stream().map(arg -> arg.instantiate(engine, env, solution)).toList());
       } else {
         return new App(this, this.func.instantiate(engine, env, solution),
             this.args.stream().map(arg -> arg.instantiate(engine, env, solution)).toList());

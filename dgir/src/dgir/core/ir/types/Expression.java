@@ -13,6 +13,7 @@ import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
+import dgir.core.ir.types.traits.ICell;
 import dgir.core.ir.types.traits.IExpressionCell;
 import dgir.core.ir.types.traits.IVariable;
 
@@ -373,9 +374,27 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
     }
     var visitState = new VisitState<E, T>(Collections.newSetFromMap(new IdentityHashMap<>()));
 
+    // NOTE: an operation can legitimately be carried by two expression nodes:
+    // recursion-breaker cells (see ICell) are placeholders created while a
+    // cyclically-referenced definition is still being instantiated, and they
+    // share their underlying operation with the later resolved instance.
+    // The resolved instance is the real child; the cell is skipped.
+    // Any duplicate where NEITHER side is a cell is a hard bug somewhere down
+    // the inference chain and must fail loudly here.
+    var seenUnderlyingOps = Collections.newSetFromMap(new IdentityHashMap<Operation, Boolean>());
     new Expression.ExpressionVisitor<E, T>(Expression.ExpressionVisitor.VisitOrder.IN_ORDER).visitWithState(body, e -> {
       var parentScopeExpr = e.getParentScopeExpr();
       if (parentScopeExpr.isPresent() && this == parentScopeExpr.get()) {
+        var underlying = e.getUnderlyingOperation();
+        if (underlying.isPresent() && !seenUnderlyingOps.add(underlying.get())) {
+          if (e instanceof ICell)
+            return;
+          throw new IllegalStateException(
+              "Duplicate underlying operation '" + underlying.get().getDetails().ident()
+                  + "' collected for scope " + this
+                  + " on non-cell expression " + e.getClass().getSimpleName()
+                  + " — this is a hard bug in the inference chain.");
+        }
         visitState.withinThisBlock.add(e);
       }
     }, visitState);

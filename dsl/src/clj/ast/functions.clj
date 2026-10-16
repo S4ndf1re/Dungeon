@@ -79,6 +79,10 @@
           (com/token-location-to-ir-location location)
           ^Value (first params) ^Value (second params)
           ArithAttrs$BinModeAttr$BinMode/GE)
+    "=" (ArithOps$BinaryOp.
+         (com/token-location-to-ir-location location)
+         ^Value (first params) ^Value (second params)
+         ArithAttrs$BinModeAttr$BinMode/EQ)
     "and" (ArithOps$BinaryOp.
            (com/token-location-to-ir-location location)
            ^Value (first params) ^Value (second params)
@@ -90,7 +94,7 @@
     "not" (ArithOps$UnaryOp.
            (com/token-location-to-ir-location location)
            ^Value (first params)
-           ArithAttrs$UnaryModeAttr$UnaryMode/NEGATE)
+           ArithAttrs$UnaryModeAttr$UnaryMode/LOGICAL_COMPLEMENT)
     (FuncOps$CallOp.
      (com/token-location-to-ir-location location)
      (:ident ident)

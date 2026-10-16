@@ -84,7 +84,10 @@ public sealed interface Action {
    */
   static @NotNull Action Abort(
       @NotNull Optional<Exception> exception, @NotNull String message, @Nullable Object... args) {
-    return new Abort(MessageFormat.format(message, args), exception);
+    // Only treat the message as a format pattern when arguments are supplied;
+    // otherwise braces in the message (e.g. operation toStrings or user
+    // strings) would be parsed as placeholders and blow up.
+    return new Abort(args.length == 0 ? message : MessageFormat.format(message, args), exception);
   }
 
   /** Executes the next operation in the current block. */

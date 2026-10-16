@@ -2,6 +2,7 @@ package dgir.core.ir.types.builtin.hmx;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import dgir.core.ir.types.TypeVar;
@@ -105,6 +106,7 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
 
   @Override
   public Subst expand(TypeInference engine, HMXExpr target, HMXType targetType) {
+    // This one is a1 -> b1 -> c1, and is only ever used
     var ty1 = target.getInferredType().get().deref();
     var ftv = ty1.freeTypeVars();
 
@@ -112,8 +114,22 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
     var s = scheme.toSubst(engine);
 
     var newType = s.apply(ty1);
+    // FIXME: this will actually destroy the type used within the polymorhphic
+    // function!
     engine.unify(newType, targetType);
 
-    return s.compose(this);
+    // The fresh scheme variables (a2, b2, ...) were unified against the
+    // reference's solved type, so deref'ing their entries collapses the
+    // indirection: {a1 ↦ Var(a2), ...} becomes {a1 ↦ int, b1 ↦ float, ...}.
+    // The result is scheme-local (NOT composed with the caller's solution):
+    // all inference constraints are already solved at this point, so the
+    // caller chain contributes nothing, and keeping it out makes the
+    // substitution canonical across call sites — which the InstEnv memo keys
+    // rely on for deduplication.
+    for (var key : Set.copyOf(s.types.keySet())) {
+      s.types.put(key, s.types.get(key).deref());
+    }
+    s.dropCycles();
+    return s;
   }
 }

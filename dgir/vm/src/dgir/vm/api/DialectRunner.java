@@ -3,6 +3,7 @@ package dgir.vm.api;
 import dgir.core.ir.Dialect;
 import dgir.vm.dialect.arith.ArithDialectRunner;
 import dgir.vm.dialect.builtin.BuiltinDialectRunner;
+import dgir.vm.dialect.cell.CellDialectRunner;
 import dgir.vm.dialect.cf.CfDialectRunner;
 import dgir.vm.dialect.func.FuncDialectRunner;
 import dgir.vm.dialect.io.IoDialectRunner;
@@ -19,15 +20,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
 public abstract class DialectRunner {
-  private static final @NotNull Map<Class<? extends DialectRunner>, List<@NotNull OpRunner>>
-      dialectOpRunners = new HashMap<>();
+  private static final @NotNull Map<Class<? extends DialectRunner>, List<@NotNull OpRunner>> dialectOpRunners = new HashMap<>();
 
   public abstract @NotNull Dialect getDialect();
 
   public abstract @NotNull List<@NotNull OpRunner> allRunners();
 
   public void register() {
-    if (OpRunnerRegistry.getDialectRunner(getDialect().getClass()).isPresent()) return;
+    if (OpRunnerRegistry.getDialectRunner(getDialect().getClass()).isPresent())
+      return;
     getDialect().register();
     OpRunnerRegistry.registerDialectRunner(this);
     OpRunnerRegistry.registerOpRunners(allRunners());
@@ -42,6 +43,7 @@ public abstract class DialectRunner {
     MemoryDialectRunner.get().register();
     ScfDialectRunner.get().register();
     StrDialectRunner.get().register();
+    CellDialectRunner.get().register();
   }
 
   @NotNull
@@ -54,23 +56,27 @@ public abstract class DialectRunner {
       return dialectOpRunners.get(this.getClass());
     }
 
-    // Go over all permitted subclasses of this interface and collect their prototypes. This
+    // Go over all permitted subclasses of this interface and collect their
+    // prototypes. This
     // allows
     // us to avoid
-    // having to manually list all operations in the dialect, and instead just have them register
+    // having to manually list all operations in the dialect, and instead just have
+    // them register
     // themselves via implementing
     // their dialect specific subclass.
     List<OpRunner> ops = new ArrayList<>();
 
     Class<?>[] permittedSubclasses = diRunners.getPermittedSubclasses();
     for (Class<?> subclass : permittedSubclasses) {
-      // Get the default constructor for this operation and invoke it to get the prototype, then
+      // Get the default constructor for this operation and invoke it to get the
+      // prototype, then
       // add
       // it to the list of ops for this dialect.
       try {
         Constructor<?> defaultConstructor = subclass.getDeclaredConstructor();
         boolean isAccessible = defaultConstructor.canAccess(null);
-        if (!isAccessible) defaultConstructor.setAccessible(true);
+        if (!isAccessible)
+          defaultConstructor.setAccessible(true);
         try {
           OpRunner newOpRunner = (OpRunner) defaultConstructor.newInstance();
           ops.add(newOpRunner);
@@ -80,7 +86,8 @@ public abstract class DialectRunner {
         } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
           throw new RuntimeException(e.getMessage(), e);
         }
-        if (!isAccessible) defaultConstructor.setAccessible(false);
+        if (!isAccessible)
+          defaultConstructor.setAccessible(false);
       } catch (NoSuchMethodException e) {
         throw new RuntimeException(
             "OpRunner class must have a default constructor: " + subclass.getName(), e);

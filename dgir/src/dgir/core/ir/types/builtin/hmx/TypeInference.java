@@ -21,6 +21,7 @@ import dgir.core.ir.types.builtin.hmx.expr.LetRec;
 import dgir.core.ir.types.builtin.hmx.expr.Lit;
 import dgir.core.ir.types.builtin.hmx.expr.Seq;
 import dgir.core.ir.types.builtin.hmx.expr.Var;
+import dgir.core.ir.types.builtin.hmx.expr.Block;
 import dgir.core.ir.types.builtin.hmx.traits.OneShotConstraint;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
@@ -92,6 +93,11 @@ public final class TypeInference
   @Override
   public HMXExpr Ann(HMXExpr body, HMXType type) {
     return new Ann(body, type);
+  }
+
+  @Override
+  public HMXExpr Block(HMXExpr body) {
+    return new Block(body);
   }
 
   @Override

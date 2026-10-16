@@ -5,11 +5,13 @@
    [core :as c]
    [emission :as em]
    [filebuffer :as fb]
-   [util.print-op :as po]
-   [glr-parser.parser.parser :as par])
+   [glr-parser.parser.parser :as par]
+   [util.print-op :as po])
   (:import
    [dgir.core.ir.types.builtin.hmx HMXInference]
    [dgir.core.ir.types.compatibility ExprOrOperator]
+   [dgir.dialect.builtin BuiltinOps$ProgramOp]
+   [dgir.vm.api VM]
    [java.io OutputStream PrintStream]))
 
 (defn ->repl-stream ^PrintStream [writer]
@@ -35,11 +37,18 @@
         (:data)
         (ast/emit ctx))
     (let [program (.getFirst (.getOperations (first (em/get-blocks ctx))))
+          vm (VM.)
           _ (po/print-op program)
           inference (HMXInference.)
           solver (.getNewSolverInstance inference)
-          exprOrOp (ExprOrOperator/of program)]
-      (.solve solver exprOrOp))))
+          exprOrOp (ExprOrOperator/of program)
+          solve-result (.solve solver exprOrOp)
+          instantiated (.instantiated solve-result)
+          underlying-op (.get (.getUnderlyingOperation instantiated))
+          _ (po/print-op underlying-op)
+          resultOp (cast BuiltinOps$ProgramOp (.asOp underlying-op))]
+      (.init vm resultOp)
+      (.run vm))))
 
 (defn simple-test-fn []
   (par/run-lr-1 parser "(add (mul 1 3) 2)" "test"))
@@ -71,13 +80,62 @@
                        (let [a true]
                            (while a
                                (set a false))
+                           (assert (not a))
                        ))"))
 
-(while-loop-test)
+(defn nested-if-test []
+  (infer-script "(defn main []
+                       (let [a true
+                             b false
+                             c 0]
+                           (if a
+                             (if b
+                               (set c 1)
+                               (set c 2))
+                             (if b
+                               (set c 3)
+                               (set c 4)))
+                           (assert (= c 2))
+                       ))"))
+
+(defn recursive-function []
+  (infer-script "
+                (defn test-fn [a]
+                  (if (< a 10)
+                    (test-fn (+ a 1))
+                    ()
+                    )
+                )
+
+                (defn main []
+                  (test-fn 0)
+                       )"))
+
+(defn cyclic-function-test []
+  (infer-script "
+                (defn foo [a]
+                  (if (< a 10)
+                    (return (bar (+ a 1)))
+                    (return a)
+                    )
+                )
+
+                (defn bar [a] (return (foo a)))
+
+                (defn main []
+                  (assert (= (bar 0) 10))
+                  (assert (= (bar 10) 10))
+                  (assert (= (bar 11) 11))
+                       )"))
+
+; (while-loop-test)
 ; (simple-test-fn)
 ; (function-def-test-fn)
 ; (simple-prog-test)
 ; (let-set-test)
+; (nested-if-test)
+; (recursive-function)
+(cyclic-function-test)
 
 (deftest expression-test
   (testing "Test if a simple sexpr parses"
@@ -88,7 +146,13 @@
     (simple-prog-test))
   (testing "Interplay between let and set"
     (let-set-test))
-  (testing "While loop with set"
-    (while-loop-test)))
+  (testing "While loop withset"
+    (while-loop-test))
+  (testing "Nested if test"
+    (nested-if-test))
+  (testing "Recursive Function Test"
+    (recursive-function))
+  (testing "Cyclic Function Test"
+    (cyclic-function-test)))
 
 

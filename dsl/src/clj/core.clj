@@ -13,13 +13,14 @@
    [dgir.core.ir.types.builtin.algorithmw AlgorithmWInference]
    [dgir.core.ir.types.builtin.hmx HMXInference]
    [dgir.core.ir.types.compatibility ConverterRegistry]
-   [dgir.dialect.arith ArithAlgoWConversion ArithHMXConversion]
-   [dgir.dialect.builtin BuiltinAlgoWConversion BuiltinHMXConversion]
-   [dgir.dialect.cf CfAlgoWConversion CfHMXConversion]
-   [dgir.dialect.func FuncAlgoWConversion FuncHMXConversion]
-   [dgir.dialect.io IoAlgoWConversion IoHMXConversion]
-   [dgir.dialect.scf ScfAlgoWConversion ScfHMXConversion]
-   [dgir.dialect.cell CellHMXConversion CellAlgoWConversion]))
+   [dgir.dialect.arith ArithAlgoWConversion ArithHMXConversion ArithSystemFConversion]
+   [dgir.dialect.builtin BuiltinAlgoWConversion BuiltinHMXConversion BuiltinSystemFConversion]
+   [dgir.dialect.cell CellAlgoWConversion CellHMXConversion CellSystemFConversion]
+   [dgir.dialect.cf CfAlgoWConversion CfHMXConversion CfSystemFConversion]
+   [dgir.dialect.func FuncAlgoWConversion FuncHMXConversion FuncSystemFConversion]
+   [dgir.dialect.io IoAlgoWConversion IoHMXConversion IoSystemFConversion]
+   [dgir.dialect.scf ScfAlgoWConversion ScfHMXConversion ScfSystemFConversion]
+   [dgir.vm.api DialectRunner]))
 
 (def int-regex
   (rgx/->OneOrMore (rgx/->Digit)))
@@ -69,11 +70,13 @@
       (lex/add-const :break "break")
       (lex/add-const :continue "continue")
       (lex/add-const :set "set")
+      (lex/add-const :assert "assert")
       ;; Symbols
       (lex/add-const :colon ":")
       (lex/add-const :plus "+")
       (lex/add-const :minus "-")
       (lex/add-const :asteric "*")
+      (lex/add-const :eq "=")
       (lex/add-const :lt "<")
       (lex/add-const :lte "<=")
       (lex/add-const :gt ">")
@@ -145,6 +148,8 @@
 (defn while-to-ast [loc [_ _ condition body-exprs _]] (cf/->While loc (:data condition) (com/->Do (tok/location body-exprs) (:data body-exprs))))
 (defn do-to-ast [loc [_ _ exprs _]] (com/->Do loc (:data exprs)))
 (defn let-to-ast [loc [_ _ _ bindings _ body  _]] (com/->Let loc (:data bindings) (com/->Do (tok/location body) (:data body))))
+(defn assert-to-ast [loc [_ _ condition _]] (cf/->Assert loc (:data condition) nil))
+(defn assert-with-message-to-ast [loc [_ _ condition msg _]] (cf/->Assert loc (:data condition) (:data msg)))
 (defn return-to-ast [loc [_ _ expr _]] (cf/->Return loc (:data expr)))
 (defn break-to-ast [loc [_ _ _]] (cf/->Break loc))
 (defn continue-to-ast [loc [_ _ _]] (cf/->Continue loc))
@@ -167,16 +172,18 @@
                             [:lte id-to-ast]
                             [:gt id-to-ast]
                             [:gte id-to-ast]
+                            [:eq id-to-ast]
                             [:and id-to-ast]
                             [:or id-to-ast]])
 
       (par/add-rule :UnaryOp [[:not id-to-ast]])
 
+      (par/add-rule :String [:string string-lit-to-ast])
       ;; ============== Normal S-Exprs with all supported function arguments (excluding special keywords) ==============
       (par/add-rule :SExprLit [[:ID unwarp-single]
                                [:int int-lit-to-ast]
                                [:float float-lit-to-ast]
-                               [:string string-lit-to-ast]
+                               [:String unwarp-single]
                                [:true true-value]
                                [:false false-value]])
       (par/add-rule :SExprFuncCall [:lparen :ID :SExpr* :rparen fn-call-to-ast])
@@ -204,6 +211,8 @@
       (par/add-rule :Break [:lparen :break :rparen break-to-ast])
       (par/add-rule :Continue [:lparen :continue :rparen continue-to-ast])
       (par/add-rule :Set [:lparen :set :ID :SExpr :rparen set-to-ast])
+      (par/add-rule :Assert [[:lparen :assert :SExpr :rparen assert-to-ast]
+                             [:lparen :assert :SExpr :String :rparen assert-with-message-to-ast]])
 
       ;; ============== All Allowed Top level expressions ==============
       (par/add-rule :TopLevelSExpr [[:BodySExpr unwarp-single]
@@ -217,24 +226,27 @@
                                 [:Break unwarp-single]
                                 [:Continue unwarp-single]
                                 [:Set unwarp-single]
-                                [:Let unwarp-single]])
+                                [:Let unwarp-single]
+                                [:Assert unwarp-single]])
 
       (par/build-lr-1 :Program)))
 
 (defn init-hmx []
   (ConverterRegistry/registerDialect HMXInference)
   (Dialect/registerAllDialects)
-  (FuncHMXConversion/registerBuiltinAlgoWConversion)
-  (BuiltinHMXConversion/registerBuiltinAlgoWConversion)
-  (ArithHMXConversion/registerBuiltinAlgoWConversion)
-  (IoHMXConversion/registerBuiltinAlgoWConversion)
-  (ScfHMXConversion/registerBuiltinAlgoWConversion)
-  (CfHMXConversion/registerBuiltinAlgoWConversion)
-  (CellHMXConversion/registerBuiltinAlgoWConversion))
+  (DialectRunner/registerAllDialects)
+  (FuncHMXConversion/registerBuiltinHMXConversion)
+  (BuiltinHMXConversion/registerBuiltinHMXConversion)
+  (ArithHMXConversion/registerBuiltinHMXConversion)
+  (IoHMXConversion/registerBuiltinHMXConversion)
+  (ScfHMXConversion/registerBuiltinHMXConversion)
+  (CfHMXConversion/registerBuiltinHMXConversion)
+  (CellHMXConversion/registerBuiltinHMXConversion))
 
 (defn init-algow []
   (ConverterRegistry/registerDialect AlgorithmWInference)
   (Dialect/registerAllDialects)
+  (DialectRunner/registerAllDialects)
   (FuncAlgoWConversion/registerBuiltinAlgoWConversion)
   (BuiltinAlgoWConversion/registerBuiltinAlgoWConversion)
   (ArithAlgoWConversion/registerBuiltinAlgoWConversion)
@@ -242,3 +254,15 @@
   (ScfAlgoWConversion/registerBuiltinAlgoWConversion)
   (CfAlgoWConversion/registerBuiltinAlgoWConversion)
   (CellAlgoWConversion/registerBuiltinAlgoWConversion))
+
+(defn init-systemf []
+  (ConverterRegistry/registerDialect AlgorithmWInference)
+  (Dialect/registerAllDialects)
+  (DialectRunner/registerAllDialects)
+  (FuncSystemFConversion/registerBuiltinSystemFConversion)
+  (BuiltinSystemFConversion/registerBuiltinSystemFConversion)
+  (ArithSystemFConversion/registerBuiltinSystemFConversion)
+  (IoSystemFConversion/registerBuiltinSystemFConversion)
+  (ScfSystemFConversion/registerBuiltinSystemFConversion)
+  (CfSystemFConversion/registerBuiltinSystemFConversion)
+  (CellSystemFConversion/registerBuiltinSystemFConversion))
