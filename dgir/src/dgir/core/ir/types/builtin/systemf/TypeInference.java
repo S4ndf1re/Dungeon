@@ -21,6 +21,7 @@ import dgir.core.ir.types.builtin.systemf.expr.Let;
 import dgir.core.ir.types.builtin.systemf.expr.LitExpr;
 import dgir.core.ir.types.builtin.systemf.expr.Seq;
 import dgir.core.ir.types.builtin.systemf.expr.Var;
+import dgir.core.ir.types.builtin.systemf.expr.Block;
 import dgir.core.ir.types.compatibility.ConvertedOperationBuffer;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
@@ -135,6 +136,11 @@ public final class TypeInference
   @Override
   public Expr Ann(Expr body, SystemFType type) {
     return new Ann(body, type);
+  }
+
+  @Override
+  public Expr Block(Expr body) {
+    return new Block(body);
   }
 
   @Override

@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Symbol;
@@ -16,6 +15,7 @@ import dgir.core.ir.types.builtin.hmx.expr.Branch;
 import dgir.core.ir.types.builtin.hmx.TypeInference;
 import dgir.core.ir.types.builtin.hmx.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IBlock;
 
 public final class CfHMXConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
@@ -27,6 +27,7 @@ public final class CfHMXConversion {
         Pair.of(CfOps.AssertOp.class, CfHMXConversion::convertAssert));
   }
 
+  @SuppressWarnings("unchecked")
   public static HMXExpr convertBranchOp(Operation op, TypeInference engine) {
 
     CfOps.BranchOp branchOp = (CfOps.BranchOp) op.asOp();
@@ -40,18 +41,19 @@ public final class CfHMXConversion {
 
       var custExpr = (Branch) instantiatedExpr;
       var body = custExpr.block;
-
-      var block = new Block();
-      body.fillBlockScoped(block);
+      assert body instanceof IBlock;
+      var bodyBlock = (IBlock<HMXExpr, HMXType>) body;
+      var block = bodyBlock.asBlock();
 
       var newCfOp = new CfOps.BranchOp(op.getLocation(), block).getOperation();
-      newCfOp.getTemporaryRegion().addBlock(block);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(block);
 
       return newCfOp;
     });
     return result;
   }
 
+  @SuppressWarnings("unchecked")
   public static HMXExpr convertBranchCondOp(Operation op, TypeInference engine) {
 
     CfOps.BranchCondOp branchOp = (CfOps.BranchCondOp) op.asOp();
@@ -69,15 +71,17 @@ public final class CfHMXConversion {
 
       var condValue = custExpr.condition.get().getLeft().getOutputValue();
 
-      var thenBlock = new Block();
-      custExpr.condition.get().getRight().fillBlockScoped(thenBlock);
+      var thenExpr = custExpr.condition.get().getRight();
+      assert thenExpr instanceof IBlock;
+      var thenBlock = ((IBlock<HMXExpr, HMXType>) thenExpr).asBlock();
 
-      var elseBlock = new Block();
-      custExpr.block.fillBlockScoped(elseBlock);
+      var elseExpr = custExpr.block;
+      assert elseExpr instanceof IBlock;
+      var elseBlock = ((IBlock<HMXExpr, HMXType>) elseExpr).asBlock();
 
       var newCfOp = new CfOps.BranchCondOp(op.getLocation(), condValue, thenBlock, elseBlock).getOperation();
-      newCfOp.getTemporaryRegion().addBlock(thenBlock);
-      newCfOp.getTemporaryRegion().addBlock(elseBlock);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(thenBlock);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(elseBlock);
 
       return newCfOp;
     });

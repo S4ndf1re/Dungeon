@@ -2,6 +2,7 @@ package dgir.core.ir.types;
 
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,7 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
   protected TypeDialectConverterRegistry registry;
 
   private ConvertedOperationBuffer<E, T, TypeInferenceT> operationToExprBuffer;
+  private HashMap<GeneralBlock, E> convertedBlockCache;
 
   /**
    * Result of a full solve: the final type, the expression tree after
@@ -44,6 +46,7 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
   public TypeInferenceSolver(TypeDialectConverterRegistry registry) {
     this.registry = registry;
     this.operationToExprBuffer = new ConvertedOperationBuffer<>();
+    this.convertedBlockCache = new HashMap<>();
   }
 
   /** Returns the converter registry this solver was bound to. */
@@ -66,6 +69,8 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
   public abstract E Abs(List<Symbol<E, T>> params, E body);
 
   public abstract E Ann(E body, T type);
+
+  public abstract E Block(E body);
 
   public E Var(Location loc, Symbol<E, T> symbol) {
     var expr = Var(symbol);
@@ -105,6 +110,12 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
 
   public E Ann(Location loc, E body, T type) {
     var expr = Ann(body, type);
+    expr.setLocation(loc);
+    return expr;
+  }
+
+  public E Block(Location loc, E body) {
+    var expr = Block(body);
     expr.setLocation(loc);
     return expr;
   }
@@ -216,6 +227,10 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
    * @return the converted {@link Expression}
    */
   public E generalBlockToInferenceExpr(GeneralBlock block) {
+    if (this.convertedBlockCache.containsKey(block)) {
+      return this.convertedBlockCache.get(block);
+    }
+
     ArrayList<Pair<Symbol<E, T>, E>> bindings = new ArrayList<>();
     Optional<Symbol<E, T>> lastValue = Optional.empty();
 
@@ -250,6 +265,7 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
       }
     }
 
+    E innerLet = null;
     if (lastValue.isPresent()) {
       var sequence = new ArrayList<>(
           bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IAbstraction) && !bnd.getLeft().isUsed())
@@ -261,11 +277,15 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
         sequence.add(this.Var(bindings.getLast().getLeft()));
       }
 
-      return this.Let(bindings,
+      innerLet = this.Let(bindings,
           this.Seq(sequence));
     } else {
-      return this.Let(bindings, this.Lit(new Literal.Unit()));
+      innerLet = this.Let(bindings, this.Lit(new Literal.Unit()));
     }
+
+    var resultExpr = this.Block(innerLet);
+    this.convertedBlockCache.put(block, resultExpr);
+    return resultExpr;
   }
 
   /**

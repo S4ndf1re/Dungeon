@@ -24,7 +24,7 @@ import dgir.core.ir.types.builtin.systemf.SystemFType;
 import dgir.core.ir.types.builtin.systemf.TypeInference;
 import dgir.core.ir.types.builtin.systemf.TypeResult;
 import dgir.core.ir.types.builtin.systemf.expr.Var;
-import dgir.core.ir.types.builtin.systemf.expr.Let;
+import dgir.core.ir.types.traits.IBlock;
 
 public final class CfSystemFConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
@@ -81,15 +81,13 @@ public final class CfSystemFConversion {
       @SuppressWarnings("unchecked")
       var custExpr = (Custom<BranchData>) instantiatedExpr;
       var data = custExpr.getData();
-      assert data.body instanceof Let;
-      var let = (Let) data.body;
 
-      var block = new Block();
-
-      let.fillBlockScoped(block);
+      var bodyExpr = data.body;
+      assert bodyExpr instanceof IBlock;
+      var block = ((IBlock<Expr, SystemFType>) bodyExpr).asBlock();
 
       var newCfOp = new CfOps.BranchOp(op.getLocation(), block).getOperation();
-      newCfOp.getTemporaryRegion().addBlock(block);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(block);
 
       return newCfOp;
     });
@@ -155,15 +153,17 @@ public final class CfSystemFConversion {
 
       var condValue = data.cond.getOutputValue();
 
-      var thenBlock = new Block();
-      data.thenCase.fillBlockScoped(thenBlock);
+      var thenExpr = data.thenCase;
+      assert thenExpr instanceof IBlock;
+      var thenBlock = ((IBlock<Expr, SystemFType>) thenExpr).asBlock();
 
-      var elseBlock = new Block();
-      data.elseCase.fillBlockScoped(elseBlock);
+      var elseExpr = data.elseCase;
+      assert elseExpr instanceof IBlock;
+      var elseBlock = ((IBlock<Expr, SystemFType>) elseExpr).asBlock();
 
       var newCfOp = new CfOps.BranchCondOp(op.getLocation(), condValue, thenBlock, elseBlock).getOperation();
-      newCfOp.getTemporaryRegion().addBlock(thenBlock);
-      newCfOp.getTemporaryRegion().addBlock(elseBlock);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(thenBlock);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(elseBlock);
 
       return newCfOp;
     });

@@ -16,6 +16,7 @@ import dgir.core.ir.types.builtin.algorithmw.expr.Assert;
 import dgir.core.ir.types.builtin.algorithmw.expr.Branch;
 import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IBlock;
 
 public final class CfAlgoWConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
@@ -42,12 +43,12 @@ public final class CfAlgoWConversion {
 
       var custExpr = (Branch) instantiatedExpr;
       var body = custExpr.block;
-
-      var block = new Block();
-      body.fillBlockScoped(block);
+      assert body instanceof IBlock;
+      var bodyBlock = (IBlock<Expr, AlgorithmWType>) body;
+      var block = bodyBlock.asBlock();
 
       var newCfOp = new CfOps.BranchOp(op.getLocation(), block).getOperation();
-      newCfOp.getTemporaryRegion().addBlock(block);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(block);
 
       return newCfOp;
     });
@@ -74,15 +75,17 @@ public final class CfAlgoWConversion {
 
       var condValue = branchExpr.condition.get().getLeft().getOutputValue();
 
-      var thenBlock = new Block();
-      branchExpr.condition.get().getRight().fillBlockScoped(thenBlock);
+      var thenExpr = branchExpr.condition.get().getRight();
+      assert thenExpr instanceof IBlock;
+      var thenBlock = ((IBlock<Expr, AlgorithmWType>) thenExpr).asBlock();
 
-      var elseBlock = new Block();
-      branchExpr.block.fillBlockScoped(elseBlock);
+      var elseExpr = branchExpr.block;
+      assert elseExpr instanceof IBlock;
+      var elseBlock = ((IBlock<Expr, AlgorithmWType>) elseExpr).asBlock();
 
       var newCfOp = new CfOps.BranchCondOp(op.getLocation(), condValue, thenBlock, elseBlock).getOperation();
-      newCfOp.getTemporaryRegion().addBlock(thenBlock);
-      newCfOp.getTemporaryRegion().addBlock(elseBlock);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(thenBlock);
+      newCfOp.getTemporaryRegion().addTemporaryBlock(elseBlock);
 
       return newCfOp;
     });

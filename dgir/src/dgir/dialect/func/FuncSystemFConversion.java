@@ -16,6 +16,7 @@ import dgir.core.ir.types.SystemFConversionUtils;
 
 import java.util.Optional;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IBlock;
 import dgir.core.ir.types.builtin.systemf.expr.Abs;
 import dgir.core.ir.types.builtin.systemf.expr.App;
 import dgir.core.ir.types.builtin.systemf.Expr;
@@ -109,10 +110,9 @@ public final class FuncSystemFConversion {
 
       assert instantiatedExpr instanceof Abs;
       var abs = (Abs) instantiatedExpr;
-      assert abs.body() instanceof Let;
-      var let = (Let) abs.body();
-
-      var directChildren = let.getAllChildrenForScopeExpression(let.body());
+      assert abs.body() instanceof IBlock;
+      @SuppressWarnings("unchecked")
+      var bodyBlock = (IBlock<Expr, SystemFType>) abs.body();
 
       // Reconstruct the function type from inference, never from the
       // originally declared type: the declared type may be stale (e.g. void
@@ -130,12 +130,7 @@ public final class FuncSystemFConversion {
       }
 
       var newFuncOp = new FuncOps.FuncOp(op.getLocation(), funcOp.getFuncName(), funcType);
-      for (var child : directChildren) {
-        var exprOp = child.getUnderlyingOperation();
-        assert exprOp.isPresent();
-
-        newFuncOp.addOperation(exprOp.get(), 0);
-      }
+      bodyBlock.fillEntryBlockInOp(newFuncOp, 0);
 
       var newRegion = newFuncOp.getRegion();
       if (!params.isEmpty()) {

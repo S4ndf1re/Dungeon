@@ -17,6 +17,16 @@ public class GeneralBlock {
     this.operations = new ArrayList<>();
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof GeneralBlock other && this.operations.equals(other.operations);
+  }
+
+  @Override
+  public int hashCode() {
+    return this.operations.hashCode();
+  }
+
   public void addOperation(Operation op) {
     this.operations.add(op);
   }
