@@ -22,6 +22,7 @@ import dgir.core.ir.types.builtin.hmx.expr.Return;
 import dgir.core.ir.types.builtin.hmx.TypeInference;
 import dgir.core.ir.types.builtin.hmx.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IBlock;
 import dgir.core.traits.ISymbol.SymbolTableSymbol;
 import dgir.dialect.func.FuncOps.CallIndirectOp;
 import dgir.dialect.func.FuncOps.CallOp;
@@ -64,13 +65,16 @@ public final class FuncHMXConversion {
       assert instantiatedExpr instanceof Abs;
       var abs = (Abs) instantiatedExpr;
       var body = abs.body();
+      System.out.println(body);
+      assert body instanceof IBlock;
+      @SuppressWarnings("unchecked")
+      var bodyBlock = (IBlock<HMXExpr, HMXType>) body;
 
       Type funcType = abs.inferredTypeToIrType();
       assert funcType instanceof FuncType;
 
       var newFuncOp = new FuncOps.FuncOp(op.getLocation(), funcOp.getFuncName(), (FuncType) funcType);
-
-      body.fillOpScoped(newFuncOp.getOperation(), 0);
+      bodyBlock.fillEntryBlockInOp(newFuncOp, 0);
 
       var newRegion = newFuncOp.getRegion();
       var oldParams = abs.getAllAbstractedParamters();
@@ -98,7 +102,8 @@ public final class FuncHMXConversion {
 
     HMXExpr result = null;
     if (returnOp.getReturnValue().isPresent()) {
-      result = new Return(returnOp.getLocation(), new Var(returnOp.getLocation(), Symbol.of(returnOp.getReturnValue().get())));
+      result = new Return(returnOp.getLocation(),
+          new Var(returnOp.getLocation(), Symbol.of(returnOp.getReturnValue().get())));
     } else {
       result = new Return(returnOp.getLocation(), new Lit(returnOp.getLocation(), new Literal.Unit()));
     }
@@ -210,7 +215,8 @@ public final class FuncHMXConversion {
     }
 
     var result = new Abs(constOp.getLocation(), List.copyOf(values),
-        new App(constOp.getLocation(), new Var(constOp.getLocation(), Symbol.of(new SymbolTableSymbol(funcName, funcType))),
+        new App(constOp.getLocation(),
+            new Var(constOp.getLocation(), Symbol.of(new SymbolTableSymbol(funcName, funcType))),
             values.stream().map(arg -> (HMXExpr) new Var(constOp.getLocation(), arg)).toList()));
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {

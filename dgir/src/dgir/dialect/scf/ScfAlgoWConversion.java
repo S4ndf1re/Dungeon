@@ -21,6 +21,7 @@ import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.builtin.algorithmw.expr.While;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IBlock;
 
 public final class ScfAlgoWConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
@@ -69,9 +70,9 @@ public final class ScfAlgoWConversion {
       }
       var newOp = newIf.getOperation();
 
-      custExpr.thenExpr.fillOpScoped(newOp, 0);
+      ((IBlock<Expr, AlgorithmWType>) custExpr.thenExpr).fillEntryBlockInOp(newOp, 0);
       if (withElse) {
-        custExpr.elseExpr.get().fillOpScoped(newOp, 1);
+        ((IBlock<Expr, AlgorithmWType>) custExpr.elseExpr.get()).fillEntryBlockInOp(newOp, 1);
       }
 
       return newOp;
@@ -92,14 +93,13 @@ public final class ScfAlgoWConversion {
       var newScope = new ScfOps.ScopeOp(op.getLocation());
       var newOp = newScope.getOperation();
 
-      instantiatedExpr.fillOpScoped(newOp, 0);
+      ((IBlock<Expr, AlgorithmWType>) instantiatedExpr).fillEntryBlockInOp(newOp, 0);
 
       return newOp;
     });
 
     return body;
   }
-
   public static Expr convertForOp(
       Operation op,
       TypeInference engine) {
@@ -142,7 +142,7 @@ public final class ScfAlgoWConversion {
 
       assert app.func() instanceof Abs;
       var instantiatedAbs = (Abs) app.func();
-      instantiatedAbs.body().fillOpScoped(newOp, 0);
+      ((IBlock<Expr, AlgorithmWType>) instantiatedAbs.body()).fillEntryBlockInOp(newOp, 0);
 
       var newRegion = newForOp.getRegion();
       if (forOp.getInductionValue() != newForOp.getInductionValue()) {
@@ -182,8 +182,8 @@ public final class ScfAlgoWConversion {
       var newWhile = new ScfOps.WhileOp(op.getLocation());
       var newOp = newWhile.getOperation();
 
-      custExpr.cond.fillOpScoped(newOp, 0);
-      custExpr.body.fillOpScoped(newOp, 1);
+      ((IBlock<Expr, AlgorithmWType>) custExpr.cond).fillEntryBlockInOp(newOp, 0);
+      ((IBlock<Expr, AlgorithmWType>) custExpr.body).fillEntryBlockInOp(newOp, 1);
 
       return newOp;
     });

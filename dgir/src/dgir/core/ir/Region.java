@@ -167,7 +167,17 @@ public final class Region {
   }
 
   public Block addBlock(@NotNull Block block) {
-    return addBlockAt(blocks.size(), block);
+    if (!this.blocks.contains(block)) {
+      return addBlockAt(blocks.size(), block);
+    }
+    return block;
+  }
+
+  public Block addTemporaryBlock(@NotNull Block block) {
+    if (!this.blocks.contains(block) && block.getParent().isEmpty()) {
+      return addBlockAt(blocks.size(), block);
+    }
+    return block;
   }
 
   public Block addBlockAt(int index, @NotNull Block block) {

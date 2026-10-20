@@ -7,6 +7,7 @@ import dgir.core.ir.types.TypeInferenceSolver;
 
 public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, S, EngineT>, T extends Type<T>, S extends dgir.core.ir.types.traits.IInstantiable.SolutionContext<E, T, EngineT, S>, EngineT extends TypeInferenceSolver<EngineT, E, T>> {
 
+
   public interface SolutionContext<E extends Expression<E, T>, T extends Type<T>, EngineT extends TypeInferenceSolver<EngineT, E, T>, SCtxT extends SolutionContext<E, T, EngineT, SCtxT>> {
     /**
      * Apply the type to the solution, resolting in an applied type that contains

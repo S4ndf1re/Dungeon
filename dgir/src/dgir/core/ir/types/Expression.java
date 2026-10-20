@@ -13,6 +13,7 @@ import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
+import dgir.core.ir.types.traits.IBlock;
 import dgir.core.ir.types.traits.ICell;
 import dgir.core.ir.types.traits.IExpressionCell;
 import dgir.core.ir.types.traits.IVariable;
@@ -352,14 +353,19 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
   }
 
   public final void fillBlockScoped(Block toFill) {
+    var expressions = new ArrayList<E>();
+
     for (var body : this.getInstantiableChildren()) {
       var exprsForBlock = this.getAllChildrenForScopeExpression(body);
       assert exprsForBlock.stream().allMatch(e -> e.getUnderlyingOperation().isPresent());
 
-      for (var e : exprsForBlock) {
-        // SAFETY: already asserted, that the underlying operation is actually present.
-        toFill.addOperation(e.getUnderlyingOperation().get());
-      }
+      expressions.addAll(exprsForBlock);
+    }
+
+    expressions.sort((a, b) -> a.getParentScopePosition().get().compareTo(b.getParentScopePosition().get()));
+
+    for (var expr : expressions) {
+      toFill.addOperation(expr.getUnderlyingOperation().get());
     }
   }
 

@@ -21,6 +21,7 @@ import dgir.core.ir.types.builtin.systemf.expr.If;
 import dgir.core.ir.types.builtin.systemf.expr.Let;
 import dgir.core.ir.types.builtin.systemf.expr.Var;
 import dgir.core.ir.types.builtin.systemf.expr.While;
+import dgir.core.ir.types.traits.IBlock;
 
 public final class ScfSystemFConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
@@ -79,9 +80,9 @@ public final class ScfSystemFConversion {
       }
       var newOp = newIf.getOperation();
 
-      ifExpr.thenExpr.fillOpScoped(newOp, 0);
+      ((IBlock<Expr, SystemFType>) ifExpr.thenExpr).fillEntryBlockInOp(newOp, 0);
       if (withElse) {
-        ifExpr.elseExpr.get().fillOpScoped(newOp, 1);
+        ((IBlock<Expr, SystemFType>) ifExpr.elseExpr.get()).fillEntryBlockInOp(newOp, 1);
       }
 
       return newOp;
@@ -102,7 +103,7 @@ public final class ScfSystemFConversion {
       var newScope = new ScfOps.ScopeOp(op.getLocation());
       var newOp = newScope.getOperation();
 
-      instantiatedExpr.fillOpScoped(newOp, 0);
+      ((IBlock<Expr, SystemFType>) instantiatedExpr).fillEntryBlockInOp(newOp, 0);
 
       return newOp;
     });
@@ -154,13 +155,8 @@ public final class ScfSystemFConversion {
       while (bodyExpr instanceof Abs nested) {
         bodyExpr = nested.body();
       }
-      if (bodyExpr instanceof Let let) {
-        // Region expressions are Let-scoped blocks in System F; fill the
-        // region's entry block from the Let bindings.
-        let.fillBlockScoped(newForOp.getRegion().getEntryBlock());
-      } else {
-        bodyExpr.fillOpScoped(newOp, 0);
-      }
+      assert bodyExpr instanceof IBlock;
+      ((IBlock<Expr, SystemFType>) bodyExpr).fillEntryBlockInOp(newOp, 0);
 
       var newRegion = newForOp.getRegion();
       if (forOp.getInductionValue() != newForOp.getInductionValue()) {
@@ -199,8 +195,8 @@ public final class ScfSystemFConversion {
       var newWhile = new ScfOps.WhileOp(op.getLocation());
       var newOp = newWhile.getOperation();
 
-      whileExpr.cond.fillOpScoped(newOp, 0);
-      whileExpr.body.fillOpScoped(newOp, 1);
+      ((IBlock<Expr, SystemFType>) whileExpr.cond).fillEntryBlockInOp(newOp, 0);
+      ((IBlock<Expr, SystemFType>) whileExpr.body).fillEntryBlockInOp(newOp, 1);
 
       return newOp;
     });

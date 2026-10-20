@@ -22,6 +22,7 @@ import dgir.core.ir.types.builtin.algorithmw.expr.Return;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IBlock;
 import dgir.core.traits.ISymbol.SymbolTableSymbol;
 import dgir.dialect.func.FuncOps.CallIndirectOp;
 import dgir.dialect.func.FuncOps.CallOp;
@@ -70,7 +71,9 @@ public final class FuncAlgoWConversion {
 
       var newFuncOp = new FuncOps.FuncOp(op.getLocation(), funcOp.getFuncName(), (FuncType) funcType);
 
-      body.fillOpScoped(newFuncOp.getOperation(), 0);
+      assert body instanceof IBlock;
+      var bodyBlock = (IBlock<Expr, AlgorithmWType>) body;
+      bodyBlock.fillEntryBlockInOp(newFuncOp.getOperation(), 0);
 
       var newRegion = newFuncOp.getRegion();
       var oldParams = abs.getAllAbstractedParamters();

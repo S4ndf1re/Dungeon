@@ -21,6 +21,7 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
 import dgir.core.ir.types.builtin.hmx.expr.Var;
 import dgir.core.ir.types.builtin.hmx.expr.While;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IBlock;
 
 public final class ScfHMXConversion {
   // NOTE: this is still very error prone, as the functions and ops must match
@@ -38,6 +39,7 @@ public final class ScfHMXConversion {
 
   }
 
+  @SuppressWarnings("unchecked")
   public static HMXExpr convertIfOp(
       Operation op,
       TypeInference engine) {
@@ -68,9 +70,9 @@ public final class ScfHMXConversion {
       }
       var newOp = newIf.getOperation();
 
-      custExpr.thenExpr.fillOpScoped(newOp, 0);
+      ((IBlock<HMXExpr, HMXType>) custExpr.thenExpr).fillEntryBlockInOp(newOp, 0);
       if (withElse) {
-        custExpr.elseExpr.get().fillOpScoped(newOp, 1);
+        ((IBlock<HMXExpr, HMXType>) custExpr.elseExpr.get()).fillEntryBlockInOp(newOp, 1);
       }
 
       return newOp;
@@ -79,6 +81,7 @@ public final class ScfHMXConversion {
     return result;
   }
 
+  @SuppressWarnings("unchecked")
   public static HMXExpr convertScopeOp(
       Operation op,
       TypeInference engine) {
@@ -91,7 +94,7 @@ public final class ScfHMXConversion {
       var newScope = new ScfOps.ScopeOp(op.getLocation());
       var newOp = newScope.getOperation();
 
-      instantiatedExpr.fillOpScoped(newOp, 0);
+      ((IBlock<HMXExpr, HMXType>) instantiatedExpr).fillEntryBlockInOp(newOp, 0);
 
       return newOp;
     });
@@ -99,6 +102,7 @@ public final class ScfHMXConversion {
     return body;
   }
 
+  @SuppressWarnings("unchecked")
   public static HMXExpr convertForOp(
       Operation op,
       TypeInference engine) {
@@ -141,7 +145,7 @@ public final class ScfHMXConversion {
 
       assert app.func() instanceof Abs;
       var instantiatedAbs = (Abs) app.func();
-      instantiatedAbs.body().fillOpScoped(newOp, 0);
+      ((IBlock<HMXExpr, HMXType>) instantiatedAbs.body()).fillEntryBlockInOp(newOp, 0);
 
       var newRegion = newForOp.getRegion();
       if (forOp.getInductionValue() != newForOp.getInductionValue()) {
@@ -162,6 +166,7 @@ public final class ScfHMXConversion {
     return result;
   }
 
+  @SuppressWarnings("unchecked")
   public static HMXExpr convertWhileOp(
       Operation op,
       TypeInference engine) {
@@ -180,8 +185,8 @@ public final class ScfHMXConversion {
       var newWhile = new ScfOps.WhileOp(op.getLocation());
       var newOp = newWhile.getOperation();
 
-      whileExpr.cond.fillOpScoped(newOp, 0);
-      whileExpr.body.fillOpScoped(newOp, 1);
+      ((IBlock<HMXExpr, HMXType>)whileExpr.cond).fillEntryBlockInOp(newOp, 0);
+      ((IBlock<HMXExpr, HMXType>)whileExpr.body).fillEntryBlockInOp(newOp, 1);
 
       return newOp;
     });

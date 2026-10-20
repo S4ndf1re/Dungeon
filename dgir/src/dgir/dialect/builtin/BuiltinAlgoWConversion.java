@@ -1,22 +1,23 @@
 package dgir.dialect.builtin;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.debug.Location;
 import dgir.core.ir.Operation;
-import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
-import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.Expr;
-import dgir.core.ir.types.builtin.algorithmw.expr.LetRec;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 import dgir.core.ir.types.builtin.algorithmw.expr.Var;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
+import dgir.core.ir.types.traits.IBlock;
 import dgir.core.traits.IGlobal;
 import dgir.dialect.builtin.BuiltinOps.IdOp;
 import dgir.dialect.builtin.BuiltinOps.ProgramOp;
@@ -63,26 +64,37 @@ public final class BuiltinAlgoWConversion {
 
     convertedBlock.setInstantiateOperationCallback(instantiatedExpr -> {
 
-      assert instantiatedExpr instanceof LetRec;
-      var instantiatedLetExpr = (LetRec) instantiatedExpr;
+      assert instantiatedExpr instanceof IBlock;
+      @SuppressWarnings("unchecked")
+      var instantiatedBlockExpr = (IBlock<Expr, AlgorithmWType>) instantiatedExpr;
 
-      var exprsInBlock = instantiatedLetExpr.getAllChildrenForScopeExpression(instantiatedLetExpr.body());
+      var block = instantiatedBlockExpr.asBlock();
 
       var newOp = new ProgramOp(programOp.getLocation());
 
+      var firstRegion = newOp.getRegion(0).get();
+      firstRegion.removeAllBlocks();
+
+      // SAFETY: This filtering is save, as the program op can only ever be the root
+      // and hence cannot be polymorphic, ever
+      //
       // NOTE: one of the expressions is the call to main, as inserted into the body
       // of the let expressions that represents the programOps body! This must be
       // filtered out
       // Generally, as only global operations are allowed, IGlobal can directly be
       // filtered. As the previous ProgramOp held the same constraints, we can impose
       // them again!
-      for (var e : exprsInBlock) {
-        if (e.getUnderlyingOperation().map(underlyingOp -> underlyingOp.asOp() instanceof IGlobal).orElse(false)) {
-          // SAFETY: already checked in the above case
-          var eOp = e.getUnderlyingOperation();
-          newOp.addOperation(eOp.get());
+      List<Operation> toRemove = new ArrayList<>();
+      for (var operation : block.getOperations()) {
+        if (!(operation.asOp() instanceof IGlobal)) {
+          toRemove.add(operation);
         }
       }
+      for (var operation : toRemove) {
+        block.removeOperation(operation);
+      }
+
+      firstRegion.addBlock(block);
 
       return newOp.getOperation();
     });

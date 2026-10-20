@@ -19,6 +19,7 @@ import dgir.core.ir.types.builtin.algorithmw.expr.LetRec;
 import dgir.core.ir.types.builtin.algorithmw.expr.Lit;
 import dgir.core.ir.types.builtin.algorithmw.expr.Seq;
 import dgir.core.ir.types.builtin.algorithmw.expr.Var;
+import dgir.core.ir.types.builtin.algorithmw.expr.Block;
 import dgir.core.ir.types.compatibility.ConverterRegistry.TypeDialectConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
 
@@ -82,6 +83,11 @@ public final class TypeInference
   @Override
   public Expr Ann(Expr body, AlgorithmWType type) {
     return new Ann(body, type);
+  }
+
+  @Override
+  public Expr Block(Expr body) {
+    return new Block(body);
   }
 
   @Override
