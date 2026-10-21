@@ -98,6 +98,11 @@ public final class Ann extends Expr {
   @Override
   public Expr instantiateInner(TypeInference engine, InstEnv<Expr, AlgorithmWType, Subst> env, Subst solution) {
     // Simply return the inner as fully instantiated!
-    return this.expr.instantiate(engine, env, solution);
+    // Since the annotation is getting abstracted away, keep the information about
+    // scope locality that is assumed for this expression!
+    var innerExpr = this.expr.copy();
+    innerExpr.setParentScopeExpression(this.getParentScopeExpr(), this.getParentScopePosition());
+
+    return innerExpr.instantiate(engine, env, solution);
   }
 }

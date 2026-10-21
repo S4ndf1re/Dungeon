@@ -12,7 +12,9 @@ import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
+import dgir.core.ir.types.builtin.algorithmw.expr.Ann;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWInference;
 import dgir.core.ir.types.builtin.algorithmw.AlgorithmWType;
 import dgir.core.ir.types.builtin.algorithmw.expr.App;
@@ -46,6 +48,32 @@ public final class FuncAlgoWConversion {
       TypeInference engine) {
     FuncOps.FuncOp funcOp = (FuncOps.FuncOp) op.asOp();
 
+    var fnType = funcOp.getType();
+    var annotationTypes = new ArrayList<AlgorithmWType>();
+    // Add all input types
+    {
+      // TODO: create a sensible helper!!!!! that must happen more than once, i am
+      // sure!
+      if (fnType.getInputs().size() > 0) {
+        for (var argType : fnType.getInputs()) {
+          if (argType.isKnown()) {
+            var engineType = engine
+                .generalNominalTypeToInferenceType(argType.getAsKnownOrThrow().asParameterizedNominalType(), null);
+            annotationTypes.add(engineType.getLeft());
+          } else {
+            annotationTypes.add(new AlgorithmWType.Var(new TypeVar<>()));
+          }
+        }
+      } else {
+        annotationTypes.add(new AlgorithmWType.LitType(TypeIdent.TYPE_IDENT_UNIT));
+      }
+
+      // Add the output Type
+      annotationTypes.add(new AlgorithmWType.Var(new TypeVar<>()));
+    }
+
+    var specializedFuncType = engine.ArrowChain(annotationTypes);
+
     ArrayList<Symbol<Expr, AlgorithmWType>> params = new ArrayList<>();
     for (int i = 0; funcOp.getArgument(i).isPresent(); i++) {
       params.add(Symbol.<Expr, AlgorithmWType>of(funcOp.getArgument(i).get()));
@@ -58,10 +86,12 @@ public final class FuncAlgoWConversion {
       throw new IllegalArgumentException("Invalid, as the engine is not of type algorithm w");
     }
 
-    var expr = new Abs(op.getLocation(), List.copyOf(params), (Expr) blockAsExpr);
+    var function = new Abs(op.getLocation(), List.copyOf(params), (Expr) blockAsExpr);
+    var expr = new Ann(op.getLocation(), function,
+        specializedFuncType);
 
-    expr.setInstantiateOperationCallback(instantiatedExpr -> {
-
+    function.setInstantiateOperationCallback(instantiatedExpr -> {
+      // NOTE: the type annotations are dropped during inference!
       assert instantiatedExpr instanceof Abs;
       var abs = (Abs) instantiatedExpr;
       var body = abs.body();
