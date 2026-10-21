@@ -73,11 +73,11 @@ public final class BinOp extends HMXExpr {
       var lhsTy = types[0];
       var rhsTy = types[1];
 
-      if (!lhsType.isFullySpecified()) {
+      if (!lhsTy.isFullySpecified()) {
         throw new DetermineByCallbackAndUnify.CallbackNotReady();
       }
 
-      if (!rhsType.isFullySpecified()) {
+      if (!rhsTy.isFullySpecified()) {
         throw new DetermineByCallbackAndUnify.CallbackNotReady();
       }
 
