@@ -171,20 +171,19 @@ public final class Let extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       // If the symbol is shadowed by one of the let bindings, do not replace
-      // it in the body!
+      // it in the body! The binding symbols themselves are never rewritten.
+      // Since the binding values are mutated in place, the immutable pairs
+      // and the list of bindings need no rebuild.
       if (this.bindings.stream().anyMatch(bnd -> bnd.getLeft().equals(original))) {
-        return this;
+        return;
       }
 
-      var newLetExpr = new Let(this,
-          this.bindings.stream()
-              .map(bnd -> Pair.of(bnd.getLeft(), bnd.getRight().replaceSymbol(original, replacement))).toList(),
-          this.body.replaceSymbol(original, replacement));
-
-      newLetExpr.replaceParentScopeReferences(this, newLetExpr);
-      return newLetExpr;
+      for (var bnd : this.bindings) {
+        bnd.getRight().replaceSymbol(original, replacement);
+      }
+      this.body.replaceSymbol(original, replacement);
     }
 
   }

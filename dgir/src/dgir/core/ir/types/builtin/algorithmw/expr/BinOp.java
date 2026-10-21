@@ -122,9 +122,9 @@ public final class BinOp extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-    return new BinOp(this, this.lhs.replaceSymbol(original, replacement),
-        this.rhs.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    this.lhs.replaceSymbol(original, replacement);
+    this.rhs.replaceSymbol(original, replacement);
   }
 
   @Override

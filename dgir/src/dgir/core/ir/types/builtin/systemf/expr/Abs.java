@@ -24,7 +24,7 @@ import dgir.core.ir.types.builtin.systemf.TypeResult;
 
 public final class Abs extends Expr implements IAbstraction<Expr, SystemFType> {
 
-    private final Optional<Symbol<Expr, SystemFType>> name;
+    private Optional<Symbol<Expr, SystemFType>> name;
     private final Optional<SystemFType> type;
     private final Expr body;
 
@@ -159,9 +159,9 @@ public final class Abs extends Expr implements IAbstraction<Expr, SystemFType> {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      var newName = this.name.equals(Optional.of(original)) ? Optional.of(replacement) : this.name;
-      return new Abs(this, newName, this.type, this.body.replaceSymbol(original, replacement));
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      this.name = this.name.equals(Optional.of(original)) ? Optional.of(replacement) : this.name;
+      this.body.replaceSymbol(original, replacement);
     }
 
     @Override

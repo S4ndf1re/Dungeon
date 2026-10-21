@@ -67,8 +67,8 @@ public class Seq extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-      return new Seq(this, this.expressions.stream().map(e -> e.replaceSymbol(original, replacement)).toList());
+    public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+      this.expressions.forEach(e -> e.replaceSymbol(original, replacement));
     }
 
     @Override

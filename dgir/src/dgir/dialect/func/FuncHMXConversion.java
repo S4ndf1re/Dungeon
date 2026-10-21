@@ -95,7 +95,6 @@ public final class FuncHMXConversion {
       assert instantiatedExpr instanceof Abs;
       var abs = (Abs) instantiatedExpr;
       var body = abs.body();
-      System.out.println(body);
       assert body instanceof IBlock;
       @SuppressWarnings("unchecked")
       var bodyBlock = (IBlock<HMXExpr, HMXType>) body;

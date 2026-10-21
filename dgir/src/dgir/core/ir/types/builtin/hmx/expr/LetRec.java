@@ -169,21 +169,16 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
     }
 
     @Override
-    public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
       // If symbol is shadowed by the env created by this let binding, do not
-      // overwrite the value!
+      // replace anywhere below this scope!
       if (this.bindings.stream().anyMatch(bnd -> bnd.getLeft().equals(original))) {
-        return this;
+        return;
       }
 
-      var newLetExpr = new LetRec(this, this.bindings.stream()
-          .map(binding -> Pair.of(binding.getLeft(), binding.getRight().replaceSymbol(original, replacement)))
-          .toList(),
-          this.body.replaceSymbol(original, replacement));
-
-      // Children of the new subtree still reference THIS instance as their parent
-      // scope. Re-point them, or scope-based block reconstruction finds nothing.
-      newLetExpr.replaceParentScopeReferences(this, newLetExpr);
-      return newLetExpr;
+      for (var binding : this.bindings) {
+        binding.getRight().replaceSymbol(original, replacement);
+      }
+      this.body.replaceSymbol(original, replacement);
     }
   }

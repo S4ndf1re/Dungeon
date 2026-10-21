@@ -197,12 +197,11 @@ public final class App extends HMXExpr implements IApplication<HMXExpr, HMXType>
     }
 
     @Override
-    public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-      var newFunc = this.func.replaceSymbol(original, replacement);
-      var newArgs = this.args.stream().map(arg -> arg.replaceSymbol(original, replacement)).toList();
-
-      var newApp = new App(this, newFunc, newArgs);
-      return newApp;
+    public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+      this.func.replaceSymbol(original, replacement);
+      for (var arg : this.args) {
+        arg.replaceSymbol(original, replacement);
+      }
     }
 
     public Optional<HMXType> getInferredFunctionType() {

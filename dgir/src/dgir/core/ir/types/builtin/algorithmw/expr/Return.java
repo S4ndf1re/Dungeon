@@ -78,8 +78,8 @@ public class Return extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-      return new Return(this, this.value.replaceSymbol(original, replacement));
+    public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+      this.value.replaceSymbol(original, replacement);
     }
 
     @Override

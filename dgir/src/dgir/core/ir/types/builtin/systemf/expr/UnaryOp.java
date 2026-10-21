@@ -98,8 +98,8 @@ public final class UnaryOp extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-    return new UnaryOp(this, this.operand.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+    this.operand.replaceSymbol(original, replacement);
   }
 
   @Override

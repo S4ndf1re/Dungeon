@@ -33,12 +33,6 @@ public final class Custom<D> extends Expr {
     }
 
     @FunctionalInterface
-    public interface ReplaceSymbolFunction<D> {
-      Expr replaceSymbol(Custom<D> oldExpr, Symbol<Expr, SystemFType> original,
-          Symbol<Expr, SystemFType> replacement, D data);
-    }
-
-    @FunctionalInterface
     public interface GetChildrenFunction<D> {
       List<Expr> getChildren(D data);
     }
@@ -48,10 +42,9 @@ public final class Custom<D> extends Expr {
     private Optional<CheckFunction<D>> checkFn;
     private Optional<InstantiateFunction<D>> instFn;
     private Optional<GetChildrenFunction<D>> getChildrenFn;
-    private Optional<ReplaceSymbolFunction<D>> replaceSymbolFn;
 
     public Custom(D data, InferFunction<D> inferFn) {
-      this(data, inferFn, null, null, null, null);
+      this(data, inferFn, null, null, null);
     }
 
     public Custom(Location loc, D data, InferFunction<D> inferFn) {
@@ -59,34 +52,30 @@ public final class Custom<D> extends Expr {
     }
 
     public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn) {
-      this(data, inferFn, checkFn, null, null, null);
+      this(data, inferFn, checkFn, null, null);
     }
 
     public Custom(Location loc, D data, InferFunction<D> inferFn, CheckFunction<D> checkFn) {
-      this(loc, data, inferFn, checkFn, null, null, null);
+      this(loc, data, inferFn, checkFn, null, null);
     }
 
     public Custom(D data, InferFunction<D> inferFn, CheckFunction<D> checkFn,
-        InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
-        ReplaceSymbolFunction<D> replaceSymbolFn) {
+        InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn) {
       this.data = data;
       this.inferFn = inferFn;
       this.checkFn = Optional.ofNullable(checkFn);
       this.instFn = Optional.ofNullable(instFn);
       this.getChildrenFn = Optional.ofNullable(getChildrenFn);
-      this.replaceSymbolFn = Optional.ofNullable(replaceSymbolFn);
     }
 
     public Custom(Location loc, D data, InferFunction<D> inferFn, CheckFunction<D> checkFn,
-        InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn,
-        ReplaceSymbolFunction<D> replaceSymbolFn) {
+        InstantiateFunction<D> instFn, GetChildrenFunction<D> getChildrenFn) {
       super(loc);
       this.data = data;
       this.inferFn = inferFn;
       this.checkFn = Optional.ofNullable(checkFn);
       this.instFn = Optional.ofNullable(instFn);
       this.getChildrenFn = Optional.ofNullable(getChildrenFn);
-      this.replaceSymbolFn = Optional.ofNullable(replaceSymbolFn);
     }
 
     public Custom(Custom<D> other) {
@@ -96,7 +85,6 @@ public final class Custom<D> extends Expr {
       this.checkFn = other.checkFn;
       this.instFn = other.instFn;
       this.getChildrenFn = other.getChildrenFn;
-      this.replaceSymbolFn = other.replaceSymbolFn;
     }
 
     public Custom(Custom<D> other, D newData) {
@@ -106,7 +94,6 @@ public final class Custom<D> extends Expr {
       this.checkFn = other.checkFn;
       this.instFn = other.instFn;
       this.getChildrenFn = other.getChildrenFn;
-      this.replaceSymbolFn = other.replaceSymbolFn;
     }
 
     public D getData() {
@@ -128,11 +115,12 @@ public final class Custom<D> extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      if (this.replaceSymbolFn.isPresent()) {
-        return this.replaceSymbolFn.get().replaceSymbol(this, original, replacement, this.data);
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      // Replacement mutates the child expressions in place, so the immutable
+      // data record keeps referencing the (now updated) instances.
+      for (var child : this.getChildren()) {
+        child.replaceSymbol(original, replacement);
       }
-      return this;
     }
 
     @Override

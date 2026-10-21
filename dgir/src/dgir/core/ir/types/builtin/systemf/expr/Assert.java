@@ -95,9 +95,9 @@ public final class Assert extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-    return new Assert(this, this.cond.replaceSymbol(original, replacement),
-        this.message.map(msg -> msg.replaceSymbol(original, replacement)));
+  public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+    this.cond.replaceSymbol(original, replacement);
+    this.message.ifPresent(msg -> msg.replaceSymbol(original, replacement));
   }
 
   @Override

@@ -97,8 +97,9 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
     }
 
     @Override
-    public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-      return this;
+    public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+      // Do nothing, as the referenced expression is already expected to be
+      // re-instantiated!
     }
 
     @Override

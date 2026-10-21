@@ -17,7 +17,7 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
 
 public final class Var extends HMXExpr implements IVariable<HMXExpr, HMXType> {
 
-    private final Symbol<HMXExpr, HMXType> name;
+    private Symbol<HMXExpr, HMXType> name;
 
     public Symbol<HMXExpr, HMXType> name() {
       return this.name;
@@ -80,11 +80,10 @@ public final class Var extends HMXExpr implements IVariable<HMXExpr, HMXType> {
     }
 
     @Override
-    public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
       if (this.name.equals(original)) {
-        return new Var(this, replacement);
+        this.name = replacement;
       }
-      return this;
     }
 
     @Override

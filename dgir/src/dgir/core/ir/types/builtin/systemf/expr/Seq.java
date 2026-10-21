@@ -105,8 +105,10 @@ import dgir.core.ir.types.builtin.systemf.TypeResult;
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return new Seq(this, this.expressions.stream().map(e -> e.replaceSymbol(original, replacement)).toList());
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      for (var expr : this.expressions) {
+        expr.replaceSymbol(original, replacement);
+      }
     }
 
     @Override

@@ -97,8 +97,9 @@ import dgir.core.ir.types.builtin.algorithmw.TypeInference;
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-      return this;
+    public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+      // Nothing to replace, as the referenced expression is expected to handle
+      // replacement itself (the cell is a recursion breaker)!
     }
 
     @Override

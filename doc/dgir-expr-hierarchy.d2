@@ -34,7 +34,7 @@ ExprNodes: {
   ExprLetRec: "bindings: List<(Symbol, Expr)> | body | global/recursive scope"
   ExprSeq: "expressions: List<Expr>"
   ExprReturn: "value: Expr"
-  ExprCustom: "data: D (opaque) | inferFn | instFn | getChildrenFn | replaceSymbolFn | copyFn"
+  ExprCustom: "data: D (opaque) | inferFn | instFn | getChildrenFn | copyFn"
   ExprCell: {
     label: "ExprCell (private inner)\n———————————\nreference: Expr\ncellValue: Expr (MUTABLE, may be cyclic)\nequals/hashCode: IDENTITY (cycle-safe)\nunwrap() / replaceIfMatches()\ncopy(): shares cellValue, no recursion"
     style.fill: mistyrose

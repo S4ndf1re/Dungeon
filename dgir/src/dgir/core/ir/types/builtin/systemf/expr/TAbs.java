@@ -98,8 +98,8 @@ public final class TAbs extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return new TAbs(this, this.variable, this.body.replaceSymbol(original, replacement));
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      this.body.replaceSymbol(original, replacement);
     }
 
     @Override

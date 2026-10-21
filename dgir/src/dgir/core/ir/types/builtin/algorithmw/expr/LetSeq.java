@@ -169,19 +169,16 @@ import dgir.core.ir.types.builtin.algorithmw.TypeInference;
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
       // If symbol is shadowed by the env created by this let binding, do not
       // overwrite the value!
       if (this.bindings.stream().anyMatch(bnd -> bnd.getLeft().equals(original))) {
-        return this;
+        return;
       }
 
-      var newBody = this.body.replaceSymbol(original, replacement);
-      var newBindings = this.bindings.stream()
-          .map(binding -> Pair.of(binding.getLeft(), binding.getRight().replaceSymbol(original, replacement))).toList();
-      var newLetExpr = new LetSeq(this, newBindings, newBody);
-
-      newLetExpr.replaceParentScopeReferences(this, newLetExpr);
-      return newLetExpr;
+      // NOTE: the scope instance itself is kept, so parent-scope references of
+      // the children remain valid and must not be re-pointed.
+      this.body.replaceSymbol(original, replacement);
+      this.bindings.forEach(bnd -> bnd.getRight().replaceSymbol(original, replacement));
     }
   }

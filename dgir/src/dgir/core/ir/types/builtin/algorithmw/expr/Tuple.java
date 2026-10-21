@@ -114,9 +114,8 @@ public final class Tuple extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-      return new Tuple(this,
-          this.elements.stream().map(elem -> elem.replaceSymbol(original, replacement)).toList());
+    public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+      this.elements.forEach(elem -> elem.replaceSymbol(original, replacement));
     }
 
     @Override

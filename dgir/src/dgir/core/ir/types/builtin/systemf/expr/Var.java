@@ -17,7 +17,7 @@ import dgir.core.ir.types.traits.IVariable;
 
 public final class Var extends Expr implements IVariable<Expr, SystemFType> {
 
-    private final Symbol<Expr, SystemFType> name;
+    private Symbol<Expr, SystemFType> name;
 
     public Var(Symbol<Expr, SystemFType> name) {
       this.name = name;
@@ -77,12 +77,10 @@ public final class Var extends Expr implements IVariable<Expr, SystemFType> {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
       if (this.name.equals(original)) {
-        return new Var(this, replacement);
+        this.name = replacement;
       }
-
-      return this;
     }
 
     @Override

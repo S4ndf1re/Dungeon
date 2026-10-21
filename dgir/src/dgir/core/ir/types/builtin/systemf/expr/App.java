@@ -159,9 +159,10 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
       return Objects.hash(this.fun, this.arg, super.hashCode());
     }
 
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      var newArg = this.arg.map(arg -> arg.replaceSymbol(original, replacement));
-      return new App(this, this.fun.replaceSymbol(original, replacement), newArg);
+    @Override
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      this.fun.replaceSymbol(original, replacement);
+      this.arg.ifPresent(arg -> arg.replaceSymbol(original, replacement));
     }
 
     public Expr copy() {

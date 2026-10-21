@@ -68,29 +68,11 @@ public final class Block extends Expr implements IBlock<Expr, AlgorithmWType> {
     return this.innerExpr.getInstantiableChildren();
   }
 
-  /**
-   * Memoized per instance so a shared block (referenced by several branches)
-   * is replaced only ONCE per (original, replacement) pair — preserving DAG
-   * sharing during symbol reinstantiation instead of duplicating the block
-   * per reference path.
-   */
-  private java.util.HashMap<
-      java.util.Map.Entry<Symbol<Expr, AlgorithmWType>, Symbol<Expr, AlgorithmWType>>,
-      Expr> replaceSymbolMemo;
-
   @Override
-  public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-    var key = java.util.Map.entry(original, replacement);
-    if (this.replaceSymbolMemo == null) {
-      this.replaceSymbolMemo = new java.util.HashMap<>();
-    }
-    var cached = this.replaceSymbolMemo.get(key);
-    if (cached != null) {
-      return cached;
-    }
-    var replaced = new Block(this, this.innerExpr.replaceSymbol(original, replacement));
-    this.replaceSymbolMemo.put(key, replaced);
-    return replaced;
+  public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    // No memoization needed: children are mutated in place, so a shared block is
+    // naturally replaced exactly once per (original, replacement) pair.
+    this.innerExpr.replaceSymbol(original, replacement);
   }
 
   @Override

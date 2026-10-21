@@ -93,9 +93,10 @@ public final class Tuple extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return new Tuple(this,
-          this.elements.stream().map(elem -> elem.replaceSymbol(original, replacement)).toList());
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      for (var elem : this.elements) {
+        elem.replaceSymbol(original, replacement);
+      }
     }
 
     @Override

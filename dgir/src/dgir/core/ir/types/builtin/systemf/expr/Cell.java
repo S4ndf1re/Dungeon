@@ -72,8 +72,9 @@ public final class Cell extends Expr implements IExpressionCell<Expr, SystemFTyp
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-    return this;
+  public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+    // The cell is a recursion breaker: like replaceSymbol, replacement stops
+    // here and must not descend into the referenced subtree.
   }
 
   @Override

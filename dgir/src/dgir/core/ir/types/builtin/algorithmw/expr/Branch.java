@@ -18,7 +18,7 @@ import dgir.core.ir.types.builtin.algorithmw.Subst;
 import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 
 public final class Branch extends Expr {
-  public final Optional<Pair<Expr, Expr>> condition;
+  public Optional<Pair<Expr, Expr>> condition;
   public final Expr block;
 
   public Branch(Expr block) {
@@ -88,11 +88,12 @@ public final class Branch extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-    return new Branch(this,
-        this.condition.map(cond -> Pair.of(cond.getLeft().replaceSymbol(original, replacement),
-            cond.getRight().replaceSymbol(original, replacement))),
-        this.block.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    if (this.condition.isPresent()) {
+      this.condition.get().getLeft().replaceSymbol(original, replacement);
+      this.condition.get().getRight().replaceSymbol(original, replacement);
+    }
+    this.block.replaceSymbol(original, replacement);
   }
 
   @Override
