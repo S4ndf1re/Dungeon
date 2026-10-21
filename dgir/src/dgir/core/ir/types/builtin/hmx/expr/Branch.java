@@ -21,7 +21,7 @@ import dgir.core.ir.types.builtin.hmx.Subst;
 import dgir.core.ir.types.builtin.hmx.TypeInference;
 
 public final class Branch extends HMXExpr {
-  public final Optional<Pair<HMXExpr, HMXExpr>> condition;
+  public Optional<Pair<HMXExpr, HMXExpr>> condition;
   public final HMXExpr block;
 
   public Branch(HMXExpr block) {
@@ -105,11 +105,12 @@ public final class Branch extends HMXExpr {
   }
 
   @Override
-  public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-    return new Branch(this,
-        this.condition.map(cond -> Pair.of(cond.getLeft().replaceSymbol(original, replacement),
-            cond.getRight().replaceSymbol(original, replacement))),
-        this.block.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    if (this.condition.isPresent()) {
+      this.condition.get().getLeft().replaceSymbol(original, replacement);
+      this.condition.get().getRight().replaceSymbol(original, replacement);
+    }
+    this.block.replaceSymbol(original, replacement);
   }
 
   @Override

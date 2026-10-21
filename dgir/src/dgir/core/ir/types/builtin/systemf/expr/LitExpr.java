@@ -66,8 +66,7 @@ public final class LitExpr extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return this;
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
     }
 
     @Override

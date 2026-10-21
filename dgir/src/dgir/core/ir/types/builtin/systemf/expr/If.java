@@ -104,11 +104,10 @@ public final class If extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-    return new If(this,
-        this.cond.replaceSymbol(original, replacement),
-        this.thenExpr.replaceSymbol(original, replacement),
-        this.elseExpr.map(e -> e.replaceSymbol(original, replacement)));
+  public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+    this.cond.replaceSymbol(original, replacement);
+    this.thenExpr.replaceSymbol(original, replacement);
+    this.elseExpr.ifPresent(e -> e.replaceSymbol(original, replacement));
   }
 
   @Override

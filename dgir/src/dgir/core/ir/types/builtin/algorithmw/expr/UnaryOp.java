@@ -96,8 +96,8 @@ public final class UnaryOp extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-    return new UnaryOp(this, this.operand.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    this.operand.replaceSymbol(original, replacement);
   }
 
   @Override

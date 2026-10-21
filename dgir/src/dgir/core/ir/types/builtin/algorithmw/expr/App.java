@@ -185,12 +185,9 @@ public final class App extends Expr implements IApplication<Expr, AlgorithmWType
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-      var newFunc = this.func.replaceSymbol(original, replacement);
-      var newArgs = this.args.stream().map(arg -> arg.replaceSymbol(original, replacement)).toList();
-
-      var newApp = new App(this, newFunc, newArgs);
-      return newApp;
+    public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+      this.func.replaceSymbol(original, replacement);
+      this.args.forEach(arg -> arg.replaceSymbol(original, replacement));
     }
 
     public Optional<AlgorithmWType> getInferredFunctionType() {

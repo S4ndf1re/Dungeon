@@ -107,7 +107,12 @@ public class MergeBlockDedupTest {
 
     System.out.println("Distinct func.return operations reachable: " + returnOps.size());
 
-    org.junit.jupiter.api.Assertions.assertEquals(1, returnOps.size(),
-        "merge block was duplicated: multiple func.return operations in the tree");
+    // NOTE: one return per function — foo's merge block return and main's own
+    // return. The merge block is referenced by TWO cf.br terminators, so a
+    // duplicated merge block would surface as THREE or more distinct
+    // func.return operations here.
+    org.junit.jupiter.api.Assertions.assertEquals(2, returnOps.size(),
+        "expected one return per function (foo merge, main) — more means the "
+            + "merge block was duplicated");
   }
 }

@@ -130,7 +130,6 @@ public abstract class Constraint {
     @Override
     public void solve(TypeInference engine, Env env) {
       try {
-        System.out.println("Subtyping: " + this.tLeft + " <: " + this.tRight);
         engine.subtype(this.tLeft, this.tRight);
       } catch (TypeInference.UnresolvedSubtypeException | TypingException.NotFullySpecified e) {
         if (!engine.getAllowSubtypeFailure()) {

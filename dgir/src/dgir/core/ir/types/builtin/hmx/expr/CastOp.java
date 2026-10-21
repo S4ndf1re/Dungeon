@@ -77,8 +77,8 @@ public final class CastOp extends HMXExpr {
   }
 
   @Override
-  public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-    return new CastOp(this, this.operand.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    this.operand.replaceSymbol(original, replacement);
   }
 
   @Override

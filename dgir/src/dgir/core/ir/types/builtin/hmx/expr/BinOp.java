@@ -103,9 +103,9 @@ public final class BinOp extends HMXExpr {
   }
 
   @Override
-  public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-    return new BinOp(this, this.lhs.replaceSymbol(original, replacement),
-        this.rhs.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    this.lhs.replaceSymbol(original, replacement);
+    this.rhs.replaceSymbol(original, replacement);
   }
 
   @Override

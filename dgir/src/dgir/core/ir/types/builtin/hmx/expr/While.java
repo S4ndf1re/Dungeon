@@ -75,10 +75,9 @@ public final class While extends HMXExpr {
   }
 
   @Override
-  public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-    return new While(this,
-        this.cond.replaceSymbol(original, replacement),
-        this.body.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    this.cond.replaceSymbol(original, replacement);
+    this.body.replaceSymbol(original, replacement);
   }
 
   @Override

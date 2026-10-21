@@ -109,9 +109,9 @@ public final class Assert extends HMXExpr {
   }
 
   @Override
-  public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-    return new Assert(this, this.cond.replaceSymbol(original, replacement),
-        this.message.map(msg -> msg.replaceSymbol(original, replacement)));
+  public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    this.cond.replaceSymbol(original, replacement);
+    this.message.ifPresent(msg -> msg.replaceSymbol(original, replacement));
   }
 
   @Override

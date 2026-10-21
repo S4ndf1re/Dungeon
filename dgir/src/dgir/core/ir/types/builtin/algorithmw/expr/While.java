@@ -71,10 +71,9 @@ public final class While extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-    return new While(this,
-        this.cond.replaceSymbol(original, replacement),
-        this.body.replaceSymbol(original, replacement));
+  public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    this.cond.replaceSymbol(original, replacement);
+    this.body.replaceSymbol(original, replacement);
   }
 
   @Override

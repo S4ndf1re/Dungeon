@@ -18,7 +18,7 @@ import dgir.core.ir.types.builtin.algorithmw.TypeInference;
 
 public final class Var extends Expr implements IVariable<Expr, AlgorithmWType> {
 
-    private final Symbol<Expr, AlgorithmWType> name;
+    private Symbol<Expr, AlgorithmWType> name;
 
     public Symbol<Expr, AlgorithmWType> name() {
       return this.name;
@@ -86,11 +86,10 @@ public final class Var extends Expr implements IVariable<Expr, AlgorithmWType> {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
       if (this.name.equals(original)) {
-        return new Var(this, replacement);
+        this.name = replacement;
       }
-      return this;
     }
 
     @Override

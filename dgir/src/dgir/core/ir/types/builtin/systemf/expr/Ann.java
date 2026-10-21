@@ -74,8 +74,8 @@ public final class Ann extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return new Ann(this, this.expr.replaceSymbol(original, replacement), this.type);
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      this.expr.replaceSymbol(original, replacement);
     }
 
     @Override

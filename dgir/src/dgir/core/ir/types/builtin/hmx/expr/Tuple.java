@@ -123,9 +123,10 @@ public final class Tuple extends HMXExpr {
     }
 
     @Override
-    public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-      return new Tuple(this,
-          this.elements.stream().map(elem -> elem.replaceSymbol(original, replacement)).toList());
+    public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+      for (var elem : this.elements) {
+        elem.replaceSymbol(original, replacement);
+      }
     }
 
     @Override

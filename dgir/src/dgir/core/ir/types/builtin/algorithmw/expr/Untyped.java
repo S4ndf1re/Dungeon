@@ -61,8 +61,8 @@ public final class Untyped extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-    return this;
+  public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    // Nothing to replace;
   }
 
   @Override

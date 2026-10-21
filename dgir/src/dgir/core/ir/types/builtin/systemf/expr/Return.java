@@ -68,8 +68,8 @@ public final class Return extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return new Return(this, this.value.replaceSymbol(original, replacement));
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      this.value.replaceSymbol(original, replacement);
     }
 
     @Override

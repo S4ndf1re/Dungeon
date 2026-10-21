@@ -70,8 +70,10 @@ public class Seq extends HMXExpr {
     }
 
     @Override
-    public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-      return new Seq(this, this.expressions.stream().map(e -> e.replaceSymbol(original, replacement)).toList());
+    public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+      for (var expr : this.expressions) {
+        expr.replaceSymbol(original, replacement);
+      }
     }
 
     @Override

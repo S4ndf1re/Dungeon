@@ -77,8 +77,8 @@ public class Return extends HMXExpr {
     }
 
     @Override
-    public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-      return new Return(this, this.value.replaceSymbol(original, replacement));
+    public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+      this.value.replaceSymbol(original, replacement);
     }
 
     @Override

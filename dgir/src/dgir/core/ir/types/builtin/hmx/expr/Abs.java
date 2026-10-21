@@ -200,26 +200,23 @@ public final class Abs extends HMXExpr implements IAbstraction<HMXExpr, HMXType>
 
       var oldParams = List.copyOf(this.params);
       this.params = newParams;
-      var bodyExpr = this.body;
 
+      // NOTE: in-place replacement — the tree is private after solving, and
+      // copying here would break structural sharing (see replaceSymbol).
       for (int i = 0; i < newParams.size(); i++) {
-        bodyExpr = bodyExpr.replaceSymbol(oldParams.get(i), newParams.get(i));
+        this.body.replaceSymbol(oldParams.get(i), newParams.get(i));
       }
-
-      this.body = bodyExpr;
     }
 
     @Override
-    public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-      // If the symbol is shadowed by one of the bound values, don't replace in the
-      // body!
+    public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+      // If the symbol is shadowed by one of the bound values, do not replace in
+      // the body!
       if (this.params.stream().anyMatch(param -> param.equals(original))) {
-        return this;
+        return;
       }
 
-      // Only replace in the body, as the functions parameters are always the same
-      // value!
-      return new Abs(this, this.params, body.replaceSymbol(original, replacement));
+      this.body.replaceSymbol(original, replacement);
     }
 
     @Override

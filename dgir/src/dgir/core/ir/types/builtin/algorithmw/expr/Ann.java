@@ -81,8 +81,8 @@ public final class Ann extends Expr {
   }
 
   @Override
-  public Expr replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
-    return new Ann(this, this.expr.replaceSymbol(original, replacement), this.type);
+  public void replaceSymbol(Symbol<Expr, AlgorithmWType> original, Symbol<Expr, AlgorithmWType> replacement) {
+    this.expr.replaceSymbol(original, replacement);
   }
 
   @Override

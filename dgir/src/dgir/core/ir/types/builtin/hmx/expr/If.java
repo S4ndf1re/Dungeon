@@ -119,11 +119,10 @@ public final class If extends HMXExpr {
   }
 
   @Override
-  public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-    return new If(this,
-        this.cond.replaceSymbol(original, replacement),
-        this.thenExpr.replaceSymbol(original, replacement),
-        this.elseExpr.map(e -> e.replaceSymbol(original, replacement)));
+  public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    this.cond.replaceSymbol(original, replacement);
+    this.thenExpr.replaceSymbol(original, replacement);
+    this.elseExpr.ifPresent(e -> e.replaceSymbol(original, replacement));
   }
 
   @Override

@@ -82,8 +82,8 @@ public final class Ann extends HMXExpr {
   }
 
   @Override
-  public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-    return new Ann(this, this.expr.replaceSymbol(original, replacement), this.type);
+  public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    this.expr.replaceSymbol(original, replacement);
   }
 
   @Override

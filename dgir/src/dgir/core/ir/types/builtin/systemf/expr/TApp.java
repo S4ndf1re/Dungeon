@@ -88,8 +88,8 @@ public final class TApp extends Expr {
     }
 
     @Override
-    public Expr replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      return new TApp(this, this.func.replaceSymbol(original, replacement), this.type);
+    public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
+      this.func.replaceSymbol(original, replacement);
     }
 
     @Override

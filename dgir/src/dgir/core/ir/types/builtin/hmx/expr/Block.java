@@ -68,32 +68,12 @@ public final class Block extends HMXExpr implements IBlock<HMXExpr, HMXType> {
     return this.innerExpr.getInstantiableChildren();
   }
 
-  /**
-   * Memoized per instance: the merge block of a diamond is referenced by
-   * multiple Branch exprs, and a symbol replacement cascading through the tree
-   * reaches it once per reference path. Without the memo, each path builds a
-   * fresh copy (with a fresh inner and fresh operation clones) and the final
-   * tree contains the block once per path — duplicating the emitted IR.
-   * With the memo, every path gets the SAME replaced instance and sharing is
-   * preserved.
-   */
-  private java.util.HashMap<
-      java.util.Map.Entry<Symbol<HMXExpr, HMXType>, Symbol<HMXExpr, HMXType>>,
-      HMXExpr> replaceSymbolMemo;
-
   @Override
-  public HMXExpr replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
-    var key = java.util.Map.entry(original, replacement);
-    if (this.replaceSymbolMemo == null) {
-      this.replaceSymbolMemo = new java.util.HashMap<>();
-    }
-    var cached = this.replaceSymbolMemo.get(key);
-    if (cached != null) {
-      return cached;
-    }
-    var replaced = new Block(this, this.innerExpr.replaceSymbol(original, replacement));
-    this.replaceSymbolMemo.put(key, replaced);
-    return replaced;
+  public void replaceSymbol(Symbol<HMXExpr, HMXType> original, Symbol<HMXExpr, HMXType> replacement) {
+    // NOTE: in-place replacement preserves sharing by construction — the shared
+    // inner expression is mutated once and stays a single instance, no memo
+    // needed.
+    this.innerExpr.replaceSymbol(original, replacement);
   }
 
   @Override

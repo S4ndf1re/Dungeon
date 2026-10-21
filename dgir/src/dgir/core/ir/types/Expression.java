@@ -141,7 +141,27 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
   public void reinstantiateSymbols() {
   }
 
-  public abstract E replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
+  /**
+   * Replaces all occurrences of {@code original} with {@code replacement},
+   * mutating this expression IN PLACE instead of building a copied tree.
+   *
+   * <p>
+   * Building a copied tree per replacement breaks structural sharing: every
+   * call creates fresh instances, so nodes referenced by multiple parents
+   * (e.g. a merge block referenced by two branches) or embedded subtrees (a
+   * beta-reduced callee) get duplicated per reference path, which breaks block
+   * deduplication during operation reconstruction.
+   *
+   * <p>
+   * In-place replacement is only safe AFTER solving (e.g. within
+   * {@link #reinstantiateSymbols()}), where the expression tree is private and
+   * can be mutated freely. It is idempotent, so shared nodes reached via
+   * several reference paths are handled correctly without memoization.
+   *
+   * @param original    the symbol to replace
+   * @param replacement the replacement symbol
+   */
+  public abstract void replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
 
   public abstract boolean containsSymbol(Symbol<E, T> symbol);
 
