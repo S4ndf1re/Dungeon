@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeVar;
@@ -129,6 +130,7 @@ public abstract class Constraint {
     @Override
     public void solve(TypeInference engine, Env env) {
       try {
+        System.out.println("Subtyping: " + this.tLeft + " <: " + this.tRight);
         engine.subtype(this.tLeft, this.tRight);
       } catch (TypeInference.UnresolvedSubtypeException | TypingException.NotFullySpecified e) {
         if (!engine.getAllowSubtypeFailure()) {

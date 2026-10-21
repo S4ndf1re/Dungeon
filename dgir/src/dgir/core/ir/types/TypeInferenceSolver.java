@@ -123,11 +123,15 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
   public abstract T Arrow(T from, T to);
 
   public T ArrowChain(@SuppressWarnings("unchecked") T... types) {
-    assert types.length >= 2 : "to construct an arrow chain, at least two types are required";
+    return ArrowChain(List.of(types));
+  }
 
-    T finalType = types[types.length - 1];
-    for (int i = types.length - 2; i >= 0; i--) {
-      finalType = Arrow(types[i], finalType);
+  public T ArrowChain(List<T> types) {
+    assert types.size() >= 2 : "to construct an arrow chain, at least two types are required";
+
+    T finalType = types.get(types.size() - 1);
+    for (int i = types.size() - 2; i >= 0; i--) {
+      finalType = Arrow(types.get(i), finalType);
     }
 
     return finalType;

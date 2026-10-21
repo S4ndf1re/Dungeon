@@ -322,22 +322,6 @@ public class ScfHMXInferenceTest {
         "abc lost its return after instantiation: " + abcBody);
   }
 
-  /**
-   * BUG (this test is INTENTIONALLY failing until the solver is fixed): the SAME
-   * defining order flipped — {@code main} first, {@code abc} second.
-   *
-   * ExprLetRec.solve generalizes its bindings strictly in definition order.
-   * main is generalized first while abc is still only an env shell with a
-   * fresh, unbound type var; the Sub constraint of main's call then leaves
-   * abc's return type var unresolved. Depending on the declared types this
-   * surfaces as either
-   * "Type int32 -> int32 -> tXX is not fully specified" (TypingException)
-   * or an unbound variable thrown from convertReturnOp during instantiation.
-   *
-   * Fix direction: generalize in dependency order (or defer/iterate instead of
-   * a single ordered pass). The dsl never hits this only because its source
-   * order always lists callees before callers.
-   */
   @Test
   public void mainBeforeCalleeBreaksInference() {
     ProgramOp programOp = new ProgramOp(LOC);
