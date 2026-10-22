@@ -286,6 +286,10 @@ public final class TypeInference
     return this.allowSubtypeFailure;
   }
 
+  public void setAllowSubtypeFailure(boolean allowSubtypeFailure) {
+    this.allowSubtypeFailure = allowSubtypeFailure;
+  }
+
   public void solveConstraint(Constraint constr, Env env) {
     if (constr instanceof OneShotConstraint oneShot && oneShot.isSolved()) {
       return;

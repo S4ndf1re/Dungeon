@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeVar;
@@ -122,9 +121,24 @@ public abstract class Constraint {
     public final HMXType tLeft;
     public final HMXType tRight;
 
+    /**
+     * When {@code true}, this constraint may not defer: if the subtype check
+     * would be undecided due to an open variable, the check is retried with
+     * deferral disabled so that the variable is equated with the concrete type.
+     * Only sound for variables that are provably local to the constraint's own
+     * scope (e.g. the application-local {@code fnType} of {@code App}), as
+     * eager assignment collapses a variable that would otherwise be quantified.
+     */
+    private final boolean mustResolve;
+
     public Sub(HMXType tLeft, HMXType tRight) {
+      this(tLeft, tRight, false);
+    }
+
+    public Sub(HMXType tLeft, HMXType tRight, boolean mustResolve) {
       this.tLeft = tLeft;
       this.tRight = tRight;
+      this.mustResolve = mustResolve;
     }
 
     @Override
@@ -132,6 +146,19 @@ public abstract class Constraint {
       try {
         engine.subtype(this.tLeft, this.tRight);
       } catch (TypeInference.UnresolvedSubtypeException | TypingException.NotFullySpecified e) {
+        if (this.mustResolve) {
+          // Retry with deferral disabled: the constraint involves only
+          // scope-local variables, so equating them with the concrete types is
+          // safe and required — a genuine type error still propagates.
+          var oldSubtypeFailure = engine.getAllowSubtypeFailure();
+          engine.setAllowSubtypeFailure(false);
+          try {
+            engine.subtype(this.tLeft, this.tRight);
+          } finally {
+            engine.setAllowSubtypeFailure(oldSubtypeFailure);
+          }
+          return;
+        }
         if (!engine.getAllowSubtypeFailure()) {
           throw e;
         }
@@ -146,17 +173,18 @@ public abstract class Constraint {
 
     @Override
     public Constraint applySubst(Subst subst) {
-      return new Sub(subst.apply(this.tLeft), subst.apply(this.tRight));
+      return new Sub(subst.apply(this.tLeft), subst.apply(this.tRight), this.mustResolve);
     }
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof Sub sb && this.tLeft.equals(sb.tLeft) && this.tRight.equals(sb.tRight);
+      return obj instanceof Sub sb && this.tLeft.equals(sb.tLeft) && this.tRight.equals(sb.tRight)
+          && this.mustResolve == sb.mustResolve;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.tLeft, this.tRight);
+      return Objects.hash(this.tLeft, this.tRight, this.mustResolve);
     }
 
     @Override
