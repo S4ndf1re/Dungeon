@@ -409,7 +409,7 @@ public final class TypeInference
       return new InstResult(newCtx);
     } else {
       throw new TypingException.InstantiationError(
-          "InstL Instantiation error " + ctx + " |- " + ty);
+          "InstL Instantiation error " + ctx + " |- " + ty, ty);
     }
   }
 
@@ -529,7 +529,7 @@ public final class TypeInference
       return new InstResult(newCtx);
     } else {
       throw new TypingException.InstantiationError(
-          "InstR Instantiation error " + ctx + " |- " + ty);
+          "InstR Instantiation error " + ctx + " |- " + ty, ty);
     }
   }
 

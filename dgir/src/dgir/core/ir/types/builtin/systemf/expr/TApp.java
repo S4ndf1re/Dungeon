@@ -57,7 +57,7 @@ public final class TApp extends Expr {
             forall.body);
         return new TypeResult(resultType, funcInferred.ctx());
       } else {
-        throw new TypingException.ExpectedForAllType();
+        throw new TypingException.ExpectedForAllType(this.getLocation());
       }
     }
 

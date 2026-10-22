@@ -473,6 +473,8 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       if (other instanceof Tuple b) {
         if (this.elements.size() != b.elements.size()) {
           throw new TypingException.TupleSizeMismatch(
+              this,
+              b,
               this.elements.size(),
               b.elements.size());
         }

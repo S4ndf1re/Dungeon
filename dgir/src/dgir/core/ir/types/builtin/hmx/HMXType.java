@@ -478,6 +478,8 @@ public abstract sealed class HMXType extends Type<HMXType> {
       if (other instanceof Tuple b) {
         if (this.elements.size() != b.elements.size()) {
           throw new TypingException.TupleSizeMismatch(
+              this,
+              b,
               this.elements.size(),
               b.elements.size());
         }

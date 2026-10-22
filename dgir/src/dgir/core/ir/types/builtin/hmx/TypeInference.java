@@ -261,6 +261,8 @@ public final class TypeInference
     if (l instanceof HMXType.Tuple a && r instanceof HMXType.Tuple b) {
       if (a.elements.size() != b.elements.size()) {
         throw new TypingException.TupleSizeMismatch(
+            a,
+            b,
             a.elements.size(),
             b.elements.size());
       }

@@ -71,7 +71,7 @@ public final class Var extends Expr implements IVariable<Expr, AlgorithmWType> {
         AlgorithmWType instantiated = scheme.instantiate(engine);
         return new InferResult(instantiated);
       } else {
-        throw new TypingException.UnknownVariable(name);
+        throw new TypingException.UnknownVariable(name, this.getLocation());
       }
     }
 
