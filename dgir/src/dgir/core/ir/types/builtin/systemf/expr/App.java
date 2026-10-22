@@ -134,7 +134,7 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
 
         result = new TypeResult(new SystemFType.EtVar(this.getLocation(), a2), checkRes.ctx());
       } else {
-        throw new TypingException.ApplicationTypeError();
+        throw new TypingException.ApplicationTypeError(this.getLocation());
       }
       return new TypeResult(result.type(), result.ctx());
     }

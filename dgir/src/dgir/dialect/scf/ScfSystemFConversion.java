@@ -6,7 +6,6 @@ import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
-import dgir.core.ir.Value;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.OperationExprConversionUtils;
 import dgir.core.ir.types.Symbol;
@@ -18,7 +17,6 @@ import dgir.core.ir.types.builtin.systemf.TypeInference;
 import dgir.core.ir.types.builtin.systemf.expr.Abs;
 import dgir.core.ir.types.builtin.systemf.expr.App;
 import dgir.core.ir.types.builtin.systemf.expr.If;
-import dgir.core.ir.types.builtin.systemf.expr.Let;
 import dgir.core.ir.types.builtin.systemf.expr.Var;
 import dgir.core.ir.types.builtin.systemf.expr.While;
 import dgir.core.ir.types.traits.IBlock;
@@ -48,6 +46,7 @@ public final class ScfSystemFConversion {
     return current;
   }
 
+  @SuppressWarnings("unchecked")
   public static Expr convertIfOp(
       Operation op,
       TypeInference engine) {
@@ -91,6 +90,7 @@ public final class ScfSystemFConversion {
     return result;
   }
 
+  @SuppressWarnings("unchecked")
   public static Expr convertScopeOp(
       Operation op,
       TypeInference engine) {

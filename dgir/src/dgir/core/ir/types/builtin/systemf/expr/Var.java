@@ -53,7 +53,7 @@ public final class Var extends Expr implements IVariable<Expr, SystemFType> {
         return new TypeResult(varBnd.type(), ctx.copy());
       }
 
-      throw new TypingException.UnboundVariable(this.name);
+      throw new TypingException.UnboundVariable(this.name, this.getLocation());
     }
 
     @Override

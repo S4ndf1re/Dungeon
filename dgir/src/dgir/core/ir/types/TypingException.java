@@ -1,5 +1,7 @@
 package dgir.core.ir.types;
 
+import dgir.core.debug.Location;
+
 public abstract sealed class TypingException extends RuntimeException {
 
   protected TypingException(String message) {
@@ -30,6 +32,11 @@ public abstract sealed class TypingException extends RuntimeException {
 
     public UnknownVariable(Symbol<?, ?> variableName) {
       super("Unknown variable: " + variableName);
+      this.variableName = variableName;
+    }
+
+    public UnknownVariable(Symbol<?, ?> variableName, Location location) {
+      super("Unknown variable: " + variableName + " @ " + location);
       this.variableName = variableName;
     }
   }
@@ -65,10 +72,10 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class UnknownType extends TypingException {
 
-    public final Object type;
+    public final Type<?> type;
 
-    public UnknownType(Object type) {
-      super("Unknown type: " + type);
+    public UnknownType(Type<?> type) {
+      super("Unknown type: " + located(type));
       this.type = type;
     }
   }
@@ -111,11 +118,16 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class TupleSizeMismatch extends TypingException {
 
+    public final Type<?> left;
+    public final Type<?> right;
     public final int leftSize;
     public final int rightSize;
 
-    public TupleSizeMismatch(int leftSize, int rightSize) {
-      super("Tuple size does not match: " + leftSize + " != " + rightSize);
+    public TupleSizeMismatch(Type<?> left, Type<?> right, int leftSize, int rightSize) {
+      super("Tuple size does not match: " + located(left) + " (" + leftSize
+          + ") != " + located(right) + " (" + rightSize + ")");
+      this.left = left;
+      this.right = right;
       this.leftSize = leftSize;
       this.rightSize = rightSize;
     }
@@ -123,15 +135,15 @@ public abstract sealed class TypingException extends RuntimeException {
 
   public static final class ApplicationTypeError extends TypingException {
 
-    public ApplicationTypeError() {
-      super("Application Type Error");
+    public ApplicationTypeError(Location location) {
+      super("Application Type Error @ " + location);
     }
   }
 
   public static final class ExpectedForAllType extends TypingException {
 
-    public ExpectedForAllType() {
-      super("Not implemented for non ForAll types");
+    public ExpectedForAllType(Location location) {
+      super("Not implemented for non ForAll types @ " + location);
     }
   }
 
@@ -155,6 +167,11 @@ public abstract sealed class TypingException extends RuntimeException {
       super("Variable " + varName + " is unbound");
       this.varName = varName;
     }
+
+    public UnboundVariable(Symbol<?, ?> varName, Location location) {
+      super("Variable " + varName + " is unbound @ " + location);
+      this.varName = varName;
+    }
   }
 
   public static final class InstantiationError extends TypingException {
@@ -163,6 +180,11 @@ public abstract sealed class TypingException extends RuntimeException {
 
     public InstantiationError(String detail) {
       super(detail);
+      this.detail = detail;
+    }
+
+    public InstantiationError(String detail, Type<?> type) {
+      super(detail + " @ " + type.getLocation());
       this.detail = detail;
     }
   }

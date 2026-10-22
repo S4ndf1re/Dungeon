@@ -126,7 +126,6 @@
                   (assert (= (bar 0) 10))
                   (assert (= (bar 10) 10))
                   (assert (= (bar 11) 11))
-                  (return a)
                        )"))
 
 ; (while-loop-test)
