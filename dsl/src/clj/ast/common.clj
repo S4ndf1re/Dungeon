@@ -78,7 +78,6 @@
           previous-emission-blocks (volatile! [])]
       ;; We have to remove the blocks, as the loop creates its own blocks, otherwise leaving a block empty and invalid for further emission
       (em/remove-blocks-unsafe new-context)
-      (println "Parsing Do block with: " expressions)
       (doseq [block-like splitted]
         (let [scope (em/add-tracking-scope new-context)
               new-block (em/add-new-block new-context)]
@@ -86,8 +85,6 @@
           ;; (next, due to reverse of the block list) blocks, in order to generate correct IR trees
           (doseq [expr block-like]
             (ast/emit expr new-context))
-          (println "collected blocks: " @scope)
-          (println "previous blocks: " @previous-emission-blocks)
           (em/remove-tracking-scope new-context scope)
           (doseq [added-block @previous-emission-blocks]
             (dt/block-insert-default-terminal added-block new-block (em/get-is-in-loop new-context)))
@@ -104,7 +101,6 @@
   (validate [_this]
     (run! ast/validate expr))
   (emit [_this context]
-    (println "Emitting binding: " ident expr)
     (em/set-ident-value context (:ident ident) (ast/emit expr context)))
   (is-jump [_this] false))
 
@@ -114,10 +110,8 @@
     (run! ast/validate bindings)
     (ast/validate body))
   (emit [_this context]
-    (println "emitting let: " bindings body)
     (doseq [bnd bindings]
       (ast/emit bnd context))
-    (println "BODY: " body)
     (let [body-value (ast/emit body context)]
       body-value))
   (is-jump [_this] true))
@@ -127,7 +121,6 @@
   (validate [_this]
     (ast/validate expr))
   (emit [_this context]
-    (println "EXPR: " expr)
     (let [expr-value (ast/emit expr context)
           ident-value (em/lookup-ident context (:ident ident))]
       (when-not ident-value

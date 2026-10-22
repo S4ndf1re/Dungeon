@@ -7,7 +7,8 @@
    [glr-parser.common.token :as tok]
    [glr-parser.lexer :as lex]
    [glr-parser.parser.parser :as par]
-   [glr-parser.regex :as rgx])
+   [glr-parser.regex :as rgx]
+   [clojure.string :as str])
   (:import
    [dgir.core.ir Dialect]
    [dgir.core.ir.types.builtin.algorithmw AlgorithmWInference]
@@ -22,8 +23,19 @@
    [dgir.dialect.scf ScfAlgoWConversion ScfHMXConversion ScfSystemFConversion]
    [dgir.vm.api DialectRunner]))
 
+(def comment-regex
+  (rgx/->Sequence
+   [(rgx/->Constant \;)
+    (rgx/->ZeroOrMore (rgx/->AnyOne))
+    (rgx/->Constant \newline)]))
+
 (def int-regex
   (rgx/->OneOrMore (rgx/->Digit)))
+
+(def long-regex
+  (rgx/->Sequence
+   [(rgx/->OneOrMore (rgx/->Digit))
+    (rgx/->Constant \l)]))
 
 (def float-regex
   (rgx/->Sequence
@@ -91,14 +103,21 @@
       (lex/add-const :rbrack "]")
       (lex/add-const :lbrace "{")
       (lex/add-const :rbrace "}")
+
+      ;; Skips
       (lex/add-rule :ws (rgx/->Or [(rgx/->Constant \newline)
                                    (rgx/->Constant \tab)
                                    (rgx/->Constant \space)
                                    (rgx/->Constant \formfeed)
                                    (rgx/->Constant \backspace)
                                    (rgx/->Constant \return)]))
+      (lex/add-rule :comment comment-regex)
       (lex/add-skip :ws)
+      (lex/add-skip :comment)
+
+      ;; Values
       (lex/add-rule :int int-regex)
+      (lex/add-rule :long long-regex)
       (lex/add-rule :float float-regex)
       (lex/add-rule :string string-regex)
       (lex/add-rule :id id-regex)
@@ -124,6 +143,12 @@
        (Integer/parseInt)
        (lit/->IntLit loc)))
 
+(defn long-lit-to-ast [loc [lit-str]]
+  (->> (:data lit-str)
+       (#(str/replace % "l" "")) ;; Replace the last l character matched for long!
+       (Long/parseLong)
+       (lit/->LongLit loc)))
+
 (defn float-lit-to-ast [loc [lit-str]]
   (->> (:data lit-str)
        (Double/parseDouble)
@@ -136,6 +161,9 @@
 (defn id-to-ast [loc [ident]]
   (->> (:data ident)
        (com/->Ident loc)))
+
+(defn create-fn-arg [loc [ident]] (func/new-arg loc (:data ident)))
+(defn create-fn-arg-annotated [loc [ident _ annotation]] (func/new-arg loc (:data ident) (:data annotation)))
 
 (defn false-value [loc _] (lit/->BoolLit loc false))
 (defn true-value [loc _] (lit/->BoolLit loc true))
@@ -182,6 +210,7 @@
       ;; ============== Normal S-Exprs with all supported function arguments (excluding special keywords) ==============
       (par/add-rule :SExprLit [[:ID unwarp-single]
                                [:int int-lit-to-ast]
+                               [:long long-lit-to-ast]
                                [:float float-lit-to-ast]
                                [:String unwarp-single]
                                [:true true-value]
@@ -198,8 +227,8 @@
       ;; ============== Special Builtin S-Expression ==============
       ;; TODO(jan): implement a global deftype, to rely on id resolution!
       (par/add-rule :Type [:ID unwarp-single])
-      (par/add-rule :FnArg [[:ID unwarp-single]])
-                            ; [:id :colon :Type annotation-to-ast]])
+      (par/add-rule :FnArg [[:ID create-fn-arg]
+                            [:ID :colon :Type create-fn-arg-annotated]])
       (par/add-rule :FnDef [:lparen :defn :ID :lbrack :FnArg* :rbrack :BodySExpr* :rparen fn-def-to-ast])
       (par/add-rule :If [:lparen :if :SExpr :BodySExpr :BodySExpr :rparen if-to-ast])
       (par/add-rule :While [:lparen :while :SExpr :BodySExpr* :rparen while-to-ast])

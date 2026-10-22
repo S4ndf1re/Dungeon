@@ -57,7 +57,6 @@
   "Insert a default terminal if needed for the basic block, based on the value of the successor block."
   [^Block block ^Block succ-block is-in-loop]
   (when block
-    (println "Blocks: " (.getTerminalOperations block))
     (let [final-blocks (filter #(nil? (.getLeft %)) (.getTerminalOperations block))]
       (doseq [block (map #(.getRight %) final-blocks)]
         (block-insert-default-terminal-single block succ-block is-in-loop)))))

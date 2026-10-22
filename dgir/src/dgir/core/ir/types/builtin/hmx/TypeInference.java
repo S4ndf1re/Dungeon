@@ -1,5 +1,11 @@
 package dgir.core.ir.types.builtin.hmx;
 
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -192,6 +198,14 @@ public final class TypeInference
       }
 
       r.occursCheckAjustLevel(lv.tyVar);
+      if (r instanceof HMXType.LitType lit && lit.tyName.equals("number")) {
+        TypeInference.trace("[W] NUMBER-ASSIGN " + lv.tyVar + " := number");
+        java.util.Arrays.stream(Thread.currentThread().getStackTrace())
+            .map(StackTraceElement::toString)
+            .filter(s -> s.contains("dgir") && !s.contains("TypeVar.java") && !s.contains("HMXType.java"))
+            .limit(7)
+            .forEach(s -> TypeInference.trace("[W]   at " + s));
+      }
       lv.tyVar.assignType(r);
       return;
     }
@@ -229,6 +243,13 @@ public final class TypeInference
       } catch (TypingException.NotFullySpecified e) {
         // Do nothing, this case may be ok, but only if the rest matches!
       }
+      System.err.println("[W] FAIL " + a.tyName + " <: " + b.tyName
+          + " (" + a.parameters + " vs " + b.parameters + ")");
+      java.util.Arrays.stream(Thread.currentThread().getStackTrace())
+          .map(StackTraceElement::toString)
+          .filter(s -> s.contains("dgir.core.ir.types.builtin.hmx") || s.contains("dialect"))
+          .limit(10)
+          .forEach(s -> System.err.println("[W]   at " + s));
 
       if (a.tyName.equals(b.tyName)) {
         if (a.parameters.size() != b.parameters.size()) {
@@ -286,6 +307,22 @@ public final class TypeInference
     return this.allowSubtypeFailure;
   }
 
+  /** DEBUG: file-backed trace used during solver investigations. */
+  public static final PrintWriter TRACE = openTrace();
+
+  private static PrintWriter openTrace() {
+    try {
+      return new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+          new FileOutputStream(Path.of("/tmp/hmx-trace.log").toFile()), StandardCharsets.UTF_8)), true);
+    } catch (Exception e) {
+      return new PrintWriter(System.err, true);
+    }
+  }
+
+  public static void trace(String message) {
+    TRACE.println(message);
+  }
+
   public void setAllowSubtypeFailure(boolean allowSubtypeFailure) {
     this.allowSubtypeFailure = allowSubtypeFailure;
   }
@@ -306,6 +343,7 @@ public final class TypeInference
   }
 
   public Scheme solveConstraintAndGeneralize(Constraint constr, Env env, HMXType type) {
+    trace("[G] enter type=" + type + " constr=" + constr.getClass().getSimpleName());
     var markConstraint = new Constraint.Trivial();
     this.addDeferredConstraint(markConstraint);
 
@@ -323,7 +361,77 @@ public final class TypeInference
     }
     this.deferredConstraints = new ArrayList<>(this.deferredConstraints.subList(0, idx));
 
+    trace("[G] finalize type=" + type + "(@" + System.identityHashCode(type)
+        + (type instanceof HMXType.Var fv ? " tyVar@" + System.identityHashCode(fv.tyVar) : "")
+        + ") finalType=" + finalType
+        + " deferred=" + deferred.size() + " idx=" + idx + " total=" + this.deferredConstraints.size()
+        + " currentLevel=" + this.currentLevel
+        + " typeFtvLevels=" + finalType.freeTypeVars().stream()
+            .map(v -> v.find().getLevel()).sorted().toList());
+
+    // DIAGNOSTIC: every deferred leaf's free variables must be quantified by
+    // the scheme (i.e. occur in the finalized type). A leaf carrying a
+    // variable outside the scheme type can never be bound by any
+    // instantiation — it is shared verbatim between all instances and poisons
+    // later call sites. Report the generator instead of silently mis-solving.
+    var quantified = finalType.freeTypeVars().stream()
+        .map(TypeVar::find)
+        .collect(java.util.stream.Collectors.toSet());
+    for (var leaf : deferred) {
+      var leafVars = new java.util.HashSet<TypeVar<HMXType>>();
+      collectConstraintFreeVars(leaf, leafVars);
+      var rooted = new java.util.HashSet<TypeVar<HMXType>>();
+      leafVars.forEach(v -> rooted.add(v.find()));
+      rooted.removeIf(quantified::contains);
+      if (!rooted.isEmpty()) {
+        var detail = leaf instanceof Constraint.Sub sub
+            ? sub.tLeft + " <: " + sub.tRight
+            : leaf instanceof Constraint.DetermineByCallbackAndUnify det
+                ? "determine(" + String.join(",", java.util.Arrays.stream(det.originalTypes)
+                    .map(Object::toString).toList()) + ") ~ " + det.unifyAgainst
+                : leaf.toString();
+        trace("[DANGLE] scheme type=" + finalType
+            + " leaf=" + leaf.getClass().getSimpleName() + "@" + System.identityHashCode(leaf)
+            + " [" + detail + "]"
+            + " dangling=" + rooted);
+      }
+    }
+
     return finalType.generalize(this.currentLevel, new Constraint.And(deferred));
+  }
+
+  private static void collectConstraintFreeVars(Constraint constr, java.util.Set<TypeVar<HMXType>> into) {
+    switch (constr) {
+      case Constraint.Trivial ignored -> {
+      }
+      case Constraint.Sub sub -> {
+        into.addAll(sub.tLeft.freeTypeVars());
+        into.addAll(sub.tRight.freeTypeVars());
+      }
+      case Constraint.Equal equal -> {
+        into.addAll(equal.tLeft.freeTypeVars());
+        into.addAll(equal.tRight.freeTypeVars());
+      }
+      case Constraint.DetermineByCallbackAndUnify determine -> {
+        for (var t : determine.originalTypes) {
+          into.addAll(t.freeTypeVars());
+        }
+        into.addAll(determine.unifyAgainst.freeTypeVars());
+      }
+      case Constraint.Inst inst -> into.addAll(inst.type.freeTypeVars());
+      case Constraint.Exists exists -> {
+        var innerBefore = new java.util.HashSet<>(into);
+        collectConstraintFreeVars(exists.inner, into);
+        // Variables quantified by this Exists are re-quantified on
+        // applySubst — they are never dangling.
+        for (var q : exists.toQuantify) {
+          into.remove(q.find());
+        }
+        assert innerBefore != null;
+      }
+      case Constraint.And and -> and.constraints.forEach(c -> collectConstraintFreeVars(c, into));
+      default -> System.err.println("[DANGLE] unhandled constraint " + constr.getClass().getSimpleName());
+    }
   }
 
   public void addDeferredConstraint(Constraint constr) {

@@ -8,6 +8,8 @@ import java.util.function.BiConsumer;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import dgir.core.ir.types.builtin.hmx.TypeInference;
+
 /**
  * Marker class representing a unique type variable.
  *
@@ -252,7 +254,25 @@ public class TypeVar<T extends Type<T>> {
   }
 
   public void assignType(T type) {
-    this.find().assignedType = Optional.ofNullable(type);
+    var root = this.find();
+    var old = root.assignedType;
+    if (old.isPresent() && !old.get().equals(type)) {
+      TypeInference.trace("[T] OVERWRITE " + root + ": " + old.get() + " -> " + type);
+      java.util.Arrays.stream(Thread.currentThread().getStackTrace())
+          .map(StackTraceElement::toString)
+          .filter(s -> s.contains("dgir") && !s.contains("TypeVar.java"))
+          .limit(8)
+          .forEach(s -> TypeInference.trace("[T]   at " + s));
+    } else if (!old.isPresent() && (type.toString().equals("int32") || type.toString().equals("int64")
+        || type.toString().equals("number"))) {
+      TypeInference.trace("[T] assign " + root + " := " + type);
+      java.util.Arrays.stream(Thread.currentThread().getStackTrace())
+          .map(StackTraceElement::toString)
+          .filter(s -> s.contains("dgir") && !s.contains("TypeVar.java"))
+          .limit(5)
+          .forEach(s -> TypeInference.trace("[T]   at " + s));
+    }
+    root.assignedType = Optional.ofNullable(type);
   }
 
   public Optional<T> getAssigendType() {

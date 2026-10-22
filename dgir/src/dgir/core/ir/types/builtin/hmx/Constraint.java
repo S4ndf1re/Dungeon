@@ -57,6 +57,9 @@ public abstract class Constraint {
 
     @Override
     public void solve(TypeInference engine, Env env) {
+      TypeInference.trace("[E] @" + System.identityHashCode(this) + " unify "
+          + this.tLeft + "(@" + System.identityHashCode(this.tLeft) + ") = "
+          + this.tRight + "(@" + System.identityHashCode(this.tRight) + ")");
       engine.unify(this.tLeft, this.tRight);
     }
 
@@ -143,10 +146,19 @@ public abstract class Constraint {
 
     @Override
     public void solve(TypeInference engine, Env env) {
+      if (this.tRight.toString().equals("number")) {
+        TypeInference.trace("[N] Sub.solve: [" + System.identityHashCode(this) + "] "
+            + this.tLeft + " <: " + this.tRight + " mustResolve=" + this.mustResolve);
+      }
+      if (this.tLeft.toString().contains("->") || this.tRight.toString().contains("->")) {
+        TypeInference.trace("[A] " + this.tLeft + " <: " + this.tRight
+            + (this.mustResolve ? " [mustResolve]" : ""));
+      }
       try {
         engine.subtype(this.tLeft, this.tRight);
       } catch (TypeInference.UnresolvedSubtypeException | TypingException.NotFullySpecified e) {
         if (this.mustResolve) {
+          TypeInference.trace("[S] mustResolve retry: " + this.tLeft + " <: " + this.tRight);
           // Retry with deferral disabled: the constraint involves only
           // scope-local variables, so equating them with the concrete types is
           // safe and required — a genuine type error still propagates.
@@ -160,6 +172,13 @@ public abstract class Constraint {
           return;
         }
         if (!engine.getAllowSubtypeFailure()) {
+          TypeInference.trace("[S] HARD FAIL: " + this.tLeft + " <: " + this.tRight
+              + " mustResolve=" + this.mustResolve);
+          java.util.Arrays.stream(Thread.currentThread().getStackTrace())
+              .map(StackTraceElement::toString)
+              .filter(s -> s.contains("hmx.Constraint") || s.contains("hmx.expr"))
+              .limit(6)
+              .forEach(s -> TypeInference.trace("[S]   at " + s));
           throw e;
         }
         // An open variable is involved and we are within a generalize block; the leaf
@@ -284,6 +303,8 @@ public abstract class Constraint {
       }
 
       var inferredType = scheme.instantiate(engine);
+      TypeInference.trace("[I] Inst " + this.variable + " type=" + this.type
+          + " schemeType=" + inferredType.getLeft());
       engine.solveConstraint(inferredType.getRight(), env);
       engine.unify(this.type, inferredType.getLeft());
     }

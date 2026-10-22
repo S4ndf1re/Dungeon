@@ -3,7 +3,7 @@
    [ast.ast :refer [AstNode] :as ast]
    [ast.common :as com]
    [emission :as em])
-  (:import [dgir.core.ir MaybeType Value]
+  (:import [dgir.core.ir MaybeType Type Value]
            dgir.dialect.arith.ArithAttrs$BinModeAttr$BinMode
            dgir.dialect.arith.ArithAttrs$UnaryModeAttr$UnaryMode
            dgir.dialect.arith.ArithOps$BinaryOp
@@ -12,25 +12,42 @@
            dgir.dialect.func.FuncOps$FuncOp
            dgir.dialect.func.FuncTypes$FuncType))
 
+(defn new-arg
+  ([loc ident] (new-arg loc ident nil))
+  ([loc ident annotation] {:loc loc :ident ident :annotation annotation}))
+
+(defn arg-validate [arg]
+  (ast/validate (:ident arg))
+  (when (:annotation arg)
+    (ast/validate (:annotation arg))))
+
+(defn arg-ident-ident [arg] (:ident (:ident arg)))
+(defn arg-annotation-ident [arg] (:ident (:annotation arg)))
+
+(defn arg-to-maybe-type [arg]
+  (if (:annotation arg)
+    (MaybeType/of (Type/fromParameterizedIdent (arg-annotation-ident arg)))
+    (MaybeType/of)))
+
 (defrecord FnDef [location ident arg-idents body]
   AstNode
   (validate [_this] (do
                       (ast/validate ident)
-                      (run! ast/validate arg-idents)
+                      (run! arg-validate arg-idents)
                       (ast/validate body)))
   (emit [_this context]
     (let [child-context (em/new-context context)
-          arg-count (count arg-idents)
           fn-op (new FuncOps$FuncOp
                      (com/token-location-to-ir-location location)
                      (:ident ident)
-                     (FuncTypes$FuncType/of (vec (for [_n (range arg-count)] (MaybeType/of))) (MaybeType/of)))
+                     (FuncTypes$FuncType/of (mapv arg-to-maybe-type arg-idents) (MaybeType/of)))
           main-region (.orElseThrow (.getFirstRegion fn-op))
+          ;; Map the arguments to the actual region values, by index (taken from count arg-idents in combination with map)
           arg-values (filter #(not (nil? (second %)))
                              (map
-                              #(vector (:ident %1) (.orElse (.getRegionValue main-region %2) nil))
+                              #(vector (arg-ident-ident %1) (.orElse (.getRegionValue main-region %2) nil))
                               arg-idents
-                              (range arg-count)))]
+                              (range (count arg-idents))))]
       ;; this is actually an in place modification of the environment!
       (doseq [[ident value] arg-values]
         (em/set-ident-value child-context ident value))

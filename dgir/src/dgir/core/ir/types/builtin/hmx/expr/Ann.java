@@ -58,6 +58,8 @@ public final class Ann extends HMXExpr {
   public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
     GenerateResult res = engine.generate(expr, env, type);
 
+    // var inner = new Constraint.And(res.constr(), new Constraint.Sub(this.type,
+    // type, true));
     var inner = new Constraint.And(new Constraint.Sub(this.type, type), res.constr());
 
     // Collect all possibly free type variables and let them exist as if introduced

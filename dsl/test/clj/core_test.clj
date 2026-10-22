@@ -128,6 +128,41 @@
                   (assert (= (bar 11) 11))
                        )"))
 
+(defn annotated-cyclic-function-test []
+  (infer-script "
+                (defn foo [a : int32]
+                  (if (< a 10)
+                    (return (bar (+ a 1)))
+                    (return a)
+                    )
+                )
+
+                (defn bar [a] (return (foo a)))
+
+                (defn main []
+                  (assert (= (bar 0) 10))
+                  (assert (= (bar 10) 10))
+                  (assert (= (bar 11) 11))
+                       )"))
+
+(defn subtyped-annotation-function-test []
+  (infer-script "
+                (defn foo [a : integer]
+                  (if (< a 10)
+                    (return (bar (+ a 1)))
+                    (return a)
+                    )
+                )
+
+                (defn bar [a : integer] (return (foo a)))
+                (defn bar2 [a : int64] (return (foo a)))
+
+                (defn main []
+                  (assert (= (bar 0) 10))
+                  ; (assert (= (bar 10) 10))
+                  (assert (= (bar2 11l) 11))
+                       )"))
+
 ; (while-loop-test)
 ; (simple-test-fn)
 ; (function-def-test-fn)
@@ -135,7 +170,9 @@
 ; (let-set-test)
 ; (nested-if-test)
 ; (recursive-function)
-(cyclic-function-test)
+; (cyclic-function-test)
+; (annotated-cyclic-function-test)
+(subtyped-annotation-function-test)
 
 (deftest expression-test
   (testing "Test if a simple sexpr parses"
@@ -153,6 +190,10 @@
   (testing "Recursive Function Test"
     (recursive-function))
   (testing "Cyclic Function Test"
-    (cyclic-function-test)))
+    (cyclic-function-test))
+  (testing "Annotated Cyclic Function Test"
+    (annotated-cyclic-function-test))
+  (testing "Subtyped Cyclic Function Test"
+    (subtyped-annotation-function-test)))
 
 
