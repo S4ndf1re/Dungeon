@@ -184,7 +184,7 @@ public final class App extends HMXExpr implements IApplication<HMXExpr, HMXType>
     return new GenerateResult(
         new Constraint.Exists(quantifiedVars,
             new Constraint.And(new Constraint.And(argConstraints),
-                new Constraint.Sub(fnType, builtArrowType),
+                new Constraint.Equal(fnType, builtArrowType),
                 funcInferRes.constr())));
   }
 
