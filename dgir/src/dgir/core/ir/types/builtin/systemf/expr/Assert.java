@@ -100,10 +100,6 @@ public final class Assert extends Expr {
     this.message.ifPresent(msg -> msg.replaceSymbol(original, replacement));
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-    return this.cond.containsSymbol(symbol) || this.message.map(msg -> msg.containsSymbol(symbol)).orElse(false);
-  }
 
   @Override
   public boolean equals(Object obj) {

@@ -144,7 +144,8 @@ public final class Abs extends Expr implements IAbstraction<Expr, SystemFType> {
 
     @Override
     public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.name.map(name -> name.equals(symbol)).orElse(false) || this.body.containsSymbol(symbol);
+      // The bound names are not children; everything below is.
+      return this.name.map(name -> name.equals(symbol)).orElse(false) || super.containsSymbol(symbol);
     }
 
     @Override

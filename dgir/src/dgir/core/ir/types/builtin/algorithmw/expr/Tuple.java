@@ -83,10 +83,6 @@ public final class Tuple extends Expr {
       return this.elements.stream().map(ExprOrOperator::getExpr).toList();
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-      return this.elements.stream().anyMatch(elem -> elem.containsSymbol(symbol));
-    }
 
     @Override
     public InferResult infer(TypeInference engine, Env env) {

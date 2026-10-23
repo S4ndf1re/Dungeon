@@ -55,7 +55,7 @@ public final class CastOp extends HMXExpr {
   @Override
   public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
     var operandTypeVar = new TypeVar<HMXType>();
-    var operandType = new HMXType.Var(operandTypeVar);
+    var operandType = new HMXType.Var(this.getLocation(), operandTypeVar);
     var operandRes = engine.generate(this.operand, env, operandType);
 
     var resultIrType = this.targetType;
@@ -66,8 +66,8 @@ public final class CastOp extends HMXExpr {
 
     return new GenerateResult(new Constraint.Exists(List.of(operandTypeVar),
         new Constraint.And(operandRes.constr(),
-            new Constraint.Sub(operandType, new HMXType.LitType(TypeIdent.TYPE_IDENT_NUMBER)),
-            new Constraint.Sub(resultType, new HMXType.LitType(TypeIdent.TYPE_IDENT_NUMBER)),
+            new Constraint.Sub(operandType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_NUMBER)),
+            new Constraint.Sub(resultType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_NUMBER)),
             new Constraint.Equal(type, resultType))));
   }
 
@@ -81,10 +81,6 @@ public final class CastOp extends HMXExpr {
     this.operand.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.operand.containsSymbol(symbol);
-  }
 
   @Override
   public boolean equals(Object obj) {
@@ -101,5 +97,10 @@ public final class CastOp extends HMXExpr {
   @Override
   public HMXExpr copy() {
     return new CastOp(this);
+  }
+
+  @Override
+  public String toString() {
+    return "(" + this.operand + " as " + this.targetType + ")";
   }
 }

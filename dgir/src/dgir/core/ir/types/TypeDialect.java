@@ -75,10 +75,8 @@ public abstract class TypeDialect<TypeInferenceT extends TypeInferenceSolver<Typ
         .collect(Collectors.toList());
   }
 
-  @SuppressWarnings("unchecked")
   public static List<Class<? extends Type<?>>> extractTypesFromAbstract(
       Class<? extends Type<?>> abstractClass) {
-    System.out.println(abstractClass.getName());
     if (!abstractClass.getSuperclass().equals(Type.class)) {
       throw new IllegalStateException(
           "Type must extend dgir.core.ir.types.Type");

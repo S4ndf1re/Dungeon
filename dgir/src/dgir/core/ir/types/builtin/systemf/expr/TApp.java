@@ -66,10 +66,6 @@ public final class TApp extends Expr {
       return List.of(this.func);
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.func.containsSymbol(symbol);
-    }
 
     @Override
     public boolean equals(Object obj) {

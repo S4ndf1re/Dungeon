@@ -140,7 +140,7 @@ public final class MemHMXConversion {
     var result = OperationExprConversionUtils.buildAnnotatedApplication(
         engine,
         setElemOp.getOperands().stream().map(aOp -> engine.Var(Symbol.of(aOp.getValueOrThrow()))).toList(),
-        new Lit(new Literal.Unit()),
+        new Lit(setElemOp.getLocation(), new Literal.Unit()),
         funcType,
         setElemOp.getLocation());
 

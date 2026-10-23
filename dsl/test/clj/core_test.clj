@@ -5,8 +5,7 @@
    [core :as c]
    [emission :as em]
    [filebuffer :as fb]
-   [glr-parser.parser.parser :as par]
-   [util.print-op :as po])
+   [glr-parser.parser.parser :as par])
   (:import
    [dgir.core.ir.types.builtin.hmx HMXInference]
    [dgir.core.ir.types.compatibility ExprOrOperator]
@@ -38,14 +37,14 @@
         (ast/emit ctx))
     (let [program (.getFirst (.getOperations (first (em/get-blocks ctx))))
           vm (VM.)
-          _ (po/print-op program)
+          _ (.printOp program)
           inference (HMXInference.)
           solver (.getNewSolverInstance inference)
           exprOrOp (ExprOrOperator/of program)
           solve-result (.solve solver exprOrOp)
           instantiated (.instantiated solve-result)
           underlying-op (.get (.getUnderlyingOperation instantiated))
-          _ (po/print-op underlying-op)
+          _ (.printOp underlying-op)
           resultOp (cast BuiltinOps$ProgramOp (.asOp underlying-op))]
       (.init vm resultOp)
       (.run vm))))
@@ -145,7 +144,7 @@
                   (assert (= (bar 11) 11))
                        )"))
 
-(defn subtyped-annotation-function-test []
+(defn subtyped-annotation-recursive-failing-function-test []
   (infer-script "
                 (defn foo [a : integer]
                   (if (< a 10)
@@ -155,13 +154,32 @@
                 )
 
                 (defn bar [a : integer] (return (foo a)))
+
                 (defn bar2 [a : int64] (return (foo a)))
 
                 (defn main []
                   (assert (= (bar 0) 10))
-                  ; (assert (= (bar 10) 10))
+                  ;; (assert (= (bar 10) 10))
+                  ;; Hence, this call fill fail!
                   (assert (= (bar2 11l) 11))
                        )"))
+
+(defn subtyped-annotation-function-test []
+  (infer-script "
+                (defn foo [a : integer]
+                  (if (< a 10)
+                    (return (< a 10))
+                    (return (>= a 10))
+                    )
+                )
+
+                (defn bar [a : integer] (return (foo a)))
+
+                (defn main []
+                  (assert (= (bar 0) true))
+                  (assert (= (bar 10l) true))
+                       )
+                "))
 
 ; (while-loop-test)
 ; (simple-test-fn)
@@ -172,6 +190,7 @@
 ; (recursive-function)
 ; (cyclic-function-test)
 ; (annotated-cyclic-function-test)
+; (subtyped-annotation-recursive-failing-function-test)
 (subtyped-annotation-function-test)
 
 (deftest expression-test

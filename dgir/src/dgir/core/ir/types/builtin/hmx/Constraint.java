@@ -3,15 +3,28 @@ package dgir.core.ir.types.builtin.hmx;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.builtin.hmx.traits.OneShotConstraint;
 
-public abstract class Constraint {
+/**
+ * The HM(X) constraint language. The set of constraints is closed (sealed):
+ * the solver reasons about exactly these kinds of leaves.
+ *
+ * <p>
+ * Of the leaves, only {@link DetermineByCallbackAndUnify} can stay undecided:
+ * {@link Equal} unifies, and {@link Sub} is normalized immediately into merged
+ * variables and bounds. A determine leaf needs concrete argument types (like
+ * resolving an overloaded operator), so while those are unknown it stays in
+ * the constraint of the enclosing scheme and is resolved per instance.
+ */
+public abstract sealed class Constraint {
 
   @Override
   public abstract boolean equals(Object obj);
@@ -24,6 +37,8 @@ public abstract class Constraint {
   public abstract Constraint applySubst(Subst subst);
 
   public abstract List<Constraint> getChildren();
+
+  public abstract Set<TypeVar<HMXType>> freeTypeVars();
 
   public class ConstraintVisitor {
     @FunctionalInterface
@@ -57,9 +72,6 @@ public abstract class Constraint {
 
     @Override
     public void solve(TypeInference engine, Env env) {
-      TypeInference.trace("[E] @" + System.identityHashCode(this) + " unify "
-          + this.tLeft + "(@" + System.identityHashCode(this.tLeft) + ") = "
-          + this.tRight + "(@" + System.identityHashCode(this.tRight) + ")");
       engine.unify(this.tLeft, this.tRight);
     }
 
@@ -81,6 +93,19 @@ public abstract class Constraint {
     @Override
     public List<Constraint> getChildren() {
       return List.of();
+    }
+
+    @Override
+    public String toString() {
+      return this.tLeft + " = " + this.tRight;
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      Set<TypeVar<HMXType>> freeTypeVars = new HashSet<>();
+      freeTypeVars.addAll(this.tLeft.freeTypeVars());
+      freeTypeVars.addAll(this.tRight.freeTypeVars());
+      return Set.copyOf(freeTypeVars);
     }
   }
 
@@ -113,105 +138,88 @@ public abstract class Constraint {
     public List<Constraint> getChildren() {
       return List.of();
     }
+
+    @Override
+    public String toString() {
+      return "true";
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      return Set.of();
+    }
   }
 
   /**
-   * Subtype constraint tLeft <: tRight. Unlike {@link Inst} this is NOT a
-   * one-shot constraint: deferred copies are re-checked with fresh variables on
-   * every instantiation of the scheme they belong to.
+   * Subtype constraint tLeft <: tRight. Solved immediately by normalization (see
+   * {@link TypeInference#subtype}), so it never remains in a scheme: what it
+   * says about variables is kept as merged variables and bounds, which
+   * instantiation copies onto each instance.
    */
   public static final class Sub extends Constraint {
+
     public final HMXType tLeft;
     public final HMXType tRight;
 
-    /**
-     * When {@code true}, this constraint may not defer: if the subtype check
-     * would be undecided due to an open variable, the check is retried with
-     * deferral disabled so that the variable is equated with the concrete type.
-     * Only sound for variables that are provably local to the constraint's own
-     * scope (e.g. the application-local {@code fnType} of {@code App}), as
-     * eager assignment collapses a variable that would otherwise be quantified.
-     */
-    private final boolean mustResolve;
-
     public Sub(HMXType tLeft, HMXType tRight) {
-      this(tLeft, tRight, false);
-    }
-
-    public Sub(HMXType tLeft, HMXType tRight, boolean mustResolve) {
       this.tLeft = tLeft;
       this.tRight = tRight;
-      this.mustResolve = mustResolve;
     }
 
     @Override
     public void solve(TypeInference engine, Env env) {
-      if (this.tRight.toString().equals("number")) {
-        TypeInference.trace("[N] Sub.solve: [" + System.identityHashCode(this) + "] "
-            + this.tLeft + " <: " + this.tRight + " mustResolve=" + this.mustResolve);
-      }
-      if (this.tLeft.toString().contains("->") || this.tRight.toString().contains("->")) {
-        TypeInference.trace("[A] " + this.tLeft + " <: " + this.tRight
-            + (this.mustResolve ? " [mustResolve]" : ""));
-      }
-      try {
-        engine.subtype(this.tLeft, this.tRight);
-      } catch (TypeInference.UnresolvedSubtypeException | TypingException.NotFullySpecified e) {
-        if (this.mustResolve) {
-          TypeInference.trace("[S] mustResolve retry: " + this.tLeft + " <: " + this.tRight);
-          // Retry with deferral disabled: the constraint involves only
-          // scope-local variables, so equating them with the concrete types is
-          // safe and required — a genuine type error still propagates.
-          var oldSubtypeFailure = engine.getAllowSubtypeFailure();
-          engine.setAllowSubtypeFailure(false);
-          try {
-            engine.subtype(this.tLeft, this.tRight);
-          } finally {
-            engine.setAllowSubtypeFailure(oldSubtypeFailure);
-          }
-          return;
-        }
-        if (!engine.getAllowSubtypeFailure()) {
-          TypeInference.trace("[S] HARD FAIL: " + this.tLeft + " <: " + this.tRight
-              + " mustResolve=" + this.mustResolve);
-          java.util.Arrays.stream(Thread.currentThread().getStackTrace())
-              .map(StackTraceElement::toString)
-              .filter(s -> s.contains("hmx.Constraint") || s.contains("hmx.expr"))
-              .limit(6)
-              .forEach(s -> TypeInference.trace("[S]   at " + s));
-          throw e;
-        }
-        // An open variable is involved and we are within a generalize block; the leaf
-        // cannot be decided yet. It
-        // stays in the stored constraint tree and is re-checked by the second
-        // pass of Inst.solve after the fresh variables are bound, and on every
-        // further instantiation.
-        engine.addDeferredConstraint(this);
-      }
+      // Normalize immediately: decompose structural subtypes, merge variables
+      // and record bounds on the variables involved. Nothing here waits for
+      // more information: a leaf over a variable only records a bound (checked
+      // once the variable gets a type), and a leaf over concrete types is
+      // decided for good. The bounds are part of the variables, so they travel
+      // with a scheme (Scheme.toSubst copies them onto each instance).
+      engine.subtype(this.tLeft, this.tRight);
     }
 
     @Override
     public Constraint applySubst(Subst subst) {
-      return new Sub(subst.apply(this.tLeft), subst.apply(this.tRight), this.mustResolve);
+      return new Sub(subst.apply(this.tLeft), subst.apply(this.tRight));
     }
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof Sub sb && this.tLeft.equals(sb.tLeft) && this.tRight.equals(sb.tRight)
-          && this.mustResolve == sb.mustResolve;
+      return obj instanceof Sub sb && this.tLeft.equals(sb.tLeft) && this.tRight.equals(sb.tRight);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.tLeft, this.tRight, this.mustResolve);
+      return Objects.hash(this.tLeft, this.tRight);
     }
 
     @Override
     public List<Constraint> getChildren() {
       return List.of();
     }
+
+    @Override
+    public String toString() {
+      return this.tLeft + " <: " + this.tRight;
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      Set<TypeVar<HMXType>> freeTypeVars = new HashSet<>();
+      freeTypeVars.addAll(this.tLeft.freeTypeVars());
+      freeTypeVars.addAll(this.tRight.freeTypeVars());
+      return Set.copyOf(freeTypeVars);
+    }
   }
 
+  /**
+   * Computes a result type from the argument types with a callback (e.g. the
+   * result width of an arithmetic operation) and unifies it with
+   * {@link #unifyAgainst}. The callback needs concrete argument types; while
+   * they are unknown it throws {@link CallbackNotReady} and the leaf is
+   * deferred. This is the only kind of leaf that remains in a scheme's
+   * constraint, and it can only be resolved per instance, once that instance's
+   * argument types are known.
+   */
   public static final class DetermineByCallbackAndUnify extends Constraint {
 
     public static final class CallbackNotReady extends RuntimeException {
@@ -238,11 +246,12 @@ public abstract class Constraint {
         var result = this.callback.determine(this.originalTypes);
         engine.unify(result, this.unifyAgainst);
       } catch (CallbackNotReady e) {
-        if (!engine.getAllowSubtypeFailure()) {
+        if (!engine.getAllowDeferral()) {
           throw e;
         }
-        // Only allow the exception, if the subtyping constraints are not resolved
-        // completely!
+        // During inference the argument types may not be decided yet: defer.
+        // The leaf ends up in the enclosing scheme's constraint (or, at the top
+        // level, in the global deferred list) and is retried there.
         engine.addDeferredConstraint(this);
       }
     }
@@ -253,7 +262,9 @@ public abstract class Constraint {
       newTypes = Arrays.asList(this.originalTypes).stream().map(t -> subst.apply(t)).toList()
           .toArray(newTypes);
 
-      return new DetermineByCallbackAndUnify(this.callback, this.unifyAgainst, newTypes);
+      // The result variable is part of the leaf like its arguments: an
+      // instance must determine its own result, not the scheme's.
+      return new DetermineByCallbackAndUnify(this.callback, subst.apply(this.unifyAgainst), newTypes);
     }
 
     @Override
@@ -271,6 +282,25 @@ public abstract class Constraint {
     @Override
     public List<Constraint> getChildren() {
       return List.of();
+    }
+
+    @Override
+    public String toString() {
+      var types = Arrays.stream(this.originalTypes).map(Object::toString)
+          .collect(java.util.stream.Collectors.joining(", "));
+      return "determine(" + types + ") ~ " + this.unifyAgainst;
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      Set<TypeVar<HMXType>> ftv = new HashSet<>();
+
+      ftv.addAll(this.unifyAgainst.freeTypeVars());
+      for (int i = 0; i < this.originalTypes.length; i++) {
+        ftv.addAll(this.originalTypes[i].freeTypeVars());
+      }
+
+      return Set.copyOf(ftv);
     }
 
   }
@@ -303,10 +333,9 @@ public abstract class Constraint {
       }
 
       var inferredType = scheme.instantiate(engine);
-      TypeInference.trace("[I] Inst " + this.variable + " type=" + this.type
-          + " schemeType=" + inferredType.getLeft());
+
+      engine.unify(inferredType.getLeft(), this.type);
       engine.solveConstraint(inferredType.getRight(), env);
-      engine.unify(this.type, inferredType.getLeft());
     }
 
     @Override
@@ -338,6 +367,16 @@ public abstract class Constraint {
     @Override
     public List<Constraint> getChildren() {
       return List.of();
+    }
+
+    @Override
+    public String toString() {
+      return "inst(" + this.variable + " : " + this.type + ")" + (this.solved ? " [solved]" : "");
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      return this.type.freeTypeVars();
     }
   }
 
@@ -379,6 +418,21 @@ public abstract class Constraint {
     @Override
     public List<Constraint> getChildren() {
       return List.copyOf(this.constraints);
+    }
+
+    @Override
+    public String toString() {
+      return this.constraints.stream().map(Object::toString)
+          .collect(java.util.stream.Collectors.joining(" ∧ ", "(", ")"));
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      Set<TypeVar<HMXType>> ftv = new HashSet<>();
+      for (var constr : this.constraints) {
+        ftv.addAll(constr.freeTypeVars());
+      }
+      return Set.copyOf(ftv);
     }
   }
 
@@ -429,6 +483,21 @@ public abstract class Constraint {
     @Override
     public List<Constraint> getChildren() {
       return List.of(this.inner);
+    }
+
+    @Override
+    public String toString() {
+      var vars = this.toQuantify.stream().map(Object::toString)
+          .collect(java.util.stream.Collectors.joining(" "));
+      return "∃" + vars + ". " + this.inner;
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      var ftv = new HashSet<>(this.inner.freeTypeVars());
+
+      ftv.addAll(this.toQuantify);
+      return Set.copyOf(ftv);
     }
   }
 
@@ -527,6 +596,218 @@ public abstract class Constraint {
 
       return List.copyOf(children);
     }
+
+    @Override
+    public String toString() {
+      var bindings = this.bindings.stream()
+          .map(b -> b.name() + " = " + b.scheme())
+          .collect(java.util.stream.Collectors.joining(" and "));
+      return "let rec " + bindings + " in " + this.inner;
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      var ftv = new HashSet<>(this.inner.freeTypeVars());
+
+      for (var bnd : this.bindings) {
+        ftv.addAll(bnd.scheme.freeTypeVars());
+      }
+
+      return Set.copyOf(ftv);
+    }
+
+  }
+
+  private static List<MixBinding> openRecList(List<MixBinding> bindings) {
+    return bindings.stream().filter(MixBinding::recursive).toList();
+  }
+
+  /**
+   * A single binding of a {@link LetMix} group: the binding itself plus its
+   * recursion marker. Recursive bindings take part in the group's
+   * monomorphic core (like OCaml's {@code let rec}); non-recursive bindings
+   * generalize immediately after their own definition (like a plain {@code
+   * let}).
+   */
+  public record MixBinding(LetBinding binding, boolean recursive) {
+    public MixBinding applySubst(Subst subst) {
+      return new MixBinding(this.binding.applySubst(subst), this.recursive);
+    }
+  }
+
+  /**
+   * A mixed let/let-rec binding group. Bindings are processed in their given
+   * order, so every binding sees the generalized schemes of all preceding
+   * non-recursive bindings. Recursive bindings are pre-seeded with
+   * monomorphic shells so forward and mutual references resolve, stay
+   * monomorphic for the whole group, and are generalized when the group
+   * ends.
+   */
+  public static final class LetMix extends Constraint {
+
+    public final List<MixBinding> bindings;
+    public final Constraint inner;
+
+    public LetMix(List<MixBinding> bindings, Constraint inner) {
+      this.bindings = List.copyOf(bindings);
+      this.inner = inner;
+    }
+
+    @Override
+    public void solve(TypeInference engine, Env env) {
+      var newEnv = env.copy();
+      // The enclosing scopes' free variables: the exact set no binding may
+      // quantify. Captured before any shell enters the environment.
+      var outerFtv = env.freeTypeVars();
+
+      // Pre-seed every binding with a monomorphic shell so forward and
+      // mutual references resolve during the ordered processing below.
+      for (var mixBinding : this.bindings) {
+        var binding = mixBinding.binding();
+        binding.scheme.vars().forEach(v -> v.setLevel(engine.getCurrentLevel()));
+        newEnv.put(binding.name(),
+            new Scheme(List.of(), binding.scheme.type(), binding.scheme.constr()));
+      }
+
+      // Phase A — the recursive core: solve all recursive bindings
+      // monomorphically against the shells (mutual and forward references
+      // resolve inside the group).
+      for (var mixBinding : this.bindings) {
+        if (!mixBinding.recursive()) {
+          continue;
+        }
+        var binding = mixBinding.binding();
+        var scheme = engine.solveConstraintAndGeneralize(binding.scheme.constr(), newEnv,
+            binding.scheme.type());
+        newEnv.put(binding.name(),
+            new Scheme(List.of(), scheme.type(), scheme.constr()));
+      }
+
+      // Phase B — generalize the recursive core: re-solve its residual
+      // constraints with the group converged, then publish.
+      for (var mixBinding : openRecList(this.bindings)) {
+        var scheme = newEnv.get(mixBinding.binding().name());
+        var newScheme = engine.solveConstraintAndGeneralize(scheme.constr(), newEnv,
+            scheme.type());
+
+        var owned = new java.util.LinkedHashSet<TypeVar<HMXType>>(
+            newScheme.type().deref().freeTypeVars());
+        // Keep every variable generalize quantified, including those only in
+        // the residual constraint; they must be fresh per instantiation.
+        newScheme.vars().forEach(v -> owned.add(v.find()));
+        owned.removeIf(v -> outerFtv.contains(v.find()));
+        engine.markGeneric(owned);
+
+        newEnv.put(mixBinding.binding().name(),
+            new Scheme(List.copyOf(owned), newScheme.type(), newScheme.constr()));
+      }
+
+      // Phase C — non-recursive bindings, in order: each solves against the
+      // already-generalized recursive core (and all previously generalized
+      // lets), then generalizes immediately — every later binding and the
+      // body see it polymorphically.
+      for (var mixBinding : this.bindings) {
+        if (mixBinding.recursive()) {
+          continue;
+        }
+        var binding = mixBinding.binding();
+        var scheme = engine.solveConstraintAndGeneralize(binding.scheme.constr(), newEnv,
+            binding.scheme.type());
+
+        var owned = new java.util.LinkedHashSet<TypeVar<HMXType>>(
+            scheme.type().deref().freeTypeVars());
+        scheme.vars().forEach(v -> owned.add(v.find()));
+        owned.removeIf(v -> outerFtv.contains(v.find()));
+        engine.markGeneric(owned);
+
+        newEnv.put(binding.name(),
+            new Scheme(List.copyOf(owned), scheme.type(), scheme.constr()));
+      }
+
+      // Final convergence pass: re-solve every published scheme's constraint
+      // against the original variables of its definition.
+      //
+      // FIXME: since subtype leaves are normalized, a scheme's constraint only
+      // holds determine leaves (DetermineByCallbackAndUnify), e.g. the result
+      // type of an arithmetic or comparison operation, waiting for concrete
+      // argument types. Deferral is still allowed here, so most of
+      // them are just deferred again, now into the global deferred list. There
+      // the fixpoint loop in TypeInference.solve decides their argument
+      // variables and runs them, on the originals.
+      //
+      // Reconstruction needs that, because it reads the originals for these
+      // results: Subst.expand instantiates only the variables of the
+      // referenced type, not the scheme's constraint-only variables, and it
+      // does not resolve the scheme's determine leaves for the instance. For
+      // example, main's copies of foo's result in
+      // MixedWidthAnnotationProgramTest.instanceDependentInternalType are not
+      // mentioned by main's type (unit -> unit), so they stay open without
+      // this pass.
+      //
+      // Deciding them on the original is only right for results that are the
+      // same for every instance, or for a definition with a single instance
+      // (main). The originals' generic variables are decided from evidence
+      // only and never guessed, so a determine leaf over them stays open here
+      // rather than being fixed for all instances. Every leaf re-deferred here
+      // lands in the global list as a "schematic" leaf, which
+      // verifyPendingConstraints has to skip.
+      //
+      // Removing this pass requires reconstruction to instantiate the full
+      // scheme (all quantified variables) and resolve its determine leaves per
+      // instance, the way overloading is resolved during translation.
+      for (var mixBinding : this.bindings) {
+        var scheme = newEnv.get(mixBinding.binding().name());
+        engine.solveConstraint(scheme.constr(), newEnv);
+      }
+
+      engine.solveConstraint(this.inner, newEnv);
+    }
+
+    @Override
+    public Constraint applySubst(Subst subst) {
+      return new LetMix(this.bindings.stream().map(b -> b.applySubst(subst)).toList(),
+          this.inner.applySubst(subst));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof LetMix mix && this.bindings.equals(mix.bindings)
+          && this.inner.equals(mix.inner);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(this.bindings, this.inner);
+    }
+
+    @Override
+    public List<Constraint> getChildren() {
+      var children = new ArrayList<Constraint>();
+      for (var mixBinding : this.bindings) {
+        children.add(mixBinding.binding().scheme().constr());
+      }
+      children.add(this.inner);
+      return List.copyOf(children);
+    }
+
+    @Override
+    public String toString() {
+      var bindings = this.bindings.stream()
+          .map(b -> (b.recursive() ? "rec " : "") + b.binding().name() + " = " + b.binding().scheme())
+          .collect(java.util.stream.Collectors.joining("\n and "));
+      return "let \n" + bindings + "\nin " + this.inner;
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      var ftv = new HashSet<>(this.inner.freeTypeVars());
+
+      for (var bnd : this.bindings) {
+        ftv.addAll(bnd.binding.scheme.freeTypeVars());
+      }
+
+      return Set.copyOf(ftv);
+    }
   }
 
   /**
@@ -589,6 +870,25 @@ public abstract class Constraint {
       children.add(this.inner);
 
       return List.copyOf(children);
+    }
+
+    @Override
+    public String toString() {
+      var bindings = this.bindings.stream()
+          .map(b -> b.name() + " = " + b.scheme())
+          .collect(java.util.stream.Collectors.joining("; "));
+      return "let " + bindings + " in " + this.inner;
+    }
+
+    @Override
+    public Set<TypeVar<HMXType>> freeTypeVars() {
+      var ftv = new HashSet<>(this.inner.freeTypeVars());
+
+      for (var bnd : this.bindings) {
+        ftv.addAll(bnd.scheme.freeTypeVars());
+      }
+
+      return Set.copyOf(ftv);
     }
   }
 

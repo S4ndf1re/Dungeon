@@ -188,15 +188,23 @@ public sealed interface BuiltinTypes {
               "IntegerT cache must be populated after type registration. Ensure that BuiltinDialect is registered before any types are accessed.");
         }
         IntegerT.baseType = TypeUniquer.uniqueInstance(new IntegerT());
-        IntegerT.integerTypeCache[0] = TypeUniquer.uniqueInstance(new IntegerT(1, true));
-        IntegerT.integerTypeCache[1] = TypeUniquer.uniqueInstance(new IntegerT(8, true));
-        IntegerT.integerTypeCache[2] = TypeUniquer.uniqueInstance(new IntegerT(16, true));
-        IntegerT.integerTypeCache[3] = TypeUniquer.uniqueInstance(new IntegerT(32, true));
-        IntegerT.integerTypeCache[4] = TypeUniquer.uniqueInstance(new IntegerT(64, true));
-        IntegerT.integerTypeCache[5] = TypeUniquer.uniqueInstance(new IntegerT(8, false));
-        IntegerT.integerTypeCache[6] = TypeUniquer.uniqueInstance(new IntegerT(16, false));
-        IntegerT.integerTypeCache[7] = TypeUniquer.uniqueInstance(new IntegerT(32, false));
-        IntegerT.integerTypeCache[8] = TypeUniquer.uniqueInstance(new IntegerT(64, false));
+
+        // Make sure that the integer type hierarchy is actually sound. i.e. a int32 is
+        // a subtype of int64, which is a subtype of int and number
+        // Signed Integer Types
+        IntegerT.integerTypeCache[4] = TypeUniquer.uniqueInstance(new IntegerT(64, true, IntegerT.baseType));
+        IntegerT.integerTypeCache[3] = TypeUniquer.uniqueInstance(new IntegerT(32, true, IntegerT.integerTypeCache[4]));
+        IntegerT.integerTypeCache[2] = TypeUniquer.uniqueInstance(new IntegerT(16, true, IntegerT.integerTypeCache[3]));
+        IntegerT.integerTypeCache[1] = TypeUniquer.uniqueInstance(new IntegerT(8, true, IntegerT.integerTypeCache[2]));
+        IntegerT.integerTypeCache[0] = TypeUniquer.uniqueInstance(new IntegerT(1, true, IntegerT.integerTypeCache[1]));
+
+        // Unsigned Types
+        IntegerT.integerTypeCache[8] = TypeUniquer.uniqueInstance(new IntegerT(64, false, IntegerT.baseType));
+        IntegerT.integerTypeCache[7] = TypeUniquer
+            .uniqueInstance(new IntegerT(32, false, IntegerT.integerTypeCache[8]));
+        IntegerT.integerTypeCache[6] = TypeUniquer
+            .uniqueInstance(new IntegerT(16, false, IntegerT.integerTypeCache[7]));
+        IntegerT.integerTypeCache[5] = TypeUniquer.uniqueInstance(new IntegerT(8, false, IntegerT.integerTypeCache[6]));
       }
 
     }
@@ -279,9 +287,10 @@ public sealed interface BuiltinTypes {
           throw new IllegalStateException(
               "FloatT cache must be populated after type registration. Ensure that BuiltinDialect is registered before any types are accessed.");
         }
+        // Make sure to support the type hierarchy float32 <: float64 <: float <: number
         FloatT.baseType = TypeUniquer.uniqueInstance(new FloatT());
-        FloatT.floatTypeCache[0] = TypeUniquer.uniqueInstance(new FloatT(32));
-        FloatT.floatTypeCache[1] = TypeUniquer.uniqueInstance(new FloatT(64));
+        FloatT.floatTypeCache[1] = TypeUniquer.uniqueInstance(new FloatT(64, FloatT.baseType));
+        FloatT.floatTypeCache[0] = TypeUniquer.uniqueInstance(new FloatT(32, FloatT.floatTypeCache[1]));
       }
     }
   }
@@ -420,6 +429,12 @@ public sealed interface BuiltinTypes {
      */
     private IntegerT(int width, boolean isSigned) {
       super(identFromWidthAndSign(width, isSigned), IntegerT.baseType);
+      this.width = width;
+      this.signed = isSigned;
+    }
+
+    private IntegerT(int width, boolean isSigned, IntegerT supertype) {
+      super(identFromWidthAndSign(width, isSigned), supertype);
       this.width = width;
       this.signed = isSigned;
     }
@@ -603,6 +618,11 @@ public sealed interface BuiltinTypes {
       this.width = width;
     }
 
+    private FloatT(int width, FloatT supertype) {
+      super(identFromWidth(width), supertype);
+      this.width = width;
+    }
+
     // =========================================================================
     // Functions
     // =========================================================================
@@ -645,7 +665,8 @@ public sealed interface BuiltinTypes {
    * @return {@code true} for integer and floating-point types.
    */
   static boolean isNumeric(@NotNull MaybeType type) {
-    return type.getAsNullable() instanceof IntegerT || type.getAsNullable() instanceof FloatT;
+    return type.getAsNullable() instanceof IntegerT || type.getAsNullable() instanceof FloatT
+        || type.getAsNullable() instanceof NumberT;
   }
 
   /**
@@ -660,6 +681,12 @@ public sealed interface BuiltinTypes {
     if (!isNumeric(lhsType) || !isNumeric(rhsType)) {
       throw new IllegalArgumentException(
           "Dominant type requires numeric operands. Got " + lhsType + " and " + rhsType);
+    }
+
+    // `number` is the supertype of both hierarchies (int <: number,
+    // float <: number): any operation on it can only be typed as `number`.
+    if (lhsType.getAsNullable() instanceof NumberT || rhsType.getAsNullable() instanceof NumberT) {
+      return TypeUniquer.uniqueInstance(new NumberT());
     }
 
     if (lhsType.getAsNullable() instanceof FloatT || rhsType.getAsNullable() instanceof FloatT) {

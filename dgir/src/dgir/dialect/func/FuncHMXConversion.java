@@ -210,6 +210,7 @@ public final class FuncHMXConversion {
 
       var applicationArgs = app.getAllApplicationParameters();
 
+
       var parameterOperations = applicationArgs.stream()
           .map(e -> e.getOutputValue())
           .toList();

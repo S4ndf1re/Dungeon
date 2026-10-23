@@ -50,6 +50,11 @@ public final class Ann extends HMXExpr {
   }
 
   @Override
+  public boolean isA(Class<?> clazz) {
+    return super.isA(clazz) || this.expr.isA(clazz);
+  }
+
+  @Override
   public List<HMXExpr> getChildren() {
     return List.of(this.expr);
   }
@@ -88,10 +93,6 @@ public final class Ann extends HMXExpr {
     this.expr.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.expr.containsSymbol(symbol);
-  }
 
   @Override
   public HMXExpr copy() {
@@ -107,5 +108,10 @@ public final class Ann extends HMXExpr {
     innerExpr.setParentScopeExpression(this.getParentScopeExpr(), this.getParentScopePosition());
 
     return innerExpr.instantiate(engine, env, solution);
+  }
+
+  @Override
+  public String toString() {
+    return "(" + this.expr() + " : " + this.type() + ")";
   }
 }

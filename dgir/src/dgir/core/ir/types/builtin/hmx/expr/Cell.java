@@ -102,6 +102,9 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
       // re-instantiated!
     }
 
+    // A cell is a placeholder tying a recursive instantiation back to itself,
+    // so looking through it could recurse forever. Cells only exist after
+    // instantiation; containsSymbol is used on converted expressions before.
     @Override
     public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
       return false;
@@ -132,6 +135,11 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
     @Override
     public HMXExpr copy() {
       return this;
+    }
+
+    @Override
+    public String toString() {
+      return "cell[" + this.reference + " := " + this.cellValue + "]";
     }
 
   }

@@ -1,6 +1,7 @@
 package dgir.core.ir.types;
 
 import java.lang.reflect.ParameterizedType;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,6 +60,18 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
   public abstract E Var(Symbol<E, T> symbol);
 
   public abstract E Let(List<Pair<Symbol<E, T>, E>> bindings, E body);
+
+  /**
+   * Create a mixed let/let-rec binding group: bindings flagged recursive
+   * take part in the group's monomorphic core (OCaml's {@code let rec}),
+   * non-recursive bindings generalize immediately after their own
+   * definition. The default treats every binding as recursive, matching
+   * {@link #Let}.
+   */
+  public E LetPoly(List<Pair<Symbol<E, T>, Pair<E, Boolean>>> bindings, E body) {
+    return Let(bindings.stream()
+        .map(bnd -> Pair.of(bnd.getLeft(), bnd.getRight().getLeft())).toList(), body);
+  }
 
   public abstract E Seq(List<E> exprs);
 
@@ -190,7 +203,6 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
         .visit(instantiated, e -> {
           var instOp = e.getInstantiateOperationCallback();
           if (instOp.isPresent()) {
-            @SuppressWarnings("unchecked")
             var exprUnwrapped = e instanceof IExpressionCell ? ((IExpressionCell<E, T>) e).unwrap() : e;
             var instantiatedOperation = instOp.get().instantiate(exprUnwrapped);
             e.setUnderlyingOperation(instantiatedOperation);
@@ -213,6 +225,7 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     });
 
     if (instantiated.getUnderlyingOperation().isPresent()) {
+      instantiated.getUnderlyingOperation().get().printOp();
       boolean valid = new OperationVerifier(VerifyOptions.FULL_VERIFICATION)
           .verify(instantiated.getUnderlyingOperation().get());
       if (!valid) {
@@ -222,6 +235,53 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     }
 
     return instantiated;
+  }
+
+  private List<Pair<Symbol<E, T>, Pair<E, Boolean>>> createPossiblyRecursiveMixBindingsFromSimpleBindings(
+      List<Pair<Symbol<E, T>, E>> bindings) {
+    // Mark recursive functions: a binding is recursive when its converted
+    // expression can reach its own symbol through the block's reference
+    // graph (self-reference or a cycle through other bindings).
+    var symbols = bindings.stream().map(Pair::getLeft).toList();
+    var isRecursive = new boolean[bindings.size()];
+
+    // Iterate over each binding, to see if it can reach itself
+    for (int start = 0; start < bindings.size(); start++) {
+      // DFS: can `start` reach itself via at least one reference edge?
+      var visited = new boolean[bindings.size()];
+      var stack = new ArrayDeque<Integer>();
+      for (int j = 0; j < bindings.size(); j++) {
+        if (bindings.get(start).getRight().containsSymbol(symbols.get(j))) {
+          stack.push(j);
+          visited[j] = true;
+        }
+      }
+      // After collecting all reachable symbols from the same env, try to find the
+      // actuall calls to the start symbol!
+      while (!stack.isEmpty() && !isRecursive[start]) {
+        var current = stack.pop();
+        if (bindings.get(current).getRight().containsSymbol(symbols.get(start))) {
+          isRecursive[start] = true;
+          break;
+        }
+        // Collect all further reaching symbols, to iterate deeper into the search
+        for (int j = 0; j < bindings.size(); j++) {
+          if (j != current && !visited[j]
+              && bindings.get(current).getRight().containsSymbol(symbols.get(j))) {
+            visited[j] = true;
+            stack.push(j);
+          }
+        }
+      }
+    }
+
+    var polyBindings = new ArrayList<Pair<Symbol<E, T>, Pair<E, Boolean>>>();
+    for (int i = 0; i < bindings.size(); i++) {
+      polyBindings.add(Pair.of(symbols.get(i),
+          Pair.of(bindings.get(i).getRight(), isRecursive[i])));
+    }
+
+    return polyBindings;
   }
 
   /**
@@ -261,7 +321,9 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
           sym = Symbol.of(new Value());
         }
         var expr = this.asExpression(ExprOrOperator.of(op));
-        if (expr.containsSymbol(sym)) {
+        // A named symbol (e.g. a function) may reference itself: that is
+        // recursion, not an invalid cycle.
+        if (!(op.asOp() instanceof ISymbol) && expr.containsSymbol(sym)) {
           throw new TypingException.CyclicSymbolAssignment(sym, expr);
         }
         bindings.add(Pair.of(sym, expr));
@@ -272,7 +334,7 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     E innerLet = null;
     if (lastValue.isPresent()) {
       var sequence = new ArrayList<>(
-          bindings.stream().filter(bnd -> !(bnd.getRight() instanceof IAbstraction) && !bnd.getLeft().isUsed())
+          bindings.stream().filter(bnd -> !(bnd.getRight().isA(IAbstraction.class)) && !bnd.getLeft().isUsed())
               .map(bnd -> this.Var(bnd.getLeft())).toList());
 
       // In this case, the previous filter filtered the value, hence leading to
@@ -281,7 +343,9 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
         sequence.add(this.Var(bindings.getLast().getLeft()));
       }
 
-      innerLet = this.Let(bindings,
+      var polyBindings = createPossiblyRecursiveMixBindingsFromSimpleBindings(bindings);
+
+      innerLet = this.LetPoly(polyBindings,
           this.Seq(sequence));
     } else {
       innerLet = this.Let(bindings, this.Lit(new Literal.Unit()));
@@ -305,7 +369,6 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
       GeneralParameterizedNominalType type,
       Optional<ConversionContext<E, T>> context);
 
-  @SuppressWarnings("unchecked")
   public E asExpression(ExprOrOperator<E, T> exprOrOp) {
     Class<E> exprClass = (Class<E>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[1];
     if (exprOrOp.isExpr()) {

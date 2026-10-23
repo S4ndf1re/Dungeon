@@ -13,7 +13,6 @@ import dgir.core.ir.Block;
 import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
-import dgir.core.ir.types.traits.IBlock;
 import dgir.core.ir.types.traits.ICell;
 import dgir.core.ir.types.traits.IExpressionCell;
 import dgir.core.ir.types.traits.IVariable;
@@ -65,7 +64,6 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
         this.parentScopePosition);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public boolean equals(Object obj) {
     return obj instanceof Expression expr && this.inferredType.equals(expr.inferredType)
@@ -108,6 +106,11 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
 
   public Optional<T> getInferredType() {
     return this.inferredType;
+  }
+
+
+  public boolean isA(Class<?> clazz) {
+    return clazz.isInstance(this);
   }
 
   /**
@@ -163,7 +166,18 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
    */
   public abstract void replaceSymbol(Symbol<E, T> original, Symbol<E, T> replacement);
 
-  public abstract boolean containsSymbol(Symbol<E, T> symbol);
+  /**
+   * Whether this expression mentions the symbol anywhere: refers to it, or
+   * binds it. The default searches all children, so an expression only
+   * overrides this for what is not a child, such as the symbol a variable
+   * refers to or the names an abstraction or let binds.
+   *
+   * @param symbol the symbol to look for
+   * @return true if the symbol occurs in this expression
+   */
+  public boolean containsSymbol(Symbol<E, T> symbol) {
+    return this.getChildren().stream().anyMatch(child -> child.containsSymbol(symbol));
+  }
 
   public void setUnderlyingOperation(Operation op) {
     this.underlyingOperation = Optional.ofNullable(op);

@@ -20,7 +20,7 @@ public final class Untyped extends HMXExpr {
 
   public Untyped(Location loc) {
     super(loc);
-    this.type = new HMXType.Var(new TypeVar<>());
+    this.type = new HMXType.Var(this.getLocation(), new TypeVar<>());
   }
 
   private Untyped(Untyped other) {
@@ -38,10 +38,6 @@ public final class Untyped extends HMXExpr {
     return List.of();
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return false;
-  }
 
   @Override
   public GenerateResult generate(TypeInference engine, Env env, HMXType type) {

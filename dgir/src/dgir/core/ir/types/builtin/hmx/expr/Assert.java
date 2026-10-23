@@ -82,20 +82,20 @@ public final class Assert extends HMXExpr {
     List<TypeVar<HMXType>> toExist = new ArrayList<>();
 
     var condTypeVar = new TypeVar<HMXType>();
-    var condType = new HMXType.Var(condTypeVar);
+    var condType = new HMXType.Var(this.getLocation(), condTypeVar);
     andConstraints.add(engine.generate(this.cond, env, condType).constr());
-    andConstraints.add(new Constraint.Equal(condType, new HMXType.LitType(TypeIdent.TYPE_IDENT_BOOL)));
+    andConstraints.add(new Constraint.Equal(condType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_BOOL)));
     toExist.add(condTypeVar);
 
     if (this.message.isPresent()) {
       var msgTypeVar = new TypeVar<HMXType>();
-      var msgType = new HMXType.Var(msgTypeVar);
+      var msgType = new HMXType.Var(this.getLocation(), msgTypeVar);
       andConstraints.add(engine.generate(this.message.get(), env, msgType).constr());
-      andConstraints.add(new Constraint.Equal(msgType, new HMXType.LitType(TypeIdent.TYPE_IDENT_STRING)));
+      andConstraints.add(new Constraint.Equal(msgType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_STRING)));
       toExist.add(msgTypeVar);
     }
 
-    andConstraints.add(new Constraint.Equal(type, new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT)));
+    andConstraints.add(new Constraint.Equal(type, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT)));
 
     return new GenerateResult(new Constraint.Exists(toExist, new Constraint.And(andConstraints)));
   }
@@ -114,10 +114,6 @@ public final class Assert extends HMXExpr {
     this.message.ifPresent(msg -> msg.replaceSymbol(original, replacement));
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.cond.containsSymbol(symbol) || this.message.map(msg -> msg.containsSymbol(symbol)).orElse(false);
-  }
 
   @Override
   public boolean equals(Object obj) {
@@ -133,5 +129,14 @@ public final class Assert extends HMXExpr {
   @Override
   public HMXExpr copy() {
     return new Assert(this);
+  }
+
+  @Override
+  public String toString() {
+    var result = "assert " + this.cond;
+    if (this.message.isPresent()) {
+      result += " (" + this.message.get() + ")";
+    }
+    return result;
   }
 }

@@ -50,10 +50,6 @@ public final class LitExpr extends Expr {
       return List.of();
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return false;
-    }
 
     @Override
     public boolean equals(Object obj) {

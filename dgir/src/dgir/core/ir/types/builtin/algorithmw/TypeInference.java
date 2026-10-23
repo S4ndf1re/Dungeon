@@ -12,6 +12,7 @@ import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
+import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.builtin.algorithmw.expr.Ann;
 import dgir.core.ir.types.builtin.algorithmw.expr.App;
 import dgir.core.ir.types.builtin.algorithmw.expr.Abs;
@@ -121,12 +122,86 @@ public final class TypeInference
     return res;
   }
 
+  /**
+   * Unifies two types: makes them equal by assigning and merging type
+   * variables. A variable on either side is bound to the other side (the right
+   * one first); otherwise both sides must have the same shape, and their parts
+   * are unified pairwise.
+   *
+   * @throws TypingException.UnificationFailed if the shapes differ
+   */
   public void unify(AlgorithmWType left, AlgorithmWType right) {
-    if (right instanceof AlgorithmWType.Var) {
-      right.unify(this, left);
+    if (right instanceof AlgorithmWType.Var rightVar) {
+      this.unifyVar(rightVar, left);
       return;
     }
-    left.unify(this, right);
+
+    switch (left) {
+      case AlgorithmWType.Var leftVar -> this.unifyVar(leftVar, right);
+      case AlgorithmWType.Arrow a -> {
+        if (!(right instanceof AlgorithmWType.Arrow b)) {
+          throw new TypingException.UnificationFailed(left, right);
+        }
+        this.unify(a.from, b.from);
+        this.unify(a.to, b.to);
+      }
+      case AlgorithmWType.LitType a -> {
+        if (!(right instanceof AlgorithmWType.LitType b && b.tyName.equals(a.tyName))) {
+          throw new TypingException.UnificationFailed(left, right);
+        }
+        if (a.parameters.size() != b.parameters.size()) {
+          throw new RuntimeException(
+              "Parameter count mismatch: " + a.parameters.size() + " vs " + b.parameters.size());
+        }
+        for (int i = 0; i < a.parameters.size(); i++) {
+          this.unify(a.parameters.get(i), b.parameters.get(i));
+        }
+      }
+      case AlgorithmWType.NumericType a -> {
+        if (!(right instanceof AlgorithmWType.NumericType b && a.size == b.size)) {
+          throw new TypingException.UnificationFailed(left, right);
+        }
+      }
+      case AlgorithmWType.Tuple a -> {
+        if (!(right instanceof AlgorithmWType.Tuple b)) {
+          throw new TypingException.UnificationFailed(left, right);
+        }
+        if (a.elements.size() != b.elements.size()) {
+          throw new TypingException.TupleSizeMismatch(a, b, a.elements.size(), b.elements.size());
+        }
+        for (int i = 0; i < a.elements.size(); i++) {
+          this.unify(a.elements.get(i), b.elements.get(i));
+        }
+      }
+    }
+  }
+
+  /**
+   * Binds a type variable to another type, or merges it with another variable.
+   * A variable that already has a type unifies that type instead.
+   */
+  private void unifyVar(AlgorithmWType.Var var, AlgorithmWType other) {
+    if (other instanceof AlgorithmWType.Var otherVar) {
+      // Two variables: merge their classes. If both already had types, those
+      // types must agree as well.
+      var assigned = var.tyVar.unify(otherVar.tyVar);
+      if (assigned.isPresent()) {
+        this.unify(assigned.get().getLeft(), assigned.get().getRight());
+      }
+      return;
+    }
+
+    if (other.occursCheck(var.tyVar)) {
+      throw new TypingException.OccursCheckFailed(other, var.tyVar);
+    }
+
+    if (var.tyVar.getAssigendType().isPresent()) {
+      this.unify(var.tyVar.getAssigendType().get(), other);
+      return;
+    }
+
+    other.occursCheckAjustLevel(var.tyVar);
+    var.tyVar.assignType(other);
   }
 
   @Override

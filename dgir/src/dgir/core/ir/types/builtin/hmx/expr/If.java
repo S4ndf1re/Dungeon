@@ -85,24 +85,24 @@ public final class If extends HMXExpr {
     List<Constraint> constraints = new ArrayList<>();
 
     var condTypeVar = new TypeVar<HMXType>();
-    var condType = new HMXType.Var(condTypeVar);
+    var condType = new HMXType.Var(this.getLocation(), condTypeVar);
     constraints.add(engine.generate(this.cond, env, condType).constr());
-    constraints.add(new Constraint.Equal(condType, new HMXType.LitType(TypeIdent.TYPE_IDENT_BOOL)));
+    constraints.add(new Constraint.Equal(condType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_BOOL)));
     toExist.add(condTypeVar);
 
     var thenTypeVar = new TypeVar<HMXType>();
-    var thenType = new HMXType.Var(thenTypeVar);
+    var thenType = new HMXType.Var(this.getLocation(), thenTypeVar);
     constraints.add(engine.generate(this.thenExpr, env, thenType).constr());
     toExist.add(thenTypeVar);
 
     if (this.elseExpr.isPresent()) {
       var elseTypeVar = new TypeVar<HMXType>();
-      var elseType = new HMXType.Var(elseTypeVar);
+      var elseType = new HMXType.Var(this.getLocation(), elseTypeVar);
       constraints.add(engine.generate(this.elseExpr.get(), env, elseType).constr());
       constraints.add(new Constraint.Equal(elseType, thenType));
       toExist.add(elseTypeVar);
     } else {
-      constraints.add(new Constraint.Equal(thenType, new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT)));
+      constraints.add(new Constraint.Equal(thenType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT)));
     }
 
     constraints.add(new Constraint.Equal(type, thenType));
@@ -125,11 +125,6 @@ public final class If extends HMXExpr {
     this.elseExpr.ifPresent(e -> e.replaceSymbol(original, replacement));
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.cond.containsSymbol(symbol) || this.thenExpr.containsSymbol(symbol)
-        || this.elseExpr.map(e -> e.containsSymbol(symbol)).orElse(false);
-  }
 
   @Override
   public boolean equals(Object obj) {
@@ -146,5 +141,14 @@ public final class If extends HMXExpr {
   @Override
   public HMXExpr copy() {
     return new If(this);
+  }
+
+  @Override
+  public String toString() {
+    var result = "if " + this.cond + " then " + this.thenExpr;
+    if (this.elseExpr.isPresent()) {
+      result += " else " + this.elseExpr.get();
+    }
+    return result;
   }
 }

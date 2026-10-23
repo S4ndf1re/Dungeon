@@ -102,6 +102,9 @@ import dgir.core.ir.types.builtin.algorithmw.TypeInference;
       // replacement itself (the cell is a recursion breaker)!
     }
 
+    // A cell is a placeholder tying a recursive instantiation back to itself,
+    // so looking through it could recurse forever. Cells only exist after
+    // instantiation; containsSymbol is used on converted expressions before.
     @Override
     public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
       return false;

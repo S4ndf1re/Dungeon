@@ -75,10 +75,6 @@ import dgir.core.ir.types.builtin.systemf.TypeResult;
       return List.copyOf(this.expressions);
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.expressions.stream().anyMatch(e -> e.containsSymbol(symbol));
-    }
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {

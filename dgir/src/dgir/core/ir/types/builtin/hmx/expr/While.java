@@ -56,17 +56,17 @@ public final class While extends HMXExpr {
   public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
     var condTyVar = new TypeVar<HMXType>();
     var bodyTyVar = new TypeVar<HMXType>();
-    var condType = new HMXType.Var(condTyVar);
-    var bodyType = new HMXType.Var(bodyTyVar);
+    var condType = new HMXType.Var(this.getLocation(), condTyVar);
+    var bodyType = new HMXType.Var(this.getLocation(), bodyTyVar);
 
     GenerateResult resCond = engine.generate(this.cond, env, condType);
     GenerateResult resBody = engine.generate(this.body, env, bodyType);
 
     return new GenerateResult(new Constraint.Exists(List.of(condTyVar, bodyTyVar),
         new Constraint.And(resCond.constr(), resBody.constr(),
-            new Constraint.Equal(condType, new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT)),
-            new Constraint.Equal(bodyType, new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT)),
-            new Constraint.Equal(type, new HMXType.LitType(TypeIdent.TYPE_IDENT_UNIT)))));
+            new Constraint.Equal(condType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT)),
+            new Constraint.Equal(bodyType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT)),
+            new Constraint.Equal(type, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_UNIT)))));
   }
 
   @Override
@@ -80,10 +80,6 @@ public final class While extends HMXExpr {
     this.body.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.cond.containsSymbol(symbol) || this.body.containsSymbol(symbol);
-  }
 
   @Override
   public boolean equals(Object obj) {
@@ -99,5 +95,10 @@ public final class While extends HMXExpr {
   @Override
   public HMXExpr copy() {
     return new While(this);
+  }
+
+  @Override
+  public String toString() {
+    return "while " + this.cond + " { " + this.body + " }";
   }
 }

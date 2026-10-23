@@ -77,6 +77,9 @@ public final class Cell extends Expr implements IExpressionCell<Expr, SystemFTyp
     // here and must not descend into the referenced subtree.
   }
 
+  // A cell is a placeholder tying a recursive instantiation back to itself,
+  // so looking through it could recurse forever. Cells only exist after
+  // instantiation; containsSymbol is used on converted expressions before.
   @Override
   public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
     return false;

@@ -74,20 +74,20 @@ public final class Branch extends HMXExpr {
     List<Constraint> constraints = new ArrayList<>();
 
     var elseBlockTypeVar = new TypeVar<HMXType>();
-    var elseBlockType = new HMXType.Var(elseBlockTypeVar);
+    var elseBlockType = new HMXType.Var(this.getLocation(), elseBlockTypeVar);
     constraints.add(engine.generate(this.block, env, elseBlockType).constr());
     constraints.add(new Constraint.Equal(type, elseBlockType));
     toExist.add(elseBlockTypeVar);
 
     if (this.condition.isPresent()) {
       var condTypeVar = new TypeVar<HMXType>();
-      var condType = new HMXType.Var(condTypeVar);
+      var condType = new HMXType.Var(this.getLocation(), condTypeVar);
       constraints.add(engine.generate(this.condition.get().getLeft(), env, condType).constr());
-      constraints.add(new Constraint.Equal(condType, new HMXType.LitType(TypeIdent.TYPE_IDENT_BOOL)));
+      constraints.add(new Constraint.Equal(condType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_BOOL)));
       toExist.add(condTypeVar);
 
       var thenBlockTypeVar = new TypeVar<HMXType>();
-      var thenBlockType = new HMXType.Var(thenBlockTypeVar);
+      var thenBlockType = new HMXType.Var(this.getLocation(), thenBlockTypeVar);
       constraints.add(engine.generate(this.condition.get().getRight(), env, thenBlockType).constr());
       constraints.add(new Constraint.Equal(thenBlockType, elseBlockType));
       toExist.add(thenBlockTypeVar);
@@ -113,12 +113,6 @@ public final class Branch extends HMXExpr {
     this.block.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.block.containsSymbol(symbol)
-        || this.condition.isPresent() && (this.condition.get().getLeft().containsSymbol(symbol)
-            || this.condition.get().getRight().containsSymbol(symbol));
-  }
 
   @Override
   public boolean equals(Object obj) {
@@ -134,5 +128,14 @@ public final class Branch extends HMXExpr {
   @Override
   public HMXExpr copy() {
     return new Branch(this);
+  }
+
+  @Override
+  public String toString() {
+    if (this.condition.isPresent()) {
+      var cond = this.condition.get();
+      return "branch (" + cond.getLeft() + " ? " + cond.getRight() + " : " + this.block + ")";
+    }
+    return "branch " + this.block;
   }
 }

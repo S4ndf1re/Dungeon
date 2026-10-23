@@ -3,6 +3,7 @@ package dgir.core.ir.types.builtin.hmx.expr;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import dgir.core.debug.Location;
 import dgir.core.ir.types.InstEnv;
@@ -76,10 +77,6 @@ public class Seq extends HMXExpr {
       }
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-      return this.expressions.stream().anyMatch(e -> e.containsSymbol(symbol));
-    }
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
@@ -110,6 +107,13 @@ public class Seq extends HMXExpr {
     @Override
     public HMXExpr copy() {
       return new Seq(this);
+    }
+
+    @Override
+    public String toString() {
+      return this.expressions().stream()
+          .map(Object::toString)
+          .collect(Collectors.joining("; ", "(", ")"));
     }
 
   }

@@ -38,10 +38,6 @@ public final class Untyped extends Expr {
     return List.of();
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-    return false;
-  }
 
   @Override
   public TypeResult infer(TypeInference engine, Context ctx) {

@@ -146,10 +146,6 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
       return List.copyOf(children);
     }
 
-    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.fun.containsSymbol(symbol) || this.arg.map(arg -> arg.containsSymbol(symbol)).orElse(false);
-    }
-
     public boolean equals(Object obj) {
       return obj instanceof App other && this.fun.equals(other.fun) && this.arg.equals(other.arg)
           && super.equals(obj);

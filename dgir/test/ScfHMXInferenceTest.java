@@ -60,11 +60,11 @@ public class ScfHMXInferenceTest {
     var inference = new HMXInference();
     var solver = inference.getNewSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
-        DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
-        DgirTestUtils.saveDotExpr(solvedPair.instantiated());
-        DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
-        DgirTestUtils.saveDotType(solvedPair.type());
+    DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+    DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
+    DgirTestUtils.saveDotExpr(solvedPair.instantiated());
+    DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
+    DgirTestUtils.saveDotType(solvedPair.type());
 
     // Collect every operation that made it into the reconstructed tree.
     List<Operation> ops = new ArrayList<>();
@@ -73,6 +73,7 @@ public class ScfHMXInferenceTest {
 
     return Pair.of(solvedPair.type(), ops);
   }
+
   private static long countOps(List<Operation> ops, Class<? extends dgir.core.ir.Op> clazz) {
     return ops.stream().filter(op -> clazz.isInstance(op.asOp())).count();
   }

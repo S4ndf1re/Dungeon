@@ -86,7 +86,7 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
     // later iterations of this code, the solution context may be redunant entirely.
     E exprCopy = ((E) this).copy();
     exprCopy.setInferredType(exprCopy.getInferredType().map(ty -> solutionContext.apply(ty)));
-    E expr = env.getConsed(exprCopy);
+    E expr = env.getConsed(exprCopy, solutionContext);
 
     // Variables must always be visited, while other epxressions must be
     // instantiated, as long as its not a recursive instantiation.
@@ -113,7 +113,7 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
     instantiated.setInferredType(instantiated.getInferredType().map(ty -> solutionContext.apply(ty)));
 
     env.getCellsForExpressions(expr).stream().forEach(e -> e.replaceIfMatches(expr, instantiated));
-    var instantiatedTarget = env.getConsed(instantiated);
+    var instantiatedTarget = env.getConsed(instantiated, solutionContext);
     // The beta-reduction for variables.
     // When the variable is in scope, actually replace the returned
     // expression with the referenced instantiated Expr instance.
@@ -131,7 +131,13 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
         var referencedInferredType = referencedExprAsExpr.getInferredType();
 
         if (referencedInferredType.isPresent() && instantiatedTarget.getInferredType().isPresent()) {
-          S finalSolutionCtx = solutionContext.expand(engine, referencedExprAsExpr,
+          // The referenced binding is instantiated under the solution of the
+          // scope that defines it, not the caller's: a top-level function is
+          // independent of its callers (instances are shared), while a binding
+          // inside a function instance keeps that instance's solution.
+          S definitionSolution = env.getScopeSolution(instantiatedVariable.getReferencedVariable())
+              .orElse(solutionContext);
+          S finalSolutionCtx = definitionSolution.expand(engine, referencedExprAsExpr,
               instantiatedTarget.getInferredType().get());
 
           var copiedExpr = referencedExprAsExpr.copy();
@@ -144,6 +150,8 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
           env.setSolution(instantiatedTarget, solutionContext, instantiatedReferenced);
           env.setSolution(expr, solutionContext, instantiatedReferenced);
           return instantiatedReferenced;
+        } else {
+          throw new RuntimeException("Tehe infered type is present, hence no instantiation can occur");
         }
       }
     }

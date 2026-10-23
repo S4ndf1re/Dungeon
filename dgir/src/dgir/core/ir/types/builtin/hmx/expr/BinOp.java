@@ -63,8 +63,8 @@ public final class BinOp extends HMXExpr {
   public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
     var lhsTypeVar = new TypeVar<HMXType>();
     var rhsTypeVar = new TypeVar<HMXType>();
-    var lhsType = new HMXType.Var(lhsTypeVar);
-    var rhsType = new HMXType.Var(rhsTypeVar);
+    var lhsType = new HMXType.Var(this.getLocation(), lhsTypeVar);
+    var rhsType = new HMXType.Var(this.getLocation(), rhsTypeVar);
 
     var resLhs = engine.generate(this.lhs, env, lhsType);
     var resRhs = engine.generate(this.rhs, env, rhsType);
@@ -92,8 +92,8 @@ public final class BinOp extends HMXExpr {
 
     return new GenerateResult(new Constraint.Exists(List.of(lhsTypeVar, rhsTypeVar), new Constraint.And(
         resLhs.constr(), resRhs.constr(),
-        new Constraint.Sub(lhsType, new HMXType.LitType(TypeIdent.TYPE_IDENT_NUMBER)),
-        new Constraint.Sub(rhsType, new HMXType.LitType(TypeIdent.TYPE_IDENT_NUMBER)),
+        new Constraint.Sub(lhsType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_NUMBER)),
+        new Constraint.Sub(rhsType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_NUMBER)),
         new Constraint.DetermineByCallbackAndUnify(callback, type, lhsType, rhsType))));
   }
 
@@ -108,10 +108,6 @@ public final class BinOp extends HMXExpr {
     this.rhs.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.lhs.containsSymbol(symbol) || this.rhs.containsSymbol(symbol);
-  }
 
   @Override
   public boolean equals(Object obj) {
@@ -128,5 +124,10 @@ public final class BinOp extends HMXExpr {
   @Override
   public HMXExpr copy() {
     return new BinOp(this);
+  }
+
+  @Override
+  public String toString() {
+    return "(" + this.lhs + " " + this.mode + " " + this.rhs + ")";
   }
 }

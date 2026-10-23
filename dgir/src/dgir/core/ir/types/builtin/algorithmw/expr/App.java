@@ -105,10 +105,6 @@ public final class App extends Expr implements IApplication<Expr, AlgorithmWType
       return List.copyOf(list);
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-      return this.func.containsSymbol(symbol) || this.args.stream().anyMatch(arg -> arg.containsSymbol(symbol));
-    }
 
     @Override
     public List<Expr> getApplications() {

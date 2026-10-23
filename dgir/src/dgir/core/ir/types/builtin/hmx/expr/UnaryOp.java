@@ -56,7 +56,7 @@ public final class UnaryOp extends HMXExpr {
   @Override
   public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
     var lhsTypeVar = new TypeVar<HMXType>();
-    var lhsType = new HMXType.Var(lhsTypeVar);
+    var lhsType = new HMXType.Var(this.getLocation(), lhsTypeVar);
 
     var resLhs = engine.generate(this.lhs, env, lhsType);
 
@@ -77,7 +77,7 @@ public final class UnaryOp extends HMXExpr {
 
     return new GenerateResult(new Constraint.Exists(List.of(lhsTypeVar ), new Constraint.And(
         resLhs.constr(),
-        new Constraint.Sub(lhsType, new HMXType.LitType(TypeIdent.TYPE_IDENT_NUMBER)),
+        new Constraint.Sub(lhsType, new HMXType.LitType(this.getLocation(), TypeIdent.TYPE_IDENT_NUMBER)),
         new Constraint.DetermineByCallbackAndUnify(callback, type, lhsType))));
   }
 
@@ -91,10 +91,6 @@ public final class UnaryOp extends HMXExpr {
     this.lhs.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.lhs.containsSymbol(symbol);
-  }
 
   @Override
   public boolean equals(Object obj) {
@@ -111,5 +107,10 @@ public final class UnaryOp extends HMXExpr {
   @Override
   public HMXExpr copy() {
     return new UnaryOp(this);
+  }
+
+  @Override
+  public String toString() {
+    return this.mode + " " + this.lhs;
   }
 }

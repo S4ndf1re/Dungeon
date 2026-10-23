@@ -91,4 +91,9 @@ public final class Block extends HMXExpr implements IBlock<HMXExpr, HMXType> {
     return this.innerExpr;
   }
 
+  @Override
+  public String toString() {
+    return "block { " + this.innerExpr + " }";
+  }
+
 }

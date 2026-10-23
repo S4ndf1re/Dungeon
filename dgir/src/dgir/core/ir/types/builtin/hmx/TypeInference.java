@@ -1,14 +1,13 @@
 package dgir.core.ir.types.builtin.hmx;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -20,9 +19,14 @@ import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeInferenceSolver;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.TypingException;
+import dgir.core.ir.types.Expression.ExpressionVisitor;
+import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
+import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.builtin.hmx.expr.Ann;
 import dgir.core.ir.types.builtin.hmx.expr.App;
+import dgir.core.ir.types.builtin.hmx.Constraint.DetermineByCallbackAndUnify;
 import dgir.core.ir.types.builtin.hmx.expr.Abs;
+import dgir.core.ir.types.builtin.hmx.expr.LetMix;
 import dgir.core.ir.types.builtin.hmx.expr.LetRec;
 import dgir.core.ir.types.builtin.hmx.expr.Lit;
 import dgir.core.ir.types.builtin.hmx.expr.Seq;
@@ -36,20 +40,21 @@ public final class TypeInference
     extends TypeInferenceSolver<TypeInference, HMXExpr, HMXType> {
 
   private int currentLevel;
-  private boolean allowSubtypeFailure;
+  private boolean allowDeferral;
   private ArrayList<Constraint> deferredConstraints;
+  private final Set<TypeVar<HMXType>> genericVars = new HashSet<>();
 
   public TypeInference() {
     this(new TypeDialectConverterRegistry());
     this.currentLevel = 0;
-    this.allowSubtypeFailure = false;
+    this.allowDeferral = false;
     this.deferredConstraints = new ArrayList<>();
   }
 
   public TypeInference(TypeDialectConverterRegistry registry) {
     super(registry);
     this.currentLevel = 0;
-    this.allowSubtypeFailure = false;
+    this.allowDeferral = false;
     this.deferredConstraints = new ArrayList<>();
   }
 
@@ -69,6 +74,16 @@ public final class TypeInference
   @Override
   public HMXExpr Let(List<Pair<Symbol<HMXExpr, HMXType>, HMXExpr>> bindings, HMXExpr body) {
     return new LetRec(bindings, body);
+  }
+
+  @Override
+  public HMXExpr LetPoly(
+      List<Pair<Symbol<HMXExpr, HMXType>, Pair<HMXExpr, Boolean>>> bindings, HMXExpr body) {
+    var mixDefs = bindings.stream()
+        .map(bnd -> new LetMix.MixDef(bnd.getLeft(), bnd.getRight().getLeft(),
+            bnd.getRight().getRight()))
+        .toList();
+    return new LetMix(mixDefs, body);
   }
 
   @Override
@@ -106,6 +121,62 @@ public final class TypeInference
     return new Block(body);
   }
 
+  /**
+   * Enqueues every free type variable of {@code type} (union-find roots only)
+   * that has not been enqueued yet.
+   */
+  private void enqueueTypeVars(HMXType type, Deque<TypeVar<HMXType>> queue, Set<TypeVar<HMXType>> enqueued) {
+    for (var tv : type.freeTypeVars()) {
+      var root = tv.find();
+      if (enqueued.add(root)) {
+        queue.add(root);
+      }
+    }
+  }
+
+  /**
+   * Enqueues the union-find roots of all free type variables of a deferred
+   * constraint, so the determination worklist can compose bounds for variables
+   * that are only referenced by constraints still waiting to be solved.
+   */
+  private void enqueueTypeVars(Constraint constraint, Deque<TypeVar<HMXType>> queue, Set<TypeVar<HMXType>> enqueued) {
+    for (var tv : constraint.freeTypeVars()) {
+      var root = tv.find();
+      if (enqueued.add(root)) {
+        queue.add(root);
+      }
+    }
+  }
+
+  public void markGeneric(Collection<TypeVar<HMXType>> vars) {
+    this.genericVars.addAll(vars);
+  }
+
+  private boolean isGeneric(TypeVar<HMXType> tv) {
+    var root = tv.find();
+    return this.genericVars.stream().anyMatch(v -> v.find() == root);
+  }
+
+  private boolean determineWorklist(Deque<TypeVar<HMXType>> queue, Set<TypeVar<HMXType>> visited,
+      boolean allowUpperBoundGuess, boolean keepGenericOpen) {
+    var progress = false;
+    while (!queue.isEmpty()) {
+      var root = queue.poll().find();
+      var guess = allowUpperBoundGuess && !(keepGenericOpen && this.isGeneric(root));
+      progress |= new HMXType.Var(root).determineTypeWhenBoundConstrainted(this, guess);
+      for (var bound : root.getLowerBounds()) {
+        this.enqueueTypeVars(bound, queue, visited);
+      }
+      for (var bound : root.getUpperBounds()) {
+        this.enqueueTypeVars(bound, queue, visited);
+      }
+      if (root.getAssigendType().isPresent()) {
+        this.enqueueTypeVars(root.getAssigendType().get(), queue, visited);
+      }
+    }
+    return progress;
+  }
+
   @Override
   public SolveResult<HMXExpr, HMXType> solve(ExprOrOperator<HMXExpr, HMXType> exprOrOp) {
     Env env = new Env();
@@ -113,15 +184,98 @@ public final class TypeInference
     var resultType = new HMXType.Var(new TypeVar<HMXType>());
     GenerateResult res = this.generate(expr, env, resultType);
 
-    // Since the result type var is actually not set for the engines level, this has
-    // to be performed by a exists constraint on the first and outermost level!
+
+    // Allow Deferral, i.e. collect all constraints that could not get solved, yet.
+    // Those constrants land in the deferred constraint list and is to be solved later
+    this.allowDeferral = true;
     this.solveConstraint(new Constraint.Exists(res.constr(), resultType.tyVar), env);
+    this.allowDeferral = false;
+
+
+    // Pass 1: determination from lower bounds only — evidence-driven; the
+    // deferred constraints drain until stable and annotations decide the rest.
+    // Pass 2: the exact same logic again, but with upper+lower bound type
+    // selection, resolving whatever pass 1 had to leave open.
+    this.runToFixpoint(expr, resultType, env);
+
+    // The result types are unsound as constraints where not solvable
+    var remaining = this.deferredConstraints.stream()
+        .filter(c -> !(c instanceof Constraint.Trivial))
+        .filter(c -> c.freeTypeVars().stream().noneMatch(this::isGeneric))
+        .toList();
+    if (!remaining.isEmpty()) {
+      throw new TypingException.NotFullySpecified(resultType.deref());
+    }
 
     var instantiated = expr.instantiate(this, new InstEnv<>(expr), Subst.newEmpty());
 
     instantiated = this.postSolve(instantiated);
 
     return new SolveResult<>(resultType.deref(), expr, instantiated);
+  }
+
+  /**
+   * One round of deferred constraint draining plus lower-bound-driven
+   * determination over the not-yet-instantiated expression.
+   */
+  private boolean deferredAndDeterminationRound(HMXExpr expr, HMXType resultType, Env env,
+      boolean allowUpperBoundGuess) {
+    var progress = false;
+
+    if (!this.deferredConstraints.isEmpty()) {
+      var pending = new ArrayList<>(this.deferredConstraints);
+      this.deferredConstraints.clear();
+      for (var leaf : pending) {
+        try {
+          this.solveConstraint(leaf, env);
+        } catch (DetermineByCallbackAndUnify.CallbackNotReady e) {
+          this.addDeferredConstraint(leaf);
+        }
+      }
+      progress |= this.deferredConstraints.size() != pending.size();
+    }
+
+    var queue = new ArrayDeque<TypeVar<HMXType>>();
+    var visited = new HashSet<TypeVar<HMXType>>();
+    this.enqueueTypeVars(resultType, queue, visited);
+    for (var deferred : this.deferredConstraints) {
+      this.enqueueTypeVars(deferred, queue, visited);
+    }
+    // Quantified variables are reachable only through their scheme; seed them
+    // so evidence (lower bounds) gathered on them is not left undecided.
+    for (var generic : this.genericVars) {
+      var root = generic.find();
+      if (visited.add(root)) {
+        queue.add(root);
+      }
+    }
+    // Every expression's type, including the bodies of let-bound definitions:
+    // a variable decided only by bounds (subtype leaves are normalized away)
+    // is otherwise reachable from nowhere and would stay open.
+    new ExpressionVisitor<HMXExpr, HMXType>(VisitOrder.IN_ORDER, VisitGetChildrenOption.ALL_CHILDREN).visit(expr,
+        e -> {
+          if (e.getInferredType().isPresent()) {
+            this.enqueueTypeVars(e.getInferredType().get(), queue, visited);
+          }
+        });
+    progress |= this.determineWorklist(queue, visited, allowUpperBoundGuess, true);
+    return progress;
+  }
+
+  /**
+   * Runs deferred constraint draining plus determination to fixpoint, in two
+   * passes: first with lower-bound-only type selection, then again with
+   * upper+lower bound selection to resolve whatever pass 1 left open.
+   */
+  private void runToFixpoint(HMXExpr expr, HMXType resultType, Env env) {
+    var progress = true;
+    while (progress) {
+      progress = this.deferredAndDeterminationRound(expr, resultType, env, false);
+    }
+    progress = true;
+    while (progress) {
+      progress = this.deferredAndDeterminationRound(expr, resultType, env, true);
+    }
   }
 
   /**
@@ -143,13 +297,94 @@ public final class TypeInference
     return res;
   }
 
+  /**
+   * Unifies two types: makes them equal by assigning and merging type
+   * variables. A variable on either side is bound to the other side (the right
+   * one first); otherwise both sides must have the same shape, and their parts
+   * are unified pairwise.
+   *
+   * @throws TypingException.UnificationFailed if the shapes differ
+   */
   public void unify(HMXType left, HMXType right) {
-    if (right instanceof HMXType.Var) {
-      right.unify(this, left);
+    if (right instanceof HMXType.Var rightVar) {
+      this.unifyVar(rightVar, left);
       return;
     }
 
-    left.unify(this, right);
+    switch (left) {
+      case HMXType.Var leftVar -> this.unifyVar(leftVar, right);
+      case HMXType.Arrow a -> {
+        if (!(right instanceof HMXType.Arrow b)) {
+          throw new TypingException.UnificationFailed(left, right);
+        }
+        this.unify(a.from, b.from);
+        this.unify(a.to, b.to);
+      }
+      case HMXType.LitType a -> {
+        if (!(right instanceof HMXType.LitType b && b.tyName.equals(a.tyName))) {
+          throw new TypingException.UnificationFailed(left, right);
+        }
+        if (a.parameters.size() != b.parameters.size()) {
+          throw new RuntimeException(
+              "Parameter count mismatch: " + a.parameters.size() + " vs " + b.parameters.size());
+        }
+        for (int i = 0; i < a.parameters.size(); i++) {
+          this.unify(a.parameters.get(i), b.parameters.get(i));
+        }
+      }
+      case HMXType.NumericType a -> {
+        if (!(right instanceof HMXType.NumericType b && a.size == b.size)) {
+          throw new TypingException.UnificationFailed(left, right);
+        }
+      }
+      case HMXType.Tuple a -> {
+        if (!(right instanceof HMXType.Tuple b)) {
+          throw new TypingException.UnificationFailed(left, right);
+        }
+        if (a.elements.size() != b.elements.size()) {
+          throw new TypingException.TupleSizeMismatch(a, b, a.elements.size(), b.elements.size());
+        }
+        for (int i = 0; i < a.elements.size(); i++) {
+          this.unify(a.elements.get(i), b.elements.get(i));
+        }
+      }
+    }
+  }
+
+  /**
+   * Binds a type variable to another type, or merges it with another variable.
+   * A variable that already has a type unifies that type instead. Before a
+   * variable gets a type, the type must satisfy the variable's bounds; a
+   * failing subtype check aborts immediately.
+   */
+  private void unifyVar(HMXType.Var var, HMXType other) {
+    if (other instanceof HMXType.Var otherVar) {
+      // Two variables: merge their classes. If both already had types, those
+      // types must agree as well.
+      var assigned = var.tyVar.unify(otherVar.tyVar);
+      if (assigned.isPresent()) {
+        this.unify(assigned.get().getLeft(), assigned.get().getRight());
+      }
+      return;
+    }
+
+    if (other.occursCheck(var.tyVar)) {
+      throw new TypingException.OccursCheckFailed(other, var.tyVar);
+    }
+
+    if (var.tyVar.getAssigendType().isPresent()) {
+      this.unify(var.tyVar.getAssigendType().get(), other);
+      return;
+    }
+
+    other.occursCheckAjustLevel(var.tyVar);
+    for (var lowerBound : var.tyVar.getLowerBounds()) {
+      this.subtype(lowerBound, other);
+    }
+    for (var upperBound : var.tyVar.getUpperBounds()) {
+      this.subtype(other, upperBound);
+    }
+    var.tyVar.assignType(other);
   }
 
   @Override
@@ -170,8 +405,8 @@ public final class TypeInference
 
   public void subtype(HMXType left, HMXType right) {
     var l = left.deref();
-
     var r = right.deref();
+
 
     if (l instanceof HMXType.Var lv) {
       if (r instanceof HMXType.Var rv) {
@@ -182,45 +417,31 @@ public final class TypeInference
         return;
       }
 
-      // Within scheme generalization, an open variable must NOT be equated
-      // with the concrete type: assigning would collapse the scheme variables.
-      // Defer the leaf into the scheme's stored constraint tree instead; it is
-      // re-checked with fresh variables on every instantiation.
-      if (this.allowSubtypeFailure) {
-        throw new UnresolvedSubtypeException(l, r);
-      }
-
-      // Outside generalization the old conservative logic applies: equate the
-      // variable with the concrete type. Every accepted program stays
-      // well-typed; directional bounds are lost.
-      if (r.occursCheck(lv.tyVar)) {
-        throw new TypingException.OccursCheckFailed(r, lv.tyVar);
-      }
-
       r.occursCheckAjustLevel(lv.tyVar);
-      if (r instanceof HMXType.LitType lit && lit.tyName.equals("number")) {
-        TypeInference.trace("[W] NUMBER-ASSIGN " + lv.tyVar + " := number");
-        java.util.Arrays.stream(Thread.currentThread().getStackTrace())
-            .map(StackTraceElement::toString)
-            .filter(s -> s.contains("dgir") && !s.contains("TypeVar.java") && !s.contains("HMXType.java"))
-            .limit(7)
-            .forEach(s -> TypeInference.trace("[W]   at " + s));
+
+      // Closure: every lower bound of the variable must fit the new upper
+      // bound (L <: var <: r implies L <: r). Only a new bound needs the check.
+      if (lv.tyVar.assignUpperBound(r)) {
+        for (var lower : lv.tyVar.getLowerBounds()) {
+          this.subtype(lower, r);
+        }
       }
-      lv.tyVar.assignType(r);
+
       return;
     }
 
     if (r instanceof HMXType.Var rv) {
-      if (this.allowSubtypeFailure) {
-        throw new UnresolvedSubtypeException(l, r);
-      }
-
-      if (l.occursCheck(rv.tyVar)) {
-        throw new TypingException.OccursCheckFailed(l, rv.tyVar);
-      }
 
       l.occursCheckAjustLevel(rv.tyVar);
-      rv.tyVar.assignType(l);
+
+      // Closure: the new lower bound must fit every upper bound of the
+      // variable (l <: var <: U implies l <: U).
+      if (rv.tyVar.assignLowerBound(l)) {
+        for (var upper : rv.tyVar.getUpperBounds()) {
+          this.subtype(l, upper);
+        }
+      }
+
       return;
     }
 
@@ -243,13 +464,6 @@ public final class TypeInference
       } catch (TypingException.NotFullySpecified e) {
         // Do nothing, this case may be ok, but only if the rest matches!
       }
-      System.err.println("[W] FAIL " + a.tyName + " <: " + b.tyName
-          + " (" + a.parameters + " vs " + b.parameters + ")");
-      java.util.Arrays.stream(Thread.currentThread().getStackTrace())
-          .map(StackTraceElement::toString)
-          .filter(s -> s.contains("dgir.core.ir.types.builtin.hmx") || s.contains("dialect"))
-          .limit(10)
-          .forEach(s -> System.err.println("[W]   at " + s));
 
       if (a.tyName.equals(b.tyName)) {
         if (a.parameters.size() != b.parameters.size()) {
@@ -303,28 +517,12 @@ public final class TypeInference
     return this.currentLevel;
   }
 
-  public boolean getAllowSubtypeFailure() {
-    return this.allowSubtypeFailure;
+  public boolean getAllowDeferral() {
+    return this.allowDeferral;
   }
 
-  /** DEBUG: file-backed trace used during solver investigations. */
-  public static final PrintWriter TRACE = openTrace();
-
-  private static PrintWriter openTrace() {
-    try {
-      return new PrintWriter(new BufferedWriter(new OutputStreamWriter(
-          new FileOutputStream(Path.of("/tmp/hmx-trace.log").toFile()), StandardCharsets.UTF_8)), true);
-    } catch (Exception e) {
-      return new PrintWriter(System.err, true);
-    }
-  }
-
-  public static void trace(String message) {
-    TRACE.println(message);
-  }
-
-  public void setAllowSubtypeFailure(boolean allowSubtypeFailure) {
-    this.allowSubtypeFailure = allowSubtypeFailure;
+  public void setAllowDeferral(boolean allowDeferral) {
+    this.allowDeferral = allowDeferral;
   }
 
   public void solveConstraint(Constraint constr, Env env) {
@@ -343,14 +541,17 @@ public final class TypeInference
   }
 
   public Scheme solveConstraintAndGeneralize(Constraint constr, Env env, HMXType type) {
-    trace("[G] enter type=" + type + " constr=" + constr.getClass().getSimpleName());
     var markConstraint = new Constraint.Trivial();
     this.addDeferredConstraint(markConstraint);
 
-    var oldSubtypeFailure = this.getAllowSubtypeFailure();
-    this.allowSubtypeFailure = true;
+    // Subtype leaves are normalized right away (Sub.solve). Determine leaves
+    // whose argument types are not decided yet defer; everything deferred
+    // after the mark becomes this scheme's constraint and is re-solved at
+    // every instantiation during inference.
+    var oldAllowDeferral = this.getAllowDeferral();
+    this.setAllowDeferral(true);
     this.solveConstraint(constr, env);
-    this.allowSubtypeFailure = oldSubtypeFailure;
+    this.setAllowDeferral(oldAllowDeferral);
 
     var finalType = type.deref();
     var idx = this.deferredConstraints.indexOf(markConstraint);
@@ -361,77 +562,7 @@ public final class TypeInference
     }
     this.deferredConstraints = new ArrayList<>(this.deferredConstraints.subList(0, idx));
 
-    trace("[G] finalize type=" + type + "(@" + System.identityHashCode(type)
-        + (type instanceof HMXType.Var fv ? " tyVar@" + System.identityHashCode(fv.tyVar) : "")
-        + ") finalType=" + finalType
-        + " deferred=" + deferred.size() + " idx=" + idx + " total=" + this.deferredConstraints.size()
-        + " currentLevel=" + this.currentLevel
-        + " typeFtvLevels=" + finalType.freeTypeVars().stream()
-            .map(v -> v.find().getLevel()).sorted().toList());
-
-    // DIAGNOSTIC: every deferred leaf's free variables must be quantified by
-    // the scheme (i.e. occur in the finalized type). A leaf carrying a
-    // variable outside the scheme type can never be bound by any
-    // instantiation — it is shared verbatim between all instances and poisons
-    // later call sites. Report the generator instead of silently mis-solving.
-    var quantified = finalType.freeTypeVars().stream()
-        .map(TypeVar::find)
-        .collect(java.util.stream.Collectors.toSet());
-    for (var leaf : deferred) {
-      var leafVars = new java.util.HashSet<TypeVar<HMXType>>();
-      collectConstraintFreeVars(leaf, leafVars);
-      var rooted = new java.util.HashSet<TypeVar<HMXType>>();
-      leafVars.forEach(v -> rooted.add(v.find()));
-      rooted.removeIf(quantified::contains);
-      if (!rooted.isEmpty()) {
-        var detail = leaf instanceof Constraint.Sub sub
-            ? sub.tLeft + " <: " + sub.tRight
-            : leaf instanceof Constraint.DetermineByCallbackAndUnify det
-                ? "determine(" + String.join(",", java.util.Arrays.stream(det.originalTypes)
-                    .map(Object::toString).toList()) + ") ~ " + det.unifyAgainst
-                : leaf.toString();
-        trace("[DANGLE] scheme type=" + finalType
-            + " leaf=" + leaf.getClass().getSimpleName() + "@" + System.identityHashCode(leaf)
-            + " [" + detail + "]"
-            + " dangling=" + rooted);
-      }
-    }
-
     return finalType.generalize(this.currentLevel, new Constraint.And(deferred));
-  }
-
-  private static void collectConstraintFreeVars(Constraint constr, java.util.Set<TypeVar<HMXType>> into) {
-    switch (constr) {
-      case Constraint.Trivial ignored -> {
-      }
-      case Constraint.Sub sub -> {
-        into.addAll(sub.tLeft.freeTypeVars());
-        into.addAll(sub.tRight.freeTypeVars());
-      }
-      case Constraint.Equal equal -> {
-        into.addAll(equal.tLeft.freeTypeVars());
-        into.addAll(equal.tRight.freeTypeVars());
-      }
-      case Constraint.DetermineByCallbackAndUnify determine -> {
-        for (var t : determine.originalTypes) {
-          into.addAll(t.freeTypeVars());
-        }
-        into.addAll(determine.unifyAgainst.freeTypeVars());
-      }
-      case Constraint.Inst inst -> into.addAll(inst.type.freeTypeVars());
-      case Constraint.Exists exists -> {
-        var innerBefore = new java.util.HashSet<>(into);
-        collectConstraintFreeVars(exists.inner, into);
-        // Variables quantified by this Exists are re-quantified on
-        // applySubst — they are never dangling.
-        for (var q : exists.toQuantify) {
-          into.remove(q.find());
-        }
-        assert innerBefore != null;
-      }
-      case Constraint.And and -> and.constraints.forEach(c -> collectConstraintFreeVars(c, into));
-      default -> System.err.println("[DANGLE] unhandled constraint " + constr.getClass().getSimpleName());
-    }
   }
 
   public void addDeferredConstraint(Constraint constr) {

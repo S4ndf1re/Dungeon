@@ -85,10 +85,6 @@ public final class Tuple extends HMXExpr {
       return this.elements.stream().map(ExprOrOperator::getExpr).toList();
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-      return this.elements.stream().anyMatch(elem -> elem.containsSymbol(symbol));
-    }
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {

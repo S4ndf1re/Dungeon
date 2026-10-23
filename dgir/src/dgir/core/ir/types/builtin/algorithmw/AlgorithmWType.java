@@ -39,17 +39,6 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     return new Scheme(unboundFtv, this);
   }
 
-  /**
-   * unify both this and other to a common substitution that can be used for
-   * inference
-   *
-   * @param other The other type to unify with.
-   * @throws RuntimeException if unimplemented
-   */
-  public abstract void unify(
-      TypeInference engine,
-      AlgorithmWType other);
-
   @Override
   public boolean occursCheck(TypeVar<AlgorithmWType> ty) {
     var ftv = this.freeTypeVars();
@@ -99,26 +88,6 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
         return this.tyVar.find().hashCode();
       }
       return dereffed.hashCode();
-    }
-
-    @Override
-    public void unify(TypeInference engine, AlgorithmWType other) {
-      // Maybe the two types (this and other) are actually the same type variable
-      if (other instanceof Var b) {
-        var unifyRes = this.tyVar.unify(b.tyVar);
-        if (unifyRes.isPresent()) {
-          engine.unify(unifyRes.get().getLeft(), unifyRes.get().getRight());
-        }
-      } else if (other.occursCheck(this.tyVar)) {
-        throw new TypingException.OccursCheckFailed(other, this.tyVar);
-      } else {
-        if (this.tyVar.getAssigendType().isPresent()) {
-          engine.unify(this.tyVar.getAssigendType().get(), other);
-        } else {
-          other.occursCheckAjustLevel(this.tyVar);
-          this.tyVar.assignType(other);
-        }
-      }
     }
 
     @Override
@@ -224,18 +193,6 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public void unify(TypeInference engine, AlgorithmWType other) {
-      if (other instanceof Arrow b) {
-        engine.unify(this.from, b.from);
-        engine.unify(
-            this.to,
-            b.to);
-      } else {
-        throw new TypingException.UnificationFailed(this, other);
-      }
-    }
-
-    @Override
     public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
       var set = new HashSet<TypeVar<AlgorithmWType>>();
       set.addAll(this.from.freeTypeVars());
@@ -319,28 +276,6 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     }
 
     @Override
-    public void unify(TypeInference engine, AlgorithmWType other) {
-      if (other instanceof LitType otherLit &&
-          otherLit.tyName.equals(this.tyName)) {
-        if (this.parameters.size() != otherLit.parameters.size()) {
-          throw new RuntimeException(
-              "Parameter count mismatch: " +
-                  this.parameters.size() +
-                  " vs " +
-                  otherLit.parameters.size());
-        }
-
-        for (int i = 0; i < this.parameters.size(); i++) {
-          engine.unify(
-              this.parameters.get(i),
-              otherLit.parameters.get(i));
-        }
-      } else {
-        throw new TypingException.UnificationFailed(this, other);
-      }
-    }
-
-    @Override
     public Set<TypeVar<AlgorithmWType>> freeTypeVars() {
       var set = new HashSet<TypeVar<AlgorithmWType>>();
       this.parameters.forEach(p -> set.addAll(p.freeTypeVars()));
@@ -378,14 +313,6 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
     @Override
     public String toString() {
       return "" + this.size;
-    }
-
-    @Override
-    public void unify(TypeInference engine, AlgorithmWType other) {
-
-      if (!(other instanceof NumericType otherNum && this.size == otherNum.size)) {
-        throw new TypingException.UnificationFailed(this, other);
-      }
     }
 
     @Override
@@ -466,27 +393,6 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       this.elements.stream().forEach(e -> set.addAll(e.freeTypeVars()));
 
       return Set.copyOf(set);
-    }
-
-    @Override
-    public void unify(TypeInference engine, AlgorithmWType other) {
-      if (other instanceof Tuple b) {
-        if (this.elements.size() != b.elements.size()) {
-          throw new TypingException.TupleSizeMismatch(
-              this,
-              b,
-              this.elements.size(),
-              b.elements.size());
-        }
-
-        for (int i = 0; i < this.elements.size(); i++) {
-          engine.unify(
-              this.elements.get(i),
-              b.elements.get(i));
-        }
-      } else {
-        throw new TypingException.UnificationFailed(this, other);
-      }
     }
 
     @Override

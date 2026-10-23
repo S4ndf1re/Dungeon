@@ -81,10 +81,6 @@ public final class TAbs extends Expr {
       return List.of(this.body);
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.body.containsSymbol(symbol);
-    }
 
     @Override
     public boolean equals(Object obj) {

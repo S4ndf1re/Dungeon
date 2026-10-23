@@ -111,9 +111,9 @@
                                    (rgx/->Constant \formfeed)
                                    (rgx/->Constant \backspace)
                                    (rgx/->Constant \return)]))
-      (lex/add-rule :comment comment-regex)
+      ;; (lex/add-rule :comment comment-regex)
       (lex/add-skip :ws)
-      (lex/add-skip :comment)
+      ;; (lex/add-skip :comment)
 
       ;; Values
       (lex/add-rule :int int-regex)
@@ -295,3 +295,6 @@
   (ScfSystemFConversion/registerBuiltinSystemFConversion)
   (CfSystemFConversion/registerBuiltinSystemFConversion)
   (CellSystemFConversion/registerBuiltinSystemFConversion))
+
+(defn hello []
+  (println "hello"))

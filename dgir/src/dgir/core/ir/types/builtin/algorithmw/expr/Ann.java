@@ -49,6 +49,11 @@ public final class Ann extends Expr {
   }
 
   @Override
+  public boolean isA(Class<?> clazz) {
+    return super.isA(clazz) || this.expr.isA(clazz);
+  }
+
+  @Override
   public List<Expr> getChildren() {
     return List.of(this.expr);
   }
@@ -85,10 +90,6 @@ public final class Ann extends Expr {
     this.expr.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-    return this.expr.containsSymbol(symbol);
-  }
 
   @Override
   public Expr copy() {

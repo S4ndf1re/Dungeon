@@ -2,6 +2,8 @@ package dgir.core.ir.types;
 
 import java.util.HashMap;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 /**
  * A utility class for hash consing (hash-based canonicalization) of
  * expressions.
@@ -15,56 +17,42 @@ import java.util.HashMap;
  * @param <T> The type of the type associated with the expression, which must
  *            extend {@link Type}.
  */
-public class HashConsing<E extends Expression<E, T>, T extends Type<T>> {
+public class HashConsing<E extends Expression<E, T>, T extends Type<T>, S> {
 
   /**
-   * A map that stores canonical instances of expressions.
-   * Each unique expression (based on its {@code equals} and {@code hashCode}
-   * methods)
-   * is stored once, and subsequent requests for the same expression return the
-   * stored instance.
+   * A map that stores canonical instances of expressions, keyed by the
+   * expression together with the solution it was instantiated under. Two
+   * instantiations of the same expression under different solutions (e.g. two
+   * scheme instances of a polymorphic function) must NOT share a node, as the
+   * per-instance unifications would otherwise corrupt each other.
    */
-  public HashMap<E, E> hashConsedExprs;
+  public HashMap<Pair<E, S>, E> hashConsedExprs;
 
   /**
-   * Initializes a new instance of {@code HashConsing} with an empty map for
-   * storing canonical expressions.
+   * Initializes a new instance with an empty map for storing canonical
+   * expressions.
    */
   public HashConsing() {
     this.hashConsedExprs = new HashMap<>();
   }
 
-  public HashConsing(HashConsing<E, T> other) {
+  public HashConsing(HashConsing<E, T, S> other) {
     this.hashConsedExprs = other.hashConsedExprs;
   }
 
   /**
-   * Adds an expression to the canonical map if it is not already present.
+   * Retrieves the canonical instance of the given expression instantiated
+   * under the given solution. If no instance is stored yet, the expression is
+   * added to the map and returned.
    *
-   * @param expr The expression to add to the canonical map.
+   * @param expr     the expression to canonicalize.
+   * @param solution the solution the expression is instantiated under.
+   * @return The canonical instance for this expression/solution pair.
    */
-  private void addExpr(E expr) {
-    if (!this.hashConsedExprs.containsKey(expr)) {
-      this.hashConsedExprs.put(expr, expr);
-    }
-  }
-
-  /**
-   * Retrieves the canonical instance of the given expression.
-   * If the expression is already in the map, the stored instance is returned.
-   * Otherwise, the expression is added to the map and the canonical instance is
-   * returned.
-   *
-   * @param expr The expression to canonicalize.
-   * @return The canonical instance of the expression.
-   */
-  public E getConsed(E expr) {
-    if (this.hashConsedExprs.containsKey(expr)) {
-      return this.hashConsedExprs.get(expr);
-    }
-
-    this.addExpr(expr);
-    return this.getConsed(expr);
+  public E getConsed(E expr, S solution) {
+    var key = Pair.of(expr, solution);
+    var existing = this.hashConsedExprs.putIfAbsent(key, expr);
+    return existing != null ? existing : expr;
   }
 
 }

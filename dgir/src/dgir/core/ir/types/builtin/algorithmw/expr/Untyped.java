@@ -37,10 +37,6 @@ public final class Untyped extends Expr {
     return List.of();
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-    return false;
-  }
 
   @Override
   public InferResult infer(TypeInference engine, Env env) {

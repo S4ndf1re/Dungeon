@@ -111,11 +111,6 @@ public final class If extends Expr {
     this.elseExpr.ifPresent(e -> e.replaceSymbol(original, replacement));
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-    return this.cond.containsSymbol(symbol) || this.thenExpr.containsSymbol(symbol)
-        || this.elseExpr.map(e -> e.containsSymbol(symbol)).orElse(false);
-  }
 
   @Override
   public boolean equals(Object obj) {

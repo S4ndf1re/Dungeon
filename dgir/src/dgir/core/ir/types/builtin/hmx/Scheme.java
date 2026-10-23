@@ -70,11 +70,12 @@ public final class Scheme {
     return ("[{" +
         this.vars
             .stream()
+            .map(TypeVar::find)
             .map(Object::toString)
             .collect(Collectors.joining(", "))
         +
         "}, " +
-        this.type +
+        this.type.deref() + " ~> " + this.constraint +
         "]");
   }
 
@@ -86,6 +87,7 @@ public final class Scheme {
   public Set<TypeVar<HMXType>> freeTypeVars() {
     var ftv = this.type.freeTypeVars();
     var set = new HashSet<TypeVar<HMXType>>(ftv);
+    set.addAll(this.constraint.freeTypeVars());
     set.removeAll(this.vars);
     return Set.copyOf(set);
   }
@@ -94,8 +96,20 @@ public final class Scheme {
     Subst s = Subst.newEmpty();
 
     for (var typeVar : this.vars) {
-      var fresh = new TypeVar<HMXType>(engine.getCurrentLevel());
-      s.types().put(typeVar, new HMXType.Var(fresh));
+      // Instance variables live at the current level, so an enclosing let
+      // generalizes the instances created inside its own definition. Inheriting
+      // the original's (outer) level would keep them out of that
+      // generalization and share them across all instances of the enclosing
+      // binding.
+      var level = engine.getCurrentLevel();
+      var fresh = new TypeVar<HMXType>(level);
+      if (typeVar.getAssigendType().isEmpty()) {
+        var lowerBounds = typeVar.getLowerBounds().stream().map(s::apply).toList();
+        var upperBounds = typeVar.getUpperBounds().stream().map(s::apply).toList();
+        fresh.assignLowerBounds(lowerBounds);
+        fresh.assignUpperBounds(upperBounds);
+        s.types().put(typeVar.find(), new HMXType.Var(fresh));
+      }
     }
 
     return s;
@@ -103,6 +117,11 @@ public final class Scheme {
 
   public Pair<HMXType, Constraint> instantiate(TypeInference engine) {
     var subst = this.toSubst(engine);
-    return Pair.of(subst.apply(this.type), this.constr().applySubst(subst));
+
+    var appliedType = subst.apply(this.type);
+    var appliedConstr = this.constr().applySubst(subst);
+
+
+    return Pair.of(appliedType, appliedConstr);
   }
 }

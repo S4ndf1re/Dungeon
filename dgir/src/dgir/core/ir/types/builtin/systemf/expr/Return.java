@@ -52,10 +52,6 @@ public final class Return extends Expr {
       return List.of(this.value);
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.value.containsSymbol(symbol);
-    }
 
     @Override
     public boolean equals(Object obj) {

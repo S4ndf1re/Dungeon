@@ -39,9 +39,21 @@ public final class Scope<T extends Type<T>> {
   }
 
   private ArrayList<T> returnTypes;
+  // The result type of the function this scope belongs to, if any. Returns
+  // constrain their value against it at the place they occur.
+  private Optional<T> returnType;
 
   public Scope() {
     this.returnTypes = new ArrayList<>();
+    this.returnType = Optional.empty();
+  }
+
+  public Optional<T> getReturnType() {
+    return this.returnType;
+  }
+
+  public void setReturnType(T returnType) {
+    this.returnType = Optional.of(returnType);
   }
 
   public List<T> getAllReturnTypesInScope() {

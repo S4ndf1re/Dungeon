@@ -76,10 +76,6 @@ public final class While extends Expr {
     this.body.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-    return this.cond.containsSymbol(symbol) || this.body.containsSymbol(symbol);
-  }
 
   @Override
   public boolean equals(Object obj) {

@@ -49,10 +49,6 @@ public class Return extends Expr {
       return List.of(this.value.getExpr());
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-      return this.value.containsSymbol(symbol);
-    }
 
     @Override
     public InferResult infer(TypeInference engine, Env env) {

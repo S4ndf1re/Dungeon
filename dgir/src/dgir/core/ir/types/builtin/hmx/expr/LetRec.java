@@ -3,6 +3,7 @@ package dgir.core.ir.types.builtin.hmx.expr;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -102,7 +103,7 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
 
       // This line is key, as the defining scope expression, in this case `newLetExpr`
       // is bound to the scope
-      var newEnv = new InstEnv<HMXExpr, HMXType, Subst>(env, newLetExpr);
+      var newEnv = new InstEnv<HMXExpr, HMXType, Subst>(env, newLetExpr, solution);
       for (int i = 0; i < this.bindings.size(); i++) {
         var bnd = this.bindings.get(i);
         newEnv.put(bnd.getLeft(), bnd.getRight(), i);
@@ -127,7 +128,8 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
 
     @Override
     public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-      return this.bindings.stream().anyMatch(bnd -> bnd.getLeft().equals(symbol)) || this.body.containsSymbol(symbol);
+      // The bound names are not children; everything below is.
+      return this.bindings.stream().anyMatch(bnd -> bnd.getLeft().equals(symbol)) || super.containsSymbol(symbol);
     }
 
     @Override
@@ -141,7 +143,7 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
       for (var binding : this.bindings) {
         var param = binding.getLeft();
         var value = binding.getRight();
-        var freshTypeVar = new TypeVar<HMXType>();
+        var freshTypeVar = new TypeVar<HMXType>(engine.getCurrentLevel());
 
         GenerateResult res1 = engine.generate(value, env, new HMXType.Var(this.getLocation(), freshTypeVar));
         bindings.add(
@@ -180,5 +182,13 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
         binding.getRight().replaceSymbol(original, replacement);
       }
       this.body.replaceSymbol(original, replacement);
+    }
+
+    @Override
+    public String toString() {
+      var bindingText = this.bindings.stream()
+          .map(bnd -> "rec " + bnd.getLeft() + " = " + bnd.getRight())
+          .collect(Collectors.joining(" and "));
+      return "let " + bindingText + " in " + this.body();
     }
   }

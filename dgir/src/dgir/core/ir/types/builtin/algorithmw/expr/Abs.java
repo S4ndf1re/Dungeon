@@ -89,7 +89,8 @@ public final class Abs extends Expr implements IAbstraction<Expr, AlgorithmWType
 
   @Override
   public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-    return this.params.stream().anyMatch(param -> param.equals(symbol)) || this.body.containsSymbol(symbol);
+    // The bound names are not children; everything below is.
+    return this.params.stream().anyMatch(param -> param.equals(symbol)) || super.containsSymbol(symbol);
   }
 
   @Override

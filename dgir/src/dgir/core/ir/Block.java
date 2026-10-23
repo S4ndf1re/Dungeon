@@ -322,6 +322,20 @@ public final class Block extends IRObjectWithUseList<Block, BlockOperand> implem
   }
 
   /**
+   * Appends this block's header line ({@code block <index> {}), one line per
+   * operation (each recursively printing its own regions), and the closing
+   * brace to {@code sb}.
+   */
+  void printTo(StringBuilder sb, int indent) {
+    String pad = " ".repeat(indent);
+    sb.append(pad).append("block ").append(getIndex()).append(" {\n");
+    for (Operation operation : getOperations()) {
+      operation.printTo(sb, indent + 2);
+    }
+    sb.append(pad).append("}\n");
+  }
+
+  /**
    * Get the set of values defined by operations in this block. This includes all
    * values returned by
    * the operations in this block, including those of nested (and

@@ -104,10 +104,6 @@ public final class CastOp extends Expr {
     this.operand.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-    return this.operand.containsSymbol(symbol);
-  }
 
   @Override
   public boolean equals(Object obj) {

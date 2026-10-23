@@ -62,10 +62,6 @@ public final class Tuple extends Expr {
       return this.elements;
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, SystemFType> symbol) {
-      return this.elements.stream().anyMatch(elem -> elem.containsSymbol(symbol));
-    }
 
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {

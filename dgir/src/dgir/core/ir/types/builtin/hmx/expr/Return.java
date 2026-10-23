@@ -6,6 +6,7 @@ import java.util.Objects;
 import dgir.core.debug.Location;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Symbol;
+import dgir.core.ir.types.builtin.hmx.Constraint;
 import dgir.core.ir.types.builtin.hmx.Env;
 import dgir.core.ir.types.builtin.hmx.GenerateResult;
 import dgir.core.ir.types.builtin.hmx.HMXExpr;
@@ -49,18 +50,21 @@ public class Return extends HMXExpr {
       return List.of(this.value.getExpr());
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-      return this.value.containsSymbol(symbol);
-    }
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {
       GenerateResult inferred = engine.generate(this.value, env, type);
-      var topScope = env.topScope();
+      var returnType = env.topScope().flatMap(scope -> scope.getReturnType());
 
-      if (topScope.isPresent()) {
-        topScope.get().addReturnType(type);
+      if (returnType.isPresent()) {
+        // Relate the returned value to the function's result right here. The
+        // returned value is usually a let-bound local; constraining it outside
+        // that let would refer to the local scheme's quantified variable
+        // instead of the value actually returned. The result variable belongs
+        // to the enclosing function, so the local scheme cannot quantify it.
+        return new GenerateResult(new Constraint.And(
+            new Constraint.Equal(type, returnType.get()),
+            inferred.constr()));
       }
 
       return new GenerateResult(inferred.constr());

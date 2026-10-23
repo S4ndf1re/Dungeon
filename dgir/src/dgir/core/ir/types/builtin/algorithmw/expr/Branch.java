@@ -96,12 +96,6 @@ public final class Branch extends Expr {
     this.block.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-    return this.block.containsSymbol(symbol)
-        || this.condition.isPresent() && (this.condition.get().getLeft().containsSymbol(symbol)
-            || this.condition.get().getRight().containsSymbol(symbol));
-  }
 
   @Override
   public boolean equals(Object obj) {

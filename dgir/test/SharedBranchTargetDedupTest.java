@@ -1,9 +1,5 @@
-import static dgir.dialect.arith.ArithOps.BinaryOp;
 import static dgir.dialect.arith.ArithOps.ConstantOp;
-import static dgir.dialect.arith.ArithAttrs.BinModeAttr.BinMode;
-import static dgir.dialect.builtin.BuiltinAttrs.IntegerAttribute;
 import static dgir.dialect.builtin.BuiltinOps.ProgramOp;
-import static dgir.dialect.builtin.BuiltinTypes.IntegerT;
 import static dgir.dialect.cf.CfOps.BranchCondOp;
 import static dgir.dialect.func.FuncOps.FuncOp;
 import static dgir.dialect.func.FuncOps.ReturnOp;
@@ -13,7 +9,6 @@ import static dgir.dialect.func.FuncTypes.FuncType;
 import dgir.core.ir.Dialect;
 import dgir.core.ir.Operation;
 import dgir.core.ir.TypeUniquer;
-import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression.ExpressionVisitor;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;

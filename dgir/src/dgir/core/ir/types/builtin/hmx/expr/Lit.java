@@ -48,10 +48,6 @@ public final class Lit extends HMXExpr {
       return List.of();
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-      return false;
-    }
 
     @Override
     public GenerateResult generate(TypeInference engine, Env env, HMXType type) {

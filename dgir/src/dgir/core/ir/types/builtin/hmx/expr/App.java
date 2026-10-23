@@ -106,10 +106,6 @@ public final class App extends HMXExpr implements IApplication<HMXExpr, HMXType>
     return List.copyOf(list);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-    return this.func.containsSymbol(symbol) || this.args.stream().anyMatch(arg -> arg.containsSymbol(symbol));
-  }
 
   @Override
   public List<HMXExpr> getApplications() {
@@ -125,20 +121,8 @@ public final class App extends HMXExpr implements IApplication<HMXExpr, HMXType>
   public HMXExpr instantiateInner(TypeInference engine, InstEnv<HMXExpr, HMXType, Subst> env, Subst solution) {
     this.inferredFunctionType = this.inferredFunctionType.map(fnTy -> solution.apply(fnTy));
 
-    var funcExpr = engine.asExpression(this.func);
-    if (this.inferredFunctionType.isPresent() && funcExpr.getInferredType().isPresent()) {
-      // var newSolution = solution.expand(engine, funcExpr,
-      // this.inferredFunctionType.get());
-
-      // return new App(this, this.func.instantiate(engine, env, newSolution),
-      // this.args.stream().map(arg -> arg.instantiate(engine, env,
-      // newSolution)).toList());
-      return new App(this, this.func.instantiate(engine, env, solution),
-          this.args.stream().map(arg -> arg.instantiate(engine, env, solution)).toList());
-    } else {
-      return new App(this, this.func.instantiate(engine, env, solution),
-          this.args.stream().map(arg -> arg.instantiate(engine, env, solution)).toList());
-    }
+    return new App(this, this.func.instantiate(engine, env, solution),
+        this.args.stream().map(arg -> arg.instantiate(engine, env, solution)).toList());
 
   }
 
@@ -184,7 +168,7 @@ public final class App extends HMXExpr implements IApplication<HMXExpr, HMXType>
     return new GenerateResult(
         new Constraint.Exists(quantifiedVars,
             new Constraint.And(new Constraint.And(argConstraints),
-                new Constraint.Equal(fnType, builtArrowType),
+                new Constraint.Sub(fnType, builtArrowType),
                 funcInferRes.constr())));
   }
 

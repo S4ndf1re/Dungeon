@@ -8,8 +8,6 @@ import java.util.function.BiConsumer;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import dgir.core.ir.types.builtin.hmx.TypeInference;
-
 /**
  * Marker class representing a unique type variable.
  *
@@ -31,6 +29,8 @@ public class TypeVar<T extends Type<T>> {
 
   private TypeVar<T> parent;
   private Optional<T> assignedType;
+  private ArrayList<T> upperBounds;
+  private ArrayList<T> lowerBounds;
   private int level;
 
   @Override
@@ -121,22 +121,28 @@ public class TypeVar<T extends Type<T>> {
    * open scopes
    * (see {@link #addScope()}).
    */
-  @SuppressWarnings("unchecked")
   public TypeVar() {
     this.idx = TypeVar.counter++;
     openScopes.forEach(scope -> ((TypeVarScope<T>) scope).addCreated(this));
     this.parent = this;
     this.assignedType = Optional.empty();
     this.level = -1;
+    this.upperBounds = new ArrayList<>();
+    this.lowerBounds = new ArrayList<>();
   }
 
-  @SuppressWarnings("unchecked")
   public TypeVar(int level) {
     this.idx = TypeVar.counter++;
     openScopes.forEach(scope -> ((TypeVarScope<T>) scope).addCreated(this));
     this.parent = this;
     this.assignedType = Optional.empty();
     this.level = level;
+    this.upperBounds = new ArrayList<>();
+    this.lowerBounds = new ArrayList<>();
+  }
+
+  public long getIndex() {
+    return this.idx;
   }
 
   /**
@@ -197,14 +203,13 @@ public class TypeVar<T extends Type<T>> {
   }
 
   public TypeVar<T> find() {
-    var current = this;
-    while (current != current.parent) {
-      /// flatten the union find tree
-      current.parent = current.parent.parent;
-      current = current.parent;
+    if (this.parent == this) {
+      return this;
+    } else {
+      var root = this.parent.find();
+      this.parent = root;
+      return root;
     }
-
-    return current;
   }
 
   public static <T extends Type<T>> int mergeLevel(int l1, int l2, TypeVar<T> a, TypeVar<T> b) {
@@ -215,6 +220,7 @@ public class TypeVar<T extends Type<T>> {
   }
 
   public Optional<Pair<T, T>> unify(TypeVar<T> other) {
+
     if (this == other) {
       return Optional.empty();
     }
@@ -248,35 +254,83 @@ public class TypeVar<T extends Type<T>> {
       thisRoot.assignedType = otherRoot.getAssigendType();
     }
 
+    // Propagate bounds
+    addAllAbsent(thisRoot.lowerBounds, otherRoot.lowerBounds);
+    addAllAbsent(thisRoot.upperBounds, otherRoot.upperBounds);
+
     otherRoot.parent = thisRoot;
 
     return toUnify;
   }
 
+  // Bounds are a set: the same bound recorded twice adds nothing, while
+  // keeping duplicates doubles a list each time two variables carrying it are
+  // unified or a scheme copies it onto an instance.
+  private static <T> boolean addAbsent(List<T> bounds, T bound) {
+    if (bounds.contains(bound)) {
+      return false;
+    }
+    bounds.add(bound);
+    return true;
+  }
+
+  private static <T> void addAllAbsent(List<T> bounds, List<T> newBounds) {
+    for (var bound : newBounds) {
+      addAbsent(bounds, bound);
+    }
+  }
+
+  /**
+   * @return whether the bound is new
+   */
+  public boolean assignLowerBound(T type) {
+    var added = addAbsent(this.find().lowerBounds, type);
+    return added;
+  }
+
+  /**
+   * @return whether the bound is new
+   */
+  public boolean assignUpperBound(T type) {
+    var added = addAbsent(this.find().upperBounds, type);
+    return added;
+  }
+
+  public void assignLowerBounds(List<T> types) {
+    addAllAbsent(this.find().lowerBounds, types);
+  }
+
+  public void assignUpperBounds(List<T> types) {
+    addAllAbsent(this.find().upperBounds, types);
+  }
+
+  public void replaceLowerBounds(List<T> types) {
+    var root = this.find();
+    root.lowerBounds = new ArrayList<>();
+    addAllAbsent(root.lowerBounds, types);
+  }
+
+  public void replaceUpperBounds(List<T> types) {
+    var root = this.find();
+    root.upperBounds = new ArrayList<>();
+    addAllAbsent(root.upperBounds, types);
+  }
+
   public void assignType(T type) {
     var root = this.find();
-    var old = root.assignedType;
-    if (old.isPresent() && !old.get().equals(type)) {
-      TypeInference.trace("[T] OVERWRITE " + root + ": " + old.get() + " -> " + type);
-      java.util.Arrays.stream(Thread.currentThread().getStackTrace())
-          .map(StackTraceElement::toString)
-          .filter(s -> s.contains("dgir") && !s.contains("TypeVar.java"))
-          .limit(8)
-          .forEach(s -> TypeInference.trace("[T]   at " + s));
-    } else if (!old.isPresent() && (type.toString().equals("int32") || type.toString().equals("int64")
-        || type.toString().equals("number"))) {
-      TypeInference.trace("[T] assign " + root + " := " + type);
-      java.util.Arrays.stream(Thread.currentThread().getStackTrace())
-          .map(StackTraceElement::toString)
-          .filter(s -> s.contains("dgir") && !s.contains("TypeVar.java"))
-          .limit(5)
-          .forEach(s -> TypeInference.trace("[T]   at " + s));
-    }
     root.assignedType = Optional.ofNullable(type);
   }
 
   public Optional<T> getAssigendType() {
     return this.find().assignedType;
+  }
+
+  public List<T> getLowerBounds() {
+    return List.copyOf(this.find().lowerBounds);
+  }
+
+  public List<T> getUpperBounds() {
+    return List.copyOf(this.find().upperBounds);
   }
 
   public int getLevel() {

@@ -53,8 +53,8 @@ public final class ArithHMXConversion {
 
     ArithOps.BinaryOp binOp = (ArithOps.BinaryOp) op.asOp();
 
-    var lhs = new Var(Symbol.<HMXExpr, HMXType>of(binOp.getLhs()));
-    var rhs = new Var(Symbol.<HMXExpr, HMXType>of(binOp.getRhs()));
+    var lhs = new Var(binOp.getLocation(), Symbol.<HMXExpr, HMXType>of(binOp.getLhs()));
+    var rhs = new Var(binOp.getLocation(), Symbol.<HMXExpr, HMXType>of(binOp.getRhs()));
 
     var result = new BinOp(binOp.getLocation(), lhs, rhs, binOp.getMode());
 
@@ -75,7 +75,7 @@ public final class ArithHMXConversion {
   public static HMXExpr convertUnaryOp(Operation op, TypeInference engine) {
 
     ArithOps.UnaryOp unaryOp = (ArithOps.UnaryOp) op.asOp();
-    var lhs = new Var(Symbol.<HMXExpr, HMXType>of(unaryOp.getOperand()));
+    var lhs = new Var(unaryOp.getLocation(), Symbol.<HMXExpr, HMXType>of(unaryOp.getOperand()));
     var unaryMode = unaryOp.getMode();
 
 
@@ -96,7 +96,7 @@ public final class ArithHMXConversion {
   public static HMXExpr convertCastOp(Operation op, TypeInference engine) {
 
     ArithOps.CastOp castOp = (ArithOps.CastOp) op.asOp();
-    var value = new Var(Symbol.<HMXExpr, HMXType>of(castOp.getOperand()));
+    var value = new Var(castOp.getLocation(), Symbol.<HMXExpr, HMXType>of(castOp.getOperand()));
     var targetType = castOp.getTargetType();
 
 

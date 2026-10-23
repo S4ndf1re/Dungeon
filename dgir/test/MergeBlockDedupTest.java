@@ -26,7 +26,6 @@ import dgir.dialect.builtin.BuiltinHMXConversion;
 import dgir.dialect.builtin.BuiltinTypes.UnitType;
 import dgir.dialect.cf.CfHMXConversion;
 import dgir.dialect.func.FuncHMXConversion;
-import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -89,6 +88,11 @@ public class MergeBlockDedupTest {
     // The ProgramOp conversion inserts a synthetic `call main`; main must exist.
     FuncOp main = programOp.addOperation(
         new FuncOp(LOC, "main", FuncType.of(List.of(), TypeUniquer.uniqueInstance(new UnitType()))));
+    var callArg = main.getEntryBlock().addOperation(
+        new ConstantOp(LOC, new IntegerAttribute(1, int32)));
+    var callResult = main.getEntryBlock().addOperation(
+        new dgir.dialect.func.FuncOps.CallOp(LOC, "foo", List.of(callArg.getResult()),
+            FuncType.of(List.of(int32), int32)));
     main.getEntryBlock().addOperation(new ReturnOp(LOC));
 
     var solver = new HMXInference().getNewSolverInstance();

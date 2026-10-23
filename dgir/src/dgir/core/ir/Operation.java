@@ -1204,6 +1204,36 @@ public final class Operation implements Serializable, Cloneable {
     return sb.toString();
   }
 
+  /**
+   * Pretty-prints this operation and its entire region tree to {@link System#out},
+   * with one line per operation, block, and region and two-space indentation per
+   * nesting level.
+   */
+  public void printOp() {
+    var sb = new StringBuilder();
+    printTo(sb, 0);
+    System.out.print(sb);
+  }
+
+  /**
+   * Appends this operation's single-line rendering, followed by any nested
+   * regions, to {@code sb}.
+   */
+  void printTo(StringBuilder sb, int indent) {
+    String pad = " ".repeat(indent);
+    sb.append(pad).append(toString());
+    var regions = getRegions();
+    if (regions.isEmpty()) {
+      sb.append('\n');
+      return;
+    }
+    sb.append(" {\n");
+    for (Region region : regions) {
+      region.printTo(sb, indent + 2);
+    }
+    sb.append(pad).append("}\n");
+  }
+
   public Optional<Operation> getCopyFrom() {
     return this.copyFrom;
   }

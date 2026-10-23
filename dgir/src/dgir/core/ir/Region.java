@@ -362,4 +362,30 @@ public final class Region {
 
     return List.copyOf(collected);
   }
+
+  /**
+   * Appends this region's header line ({@code region <index> {}), its blocks, and
+   * the closing brace to {@code sb}. Non-empty region values are printed on the
+   * header in parentheses.
+   */
+  void printTo(StringBuilder sb, int indent) {
+    String pad = " ".repeat(indent);
+    sb.append(pad).append("region ").append(getIndex());
+    var values = getRegionValues();
+    if (!values.isEmpty()) {
+      sb.append(" (");
+      for (int i = 0; i < values.size(); i++) {
+        if (i > 0) {
+          sb.append(", ");
+        }
+        sb.append(values.get(i));
+      }
+      sb.append(')');
+    }
+    sb.append(" {\n");
+    for (Block block : getBlocks()) {
+      block.printTo(sb, indent + 2);
+    }
+    sb.append(pad).append("}\n");
+  }
 }

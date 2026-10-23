@@ -106,6 +106,35 @@ public class MemHMXConversionTest {
     assertTrue(solved.getLeft() instanceof HMXType.LitType);
   }
 
+  /**
+   * Minimal reproduction of the t7 resolution failure: alloc + set + get +
+   * return. The getter result variable is only ever touched by var&lt;:var
+   * subtype leaves, so its union-find class must end up with the element type
+   * via bound propagation. Asserts the returned type is fully resolved.
+   */
+  @Test
+  public void setThenGetResolvesElementType() {
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    ProgramOp programOp = entry.getLeft();
+    FuncOp funcOp = entry.getRight();
+
+    var size = funcOp.addOperation(new ConstantOp(LOC, 4), 0);
+    var alloc = funcOp.addOperation(
+        new AllocGcOp(LOC, BuiltinTypes.IntegerT.INT32(), size.getResult()), 0);
+    var idx = funcOp.addOperation(new ConstantOp(LOC, 1), 0);
+    var value = funcOp.addOperation(new ConstantOp(LOC, 42), 0);
+    funcOp.addOperation(new SetElementOp(LOC, alloc.getResult(), idx.getResult(), value.getResult()), 0);
+    var loaded = funcOp.addOperation(new GetElementOp(LOC, alloc.getResult(), idx.getResult()), 0);
+
+    funcOp.addOperation(new ReturnOp(LOC, loaded.getResult()), 0);
+
+    var solved = solve(programOp);
+
+    System.out.println("[MINFAIL] final type: " + solved.getLeft());
+    assertTrue(solved.getLeft() instanceof HMXType.LitType, "result type unresolved: " + solved.getLeft());
+    assertEquals(TypeIdent.from("int32"), ((HMXType.LitType) solved.getLeft()).tyName);
+  }
+
   @Test
   public void getSetElementWithIntegerIndexSurviveRebuild() {
     Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();

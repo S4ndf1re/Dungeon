@@ -88,7 +88,8 @@ public final class Abs extends HMXExpr implements IAbstraction<HMXExpr, HMXType>
 
     @Override
     public boolean containsSymbol(Symbol<HMXExpr, HMXType> symbol) {
-      return this.params.stream().anyMatch(param -> param.equals(symbol)) || this.body.containsSymbol(symbol);
+      // The bound names are not children; everything below is.
+      return this.params.stream().anyMatch(param -> param.equals(symbol)) || super.containsSymbol(symbol);
     }
 
     @Override
@@ -116,6 +117,7 @@ public final class Abs extends HMXExpr implements IAbstraction<HMXExpr, HMXType>
       Scope<HMXType> functionScope = newEnv.addScope();
 
       TypeVar<HMXType> retTypeVar = new TypeVar<>();
+      functionScope.setReturnType(new HMXType.Var(this.getLocation(), retTypeVar));
       GenerateResult b = engine.generate(body, newEnv, new HMXType.Var(this.getLocation(), retTypeVar));
 
       // In terms of IR, the body will not have a direct return parameter. Though it
@@ -147,16 +149,23 @@ public final class Abs extends HMXExpr implements IAbstraction<HMXExpr, HMXType>
 
       paramsAndTypeVars.add(retTypeVar);
 
-      // Unify all return values. If return values do not have the same type, error
-      // will get thrown here!
+      // Return values are related to retTypeVar by the Return expressions
+      // themselves (see Return.generate), inside the scope where each returned
+      // value is bound.
+      //
+      // NOTE(jan): the signature Equal MUST be solved before the body. The
+      // body's constraints (e.g. a binary op's operand Sub/Determine leaves)
+      // reference the parameter variables and the result variable; solving the
+      // body first defers those leaves because the signature has not decided
+      // them yet, and the deferral then leaks into enclosing generalizations
+      // where the leaves can never be resolved against the published scheme.
+      // The Equal stays inside the Exists so the quantified variables get
+      // their levels assigned before the Equal merges them.
       return new GenerateResult(
-          new Constraint.And(
-              new Constraint.Exists(paramsAndTypeVars,
-                  new Constraint.LetSeq(bindings, b.constr())),
-              new Constraint.Equal(type, resultType),
-              new Constraint.And(functionScope.getAllReturnTypesInScope().stream()
-                  .map(t -> (Constraint) new Constraint.Equal(new HMXType.Var(this.getLocation(), retTypeVar), t))
-                  .toList())));
+          new Constraint.Exists(paramsAndTypeVars,
+              new Constraint.And(
+                  new Constraint.Equal(type, resultType),
+                  new Constraint.LetSeq(bindings, b.constr()))));
     }
 
     @Override

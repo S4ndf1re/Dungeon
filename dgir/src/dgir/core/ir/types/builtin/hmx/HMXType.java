@@ -33,23 +33,47 @@ public abstract sealed class HMXType extends Type<HMXType> {
 
   public Scheme generalize(int level, Constraint constr) {
     var type = this.deref();
-    Set<TypeVar<HMXType>> ftv = type.freeTypeVars();
 
-    List<TypeVar<HMXType>> unboundFtv = ftv.stream().map(v -> v.find()).filter(v -> v.getLevel() >= level).toList();
+    var freeTypeVars = new HashSet<TypeVar<HMXType>>();
+    for (var tv : type.freeTypeVars()) {
+      freeTypeVars.add(tv.find());
 
-    return new Scheme(unboundFtv, type, constr);
+      for (var upper : tv.getUpperBounds()) {
+        for (var upperTv : upper.freeTypeVars()) {
+          freeTypeVars.add(upperTv.find());
+        }
+      }
+
+      for (var lower : tv.getLowerBounds()) {
+        for (var lowerTv : lower.freeTypeVars()) {
+          freeTypeVars.add(lowerTv.find());
+        }
+      }
+    }
+
+    for (var tv : constr.freeTypeVars()) {
+      freeTypeVars.add(tv);
+
+      for (var upper : tv.getUpperBounds()) {
+        for (var upperTv : upper.freeTypeVars()) {
+          freeTypeVars.add(upperTv.find());
+        }
+      }
+
+      for (var lower : tv.getLowerBounds()) {
+        for (var lowerTv : lower.freeTypeVars()) {
+          freeTypeVars.add(lowerTv.find());
+        }
+      }
+    }
+
+    List<TypeVar<HMXType>> unboundFtv = freeTypeVars.stream().map(v -> v.find()).filter(v -> v.getLevel() >= level)
+        .toList();
+
+    var scheme = new Scheme(unboundFtv, type, constr);
+
+    return scheme;
   }
-
-  /**
-   * unify both this and other to a common substitution that can be used for
-   * inference
-   *
-   * @param other The other type to unify with.
-   * @throws RuntimeException if unimplemented
-   */
-  public abstract void unify(
-      TypeInference engine,
-      HMXType other);
 
   @Override
   public boolean occursCheck(TypeVar<HMXType> ty) {
@@ -90,10 +114,12 @@ public abstract sealed class HMXType extends Type<HMXType> {
         var dereffed = this.deref();
         var otherDereffed = vOther.deref();
         if (dereffed instanceof Var v1 && otherDereffed instanceof Var v2) {
-          return v1.tyVar.find().equals(v2.tyVar.find());
+          var res = v1.tyVar.find().equals(v2.tyVar.find());
+          return res;
         }
 
-        return dereffed.equals(otherDereffed);
+        var res2 = dereffed.equals(otherDereffed);
+        return res2;
       }
       return false;
     }
@@ -108,32 +134,80 @@ public abstract sealed class HMXType extends Type<HMXType> {
     }
 
     @Override
-    public void unify(TypeInference engine, HMXType other) {
-      // Maybe the two types (this and other) are actually the same type variable
-      if (other instanceof Var b) {
-        var unifyRes = this.tyVar.unify(b.tyVar);
-        if (unifyRes.isPresent()) {
-          engine.unify(unifyRes.get().getLeft(), unifyRes.get().getRight());
-        }
-      } else if (other.occursCheck(this.tyVar)) {
-        throw new TypingException.OccursCheckFailed(other, this.tyVar);
-      } else {
-        if (this.tyVar.getAssigendType().isPresent()) {
-          engine.unify(this.tyVar.getAssigendType().get(), other);
-        } else {
-          other.occursCheckAjustLevel(this.tyVar);
-          this.tyVar.assignType(other);
-        }
-      }
-    }
-
-    @Override
     public Set<TypeVar<HMXType>> freeTypeVars() {
       if (this.tyVar.getAssigendType().isPresent()) {
         return Set.copyOf(this.tyVar.getAssigendType().get().freeTypeVars());
       }
 
       return Set.of(this.tyVar.find());
+    }
+
+    public boolean determineTypeWhenBoundConstrainted(TypeInference engine, boolean allowUpperBoundGuess) {
+      // When a type is already assigned no further subtyping constraints apply, other
+      // than the already checked!
+      // From then on, every subtype constraint would actually subtype check the
+      // assigned type!
+      if (this.tyVar.getAssigendType().isPresent()) {
+        return false;
+      }
+
+      // A concrete type may be chosen from lower bounds (what the variable
+      // actually is). Upper bounds are only used when the caller explicitly
+      // allows guessing: an upper-bound choice is not evidence, it pre-empts
+      // annotations and unifications that would otherwise decide the variable.
+      var lowerBounds = this.tyVar.getLowerBounds();
+      var upperBounds = this.tyVar.getUpperBounds();
+      if (lowerBounds.isEmpty() && !(allowUpperBoundGuess && !upperBounds.isEmpty())) {
+        return false;
+      }
+
+      // Find candiates that may be the supertype
+      HMXType choice;
+      if (!lowerBounds.isEmpty()) {
+        choice = lowerBounds.getFirst().deref();
+        for (int i = 1; i < lowerBounds.size(); i++) {
+          var candidate = lowerBounds.get(i).deref();
+          try {
+            engine.subtype(choice, candidate);
+            choice = candidate;
+          } catch (Throwable e) {
+          }
+        }
+      } else {
+        // No lower-bound evidence: take the greatest upper bound as the
+        // choice, checking the remaining uppers against it.
+        choice = upperBounds.getFirst().deref();
+        for (int i = 1; i < upperBounds.size(); i++) {
+          var candidate = upperBounds.get(i).deref();
+          try {
+            engine.subtype(candidate, choice);
+            choice = candidate;
+          } catch (Throwable e) {
+          }
+        }
+      }
+
+      // Pass 1 (evidence-driven only) must not pin a variable to another
+      // still-unresolved variable: that would freeze the reference and lock
+      // both out of later resolution. Leave the pair for pass 2, which may
+      // guess concrete types for the whole chain.
+      if (!allowUpperBoundGuess && !choice.isFullySpecified()) {
+        return false;
+      }
+
+      // After finding a possible common subtype, check against all constraints.
+      // The upper bounds act as constraints here: they are enforced against the
+      // chosen type instead of being guessed from. When this fails, no valid
+      // solution will exist, and the type system fails.
+      for (var lowerBound : lowerBounds) {
+        engine.subtype(lowerBound, choice);
+      }
+      for (var upperBound : upperBounds) {
+        engine.subtype(choice, upperBound);
+      }
+
+      this.tyVar.assignType(choice);
+      return true;
     }
 
     @Override
@@ -230,16 +304,6 @@ public abstract sealed class HMXType extends Type<HMXType> {
     }
 
     @Override
-    public void unify(TypeInference engine, HMXType other) {
-      if (other instanceof Arrow b) {
-        engine.unify(this.from, b.from);
-        engine.unify(this.to, b.to);
-      } else {
-        throw new TypingException.UnificationFailed(this, other);
-      }
-    }
-
-    @Override
     public Set<TypeVar<HMXType>> freeTypeVars() {
       var set = new HashSet<TypeVar<HMXType>>();
       set.addAll(this.from.freeTypeVars());
@@ -315,34 +379,12 @@ public abstract sealed class HMXType extends Type<HMXType> {
 
     @Override
     public boolean equals(Object obj) {
-      return (obj instanceof LitType && ((LitType) obj).tyName.equals(this.tyName));
+      return obj instanceof LitType other && other.tyName.equals(this.tyName);
     }
 
     @Override
     public int hashCode() {
       return Objects.hash(this.tyName, this.parameters);
-    }
-
-    @Override
-    public void unify(TypeInference engine, HMXType other) {
-      if (other instanceof LitType otherLit &&
-          otherLit.tyName.equals(this.tyName)) {
-        if (this.parameters.size() != otherLit.parameters.size()) {
-          throw new RuntimeException(
-              "Parameter count mismatch: " +
-                  this.parameters.size() +
-                  " vs " +
-                  otherLit.parameters.size());
-        }
-
-        for (int i = 0; i < this.parameters.size(); i++) {
-          engine.unify(
-              this.parameters.get(i),
-              otherLit.parameters.get(i));
-        }
-      } else {
-        throw new TypingException.UnificationFailed(this, other);
-      }
     }
 
     @Override
@@ -383,13 +425,6 @@ public abstract sealed class HMXType extends Type<HMXType> {
     @Override
     public String toString() {
       return "" + this.size;
-    }
-
-    @Override
-    public void unify(TypeInference engine, HMXType other) {
-      if (!(other instanceof NumericType otherNum && this.size == otherNum.size)) {
-        throw new TypingException.UnificationFailed(this, other);
-      }
     }
 
     @Override
@@ -471,27 +506,6 @@ public abstract sealed class HMXType extends Type<HMXType> {
       this.elements.stream().forEach(e -> set.addAll(e.freeTypeVars()));
 
       return Set.copyOf(set);
-    }
-
-    @Override
-    public void unify(TypeInference engine, HMXType other) {
-      if (other instanceof Tuple b) {
-        if (this.elements.size() != b.elements.size()) {
-          throw new TypingException.TupleSizeMismatch(
-              this,
-              b,
-              this.elements.size(),
-              b.elements.size());
-        }
-
-        for (int i = 0; i < this.elements.size(); i++) {
-          engine.unify(
-              this.elements.get(i),
-              b.elements.get(i));
-        }
-      } else {
-        throw new TypingException.UnificationFailed(this, other);
-      }
     }
 
     @Override

@@ -127,10 +127,6 @@ public final class BinOp extends Expr {
     this.rhs.replaceSymbol(original, replacement);
   }
 
-  @Override
-  public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-    return this.lhs.containsSymbol(symbol) || this.rhs.containsSymbol(symbol);
-  }
 
   @Override
   public boolean equals(Object obj) {

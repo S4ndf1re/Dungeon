@@ -10,24 +10,30 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.types.traits.IExpressionCell;
 
-public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> extends HashConsing<E, T> {
+public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> extends HashConsing<E, T, S> {
   private Optional<InstEnv<E, T, S>> parentEnv;
   private E bindingExpression;
   private HashMap<Symbol<E, T>, Pair<E, Integer>> env;
+  // The solution in effect where this scope is defined. Bindings of this scope
+  // are instantiated under it (closure semantics), not under the solution of
+  // whoever references them.
+  private Optional<S> scopeSolution;
   private HashMap<Pair<E, S>, Optional<E>> visited;
   private IdentityHashMap<E, List<IExpressionCell<E, T>>> memoryCells;
 
   public InstEnv(E expr) {
     this.parentEnv = Optional.empty();
+    this.scopeSolution = Optional.empty();
     this.env = new HashMap<>();
     this.visited = new HashMap<>();
     this.bindingExpression = expr;
     this.memoryCells = new IdentityHashMap<>();
   }
 
-  public InstEnv(InstEnv<E, T, S> parent, E expr) {
+  public InstEnv(InstEnv<E, T, S> parent, E expr, S scopeSolution) {
     super(parent);
     this.parentEnv = Optional.ofNullable(parent);
+    this.scopeSolution = Optional.ofNullable(scopeSolution);
     this.env = new HashMap<>();
     this.bindingExpression = expr;
 
@@ -69,6 +75,16 @@ public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> ext
     return Optional.empty();
   }
 
+  /**
+   * The solution in effect in the scope that defines the given symbol.
+   */
+  public Optional<S> getScopeSolution(Symbol<E, T> sym) {
+    if (this.env.containsKey(sym)) {
+      return this.scopeSolution;
+    }
+    return this.parentEnv.flatMap(parent -> parent.getScopeSolution(sym));
+  }
+
   public void visit(E expr, S solution) {
     this.visited.put(Pair.of(expr, solution), Optional.empty());
   }
@@ -103,7 +119,6 @@ public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> ext
       return Optional.empty();
     }
   }
-
   public void addCellForExpr(E expr, IExpressionCell<E, T> cell) {
     this.memoryCells.computeIfAbsent(expr, e -> new ArrayList<>());
 

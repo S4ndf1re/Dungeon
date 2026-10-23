@@ -71,10 +71,6 @@ public class Seq extends Expr {
       this.expressions.forEach(e -> e.replaceSymbol(original, replacement));
     }
 
-    @Override
-    public boolean containsSymbol(Symbol<Expr, AlgorithmWType> symbol) {
-      return this.expressions.stream().anyMatch(e -> e.containsSymbol(symbol));
-    }
 
     @Override
     public InferResult infer(TypeInference engine, Env env) {
