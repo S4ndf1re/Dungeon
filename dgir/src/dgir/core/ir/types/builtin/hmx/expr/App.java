@@ -191,6 +191,7 @@ public final class App extends HMXExpr implements IApplication<HMXExpr, HMXType>
     }
   }
 
+  @Override
   public Optional<HMXType> getInferredFunctionType() {
     return this.inferredFunctionType;
   }

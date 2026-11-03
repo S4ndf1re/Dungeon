@@ -191,7 +191,7 @@ public sealed interface FuncOps {
         @NotNull String name,
         @NotNull List<Value> operands,
         @NotNull FuncType calleeType,
-        List<Type> typeParams) {
+        List<Optional<Type>> typeParams) {
       setOperation(Operation.Create(location, this, operands, null, calleeType.getOutputAsNullable()));
       setCallee(name, calleeType);
       setTypeParams(typeParams);
@@ -227,7 +227,7 @@ public sealed interface FuncOps {
         @NotNull Location location,
         @NotNull String name,
         @NotNull List<Value> operands,
-        List<Type> typeParams,
+        List<Optional<Type>> typeParams,
         @Nullable MaybeType returnType) {
       var funcType = FuncType.of(operands.stream().map(Value::getType).toList(), returnType);
       setOperation(Operation.Create(location, this, operands, null, returnType));
@@ -266,7 +266,7 @@ public sealed interface FuncOps {
         @NotNull Location location,
         @NotNull String name,
         @NotNull FuncType calleeType,
-        List<Type> typeParams,
+        List<Optional<Type>> typeParams,
         Value... operands) {
       this(location, name, List.of(operands), calleeType, typeParams);
     }
@@ -295,7 +295,7 @@ public sealed interface FuncOps {
      * @param operands the argument values.
      */
     public CallOp(
-        @NotNull Location location, @NotNull FuncOp funcOp, @NotNull List<Value> operands, List<Type> typeParams) {
+        @NotNull Location location, @NotNull FuncOp funcOp, @NotNull List<Value> operands, List<Optional<Type>> typeParams) {
       setOperation(Operation.Create(location, this, operands, null, funcOp.getType().getOutputAsNullable()));
       setCallee(funcOp.getFuncName(), funcOp.getType());
       setTypeParams(typeParams);
@@ -322,7 +322,7 @@ public sealed interface FuncOps {
      * @param funcOp   the function to call.
      * @param operands the argument values (varargs).
      */
-    public CallOp(@NotNull Location location, @NotNull FuncOp funcOp, List<Type> typeParams, Value... operands) {
+    public CallOp(@NotNull Location location, @NotNull FuncOp funcOp, List<Optional<Type>> typeParams, Value... operands) {
       this(location, funcOp, List.of(operands), typeParams);
     }
 
@@ -381,7 +381,11 @@ public sealed interface FuncOps {
       getSymbolTypeAttribute().setType(type);
     }
 
-    private void setTypeParams(List<Type> params) {
+    /**
+     * Sets the type arguments, one per type abstraction of the callee, in order.
+     * A hole ({@link Optional#empty()}) is inferred from the call's operands.
+     */
+    private void setTypeParams(List<Optional<Type>> params) {
       getTypeParamsAttribute().setTypes(params);
     }
 

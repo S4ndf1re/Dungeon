@@ -10,6 +10,7 @@ import dgir.core.serialization.IntegerAttributeDeserializer;
 import dgir.core.serialization.IntegerAttributeSerializer;
 import dgir.dialect.builtin.BuiltinTypes.UnitType;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -398,35 +399,39 @@ public sealed interface BuiltinAttrs {
     }
   }
 
+  /**
+   * Attribute that carries a list of type arguments. Each entry is either an
+   * annotated type, or a hole ({@link Optional#empty()}) whose type is inferred.
+   */
   final class TypeListAttribute extends Attribute implements BuiltinAttrs {
-    private List<Type> types;
+    private List<Optional<Type>> types;
 
     public TypeListAttribute() {
       this.types = List.of();
     }
 
     public TypeListAttribute(Type... types) {
-      this.types = List.of(types);
+      this.types = Arrays.stream(types).map(Optional::of).toList();
     }
 
     @Contract(pure = true)
     @Override
-    public @NotNull List<Type> getStorage() {
+    public @NotNull List<Optional<Type>> getStorage() {
       return types;
     }
 
     /**
-     * Returns the wrapped type as an {@link Optional}.
+     * Returns the type arguments, where a hole is {@link Optional#empty()}.
      *
-     * @return an optional containing the wrapped type, or empty if unset.
+     * @return the type arguments.
      */
     @Contract(pure = true)
-    public @NotNull List<Type> getTypes() {
+    public @NotNull List<Optional<Type>> getTypes() {
       return types;
     }
 
-    public void setTypes(Collection<? extends Type> type) {
-      this.types = List.copyOf(type);
+    public void setTypes(Collection<Optional<Type>> types) {
+      this.types = List.copyOf(types);
     }
   }
 

@@ -24,39 +24,47 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
 
     private final Expr fun;
     private final Optional<Expr> arg;
+    // The arrow type of the function this application applies to
+    private Optional<SystemFType> inferredFunctionType;
 
     public App(Expr fun) {
       this.fun = fun;
       this.arg = Optional.empty();
+      this.inferredFunctionType = Optional.empty();
     }
 
     public App(Location loc, Expr fun) {
       super(loc);
       this.fun = fun;
       this.arg = Optional.empty();
+      this.inferredFunctionType = Optional.empty();
     }
 
     public App(Expr fun, Expr arg) {
       this.fun = fun;
       this.arg = Optional.of(arg);
+      this.inferredFunctionType = Optional.empty();
     }
 
     public App(Location loc, Expr fun, Expr arg) {
       super(loc);
       this.fun = fun;
       this.arg = Optional.of(arg);
+      this.inferredFunctionType = Optional.empty();
     }
 
     public App(App other) {
       super(other);
       this.fun = other.fun;
       this.arg = other.arg;
+      this.inferredFunctionType = other.inferredFunctionType;
     }
 
     public App(App other, Expr fun, Optional<Expr> arg) {
       super(other);
       this.fun = fun;
       this.arg = arg;
+      this.inferredFunctionType = other.inferredFunctionType;
     }
 
     public Expr fun() {
@@ -78,7 +86,9 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
       var funcTypeApplied = funcInferred.ctx().apply(funcInferred.type());
 
       TypeResult result;
+      SystemFType functionType;
       if (funcTypeApplied instanceof SystemFType.Arrow arrow) {
+        functionType = arrow;
         var resultTy = arrow.to;
         var currentCtx = funcInferred.ctx();
         if (this.arg.isPresent()) {
@@ -113,6 +123,7 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
           newCtx.push(new Entry.ETVarBnd(a1));
           newCtx.push(new Entry.ETVarBnd(a2));
           newCtx.extend(breakRes.right());
+          functionType = arrowType;
 
           checkRes = engine.check(
               newCtx,
@@ -128,6 +139,7 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
           newCtx.push(new Entry.SETVarBnd(a, arrowType));
           newCtx.push(new Entry.ETVarBnd(a2));
           newCtx.extend(breakRes.right());
+          functionType = arrowType;
 
           checkRes = new CheckResult(newCtx);
         }
@@ -136,6 +148,11 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
       } else {
         throw new TypingException.ApplicationTypeError(this.getLocation());
       }
+
+      // Applied to the context after checking the argument, as the check may have
+      // solved existentials of the function type
+      this.inferredFunctionType = Optional.of(result.ctx().apply(functionType));
+
       return new TypeResult(result.type(), result.ctx());
     }
 
@@ -167,8 +184,13 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
 
     public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
         Context solution) {
-      return new App(this, this.fun.instantiate(engine, env, solution),
+      var instantiated = new App(this, this.fun.instantiate(engine, env, solution),
           this.arg.map(arg -> arg.instantiate(engine, env, solution)));
+      // Like the inferred type of any expression, the function type is applied to
+      // the final solution: in a chain of applications, existentials may only be
+      // solved by an outer application, after this one was inferred
+      instantiated.inferredFunctionType = this.inferredFunctionType.map(solution::apply);
+      return instantiated;
     }
 
     @Override
@@ -182,5 +204,19 @@ public final class App extends Expr implements IApplication<Expr, SystemFType> {
     @Override
     public Expr getFunction() {
       return this.fun;
+    }
+
+    /**
+     * A chain of curried applications is a single call: the function type is
+     * resolved to the innermost application, which applies the actual function.
+     * A zero argument application is a complete call though, applying its result
+     * is a new call.
+     */
+    @Override
+    public Optional<SystemFType> getInferredFunctionType() {
+      if (this.fun() instanceof App funApp && funApp.arg().isPresent()) {
+        return funApp.getInferredFunctionType();
+      }
+      return this.inferredFunctionType;
     }
   }

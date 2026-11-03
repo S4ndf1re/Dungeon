@@ -125,8 +125,16 @@ public final class FuncSystemFConversion {
 
       assert instantiatedExpr instanceof Abs;
       var abs = (Abs) instantiatedExpr;
-      assert abs.body() instanceof IBlock;
-      var bodyBlock = (IBlock<Expr, SystemFType>) abs.body();
+
+      // Multiple parameters are curried into one abstraction per parameter, the
+      // body block is found within the innermost one
+      var innermostAbs = abs;
+      for (int i = 1; i < params.size(); i++) {
+        assert innermostAbs.body() instanceof Abs;
+        innermostAbs = (Abs) innermostAbs.body();
+      }
+      assert innermostAbs.body() instanceof IBlock;
+      var bodyBlock = (IBlock<Expr, SystemFType>) innermostAbs.body();
 
       // Reconstruct the function type from inference, never from the
       // originally declared type: the declared type may be stale (e.g. void
@@ -209,15 +217,19 @@ public final class FuncSystemFConversion {
 
     Expr fun = new Var(callOp.getLocation(), Symbol.of(callOp.getCallee()));
     var typeApplications = callOp.getTypeParamsAttribute().getStorage();
+    // One type application per type argument; holes are inferred from the
+    // value arguments
     for (var appl : typeApplications) {
-      fun = new TApp(callOp.getLocation(), fun, SystemFConversionUtils.irTypeToSystemFType(engine, appl));
+      fun = new TApp(callOp.getLocation(), fun,
+          appl.map(type -> SystemFConversionUtils.irTypeToSystemFType(engine, type)));
     }
 
     var result = engine.App(callOp.getLocation(), fun, args);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
+      var application = peelApplication(instantiatedExpr);
       var app = (App) instantiatedExpr;
-      var funcType = app.getFunction().getInferredType();
+      var funcType = app.getInferredFunctionType();
       assert funcType.isPresent();
       assert funcType.get() instanceof SystemFType.Arrow;
 
@@ -226,7 +238,7 @@ public final class FuncSystemFConversion {
 
       // The operands are taken from the instantiated application chain, as
       // beta reduction/substitution may have replaced the original values!
-      var argExprs = peelApplication(instantiatedExpr).getRight();
+      var argExprs = application.getRight();
       assert argExprs.stream().allMatch(arg -> arg.getUnderlyingOperation().isPresent()
           && arg.getUnderlyingOperation().get().getOutput().isPresent());
 
@@ -237,7 +249,7 @@ public final class FuncSystemFConversion {
           .toList();
 
       return new CallOp(op.getLocation(), callOp.getCalleeName(), parameterOperations, (FuncTypes.FuncType) irType,
-          List.of())
+          callOp.getTypeParamsAttribute().getStorage())
           .getOperation();
     });
 

@@ -186,6 +186,7 @@ public final class App extends Expr implements IApplication<Expr, AlgorithmWType
       this.args.forEach(arg -> arg.replaceSymbol(original, replacement));
     }
 
+    @Override
     public Optional<AlgorithmWType> getInferredFunctionType() {
       return this.inferredFunctionType;
     }

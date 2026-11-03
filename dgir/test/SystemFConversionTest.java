@@ -1,10 +1,12 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static dgir.dialect.builtin.BuiltinAttrs.IntegerAttribute;
 import static dgir.dialect.builtin.BuiltinTypes.IntegerT;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +21,7 @@ import dgir.core.ir.types.Expression.ExpressionVisitor;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.TypeIdent;
+import dgir.core.ir.types.TypingException;
 import dgir.core.ir.types.builtin.systemf.Expr;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.compatibility.ExprOrOperator;
@@ -192,7 +195,7 @@ public class SystemFConversionTest {
     // id[int32](42) — the type parameter becomes a TApp on the callee
     var arg = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(42, IntegerT.INT32())), 0);
     var call = funcMainOp.addOperation(
-        new CallOp(LOC, "id", List.of(arg.getResult()), List.of(IntegerT.INT32()), MaybeType.of()), 0);
+        new CallOp(LOC, "id", List.of(arg.getResult()), List.of(Optional.of(IntegerT.INT32())), MaybeType.of()), 0);
     funcMainOp.addOperation(new ReturnOp(LOC, call.getOutputValue().orElseThrow()), 0);
 
     var solved = solve(programOp);
@@ -211,5 +214,85 @@ public class SystemFConversionTest {
 
     assertTrue(solved.getLeft() instanceof SystemFType.Lit);
     assertEquals(TypeIdent.TYPE_IDENT_INT, ((SystemFType.Lit) solved.getLeft()).ident);
+  }
+
+  private static FuncOp findFunc(List<Operation> ops, String name) {
+    return ops.stream()
+        .filter(op -> op.asOp() instanceof FuncOp f && f.getFuncName().equals(name))
+        .map(op -> (FuncOp) op.asOp())
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("rebuilt " + name + " func op missing from result tree"));
+  }
+
+  @Test
+  public void polymorphicIdentityCallWithInferredTypeApplication() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    var idOp = programOp.addOperation(
+        new FuncOp(LOC, "id", FuncType.of(List.of(MaybeType.of()), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value x = idOp.getRegion().getRegionValue(0).orElseThrow();
+    idOp.addOperation(new ReturnOp(LOC, x), 0);
+
+    // id[_](42) — the hole is inferred from the value argument
+    var arg = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(42, IntegerT.INT32())), 0);
+    var call = funcMainOp.addOperation(
+        new CallOp(LOC, "id", List.of(arg.getResult()), List.of(Optional.empty()), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC, call.getOutputValue().orElseThrow()), 0);
+
+    var solved = solve(programOp);
+
+    assertEquals(FuncType.of(List.of(MaybeType.of(IntegerT.INT32())), MaybeType.of(IntegerT.INT32())),
+        findFunc(solved.getRight(), "id").getType());
+    assertEquals(TypeIdent.TYPE_IDENT_INT, ((SystemFType.Lit) solved.getLeft()).ident);
+  }
+
+  @Test
+  public void mixedAnnotatedAndInferredTypeApplications() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    // first :: forall a. forall b. a -> int32 -> b -> a — the known int32
+    // parameter gets no type abstraction
+    var firstOp = programOp.addOperation(new FuncOp(LOC, "first",
+        FuncType.of(List.of(MaybeType.of(), MaybeType.of(IntegerT.INT32()), MaybeType.of()), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value x = firstOp.getRegion().getRegionValue(0).orElseThrow();
+    firstOp.addOperation(new ReturnOp(LOC, x), 0);
+
+    // first[int32][_](42, 1, true) — a is annotated, b is inferred as bool
+    var a = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(42, IntegerT.INT32())), 0);
+    var n = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(1, IntegerT.INT32())), 0);
+    var b = funcMainOp.addOperation(new ConstantOp(LOC, true), 0);
+    var call = funcMainOp.addOperation(new CallOp(LOC, "first",
+        List.of(a.getResult(), n.getResult(), b.getResult()),
+        List.of(Optional.of(IntegerT.INT32()), Optional.empty()), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC, call.getOutputValue().orElseThrow()), 0);
+
+    var solved = solve(programOp);
+
+    assertEquals(FuncType.of(
+        List.of(MaybeType.of(IntegerT.INT32()), MaybeType.of(IntegerT.INT32()), MaybeType.of(IntegerT.BOOL())),
+        MaybeType.of(IntegerT.INT32())),
+        findFunc(solved.getRight(), "first").getType());
+    assertEquals(TypeIdent.TYPE_IDENT_INT, ((SystemFType.Lit) solved.getLeft()).ident);
+  }
+
+  @Test
+  public void annotatedTypeApplicationMismatchIsRejected() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    var idOp = programOp.addOperation(
+        new FuncOp(LOC, "id", FuncType.of(List.of(MaybeType.of()), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value x = idOp.getRegion().getRegionValue(0).orElseThrow();
+    idOp.addOperation(new ReturnOp(LOC, x), 0);
+
+    // id[bool](42) — the annotation contradicts the value argument
+    var arg = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(42, IntegerT.INT32())), 0);
+    var call = funcMainOp.addOperation(
+        new CallOp(LOC, "id", List.of(arg.getResult()), List.of(Optional.of(IntegerT.BOOL())), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC, call.getOutputValue().orElseThrow()), 0);
+
+    assertThrows(TypingException.class, () -> solve(programOp));
   }
 }

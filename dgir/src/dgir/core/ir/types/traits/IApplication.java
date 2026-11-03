@@ -3,6 +3,7 @@ package dgir.core.ir.types.traits;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.Type;
@@ -23,7 +24,21 @@ public interface IApplication<E extends Expression<E, T>, T extends Type<T>> {
 
   public E getFunction();
 
-  @SuppressWarnings("unchecked")
+  /**
+   * The inferred type of the function this application applies, i.e. the type
+   * of {@link #getFunction()} as an arrow over all of its applications.
+   *
+   * <p>
+   * For type systems with curried, single argument applications, a multi
+   * parameter call is a chain of applications: only the innermost one applies
+   * the actual function, all outer ones apply a partial application. Such
+   * implementations resolve the chain, so every application of the chain
+   * returns the type of the actual function.
+   *
+   * @return the inferred function type, or empty if not inferred (yet)
+   */
+  public Optional<T> getInferredFunctionType();
+
   public default List<E> getAllApplicationParameters() {
     ArrayDeque<E> params = new ArrayDeque<>();
 
