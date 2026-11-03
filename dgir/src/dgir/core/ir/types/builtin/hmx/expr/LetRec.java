@@ -103,7 +103,7 @@ import dgir.core.ir.types.builtin.hmx.TypeInference;
 
       // This line is key, as the defining scope expression, in this case `newLetExpr`
       // is bound to the scope
-      var newEnv = new InstEnv<HMXExpr, HMXType, Subst>(env, newLetExpr, solution);
+      var newEnv = new InstEnv<HMXExpr, HMXType, Subst>(env, newLetExpr);
       for (int i = 0; i < this.bindings.size(); i++) {
         var bnd = this.bindings.get(i);
         newEnv.put(bnd.getLeft(), bnd.getRight(), i);

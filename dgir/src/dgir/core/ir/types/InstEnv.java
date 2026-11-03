@@ -1,39 +1,41 @@
 package dgir.core.ir.types;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
+import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
 import dgir.core.ir.types.traits.IExpressionCell;
+import dgir.core.ir.types.traits.IVariable;
 
 public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> extends HashConsing<E, T, S> {
   private Optional<InstEnv<E, T, S>> parentEnv;
   private E bindingExpression;
   private HashMap<Symbol<E, T>, Pair<E, Integer>> env;
-  // The solution in effect where this scope is defined. Bindings of this scope
-  // are instantiated under it (closure semantics), not under the solution of
-  // whoever references them.
-  private Optional<S> scopeSolution;
   private HashMap<Pair<E, S>, Optional<E>> visited;
   private IdentityHashMap<E, List<IExpressionCell<E, T>>> memoryCells;
 
   public InstEnv(E expr) {
     this.parentEnv = Optional.empty();
-    this.scopeSolution = Optional.empty();
     this.env = new HashMap<>();
     this.visited = new HashMap<>();
     this.bindingExpression = expr;
     this.memoryCells = new IdentityHashMap<>();
   }
 
-  public InstEnv(InstEnv<E, T, S> parent, E expr, S scopeSolution) {
+  public InstEnv(InstEnv<E, T, S> parent, E expr) {
     super(parent);
     this.parentEnv = Optional.ofNullable(parent);
-    this.scopeSolution = Optional.ofNullable(scopeSolution);
     this.env = new HashMap<>();
     this.bindingExpression = expr;
 
@@ -44,6 +46,41 @@ public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> ext
 
   public E getBindingExpression() {
     return this.bindingExpression;
+  }
+
+  /**
+   * Collects all free type variables reachable from the given expression: the
+   * ones of every expression within its subtree, and transitively the ones of
+   * every binding referenced by a variable within it. A referenced binding is
+   * instantiated as part of this expression (beta-reduction), so its type
+   * variables decide this expression's instance as well, even when they do not
+   * occur in any type of the subtree (e.g. a captured variable).
+   *
+   * <p>
+   * The result is ordered by the type variable index to be deterministic.
+   */
+  public Set<TypeVar<T>> getReachableTypeVars(E expr) {
+    var typeVars = new TreeSet<TypeVar<T>>(Comparator.comparingLong(TypeVar::getIndex));
+    var seen = Collections.<E>newSetFromMap(new IdentityHashMap<>());
+    var worklist = new ArrayDeque<E>();
+    worklist.add(expr);
+
+    while (!worklist.isEmpty()) {
+      var current = worklist.poll();
+      new Expression.ExpressionVisitor<E, T>(VisitOrder.IN_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
+          .visit(current, e -> {
+            if (!seen.add(e)) {
+              return;
+            }
+            e.getInferredType().ifPresent(ty -> typeVars.addAll(ty.freeTypeVars()));
+            if (e instanceof IVariable<?, ?> variable) {
+              var referenced = this.get(((IVariable<E, T>) variable).getReferencedVariable());
+              referenced.filter(ref -> !seen.contains(ref)).ifPresent(worklist::add);
+            }
+          });
+    }
+
+    return typeVars;
   }
 
   public void put(Symbol<E, T> sym, E expr, int position) {
@@ -73,16 +110,6 @@ public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> ext
     }
 
     return Optional.empty();
-  }
-
-  /**
-   * The solution in effect in the scope that defines the given symbol.
-   */
-  public Optional<S> getScopeSolution(Symbol<E, T> sym) {
-    if (this.env.containsKey(sym)) {
-      return this.scopeSolution;
-    }
-    return this.parentEnv.flatMap(parent -> parent.getScopeSolution(sym));
   }
 
   public void visit(E expr, S solution) {
@@ -119,6 +146,7 @@ public final class InstEnv<E extends Expression<E, T>, T extends Type<T>, S> ext
       return Optional.empty();
     }
   }
+
   public void addCellForExpr(E expr, IExpressionCell<E, T> cell) {
     this.memoryCells.computeIfAbsent(expr, e -> new ArrayList<>());
 

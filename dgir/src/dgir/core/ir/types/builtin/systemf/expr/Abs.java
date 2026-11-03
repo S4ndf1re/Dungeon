@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import dgir.core.debug.Location;
+import dgir.core.ir.Value;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.TypeIdent;
@@ -160,8 +161,34 @@ public final class Abs extends Expr implements IAbstraction<Expr, SystemFType> {
     }
 
     @Override
+    public void reinstantiateSymbols() {
+      if (this.name.isEmpty() || !this.name.get().isValue()) {
+        return;
+      }
+
+      var inferredType = this.getInferredType();
+      assert inferredType.isPresent() : "can only reinstante expression values if the expression is well typed!";
+
+      // In cases where the type is not fully specified, the instantiation actually
+      // failed!
+      if (!inferredType.get().isFullySpecified() || !(inferredType.get() instanceof SystemFType.Arrow arrow)) {
+        return;
+      }
+
+      // Every instance gets its own, fully typed parameter value, as the
+      // original parameter may be untyped (e.g. a type abstracted parameter)
+      var oldParam = this.name.get();
+      var newParam = Symbol.<Expr, SystemFType>of(new Value(arrow.from.toIrType(), oldParam.getValue().getDebugInfo()));
+      this.name = Optional.of(newParam);
+
+      // NOTE: in-place replacement — the tree is private after solving, and
+      // copying here would break structural sharing (see replaceSymbol).
+      this.body.replaceSymbol(oldParam, newParam);
+    }
+
+    @Override
     public void replaceSymbol(Symbol<Expr, SystemFType> original, Symbol<Expr, SystemFType> replacement) {
-      this.name = this.name.equals(Optional.of(original)) ? Optional.of(replacement) : this.name;
+      this.name =this.name.equals(Optional.of(original)) ? Optional.of(replacement) : this.name;
       this.body.replaceSymbol(original, replacement);
     }
 

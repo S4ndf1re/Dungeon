@@ -2,10 +2,12 @@ package dgir.core.ir.types.builtin.systemf;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -221,5 +223,33 @@ public class Context extends ScopeLike<SystemFType>
   @Override
   public Context expand(TypeInference engine, Expr target, SystemFType targetType) {
     return this;
+  }
+
+  @Override
+  public Context restrictTo(Set<TypeVar<SystemFType>> typeVars) {
+    // NOTE: the context equality is order sensitive, hence the type variables
+    // must be iterated in a deterministic order!
+    var sorted = new ArrayList<>(typeVars);
+    sorted.sort(Comparator.comparingLong(TypeVar::getIndex));
+
+    // NOw construct a pseudo context. The context is not actually correct, but will
+    // serve as a unique key.
+    // For that, all type variables that resolve to some other type when the context
+    // is applied are collected
+    var restricted = new ArrayList<Entry>();
+    for (var typeVar : sorted) {
+      var unsolvedVar = new SystemFType.Var(typeVar);
+      var appliedVar = this.apply(unsolvedVar);
+      if (!appliedVar.equals(unsolvedVar)) {
+        restricted.add(new Entry.SVarBnd(typeVar, appliedVar));
+      }
+
+      var unsolvedEtVar = new SystemFType.EtVar(typeVar);
+      var appliedEtVar = this.apply(unsolvedEtVar);
+      if (!appliedEtVar.equals(unsolvedEtVar)) {
+        restricted.add(new Entry.SETVarBnd(typeVar, appliedEtVar));
+      }
+    }
+    return new Context(restricted, this);
   }
 }

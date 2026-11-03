@@ -1,9 +1,12 @@
 package dgir.core.ir.types.traits;
 
+import java.util.Set;
+
 import dgir.core.ir.types.Expression;
 import dgir.core.ir.types.InstEnv;
 import dgir.core.ir.types.Type;
 import dgir.core.ir.types.TypeInferenceSolver;
+import dgir.core.ir.types.TypeVar;
 
 public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, S, EngineT>, T extends Type<T>, S extends dgir.core.ir.types.traits.IInstantiable.SolutionContext<E, T, EngineT, S>, EngineT extends TypeInferenceSolver<EngineT, E, T>> {
 
@@ -25,6 +28,15 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
      * beta-reduction of variables
      */
     public SCtxT expand(EngineT engine, E target, T expectedType);
+
+    /**
+     * Restrict the solution to the given type variables, each mapped to its
+     * fully applied type. The result is canonical: two solutions that agree on
+     * the given type variables restrict to equal solutions, no matter what else
+     * they contain. Used to key the instantiation memo, as only the type
+     * variables reachable from an expression decide its instance.
+     */
+    public SCtxT restrictTo(Set<TypeVar<T>> typeVars);
   }
 
   /**
@@ -86,15 +98,20 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
     // later iterations of this code, the solution context may be redunant entirely.
     E exprCopy = ((E) this).copy();
     exprCopy.setInferredType(exprCopy.getInferredType().map(ty -> solutionContext.apply(ty)));
-    E expr = env.getConsed(exprCopy, solutionContext);
+
+    // The memo and hash consing are keyed by the solution restricted to the type
+    // variables reachable from this expression: only those decide its instance,
+    // so equal instances reached under different (caller) solutions are shared.
+    S keySolution = solutionContext.restrictTo(env.getReachableTypeVars((E) this));
+    E expr = env.getConsed(exprCopy, keySolution);
 
     // Variables must always be visited, while other epxressions must be
     // instantiated, as long as its not a recursive instantiation.
-    if (!(expr instanceof IVariable) && env.isVisisted(expr, solutionContext)) {
+    if (!(expr instanceof IVariable) && env.isVisisted(expr, keySolution)) {
       // In sequential soltuions, this call works, as the soltuion is already
       // registered! hash cons again, just in case!
-      if (env.hasSolution(expr, solutionContext)) {
-        return env.getSolutionOrThrow(expr, solutionContext);
+      if (env.hasSolution(expr, keySolution)) {
+        return env.getSolutionOrThrow(expr, keySolution);
       } else {
         var cell = getCellFor(expr, expr);
         assert cell instanceof IExpressionCell;
@@ -103,17 +120,13 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
       }
     }
 
-    // FIXME: this actually will hog a lot of memory in the long term, depending on
-    // the expression size!
-    // A possible solution would be to filter the subst to only occuring type
-    // variables! And removing all already applied solutions!
-    env.visit(expr, solutionContext);
+    env.visit(expr, keySolution);
 
     E instantiated = expr.instantiateInner(engine, env, solutionContext);
     instantiated.setInferredType(instantiated.getInferredType().map(ty -> solutionContext.apply(ty)));
 
     env.getCellsForExpressions(expr).stream().forEach(e -> e.replaceIfMatches(expr, instantiated));
-    var instantiatedTarget = env.getConsed(instantiated, solutionContext);
+    var instantiatedTarget = env.getConsed(instantiated, keySolution);
     // The beta-reduction for variables.
     // When the variable is in scope, actually replace the returned
     // expression with the referenced instantiated Expr instance.
@@ -131,30 +144,18 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
         var referencedInferredType = referencedExprAsExpr.getInferredType();
 
         if (referencedInferredType.isPresent() && instantiatedTarget.getInferredType().isPresent()) {
-          // The referenced binding is instantiated under the solution of the
-          // scope that defines it, not the caller's: a top-level function is
-          // independent of its callers (instances are shared), while a binding
-          // inside a function instance keeps that instance's solution.
-          S definitionSolution = env.getScopeSolution(instantiatedVariable.getReferencedVariable())
-              .orElse(solutionContext);
-          S finalSolutionCtx = definitionSolution.expand(engine, referencedExprAsExpr,
+          S finalSolutionCtx = solutionContext.expand(engine, referencedExprAsExpr,
               instantiatedTarget.getInferredType().get());
 
           var copiedExpr = referencedExprAsExpr.copy();
           copiedExpr.setParentScopeExpression(scopeExpression, referencedFromEnv.map(e -> e.getRight()));
 
-          // DEBUG(instrument)
-          System.err.println("[DBG var] var=" + instantiatedVariable.getReferencedVariable()
-              + " hasScopeSolution=" + env.getScopeSolution(instantiatedVariable.getReferencedVariable()).isPresent()
-              + "\n    caller=" + solutionContext + "\n    final =" + finalSolutionCtx);
           E instantiatedReferenced = copiedExpr.instantiate(engine, env, finalSolutionCtx);
-          System.err.println("[DBG var] var=" + instantiatedVariable.getReferencedVariable() + " -> "
-              + instantiatedReferenced.getClass().getSimpleName() + " type=" + instantiatedReferenced.getInferredType());
 
           // After instantiation, return the actual expression not the variable!
           // NOTE: the instantiatedReferenced is already hash-consed
-          env.setSolution(instantiatedTarget, solutionContext, instantiatedReferenced);
-          env.setSolution(expr, solutionContext, instantiatedReferenced);
+          env.setSolution(instantiatedTarget, keySolution, instantiatedReferenced);
+          env.setSolution(expr, keySolution, instantiatedReferenced);
           return instantiatedReferenced;
         } else {
           throw new RuntimeException("Tehe infered type is present, hence no instantiation can occur");
@@ -162,8 +163,8 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
       }
     }
 
-    env.setSolution(expr, solutionContext, instantiatedTarget);
-    env.setSolution(instantiatedTarget, solutionContext, instantiatedTarget);
+    env.setSolution(expr, keySolution, instantiatedTarget);
+    env.setSolution(instantiatedTarget, keySolution, instantiatedTarget);
     return instantiatedTarget;
   }
 

@@ -121,6 +121,20 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
    * convergence pass in {@link Constraint.LetMix#solve}.
    */
   @Override
+  public Subst restrictTo(Set<TypeVar<HMXType>> typeVars) {
+    var restricted = new HashMap<TypeVar<HMXType>, HMXType>();
+    for (var typeVar : typeVars) {
+      var key = typeVar.find();
+      var unsolved = new HMXType.Var(key);
+      var applied = this.apply(unsolved);
+      if (!applied.equals(unsolved)) {
+        restricted.put(key, applied);
+      }
+    }
+    return new Subst(restricted);
+  }
+
+  @Override
   public Subst expand(TypeInference engine, HMXExpr target, HMXType targetType) {
     var ty1 = target.getInferredType().get().deref();
     var ftv = ty1.freeTypeVars();
@@ -144,12 +158,11 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
       s.types.put(key, s.types.get(key).deref());
     }
     s.dropCycles();
-    // `this` is the solution of the scope defining the reference (see
-    // IInstantiable.instantiate), so extending it with the scheme's own
-    // instance gives the referenced binding exactly its lexical environment.
-    // For top-level bindings that is the empty solution, which keeps the
-    // result canonical across call sites — the InstEnv memo keys rely on it
-    // for deduplication.
+    // `this` is the caller's solution, so extending it with the scheme's own
+    // instance gives the referenced binding its lexical environment (e.g.
+    // captured variables). Caller entries the binding cannot reach do not
+    // split instances: the InstEnv memo keys restrict the solution to the
+    // reachable type variables (see SolutionContext#restrictTo).
     return this.compose(s);
   }
 

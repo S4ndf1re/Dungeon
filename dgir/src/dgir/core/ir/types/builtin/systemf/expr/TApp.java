@@ -98,8 +98,6 @@ public final class TApp extends Expr {
 
       var newCtx = solution.copy();
       newCtx.push(new Entry.SVarBnd(forAll.boundVar, this.type));
-      // DEBUG(instrument)
-      System.err.println("[DBG tapp] func=" + this.func + " forall=" + forAll + " ctx=" + newCtx);
 
       return this.func.instantiate(engine, env, newCtx);
     }

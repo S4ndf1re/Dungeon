@@ -94,6 +94,20 @@ public final record Subst(HashMap<TypeVar<AlgorithmWType>, AlgorithmWType> types
   }
 
   @Override
+  public Subst restrictTo(Set<TypeVar<AlgorithmWType>> typeVars) {
+    var restricted = new HashMap<TypeVar<AlgorithmWType>, AlgorithmWType>();
+    for (var typeVar : typeVars) {
+      var key = typeVar.find();
+      var unsolved = new AlgorithmWType.Var(key);
+      var applied = this.apply(unsolved);
+      if (!applied.equals(unsolved)) {
+        restricted.put(key, applied);
+      }
+    }
+    return new Subst(restricted);
+  }
+
+  @Override
   public Subst expand(TypeInference engine, Expr target, AlgorithmWType targetType) {
     // This one is a1 -> b1 -> c1, and is only ever used
     var ty1 = target.getInferredType().get().deref();

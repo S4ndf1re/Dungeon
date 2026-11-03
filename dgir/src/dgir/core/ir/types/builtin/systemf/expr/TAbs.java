@@ -106,7 +106,11 @@ public final class TAbs extends Expr implements IAbstraction<Expr, SystemFType> 
   @Override
   public Expr instantiateInner(TypeInference engine, InstEnv<Expr, SystemFType, Context> env,
       Context solution) {
-    return this.body.instantiate(engine, env, solution);
+    // Type abstractions are erased: the instantiated body takes the place of
+    // this TAbs within its defining scope.
+    var instantiated = this.body.instantiate(engine, env, solution);
+    instantiated.setParentScopeExpression(this.getParentScopeExpr(), this.getParentScopePosition());
+    return instantiated;
   }
 
   @Override

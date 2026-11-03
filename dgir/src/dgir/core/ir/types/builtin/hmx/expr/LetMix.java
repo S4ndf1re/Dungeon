@@ -84,7 +84,7 @@ public final class LetMix extends HMXExpr {
         List.copyOf(this.bindings),
         new Lit(new Literal.Unit()));
 
-    var newEnv = new InstEnv<HMXExpr, HMXType, Subst>(env, newLetExpr, solution);
+    var newEnv = new InstEnv<HMXExpr, HMXType, Subst>(env, newLetExpr);
     for (int i = 0; i < this.bindings.size(); i++) {
       var bnd = this.bindings.get(i);
       newEnv.put(bnd.name(), bnd.value(), i);

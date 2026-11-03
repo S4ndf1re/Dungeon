@@ -113,11 +113,15 @@ public final class FuncSystemFConversion {
       expr = new Abs(op.getLocation(), expr);
     }
 
+    // The callback belongs to the abstraction, not the outer TAbs: type
+    // abstractions are erased during instantiation (their instances are the
+    // instantiated Abs), hence a TAbs never reaches the instantiated tree.
+    var funcAbs = expr;
     for (var unknown : unknownVars.reversed()) {
       expr = new TAbs(op.getLocation(), unknown, expr);
     }
 
-    expr.setInstantiateOperationCallback(instantiatedExpr -> {
+    funcAbs.setInstantiateOperationCallback(instantiatedExpr -> {
 
       assert instantiatedExpr instanceof Abs;
       var abs = (Abs) instantiatedExpr;
@@ -186,13 +190,6 @@ public final class FuncSystemFConversion {
         return new FuncOps.ReturnOp(returnOp.getLocation()).getOperation();
       }
 
-      // DEBUG(instrument)
-      System.err
-          .println("[DBG return] value=" + retExpr.value() + " class=" + retExpr.value().getClass().getSimpleName()
-              + " unwrapped=" + retExpr.value().unwrapOrThis().getClass().getSimpleName()
-              + " op=" + retExpr.value().getUnderlyingOperation().map(o -> o.asOp().getIdent())
-              + " type=" + retExpr.value().getInferredType()
-              + " retType=" + retExpr.getInferredType());
       var valueSymbol = retExpr.value().getOutputValue();
 
       return new FuncOps.ReturnOp(returnOp.getLocation(), valueSymbol)
