@@ -2,13 +2,12 @@ package dgir.dialect.func;
 
 import static dgir.dialect.builtin.BuiltinAttrs.SymbolRefAttribute;
 import static dgir.dialect.builtin.BuiltinAttrs.TypeAttribute;
+import static dgir.dialect.builtin.BuiltinAttrs.TypeListAttribute;
 import static dgir.dialect.func.FuncTypes.FuncType;
 import static dgir.dialect.str.StrAttrs.StringAttribute;
 
 import dgir.core.debug.Location;
 import dgir.core.ir.*;
-import dgir.core.ir.Dialect;
-import dgir.core.ir.SymbolTable;
 import dgir.core.traits.*;
 import dgir.core.traits.ISymbol.SymbolTableSymbol;
 import dgir.dialect.builtin.BuiltinAttrs;
@@ -136,8 +135,20 @@ public sealed interface FuncOps {
     @Contract(pure = true)
     @Override
     public @NotNull Supplier<@NotNull @Unmodifiable List<@NotNull NamedAttribute>> defaultAttributes() {
-      return () -> List.of(new NamedAttribute(getCalleeAttributeName(), new SymbolRefAttribute("foo")),
-          new NamedAttribute(getCalleeTypeAttributeName(), new TypeAttribute(FuncType.of(List.of(), Type.of()))));
+      return () -> List.of(
+          new NamedAttribute(getCalleeAttributeName(), new SymbolRefAttribute("foo")),
+          new NamedAttribute(getCalleeTypeAttributeName(), new TypeAttribute(FuncType.of(List.of(), Type.of()))),
+          new NamedAttribute(getTypeParamsAttributeName(), new TypeListAttribute()));
+    }
+
+    /**
+     * Returns the attribute name used to store the callee symbol reference.
+     *
+     * @return {@code "callee"}
+     */
+    @Contract(pure = true)
+    public static @NotNull String getTypeParamsAttributeName() {
+      return "type_params";
     }
 
     /**
@@ -179,9 +190,49 @@ public sealed interface FuncOps {
         @NotNull Location location,
         @NotNull String name,
         @NotNull List<Value> operands,
+        @NotNull FuncType calleeType,
+        List<Type> typeParams) {
+      setOperation(Operation.Create(location, this, operands, null, calleeType.getOutputAsNullable()));
+      setCallee(name, calleeType);
+      setTypeParams(typeParams);
+    }
+
+    /**
+     * Create a call with an explicit operand list and callee type.
+     *
+     * @param location   the source location of this operation.
+     * @param name       the symbol name of the function to call.
+     * @param operands   the argument values.
+     * @param calleeType the function signature used to determine the result type.
+     */
+    public CallOp(
+        @NotNull Location location,
+        @NotNull String name,
+        @NotNull List<Value> operands,
         @NotNull FuncType calleeType) {
       setOperation(Operation.Create(location, this, operands, null, calleeType.getOutputAsNullable()));
       setCallee(name, calleeType);
+      setTypeParams(List.of());
+    }
+
+    /**
+     * Create a call with an explicit operand list and return type.
+     *
+     * @param location   the source location of this operation.
+     * @param name       the symbol name of the function to call.
+     * @param operands   the argument values.
+     * @param returnType the return type of the call
+     */
+    public CallOp(
+        @NotNull Location location,
+        @NotNull String name,
+        @NotNull List<Value> operands,
+        List<Type> typeParams,
+        @Nullable MaybeType returnType) {
+      var funcType = FuncType.of(operands.stream().map(Value::getType).toList(), returnType);
+      setOperation(Operation.Create(location, this, operands, null, returnType));
+      setCallee(name, funcType);
+      setTypeParams(typeParams);
     }
 
     /**
@@ -200,6 +251,24 @@ public sealed interface FuncOps {
       var funcType = FuncType.of(operands.stream().map(Value::getType).toList(), returnType);
       setOperation(Operation.Create(location, this, operands, null, returnType));
       setCallee(name, funcType);
+      setTypeParams(List.of());
+    }
+
+    /**
+     * Create a call using varargs syntax.
+     *
+     * @param location   the source location of this operation.
+     * @param name       the symbol name of the function to call.
+     * @param calleeType the function signature used to determine the result type.
+     * @param operands   the argument values (varargs).
+     */
+    public CallOp(
+        @NotNull Location location,
+        @NotNull String name,
+        @NotNull FuncType calleeType,
+        List<Type> typeParams,
+        Value... operands) {
+      this(location, name, List.of(operands), calleeType, typeParams);
     }
 
     /**
@@ -215,7 +284,21 @@ public sealed interface FuncOps {
         @NotNull String name,
         @NotNull FuncType calleeType,
         Value... operands) {
-      this(location, name, List.of(operands), calleeType);
+      this(location, name, List.of(operands), calleeType, List.of());
+    }
+
+    /**
+     * Create a call to a specific {@link FuncOp} with an explicit operand list.
+     *
+     * @param location the source location of this operation.
+     * @param funcOp   the function to call.
+     * @param operands the argument values.
+     */
+    public CallOp(
+        @NotNull Location location, @NotNull FuncOp funcOp, @NotNull List<Value> operands, List<Type> typeParams) {
+      setOperation(Operation.Create(location, this, operands, null, funcOp.getType().getOutputAsNullable()));
+      setCallee(funcOp.getFuncName(), funcOp.getType());
+      setTypeParams(typeParams);
     }
 
     /**
@@ -229,6 +312,18 @@ public sealed interface FuncOps {
         @NotNull Location location, @NotNull FuncOp funcOp, @NotNull List<Value> operands) {
       setOperation(Operation.Create(location, this, operands, null, funcOp.getType().getOutputAsNullable()));
       setCallee(funcOp.getFuncName(), funcOp.getType());
+      setTypeParams(List.of());
+    }
+
+    /**
+     * Create a call to a specific {@link FuncOp} using varargs syntax.
+     *
+     * @param location the source location of this operation.
+     * @param funcOp   the function to call.
+     * @param operands the argument values (varargs).
+     */
+    public CallOp(@NotNull Location location, @NotNull FuncOp funcOp, List<Type> typeParams, Value... operands) {
+      this(location, funcOp, List.of(operands), typeParams);
     }
 
     /**
@@ -239,7 +334,7 @@ public sealed interface FuncOps {
      * @param operands the argument values (varargs).
      */
     public CallOp(@NotNull Location location, @NotNull FuncOp funcOp, Value... operands) {
-      this(location, funcOp, List.of(operands));
+      this(location, funcOp, List.of(operands), List.of());
     }
 
     // =========================================================================
@@ -286,6 +381,10 @@ public sealed interface FuncOps {
       getSymbolTypeAttribute().setType(type);
     }
 
+    private void setTypeParams(List<Type> params) {
+      getTypeParamsAttribute().setTypes(params);
+    }
+
     /**
      * Get the function type that results from this call's operands and output.
      *
@@ -311,6 +410,11 @@ public sealed interface FuncOps {
     @Override
     public @NotNull TypeAttribute getSymbolTypeAttribute() {
       return getAttributeAs(getCalleeTypeAttributeName(), TypeAttribute.class)
+          .orElseThrow(() -> new RuntimeException("No symbol attribute found"));
+    }
+
+    public @NotNull TypeListAttribute getTypeParamsAttribute() {
+      return getAttributeAs(getTypeParamsAttributeName(), TypeListAttribute.class)
           .orElseThrow(() -> new RuntimeException("No symbol attribute found"));
     }
   }

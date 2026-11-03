@@ -183,7 +183,7 @@ public final class FuncAlgoWConversion {
           .map(e -> e.getOutputValue())
           .toList();
 
-      return new CallOp(op.getLocation(), callOp.getCalleeName(), parameterOperations, (FuncTypes.FuncType) irType)
+      return new CallOp(op.getLocation(), callOp.getCalleeName(), parameterOperations, (FuncTypes.FuncType) irType, List.of())
           .getOperation();
     });
 

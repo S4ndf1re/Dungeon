@@ -58,14 +58,14 @@ public final class BuiltinSystemFConversion {
     }
 
     generalBlock
-        .addOperation(new FuncOps.CallOp(Location.UNKNOWN, "main", FuncTypes.FuncType.empty()).getOperation());
+        .addOperation(
+            new FuncOps.CallOp(Location.UNKNOWN, "main", FuncTypes.FuncType.empty()).getOperation());
 
     var convertedBlock = engine.generalBlockToInferenceExpr(generalBlock);
 
     convertedBlock.setInstantiateOperationCallback(instantiatedExpr -> {
 
       assert instantiatedExpr instanceof IBlock;
-      @SuppressWarnings("unchecked")
       var instantiatedBlockExpr = (IBlock<Expr, SystemFType>) instantiatedExpr;
 
       var block = instantiatedBlockExpr.asBlock();

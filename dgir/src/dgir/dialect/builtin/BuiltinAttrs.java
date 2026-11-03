@@ -10,6 +10,8 @@ import dgir.core.serialization.IntegerAttributeDeserializer;
 import dgir.core.serialization.IntegerAttributeSerializer;
 import dgir.dialect.builtin.BuiltinTypes.UnitType;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -101,6 +103,22 @@ public sealed interface BuiltinAttrs {
       @Override
       public @NotNull String getIdent() {
         return "typeAttr";
+      }
+    }
+
+    final class TypeListAttributeDescriptor implements BuiltinAttrDescriptor {
+      public static AttributeDescriptor defaultInstance() {
+        return new TypeListAttributeDescriptor();
+      }
+
+      @Override
+      public @NotNull Class<? extends Attribute> getAttributeClass() {
+        return TypeListAttribute.class;
+      }
+
+      @Override
+      public @NotNull String getIdent() {
+        return "typeListAttr";
       }
     }
   }
@@ -335,7 +353,7 @@ public sealed interface BuiltinAttrs {
     // Constructors
     // =========================================================================
 
-    /** Create a default type attribute initialized to {@link IntegerT#INT64()}. */
+    /** Create a default type attrbute initialized to {@link IntegerT#INT64()}. */
     public TypeAttribute() {
       type = IntegerT.INT64();
     }
@@ -379,4 +397,37 @@ public sealed interface BuiltinAttrs {
       this.type = type;
     }
   }
+
+  final class TypeListAttribute extends Attribute implements BuiltinAttrs {
+    private List<Type> types;
+
+    public TypeListAttribute() {
+      this.types = List.of();
+    }
+
+    public TypeListAttribute(Type... types) {
+      this.types = List.of(types);
+    }
+
+    @Contract(pure = true)
+    @Override
+    public @NotNull List<Type> getStorage() {
+      return types;
+    }
+
+    /**
+     * Returns the wrapped type as an {@link Optional}.
+     *
+     * @return an optional containing the wrapped type, or empty if unset.
+     */
+    @Contract(pure = true)
+    public @NotNull List<Type> getTypes() {
+      return types;
+    }
+
+    public void setTypes(Collection<? extends Type> type) {
+      this.types = List.copyOf(type);
+    }
+  }
+
 }

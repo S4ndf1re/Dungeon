@@ -7,12 +7,14 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 
 import dgir.core.ir.Operation;
+import dgir.core.ir.Type;
 import dgir.core.debug.Location;
 import dgir.core.ir.Value;
 import dgir.core.ir.types.GeneralBlock;
 import dgir.core.ir.types.Literal;
 import dgir.core.ir.types.Symbol;
 import dgir.core.ir.types.SystemFConversionUtils;
+import dgir.core.ir.types.TypeVar;
 
 import java.util.Optional;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
@@ -20,9 +22,10 @@ import dgir.core.ir.types.traits.IBlock;
 import dgir.core.ir.types.builtin.systemf.expr.Abs;
 import dgir.core.ir.types.builtin.systemf.expr.App;
 import dgir.core.ir.types.builtin.systemf.Expr;
-import dgir.core.ir.types.builtin.systemf.expr.Let;
 import dgir.core.ir.types.builtin.systemf.expr.LitExpr;
 import dgir.core.ir.types.builtin.systemf.expr.Return;
+import dgir.core.ir.types.builtin.systemf.expr.TAbs;
+import dgir.core.ir.types.builtin.systemf.expr.TApp;
 import dgir.core.ir.types.builtin.systemf.SystemFInference;
 import dgir.core.ir.types.builtin.systemf.SystemFType;
 import dgir.core.ir.types.builtin.systemf.TypeInference;
@@ -83,27 +86,35 @@ public final class FuncSystemFConversion {
 
     ArrayList<Symbol<Expr, SystemFType>> params = new ArrayList<>();
     ArrayList<SystemFType> paramTypes = new ArrayList<>();
+    ArrayList<TypeVar<SystemFType>> unknownVars = new ArrayList<>();
     for (int i = 0; funcOp.getArgument(i).isPresent(); i++) {
       var argument = funcOp.getArgument(i).get();
-      assert argument.getType().isKnown()
-          : "function parameters must have a declared type for System F";
       params.add(Symbol.<Expr, SystemFType>of(argument));
-
-      var argType = SystemFConversionUtils.irTypeToSystemFType(engine, argument.getType().getAsKnownOrThrow());
-      paramTypes.add(argType);
+      if (argument.getType().isKnown()) {
+        var argType = SystemFConversionUtils.irTypeToSystemFType(engine, argument.getType().getAsKnownOrThrow());
+        paramTypes.add(argType);
+      } else {
+        var unknonwTypeVar = new TypeVar<SystemFType>();
+        unknownVars.add(unknonwTypeVar);
+        paramTypes.add(new SystemFType.Var(unknonwTypeVar));
+      }
     }
 
     var block = GeneralBlock.fromBlock(funcOp.getEntryBlock());
     var blockAsExpr = engine.generalBlockToInferenceExpr(block);
 
+    // TODO: replace this with the correct engine abs generation, to move
+    // boilerplate code to a common place
     Expr expr = blockAsExpr;
     for (int i = params.size() - 1; i >= 0; i--) {
       expr = new Abs(op.getLocation(), params.get(i), paramTypes.get(i), expr);
     }
     if (params.isEmpty()) {
-      // A zero parameter function is a function taking the unit placeholder:
-      // unit -> body
       expr = new Abs(op.getLocation(), expr);
+    }
+
+    for (var unknown : unknownVars.reversed()) {
+      expr = new TAbs(op.getLocation(), unknown, expr);
     }
 
     expr.setInstantiateOperationCallback(instantiatedExpr -> {
@@ -111,7 +122,6 @@ public final class FuncSystemFConversion {
       assert instantiatedExpr instanceof Abs;
       var abs = (Abs) instantiatedExpr;
       assert abs.body() instanceof IBlock;
-      @SuppressWarnings("unchecked")
       var bodyBlock = (IBlock<Expr, SystemFType>) abs.body();
 
       // Reconstruct the function type from inference, never from the
@@ -160,7 +170,8 @@ public final class FuncSystemFConversion {
 
     Expr result;
     if (returnOp.getReturnValue().isPresent()) {
-      result = new Return(returnOp.getLocation(), new Var(returnOp.getLocation(), Symbol.of(returnOp.getReturnValue().get())));
+      result = new Return(returnOp.getLocation(),
+          new Var(returnOp.getLocation(), Symbol.of(returnOp.getReturnValue().get())));
     } else {
       result = new Return(returnOp.getLocation(), new LitExpr(returnOp.getLocation(), new Literal.Unit()));
     }
@@ -175,6 +186,13 @@ public final class FuncSystemFConversion {
         return new FuncOps.ReturnOp(returnOp.getLocation()).getOperation();
       }
 
+      // DEBUG(instrument)
+      System.err
+          .println("[DBG return] value=" + retExpr.value() + " class=" + retExpr.value().getClass().getSimpleName()
+              + " unwrapped=" + retExpr.value().unwrapOrThis().getClass().getSimpleName()
+              + " op=" + retExpr.value().getUnderlyingOperation().map(o -> o.asOp().getIdent())
+              + " type=" + retExpr.value().getInferredType()
+              + " retType=" + retExpr.getInferredType());
       var valueSymbol = retExpr.value().getOutputValue();
 
       return new FuncOps.ReturnOp(returnOp.getLocation(), valueSymbol)
@@ -188,15 +206,27 @@ public final class FuncSystemFConversion {
       Operation op,
       TypeInference engine) {
     FuncOps.CallOp callOp = (FuncOps.CallOp) op.asOp();
-    var calleeType = (FuncType) callOp.getCalleeType();
 
-    var fun = new Var(callOp.getLocation(), Symbol.of(callOp.getCallee()));
     var args = callOp.getOperands().stream()
         .map(operand -> (Expr) new Var(callOp.getLocation(), Symbol.of(operand.getValueOrThrow()))).toList();
 
-    var result = buildApplication(callOp.getLocation(), fun, args);
+    Expr fun = new Var(callOp.getLocation(), Symbol.of(callOp.getCallee()));
+    var typeApplications = callOp.getTypeParamsAttribute().getStorage();
+    for (var appl : typeApplications) {
+      fun = new TApp(callOp.getLocation(), fun, SystemFConversionUtils.irTypeToSystemFType(engine, appl));
+    }
+
+    var result = engine.App(callOp.getLocation(), fun, args);
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
+      var app = (App) instantiatedExpr;
+      var funcType = app.getFunction().getInferredType();
+      assert funcType.isPresent();
+      assert funcType.get() instanceof SystemFType.Arrow;
+
+      var irType = Type.fromGeneralParameterizedNominalType(funcType.get().asTypeParameter().getConcrete());
+      assert irType instanceof FuncTypes.FuncType;
+
       // The operands are taken from the instantiated application chain, as
       // beta reduction/substitution may have replaced the original values!
       var argExprs = peelApplication(instantiatedExpr).getRight();
@@ -209,7 +239,8 @@ public final class FuncSystemFConversion {
           .map(Operation::getOutputValueOrThrow)
           .toList();
 
-      return new CallOp(op.getLocation(), callOp.getCalleeName(), parameterOperations, calleeType)
+      return new CallOp(op.getLocation(), callOp.getCalleeName(), parameterOperations, (FuncTypes.FuncType) irType,
+          List.of())
           .getOperation();
     });
 

@@ -58,7 +58,8 @@ public final class BuiltinAlgoWConversion {
       }
     }
 
-    generalBlock.addOperation(new FuncOps.CallOp(Location.UNKNOWN, "main", FuncTypes.FuncType.empty()).getOperation());
+    generalBlock.addOperation(
+        new FuncOps.CallOp(Location.UNKNOWN, "main", FuncTypes.FuncType.empty()).getOperation());
 
     var convertedBlock = engine.generalBlockToInferenceExpr(generalBlock);
 

@@ -50,7 +50,7 @@ public final class TApp extends Expr {
     @Override
     public TypeResult infer(TypeInference engine, Context ctx) {
       var funcInferred = engine.infer(ctx, this.func);
-      if (funcInferred.type() instanceof SystemFType.ForAll forall) {
+      if (funcInferred.ctx().apply(funcInferred.type()) instanceof SystemFType.ForAll forall) {
         var resultType = engine.substType(
             forall.boundVar,
             this.type,
@@ -98,6 +98,8 @@ public final class TApp extends Expr {
 
       var newCtx = solution.copy();
       newCtx.push(new Entry.SVarBnd(forAll.boundVar, this.type));
+      // DEBUG(instrument)
+      System.err.println("[DBG tapp] func=" + this.func + " forall=" + forAll + " ctx=" + newCtx);
 
       return this.func.instantiate(engine, env, newCtx);
     }

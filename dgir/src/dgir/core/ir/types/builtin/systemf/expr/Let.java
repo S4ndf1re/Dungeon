@@ -87,7 +87,22 @@ public final class Let extends Expr {
         newCtx.push(new Entry.VarBnd(binding.getLeft(), new SystemFType.EtVar(this.getLocation(), typeVar)));
       }
 
+      // Explicitly polymorphic bindings (TAbs) are inferred up front and rebound
+      // to their ForAll type, as existentials are predicative and can never be
+      // solved to a polytype. Recursion within such a binding stays monomorphic.
       for (var binding : nonUnified) {
+        if (!isPolymorphic(binding.getRight())) {
+          continue;
+        }
+        var polyInferred = engine.infer(newCtx, binding.getRight().getExpr());
+        newCtx = polyInferred.ctx().copy();
+        newCtx.push(new Entry.VarBnd(binding.getLeft(), newCtx.apply(polyInferred.type())));
+      }
+
+      for (var binding : nonUnified) {
+        if (isPolymorphic(binding.getRight())) {
+          continue;
+        }
         var typeVar = binding.getMiddle();
         var expr = binding.getRight();
         var valueInferred = engine.check(newCtx, expr,
@@ -109,6 +124,10 @@ public final class Let extends Expr {
       var finalCtx = new Context(solvedFinalCtxEntries, bodyInferred.ctx());
 
       return new TypeResult(bodyInferred.type(), finalCtx);
+    }
+
+    private static boolean isPolymorphic(ExprOrOperator<Expr, SystemFType> binding) {
+      return binding.isExpr() && binding.getExpr().unwrapOrThis() instanceof TAbs;
     }
 
     @Override

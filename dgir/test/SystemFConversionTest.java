@@ -1,5 +1,7 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static dgir.dialect.builtin.BuiltinAttrs.IntegerAttribute;
+import static dgir.dialect.builtin.BuiltinTypes.IntegerT;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +12,9 @@ import org.junit.jupiter.api.Test;
 
 import dgir.core.ir.Block;
 import dgir.core.ir.Dialect;
+import dgir.core.ir.MaybeType;
 import dgir.core.ir.Operation;
+import dgir.core.ir.Value;
 import dgir.core.ir.types.Expression.ExpressionVisitor;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitGetChildrenOption;
 import dgir.core.ir.types.Expression.ExpressionVisitor.VisitOrder;
@@ -172,5 +176,40 @@ public class SystemFConversionTest {
     assertEquals(1, countOps(solved.getRight(), CallIndirectOp.class),
         "rebuilt indirect call op missing from result tree");
     assertTrue(solved.getLeft() instanceof SystemFType.Lit);
+  }
+
+  @Test
+  public void polymorphicIdentityCallWithTypeApplication() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    // id :: forall a. a -> a — the unknown parameter type becomes a TAbs
+    var idOp = programOp.addOperation(
+        new FuncOp(LOC, "id", FuncType.of(List.of(MaybeType.of()), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value x = idOp.getRegion().getRegionValue(0).orElseThrow();
+    idOp.addOperation(new ReturnOp(LOC, x), 0);
+
+    // id[int32](42) — the type parameter becomes a TApp on the callee
+    var arg = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(42, IntegerT.INT32())), 0);
+    var call = funcMainOp.addOperation(
+        new CallOp(LOC, "id", List.of(arg.getResult()), List.of(IntegerT.INT32()), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC, call.getOutputValue().orElseThrow()), 0);
+
+    var solved = solve(programOp);
+
+    // One call to id + the synthetic call to main inserted by the ProgramOp
+    // conversion
+    assertEquals(2, countOps(solved.getRight(), CallOp.class), "rebuilt call ops missing from result tree");
+
+    var rebuiltId = solved.getRight().stream()
+        .filter(op -> op.asOp() instanceof FuncOp f && f.getFuncName().equals("id"))
+        .map(op -> (FuncOp) op.asOp())
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("rebuilt id func op missing from result tree"));
+    assertEquals(FuncType.of(List.of(MaybeType.of(IntegerT.INT32())), MaybeType.of(IntegerT.INT32())),
+        rebuiltId.getType());
+
+    assertTrue(solved.getLeft() instanceof SystemFType.Lit);
+    assertEquals(TypeIdent.TYPE_IDENT_INT, ((SystemFType.Lit) solved.getLeft()).ident);
   }
 }

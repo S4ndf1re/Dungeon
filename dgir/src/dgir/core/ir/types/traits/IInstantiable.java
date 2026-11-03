@@ -143,7 +143,13 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
           var copiedExpr = referencedExprAsExpr.copy();
           copiedExpr.setParentScopeExpression(scopeExpression, referencedFromEnv.map(e -> e.getRight()));
 
+          // DEBUG(instrument)
+          System.err.println("[DBG var] var=" + instantiatedVariable.getReferencedVariable()
+              + " hasScopeSolution=" + env.getScopeSolution(instantiatedVariable.getReferencedVariable()).isPresent()
+              + "\n    caller=" + solutionContext + "\n    final =" + finalSolutionCtx);
           E instantiatedReferenced = copiedExpr.instantiate(engine, env, finalSolutionCtx);
+          System.err.println("[DBG var] var=" + instantiatedVariable.getReferencedVariable() + " -> "
+              + instantiatedReferenced.getClass().getSimpleName() + " type=" + instantiatedReferenced.getInferredType());
 
           // After instantiation, return the actual expression not the variable!
           // NOTE: the instantiatedReferenced is already hash-consed
