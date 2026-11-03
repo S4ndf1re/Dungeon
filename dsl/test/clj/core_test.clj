@@ -1,6 +1,7 @@
 (ns core-test
   (:require
    [ast.ast :as ast]
+   [clojure.java.io :refer [resource]]
    [clojure.test :as t :refer [deftest testing]]
    [core :as c]
    [emission :as em]
@@ -58,31 +59,31 @@
 
 (defn simple-prog-test []
   (c/init-hmx)
-  (infer-script (slurp "dsl/test_scripts/simple_prog.dg")))
+  (infer-script (slurp (resource "simple_prog.dg"))))
 
 (defn let-set-test []
-  (infer-script (slurp "dsl/test_scripts/let_set.dg")))
+  (infer-script (slurp (resource "let_set.dg"))))
 
 (defn while-loop-test []
-  (infer-script (slurp "dsl/test_scripts/while_loop_test.dg")))
+  (infer-script (slurp (resource "while_loop_test.dg"))))
 
 (defn nested-if-test []
-  (infer-script (slurp "dsl/test_scripts/nested_if.dg")))
+  (infer-script (slurp (resource "nested_if.dg"))))
 
 (defn recursive-function []
-  (infer-script (slurp "dsl/test_scripts/recursive_function.dg")))
+  (infer-script (slurp (resource "recursive_function.dg"))))
 
 (defn cyclic-function-test []
-  (infer-script (slurp "dsl/test_scripts/cyclic_function.dg")))
+  (infer-script (slurp (resource "cyclic_function.dg"))))
 
 (defn annotated-cyclic-function-test []
-  (infer-script (slurp "dsl/test_scripts/annotated_cyclic_function.dg")))
+  (infer-script (slurp (resource "annotated_cyclic_function.dg"))))
 
 (defn subtyped-annotation-recursive-failing-function-test []
-  (infer-script (slurp "dsl/test_scripts/subtyped_annotation_recursive_failing_function.dg")))
+  (infer-script (slurp (resource "subtyped_annotation_recursive_failing_function.dg"))))
 
 (defn subtyped-annotation-function-test []
-  (infer-script (slurp "dsl/test_scripts/subtyped_annotation_function.dg")))
+  (infer-script (slurp (resource "subtyped_annotation_function.dg"))))
 
 ; (while-loop-test)
 ; (simple-test-fn)

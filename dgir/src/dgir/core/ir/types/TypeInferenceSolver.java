@@ -225,7 +225,6 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     });
 
     if (instantiated.getUnderlyingOperation().isPresent()) {
-      instantiated.getUnderlyingOperation().get().printOp();
       boolean valid = new OperationVerifier(VerifyOptions.FULL_VERIFICATION)
           .verify(instantiated.getUnderlyingOperation().get());
       if (!valid) {
