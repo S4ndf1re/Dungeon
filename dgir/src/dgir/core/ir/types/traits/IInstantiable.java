@@ -100,7 +100,8 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
     // The memo and hash consing are keyed by the solution restricted to the type
     // variables reachable from this expression: only those decide its instance,
     // so equal instances reached under different (caller) solutions are shared.
-    // TODO: this is an O(n^2) solution. I the future, it might help to build a
+    // TODO: this is an O(n^3) solution.
+    // I the future, it might help to build a
     // "free var list" bottom up for every expression, to stay mostly O(n)
     S keySolution = solutionContext.restrictTo(env.getReachableTypeVars((E) this));
     E expr = env.getConsed(exprCopy, keySolution);
@@ -158,7 +159,7 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
           env.setSolution(expr, keySolution, instantiatedReferenced);
           return instantiatedReferenced;
         } else {
-          throw new RuntimeException("Tehe infered type is present, hence no instantiation can occur");
+          throw new RuntimeException("The infered type is present, hence no instantiation can occur");
         }
       }
     }
