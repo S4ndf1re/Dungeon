@@ -37,14 +37,14 @@
         (ast/emit ctx))
     (let [program (.getFirst (.getOperations (first (em/get-blocks ctx))))
           vm (VM.)
-          _ (.printOp program)
+          ; _ (.printOp program)
           inference (HMXInference.)
           solver (.getNewSolverInstance inference)
           exprOrOp (ExprOrOperator/of program)
           solve-result (.solve solver exprOrOp)
           instantiated (.instantiated solve-result)
           underlying-op (.get (.getUnderlyingOperation instantiated))
-          _ (.printOp underlying-op)
+          ; _ (.printOp underlying-op)
           resultOp (cast BuiltinOps$ProgramOp (.asOp underlying-op))]
       (.init vm resultOp)
       (.run vm))))
@@ -58,128 +58,31 @@
 
 (defn simple-prog-test []
   (c/init-hmx)
-  (infer-script "
-                 (defn abc [a b] (return (+ a b)))
-                 (defn main []
-                   (abc 1 2))
-                 "))
+  (infer-script (slurp "dsl/test_scripts/simple_prog.dg")))
 
 (defn let-set-test []
-  (infer-script "
-                 (defn abc [a b]
-                     (let [a 10]
-                         (set a 20)
-                         (return a)))
-                 (defn main []
-                   (abc 1 2))
-                 "))
+  (infer-script (slurp "dsl/test_scripts/let_set.dg")))
 
 (defn while-loop-test []
-  (infer-script "(defn main []
-                       (let [a true]
-                           (while a
-                               (set a false))
-                           (assert (not a))
-                       ))"))
+  (infer-script (slurp "dsl/test_scripts/while_loop_test.dg")))
 
 (defn nested-if-test []
-  (infer-script "(defn main []
-                       (let [a true
-                             b false
-                             c 0]
-                           (if a
-                             (if b
-                               (set c 1)
-                               (set c 2))
-                             (if b
-                               (set c 3)
-                               (set c 4)))
-                           (assert (= c 2))
-                       ))"))
+  (infer-script (slurp "dsl/test_scripts/nested_if.dg")))
 
 (defn recursive-function []
-  (infer-script "
-                (defn test-fn [a]
-                  (if (< a 10)
-                    (test-fn (+ a 1))
-                    ()
-                    )
-                )
-
-                (defn main []
-                  (test-fn 0)
-                       )"))
+  (infer-script (slurp "dsl/test_scripts/recursive_function.dg")))
 
 (defn cyclic-function-test []
-  (infer-script "
-                (defn foo [a]
-                  (if (< a 10)
-                    (return (bar (+ a 1)))
-                    (return a)
-                    )
-                )
-
-                (defn bar [a] (return (foo a)))
-
-                (defn main []
-                  (assert (= (bar 0) 10))
-                  (assert (= (bar 10) 10))
-                  (assert (= (bar 11) 11))
-                       )"))
+  (infer-script (slurp "dsl/test_scripts/cyclic_function.dg")))
 
 (defn annotated-cyclic-function-test []
-  (infer-script "
-                (defn foo [a : int32]
-                  (if (< a 10)
-                    (return (bar (+ a 1)))
-                    (return a)
-                    )
-                )
-
-                (defn bar [a] (return (foo a)))
-
-                (defn main []
-                  (assert (= (bar 0) 10))
-                  (assert (= (bar 10) 10))
-                  (assert (= (bar 11) 11))
-                       )"))
+  (infer-script (slurp "dsl/test_scripts/annotated_cyclic_function.dg")))
 
 (defn subtyped-annotation-recursive-failing-function-test []
-  (infer-script "
-                (defn foo [a : integer]
-                  (if (< a 10)
-                    (return (bar (+ a 1)))
-                    (return a)
-                    )
-                )
-
-                (defn bar [a : integer] (return (foo a)))
-
-                (defn bar2 [a : int64] (return (foo a)))
-
-                (defn main []
-                  (assert (= (bar 0) 10))
-                  ;; (assert (= (bar 10) 10))
-                  ;; Hence, this call fill fail!
-                  (assert (= (bar2 11l) 11))
-                       )"))
+  (infer-script (slurp "dsl/test_scripts/subtyped_annotation_recursive_failing_function.dg")))
 
 (defn subtyped-annotation-function-test []
-  (infer-script "
-                (defn foo [a : integer]
-                  (if (< a 10)
-                    (return (< a 10))
-                    (return (>= a 10))
-                    )
-                )
-
-                (defn bar [a : integer] (return (foo a)))
-
-                (defn main []
-                  (assert (= (bar 0) true))
-                  (assert (= (bar 10l) true))
-                       )
-                "))
+  (infer-script (slurp "dsl/test_scripts/subtyped_annotation_function.dg")))
 
 ; (while-loop-test)
 ; (simple-test-fn)
@@ -191,28 +94,49 @@
 ; (cyclic-function-test)
 ; (annotated-cyclic-function-test)
 ; (subtyped-annotation-recursive-failing-function-test)
-(subtyped-annotation-function-test)
+; (subtyped-annotation-recursive-failing-function-test)
+; (subtyped-annotation-function-test)
 
-(deftest expression-test
+(deftest simple-sexpr-parse
   (testing "Test if a simple sexpr parses"
-    (simple-test-fn))
+    (simple-test-fn)))
+
+(deftest function-def-parse
   (testing "Test if a simple fn def parses"
-    (function-def-test-fn))
+    (function-def-test-fn)))
+
+(deftest simple-prog
   (testing "Test if a simple program with an add operation works"
-    (simple-prog-test))
+    (simple-prog-test)))
+
+(deftest let-set
   (testing "Interplay between let and set"
-    (let-set-test))
-  (testing "While loop withset"
-    (while-loop-test))
+    (let-set-test)))
+
+(deftest while-loop
+  (testing "While loop with set"
+    (while-loop-test)))
+
+(deftest nested-if
   (testing "Nested if test"
-    (nested-if-test))
+    (nested-if-test)))
+
+(deftest recursive-function-test
   (testing "Recursive Function Test"
-    (recursive-function))
+    (recursive-function)))
+
+(deftest cyclic-function
   (testing "Cyclic Function Test"
-    (cyclic-function-test))
+    (cyclic-function-test)))
+
+(deftest annotated-cyclic-function
   (testing "Annotated Cyclic Function Test"
-    (annotated-cyclic-function-test))
+    (annotated-cyclic-function-test)))
+
+(deftest subtyped-annotation-recursive-failing-function
+  (testing "Subtyped generics with letrec/letmix bindings that support both recursive and non recursive blocks"
+    (subtyped-annotation-recursive-failing-function-test)))
+
+(deftest subtyped-annotation-function
   (testing "Subtyped Cyclic Function Test"
     (subtyped-annotation-function-test)))
-
-
