@@ -10,7 +10,6 @@ import dgir.core.ir.types.TypeVar;
 
 public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, S, EngineT>, T extends Type<T>, S extends dgir.core.ir.types.traits.IInstantiable.SolutionContext<E, T, EngineT, S>, EngineT extends TypeInferenceSolver<EngineT, E, T>> {
 
-
   public interface SolutionContext<E extends Expression<E, T>, T extends Type<T>, EngineT extends TypeInferenceSolver<EngineT, E, T>, SCtxT extends SolutionContext<E, T, EngineT, SCtxT>> {
     /**
      * Apply the type to the solution, resolting in an applied type that contains
@@ -91,7 +90,6 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
    * @param solution a solution Subst that may be extended with further
    *                 instantioation Substs
    */
-  @SuppressWarnings("unchecked")
   public default E instantiate(EngineT engine, InstEnv<E, T, S> env, S solutionContext) {
     // NOTE(jan): it is not 100% certain, that this extra copy and solution
     // application is actually needed. Though one might make the argument, that in
@@ -102,6 +100,8 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
     // The memo and hash consing are keyed by the solution restricted to the type
     // variables reachable from this expression: only those decide its instance,
     // so equal instances reached under different (caller) solutions are shared.
+    // TODO: this is an O(n^2) solution. I the future, it might help to build a
+    // "free var list" bottom up for every expression, to stay mostly O(n)
     S keySolution = solutionContext.restrictTo(env.getReachableTypeVars((E) this));
     E expr = env.getConsed(exprCopy, keySolution);
 
