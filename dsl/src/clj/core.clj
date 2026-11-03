@@ -26,7 +26,10 @@
 (def comment-regex
   (rgx/->Sequence
    [(rgx/->Constant \;)
-    (rgx/->ZeroOrMore (rgx/->AnyOne))
+    (rgx/->ZeroOrMore
+     (rgx/->Or
+      ;; Possibly more , hence the or rule
+      [(rgx/->Range \space \~)]))
     (rgx/->Constant \newline)]))
 
 (def int-regex
@@ -111,9 +114,9 @@
                                    (rgx/->Constant \formfeed)
                                    (rgx/->Constant \backspace)
                                    (rgx/->Constant \return)]))
-      ;; (lex/add-rule :comment comment-regex)
+      (lex/add-rule :comment comment-regex)
       (lex/add-skip :ws)
-      ;; (lex/add-skip :comment)
+      (lex/add-skip :comment)
 
       ;; Values
       (lex/add-rule :int int-regex)
