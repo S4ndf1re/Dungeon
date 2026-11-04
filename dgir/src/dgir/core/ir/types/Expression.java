@@ -81,7 +81,6 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
     return false;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public E getExpr() {
     return (E) this;
@@ -107,7 +106,6 @@ public abstract class Expression<E extends Expression<E, T>, T extends Type<T>> 
   public Optional<T> getInferredType() {
     return this.inferredType;
   }
-
 
   public boolean isA(Class<?> clazz) {
     return clazz.isInstance(this);

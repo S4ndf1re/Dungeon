@@ -61,11 +61,11 @@ public class SystemFConversionTest {
     var inference = new SystemFInference();
     var solver = inference.getNewSolverInstance();
     var solvedPair = solver.solve(ExprOrOperator.of(programOp.getOperation()));
-        DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
-        DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
-        DgirTestUtils.saveDotExpr(solvedPair.instantiated());
-        DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
-        DgirTestUtils.saveDotType(solvedPair.type());
+    DgirTestUtils.saveDotExprPreInstantiation(solvedPair.preInstantiation());
+    DgirTestUtils.saveInferenceCfg("", programOp.getOperation(), solvedPair.instantiated());
+    DgirTestUtils.saveDotExpr(solvedPair.instantiated());
+    DgirTestUtils.saveDotExprScopes(solvedPair.instantiated());
+    DgirTestUtils.saveDotType(solvedPair.type());
 
     List<Operation> ops = new ArrayList<>();
     new ExpressionVisitor<Expr, SystemFType>(VisitOrder.POST_ORDER, VisitGetChildrenOption.ALL_CHILDREN)
@@ -275,6 +275,81 @@ public class SystemFConversionTest {
         MaybeType.of(IntegerT.INT32())),
         findFunc(solved.getRight(), "first").getType());
     assertEquals(TypeIdent.TYPE_IDENT_INT, ((SystemFType.Lit) solved.getLeft()).ident);
+  }
+
+  @Test
+  public void polymorphicIdentityCallWithImplicitInstantiation() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    var idOp = programOp.addOperation(
+        new FuncOp(LOC, "id", FuncType.of(List.of(MaybeType.of()), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value x = idOp.getRegion().getRegionValue(0).orElseThrow();
+    idOp.addOperation(new ReturnOp(LOC, x), 0);
+
+    // id(42) — no type arguments at all, the application instantiates them
+    var arg = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(42, IntegerT.INT32())), 0);
+    var call = funcMainOp.addOperation(
+        new CallOp(LOC, "id", List.of(arg.getResult()), List.of(), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC, call.getOutputValue().orElseThrow()), 0);
+
+    var solved = solve(programOp);
+
+    assertEquals(FuncType.of(List.of(MaybeType.of(IntegerT.INT32())), MaybeType.of(IntegerT.INT32())),
+        findFunc(solved.getRight(), "id").getType());
+    assertEquals(TypeIdent.TYPE_IDENT_INT, ((SystemFType.Lit) solved.getLeft()).ident);
+  }
+
+  private static FuncOp addFirstFunc(ProgramOp programOp) {
+    // first :: forall a. forall b. a -> int32 -> b -> a
+    var firstOp = programOp.addOperation(new FuncOp(LOC, "first",
+        FuncType.of(List.of(MaybeType.of(), MaybeType.of(IntegerT.INT32()), MaybeType.of()), MaybeType.of())));
+    Value x = firstOp.getRegion().getRegionValue(0).orElseThrow();
+    firstOp.addOperation(new ReturnOp(LOC, x), 0);
+    return firstOp;
+  }
+
+  private static void assertFirstInstance(Pair<SystemFType, List<Operation>> solved) {
+    assertEquals(FuncType.of(
+        List.of(MaybeType.of(IntegerT.INT32()), MaybeType.of(IntegerT.INT32()), MaybeType.of(IntegerT.BOOL())),
+        MaybeType.of(IntegerT.INT32())),
+        findFunc(solved.getRight(), "first").getType());
+    assertEquals(TypeIdent.TYPE_IDENT_INT, ((SystemFType.Lit) solved.getLeft()).ident);
+  }
+
+  private static void addFirstCall(FuncOp funcMainOp, List<Optional<dgir.core.ir.Type>> typeArgs) {
+    var a = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(42, IntegerT.INT32())), 0);
+    var n = funcMainOp.addOperation(new ConstantOp(LOC, new IntegerAttribute(1, IntegerT.INT32())), 0);
+    var b = funcMainOp.addOperation(new ConstantOp(LOC, true), 0);
+    var call = funcMainOp.addOperation(new CallOp(LOC, "first",
+        List.of(a.getResult(), n.getResult(), b.getResult()), typeArgs, MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC, call.getOutputValue().orElseThrow()), 0);
+  }
+
+  @Test
+  public void multiArgumentCallWithImplicitInstantiation() {
+    ProgramOp programOp = new ProgramOp(LOC);
+    addFirstFunc(programOp);
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+
+    // first(42, 1, true) — the innermost application instantiates both type
+    // abstractions, b is only solved by the outermost one
+    addFirstCall(funcMainOp, List.of());
+
+    assertFirstInstance(solve(programOp));
+  }
+
+  @Test
+  public void explicitAndImplicitInstantiationCompose() {
+    ProgramOp programOp = new ProgramOp(LOC);
+    addFirstFunc(programOp);
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+
+    // first[int32](42, 1, true) — a is applied explicitly, the remaining b is
+    // instantiated implicitly by the application
+    addFirstCall(funcMainOp, List.of(Optional.of(IntegerT.INT32())));
+
+    assertFirstInstance(solve(programOp));
   }
 
   @Test

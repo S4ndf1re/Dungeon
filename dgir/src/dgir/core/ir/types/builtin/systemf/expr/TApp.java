@@ -102,7 +102,6 @@ public final class TApp extends Expr {
     public List<Expr> getChildren() {
       return List.of(this.func);
     }
-
     @Override
     public boolean equals(Object obj) {
       return obj instanceof TApp other && this.func.equals(other.func) && this.type.equals(other.type)
