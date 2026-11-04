@@ -130,8 +130,20 @@
       (lex/build)))
 
 (defn fn-def-to-ast [loc [_ _ ident _ arg-idents _ children _]]
-  (func/->FnDef loc (:data ident) (:data arg-idents) (com/->Do (tok/location children)
-                                                               (:data children))))
+  (func/->FnDef loc
+                (:data ident)
+                (:data arg-idents)
+                (com/->Do (tok/location children)
+                          (:data children))
+                nil))
+
+(defn fn-def-with-return-type-to-ast [loc [_ _ ident _ arg-idents _ children _ _ ret-type]]
+  (func/->FnDef loc
+                (:data ident)
+                (:data arg-idents)
+                (com/->Do (tok/location children)
+                          (:data children))
+                (:data ret-type)))
 
 (defn fn-call-to-ast [loc [_ ident args _]]
   (func/->FnCall loc
@@ -190,9 +202,6 @@
 
 (defn false-value [loc _] (lit/->BoolLit loc false))
 (defn true-value [loc _] (lit/->BoolLit loc true))
-
-; (defn annotation-to-ast [loc [expr _ type-ident]]
-;   (com/->Typed loc (:data expr) (:data type-ident)))
 
 (defn set-to-ast [loc [_ _ id expr _]] (com/->Set loc (:data id) (:data expr)))
 (defn if-to-ast [loc [_ _ condition then-case else-case _]] (cf/->If loc (:data condition) (:data then-case) (:data else-case)))
@@ -253,7 +262,8 @@
       (par/add-rule :TypeApp [:Type create-type-app]) ;; Create a simple type application parameters that can be used with any function call
       (par/add-rule :FnArg [[:ID create-fn-arg]
                             [:ID :colon :Type create-fn-arg-annotated]])
-      (par/add-rule :FnDef [:lparen :defn :ID :lbrack :FnArg* :rbrack :BodySExpr* :rparen fn-def-to-ast])
+      (par/add-rule :FnDef [[:lparen :defn :ID :lbrack :FnArg* :rbrack :BodySExpr* :rparen fn-def-to-ast]
+                            [:lparen :defn :ID :lbrack :FnArg* :rbrack :BodySExpr* :rparen :colon :TypeApp fn-def-with-return-type-to-ast]])
       (par/add-rule :If [:lparen :if :SExpr :BodySExpr :BodySExpr :rparen if-to-ast])
       (par/add-rule :While [:lparen :while :SExpr :BodySExpr* :rparen while-to-ast])
       (par/add-rule :Do [:lparen :do :BodySExpr* :rparen do-to-ast])

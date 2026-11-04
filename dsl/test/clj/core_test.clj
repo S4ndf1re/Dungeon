@@ -8,6 +8,7 @@
    [filebuffer :as fb]
    [glr-parser.parser.parser :as par])
   (:import
+   [dgir.core.ir.types.builtin.systemf SystemFInference]
    [dgir.core.ir.types.builtin.hmx HMXInference]
    [dgir.core.ir.types.compatibility ExprOrOperator]
    [dgir.dialect.builtin BuiltinOps$ProgramOp]
@@ -27,30 +28,31 @@
 
 (def parser (-> (c/build-lexer) (c/build-parser)))
 
-(defn infer-script [script]
-  (c/init-hmx)
-  (c/init-systemf)
-  (c/init-algow)
-  (fb/add-file "test" script)
-  (let [ctx (em/new-context)]
-    (-> "test"
-        (fb/get-file-content)
-        (#(par/run-lr-1 parser % "test"))
-        (:data)
-        (ast/emit ctx))
-    (let [program (.getFirst (.getOperations (first (em/get-blocks ctx))))
-          vm (VM.)
-          ; _ (.printOp program)
-          inference (HMXInference.)
-          solver (.getNewSolverInstance inference)
-          exprOrOp (ExprOrOperator/of program)
-          solve-result (.solve solver exprOrOp)
-          instantiated (.instantiated solve-result)
-          underlying-op (.get (.getUnderlyingOperation instantiated))
-          ; _ (.printOp underlying-op)
-          resultOp (cast BuiltinOps$ProgramOp (.asOp underlying-op))]
-      (.init vm resultOp)
-      (.run vm))))
+(defn infer-script
+  ([script] (infer-script script (HMXInference.)))
+  ([script inference-engine]
+   (c/init-hmx)
+   (c/init-systemf)
+   (c/init-algow)
+   (fb/add-file "test" script)
+   (let [ctx (em/new-context)]
+     (-> "test"
+         (fb/get-file-content)
+         (#(par/run-lr-1 parser % "test"))
+         (:data)
+         (ast/emit ctx))
+     (let [program (.getFirst (.getOperations (first (em/get-blocks ctx))))
+           vm (VM.)
+           ; _ (.printOp program)
+           solver (.getNewSolverInstance inference-engine)
+           exprOrOp (ExprOrOperator/of program)
+           solve-result (.solve solver exprOrOp)
+           instantiated (.instantiated solve-result)
+           underlying-op (.get (.getUnderlyingOperation instantiated))
+           ; _ (.printOp underlying-op)
+           resultOp (cast BuiltinOps$ProgramOp (.asOp underlying-op))]
+       (.init vm resultOp)
+       (.run vm)))))
 
 (defn simple-test-fn []
   (par/run-lr-1 parser "(add (mul 1 3) 2)" "test"))
@@ -88,10 +90,15 @@
   (infer-script (slurp (resource "subtyped_annotation_function.dg"))))
 
 (defn annotated-function-call-test []
-  (infer-script (slurp (resource "annotated_call.dg"))))
+  (infer-script (slurp (resource "annotated_call.dg")) (SystemFInference.)))
 
-(resource "annotated_call.dg")
-(resource "subtyped_annotation_function.dg")
+(defn unannotated-function-call-test []
+  (infer-script (slurp (resource "unannotated_call.dg")) (SystemFInference.)))
+
+(defn fib-test []
+  (infer-script (slurp (resource "fib.dg")) (SystemFInference.)))
+
+(fib-test)
 
 ; (while-loop-test)
 ; (simple-test-fn)
@@ -105,7 +112,7 @@
 ; (subtyped-annotation-recursive-failing-function-test)
 ; (subtyped-annotation-recursive-failing-function-test)
 ; (subtyped-annotation-function-test)
-(annotated-function-call-test)
+;; (annotated-function-call-test)
 
 (deftest simple-sexpr-parse
   (testing "Test if a simple sexpr parses"
@@ -152,5 +159,13 @@
     (subtyped-annotation-function-test)))
 
 (deftest annotated-function-call
-  (testing "Subtyped Cyclic Function Test"
+  (testing "Annotated Function Test System-F"
     (annotated-function-call-test)))
+
+(deftest unannotated-function
+  (testing "Unannotated Function Test System-F"
+    (unannotated-function-call-test)))
+
+(deftest fib
+  (testing "Fib Test System-F"
+    (fib-test)))

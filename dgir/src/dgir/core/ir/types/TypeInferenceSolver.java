@@ -187,9 +187,10 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     // only once!
     // Additionally, function parameters are also unique Values, i.e. they cannot
     // get destroy hash-consing uniqueness!
-    new Expression.ExpressionVisitor<E, T>(VisitOrder.IN_ORDER).visit(instantiated, e -> {
-      e.reinstantiateSymbols();
-    });
+    new Expression.ExpressionVisitor<E, T>(VisitOrder.IN_ORDER, VisitGetChildrenOption.ONLY_INSTANTIATED)
+        .visit(instantiated, e -> {
+          e.reinstantiateSymbols();
+        });
     // 2. Instantiate Operations bottom-up. As all values are newly assigned, this
     // operation will create a new operation tree
     // During this stage, make sure to fully type the values using the expressions
@@ -225,6 +226,7 @@ public abstract class TypeInferenceSolver<TypeInferenceT extends TypeInferenceSo
     });
 
     if (instantiated.getUnderlyingOperation().isPresent()) {
+      instantiated.getUnderlyingOperation().get().printOp();
       boolean valid = new OperationVerifier(VerifyOptions.FULL_VERIFICATION)
           .verify(instantiated.getUnderlyingOperation().get());
       if (!valid) {

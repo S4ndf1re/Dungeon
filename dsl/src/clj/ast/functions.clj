@@ -10,7 +10,8 @@
            dgir.dialect.arith.ArithOps$UnaryOp
            dgir.dialect.func.FuncOps$CallOp
            dgir.dialect.func.FuncOps$FuncOp
-           dgir.dialect.func.FuncTypes$FuncType))
+           dgir.dialect.func.FuncTypes$FuncType
+           [java.util Optional]))
 
 (defn new-arg
   ([loc ident] (new-arg loc ident nil))
@@ -29,7 +30,12 @@
     (MaybeType/of (Type/fromParameterizedIdent (arg-annotation-ident arg)))
     (MaybeType/of)))
 
-(defrecord FnDef [location ident arg-idents body]
+(defn arg-to-optional-type [arg]
+  (if (:annotation arg)
+    (Optional/of (Type/fromParameterizedIdent (arg-annotation-ident arg)))
+    (Optional/empty)))
+
+(defrecord FnDef [location ident arg-idents body return-type]
   AstNode
   (validate [_this] (do
                       (ast/validate ident)
@@ -40,7 +46,7 @@
           fn-op (new FuncOps$FuncOp
                      (com/token-location-to-ir-location location)
                      (:ident ident)
-                     (FuncTypes$FuncType/of (mapv arg-to-maybe-type arg-idents) (MaybeType/of)))
+                     (FuncTypes$FuncType/of (mapv arg-to-maybe-type arg-idents) (arg-to-maybe-type return-type)))
           main-region (.orElseThrow (.getFirstRegion fn-op))
           ;; Map the arguments to the actual region values, by index (taken from count arg-idents in combination with map)
           arg-values (filter #(not (nil? (second %)))
@@ -117,7 +123,7 @@
      (:ident ident)
      params
      ;; Type parameters
-     (mapv arg-to-maybe-type type-applications)
+     (mapv arg-to-optional-type type-applications)
      (MaybeType/of))))
 
 (defrecord FnCall [location fn-ident type-applications params]

@@ -432,4 +432,84 @@ public class SystemFConversionTest {
 
     assertThrows(TypingException.class, () -> solve(programOp));
   }
+
+  /**
+   * Each instance of a polymorphic function renames its parameters separately.
+   * The return of the concretely typed parameter is structurally unchanged by
+   * instantiation, and must still refer to the parameter of its own instance.
+   *
+   * <pre>
+   * (defn f [x, a: int64] (return a))
+   * (defn main []
+   *   (f 42 1l)
+   *   (f true 2l))
+   * </pre>
+   */
+  @Test
+  public void polymorphicInstancesReturningConcretelyTypedParameter() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    var fOp = programOp.addOperation(new FuncOp(LOC, "f",
+        FuncType.of(List.of(MaybeType.of(), MaybeType.of(IntegerT.INT64())), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value a = fOp.getRegion().getRegionValue(1).orElseThrow();
+    fOp.addOperation(new ReturnOp(LOC, a), 0);
+
+    var intArg = funcMainOp.addOperation(new ConstantOp(LOC, 42), 0);
+    var firstA = funcMainOp.addOperation(new ConstantOp(LOC, 1L), 0);
+    funcMainOp.addOperation(
+        new CallOp(LOC, "f", List.of(intArg.getResult(), firstA.getResult()), List.of(), MaybeType.of()), 0);
+    var boolArg = funcMainOp.addOperation(new ConstantOp(LOC, true), 0);
+    var secondA = funcMainOp.addOperation(new ConstantOp(LOC, 2L), 0);
+    funcMainOp.addOperation(
+        new CallOp(LOC, "f", List.of(boolArg.getResult(), secondA.getResult()), List.of(), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC), 0);
+
+    // Solving fails if the reconstructed operation does not verify
+    solve(programOp);
+  }
+
+  /**
+   * Like {@link #polymorphicInstancesReturningConcretelyTypedParameter}, but the
+   * body uses the polymorphic parameter, so that it differs per instance.
+   *
+   * <pre>
+   * (defn id [y] (return y))
+   * (defn f [x, a: int64]
+   *   (id x)
+   *   (return a))
+   * (defn main []
+   *   (f 42 1l)
+   *   (f true 2l))
+   * </pre>
+   */
+  @Test
+  public void polymorphicInstancesUsingParameterReturningConcretelyTypedParameter() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    var idOp = programOp.addOperation(
+        new FuncOp(LOC, "id", FuncType.of(List.of(MaybeType.of()), MaybeType.of())));
+    idOp.addOperation(new ReturnOp(LOC, idOp.getRegion().getRegionValue(0).orElseThrow()), 0);
+
+    var fOp = programOp.addOperation(new FuncOp(LOC, "f",
+        FuncType.of(List.of(MaybeType.of(), MaybeType.of(IntegerT.INT64())), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value x = fOp.getRegion().getRegionValue(0).orElseThrow();
+    Value a = fOp.getRegion().getRegionValue(1).orElseThrow();
+    fOp.addOperation(new CallOp(LOC, "id", List.of(x), List.of(), MaybeType.of()), 0);
+    fOp.addOperation(new ReturnOp(LOC, a), 0);
+
+    var intArg = funcMainOp.addOperation(new ConstantOp(LOC, 42), 0);
+    var firstA = funcMainOp.addOperation(new ConstantOp(LOC, 1L), 0);
+    funcMainOp.addOperation(
+        new CallOp(LOC, "f", List.of(intArg.getResult(), firstA.getResult()), List.of(), MaybeType.of()), 0);
+    var boolArg = funcMainOp.addOperation(new ConstantOp(LOC, true), 0);
+    var secondA = funcMainOp.addOperation(new ConstantOp(LOC, 2L), 0);
+    funcMainOp.addOperation(
+        new CallOp(LOC, "f", List.of(boolArg.getResult(), secondA.getResult()), List.of(), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC), 0);
+
+    // Solving fails if the reconstructed operation does not verify
+    solve(programOp);
+  }
 }

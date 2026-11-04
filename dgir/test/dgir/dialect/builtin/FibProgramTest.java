@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
  * <pre>
  * (defn fib [a: int64] : int64
  *   (if (&lt;= a 1)
- *     (return 1l)
+ *     (return a)
  *     (return (+ (fib (- a 1)) (fib (- a 2))))))
  *
  * (defn main []
@@ -85,9 +85,8 @@ public class FibProgramTest {
     var le = entry.addOperation(new BinaryOp(LOC, a, condOne.getResult(), BinMode.LE));
     entry.addOperation(new BranchCondOp(LOC, le.getResult(), thenBlock, elseBlock));
 
-    // (return 1l)
-    var thenOne = thenBlock.addOperation(new ConstantOp(LOC, 1L));
-    thenBlock.addOperation(new ReturnOp(LOC, thenOne.getResult()));
+    // (return a)
+    thenBlock.addOperation(new ReturnOp(LOC, a));
 
     // (return (+ (fib (- a 1)) (fib (- a 2))))
     var one = elseBlock.addOperation(new ConstantOp(LOC, 1));

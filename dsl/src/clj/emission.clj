@@ -21,8 +21,7 @@
     (get @context :is-in-loop false)))
 
 (defn new-context
-  "Create a new mutable context, that serves as the emission tracker.
-  TODO(jan): maybe make the emission context also track the environment for code generation"
+  "Create a new mutable context, that serves as the emission tracker"
   ([] (new-context nil))
   ([parent]
    (let [initial-block (Block.)]
@@ -50,11 +49,6 @@
   "Get all blocks from the current emission context"
   [context]
   (get @context :blocks []))
-
-(defn get-first-block
-  "Get all blocks from the current emission context"
-  [context]
-  (first (get @context :blocks [])))
 
 (defn get-first-block
   "Get all blocks from the current emission context"
