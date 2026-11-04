@@ -1,0 +1,6 @@
+(defn main []
+  (let [a true]
+    (while a
+      (set a false))
+        (assert (not a))
+))

@@ -1,0 +1,10 @@
+(defn foo [a : integer]
+  (if (< a 10)
+    (return (< a 10))
+    (return (>= a 10))))
+
+(defn bar [a : integer] (return (foo a)))
+
+(defn main []
+  (assert (= (bar 0) true))
+  (assert (= (bar 10l) true)))

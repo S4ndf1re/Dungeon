@@ -29,6 +29,8 @@
 
 (defn infer-script [script]
   (c/init-hmx)
+  (c/init-systemf)
+  (c/init-algow)
   (fb/add-file "test" script)
   (let [ctx (em/new-context)]
     (-> "test"
@@ -85,6 +87,12 @@
 (defn subtyped-annotation-function-test []
   (infer-script (slurp (resource "subtyped_annotation_function.dg"))))
 
+(defn annotated-function-call-test []
+  (infer-script (slurp (resource "annotated_call.dg"))))
+
+(resource "annotated_call.dg")
+(resource "subtyped_annotation_function.dg")
+
 ; (while-loop-test)
 ; (simple-test-fn)
 ; (function-def-test-fn)
@@ -97,6 +105,7 @@
 ; (subtyped-annotation-recursive-failing-function-test)
 ; (subtyped-annotation-recursive-failing-function-test)
 ; (subtyped-annotation-function-test)
+(annotated-function-call-test)
 
 (deftest simple-sexpr-parse
   (testing "Test if a simple sexpr parses"
@@ -141,3 +150,7 @@
 (deftest subtyped-annotation-function
   (testing "Subtyped Cyclic Function Test"
     (subtyped-annotation-function-test)))
+
+(deftest annotated-function-call
+  (testing "Subtyped Cyclic Function Test"
+    (annotated-function-call-test)))

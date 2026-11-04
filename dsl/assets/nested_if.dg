@@ -1,0 +1,12 @@
+(defn main []
+  (let [a true
+        b false
+        c 0]
+    (if a
+      (if b
+        (set c 1)
+        (set c 2))
+      (if b
+        (set c 3)
+        (set c 4)))
+    (assert (= c 2))))

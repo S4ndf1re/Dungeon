@@ -62,7 +62,7 @@
       nil))
   (is-jump [_this] false))
 
-(defn- build-call-op-from-ident [location ident params]
+(defn- build-call-op-from-ident [location ident type-applications params]
   (case (:ident ident)
     "+" (ArithOps$BinaryOp.
          (com/token-location-to-ir-location location)
@@ -116,9 +116,11 @@
      (com/token-location-to-ir-location location)
      (:ident ident)
      params
+     ;; Type parameters
+     (mapv arg-to-maybe-type type-applications)
      (MaybeType/of))))
 
-(defrecord FnCall [location fn-ident params]
+(defrecord FnCall [location fn-ident type-applications params]
   AstNode
   (validate [_this] (do
                       (ast/validate fn-ident)
@@ -129,7 +131,7 @@
     (let [arg-values (mapv #(ast/emit % context) params)
           ;; Make sure the arg-list is actually not null
           _ (when (contains? arg-values nil) (throw (ex-info (str "Argument Value must never contain nil values " location) {:arguments params})))
-          call-op (build-call-op-from-ident location fn-ident arg-values)]
+          call-op (build-call-op-from-ident location fn-ident type-applications arg-values)]
       (em/add-expression context call-op)
       (.orElse (.getOutputValue call-op) nil)))
   (is-jump [_this] false))

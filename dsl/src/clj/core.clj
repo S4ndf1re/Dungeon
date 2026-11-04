@@ -11,6 +11,7 @@
    [clojure.string :as str])
   (:import
    [dgir.core.ir Dialect]
+   [dgir.core.ir.types.builtin.systemf SystemFInference]
    [dgir.core.ir.types.builtin.algorithmw AlgorithmWInference]
    [dgir.core.ir.types.builtin.hmx HMXInference]
    [dgir.core.ir.types.compatibility ConverterRegistry]
@@ -133,13 +134,32 @@
                                                                (:data children))))
 
 (defn fn-call-to-ast [loc [_ ident args _]]
-  (func/->FnCall loc (:data ident) (:data args)))
+  (func/->FnCall loc
+                 (:data ident)
+                 ;; The type applications are actually not that important here!
+                 ;; The System-F Application resolves if possible,
+                 ;; only posing problems when the type must be annotated precisely
+                 ;; Generally, as subtyping is not supported the way it is for HMX,
+                 ;; System F will need a lot of potential concrete, non polymorhpic type annotations.
+                 ;; But as the function key is type dependent,
+                 ;; and multi disptach is supported by the ir in its currenct form,
+                 ;; this shouldn't be a problem at all
+                 []
+                 (:data args)))
+
+(defn create-type-app [loc [ident]] (func/new-arg loc nil (:data ident)))
+
+(defn fn-call-with-type-apps-to-ast [loc [_ ident _ _ type-apps _ args _]]
+  (func/->FnCall loc
+                 (:data ident)
+                 (:data type-apps)
+                 (:data args)))
 
 (defn bin-call-to-ast [loc [_ ident lhs rhs _]]
-  (func/->FnCall loc (:data ident) (vector (:data lhs) (:data rhs))))
+  (func/->FnCall loc (:data ident) [(func/new-arg loc nil nil) (func/new-arg loc nil nil)] (vector (:data lhs) (:data rhs))))
 
 (defn unary-call-to-ast [loc [_ ident lhs _]]
-  (func/->FnCall loc (:data ident) (vector (:data lhs))))
+  (func/->FnCall loc (:data ident) [(func/new-arg loc nil nil)] (vector (:data lhs))))
 
 (defn int-lit-to-ast [loc [lit-str]]
   (->> (:data lit-str)
@@ -218,7 +238,8 @@
                                [:String unwarp-single]
                                [:true true-value]
                                [:false false-value]])
-      (par/add-rule :SExprFuncCall [:lparen :ID :SExpr* :rparen fn-call-to-ast])
+      (par/add-rule :SExprFuncCall [[:lparen :ID :SExpr* :rparen fn-call-to-ast]
+                                    [:lparen :ID :colon :lbrack :TypeApp* :rbrack :SExpr* :rparen fn-call-with-type-apps-to-ast]])
       (par/add-rule :SExprBinOp [:lparen :BinOp :SExpr :SExpr :rparen bin-call-to-ast])
       (par/add-rule :SExprUnaryOp [:lparen :UnaryOp :SExpr :rparen unary-call-to-ast])
       (par/add-rule :SExpr [[:SExprFuncCall unwarp-single]
@@ -228,8 +249,8 @@
                             [:lparen :rparen (fn [loc _] (lit/->UnitLit loc))]])
 
       ;; ============== Special Builtin S-Expression ==============
-      ;; TODO(jan): implement a global deftype, to rely on id resolution!
       (par/add-rule :Type [:ID unwarp-single])
+      (par/add-rule :TypeApp [:Type create-type-app]) ;; Create a simple type application parameters that can be used with any function call
       (par/add-rule :FnArg [[:ID create-fn-arg]
                             [:ID :colon :Type create-fn-arg-annotated]])
       (par/add-rule :FnDef [:lparen :defn :ID :lbrack :FnArg* :rbrack :BodySExpr* :rparen fn-def-to-ast])
@@ -288,7 +309,7 @@
   (CellAlgoWConversion/registerBuiltinAlgoWConversion))
 
 (defn init-systemf []
-  (ConverterRegistry/registerDialect AlgorithmWInference)
+  (ConverterRegistry/registerDialect SystemFInference)
   (Dialect/registerAllDialects)
   (DialectRunner/registerAllDialects)
   (FuncSystemFConversion/registerBuiltinSystemFConversion)
@@ -298,6 +319,3 @@
   (ScfSystemFConversion/registerBuiltinSystemFConversion)
   (CfSystemFConversion/registerBuiltinSystemFConversion)
   (CellSystemFConversion/registerBuiltinSystemFConversion))
-
-(defn hello []
-  (println "hello"))

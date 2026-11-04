@@ -1,0 +1,14 @@
+(defn foo [a : integer]
+  (if (< a 10)
+    (return (bar (+ a 1)))
+    (return a)))
+
+(defn bar [a : integer] (return (foo a)))
+
+(defn bar2 [a : int64] (return (foo a)))
+
+(defn main []
+  (assert (= (bar 0) 10))
+  ;; (assert (= (bar 10) 10))
+  ;; Hence, this call fill fail!
+  (assert (= (bar2 11l) 11)))

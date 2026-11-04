@@ -1,0 +1,5 @@
+(defn abc [a] (return a))
+
+(defn main []
+    (assert (= (abc : [int32] 10) 10))
+)
