@@ -296,20 +296,12 @@ public final class FuncSystemFConversion {
 
       // The operands are taken from the instantiated application chain, as
       // beta reduction/substitution may have replaced the original values!
-      var argExprs = application.getRight();
-      assert argExprs
+      // An argument is either the result of an operation, or a parameter of the
+      // enclosing function, which has no underlying operation.
+      var parameterOperations = application
+        .getRight()
         .stream()
-        .allMatch(
-          arg ->
-            arg.getUnderlyingOperation().isPresent() &&
-            arg.getUnderlyingOperation().get().getOutput().isPresent()
-        );
-
-      var parameterOperations = argExprs
-        .stream()
-        .map(Expr::getUnderlyingOperation)
-        .map(Optional::get)
-        .map(Operation::getOutputValueOrThrow)
+        .map(Expr::getOutputValue)
         .toList();
 
       return new CallOp(
@@ -356,20 +348,12 @@ public final class FuncSystemFConversion {
 
       // The operands are taken from the instantiated application chain, as
       // beta reduction/substitution may have replaced the original values!
-      var argExprs = application.getRight();
-      assert argExprs
+      // An argument is either the result of an operation, or a parameter of the
+      // enclosing function, which has no underlying operation.
+      var parameterOperations = application
+        .getRight()
         .stream()
-        .allMatch(
-          arg ->
-            arg.getUnderlyingOperation().isPresent() &&
-            arg.getUnderlyingOperation().get().getOutput().isPresent()
-        );
-
-      var parameterOperations = argExprs
-        .stream()
-        .map(Expr::getUnderlyingOperation)
-        .map(Optional::get)
-        .map(Operation::getOutputValueOrThrow)
+        .map(Expr::getOutputValue)
         .toList();
 
       return new CallIndirectOp(

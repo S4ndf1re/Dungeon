@@ -243,6 +243,9 @@ public class ScfHMXInferenceTest {
     // back into the reconstructed tree.
     assertEquals(2, countOps(solved.getRight(), ForOp.class),
         "both sequential for loops must be present in the result tree");
+    // Both loops share the same four definitions, each must be emitted once.
+    assertEquals(4, countOps(solved.getRight(), ConstantOp.class),
+        "a definition used by both loops must be emitted once");
 
     assertEquals(TypeIdent.TYPE_IDENT_UNIT, ((HMXType.LitType) solved.getLeft()).tyName);
   }

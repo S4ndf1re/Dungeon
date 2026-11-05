@@ -243,6 +243,40 @@ public class SystemFConversionTest {
     assertTrue(solved.getLeft() instanceof SystemFType.Lit);
   }
 
+  /**
+   * An argument of an indirect call can be a parameter of the enclosing function,
+   * which has no underlying operation.
+   */
+  @Test
+  public void indirectCallWithParameterAsArgument() {
+    ProgramOp programOp = new ProgramOp(LOC);
+    var signature = FuncType.of(List.of(MaybeType.of(IntegerT.INT32())), MaybeType.of(IntegerT.INT32()));
+
+    var helperOp = programOp.addOperation(new FuncOp(LOC, "helper", signature));
+    helperOp.addOperation(new ReturnOp(LOC, helperOp.getRegion().getRegionValue(0).orElseThrow()), 0);
+
+    var callerOp = programOp.addOperation(new FuncOp(LOC, "caller", signature));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value x = callerOp.getRegion().getRegionValue(0).orElseThrow();
+    var constFn = callerOp.addOperation(new dgir.dialect.func.FuncOps.ConstantOp(LOC, "helper", signature), 0);
+    var indirect = callerOp.addOperation(new CallIndirectOp(LOC, constFn.getResult(), List.of(x)), 0);
+    callerOp.addOperation(new ReturnOp(LOC, indirect.getOutputValue().orElseThrow()), 0);
+
+    var arg = funcMainOp.addOperation(new ConstantOp(LOC, 1), 0);
+    funcMainOp.addOperation(new CallOp(LOC, "caller", List.of(arg.getResult()), List.of(), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC), 0);
+
+    var solved = solve(programOp);
+
+    var rebuiltCaller = findFunc(solved.getRight(), "caller");
+    var rebuiltIndirect = solved.getRight().stream()
+        .filter(op -> op.asOp() instanceof CallIndirectOp)
+        .findFirst()
+        .orElseThrow();
+    assertEquals(rebuiltCaller.getRegion().getRegionValue(0).orElseThrow(),
+        rebuiltIndirect.getOperandValue(1).orElseThrow());
+  }
+
   @Test
   public void polymorphicIdentityCallWithTypeApplication() {
     ProgramOp programOp = new ProgramOp(LOC);
@@ -511,5 +545,74 @@ public class SystemFConversionTest {
 
     // Solving fails if the reconstructed operation does not verify
     solve(programOp);
+  }
+
+  /**
+   * The instances differ, even though nothing in the body mentions the
+   * polymorphic parameter.
+   *
+   * <pre>
+   * (defn f [x] (return 1l))
+   * (defn main []
+   *   (f 42)
+   *   (f true))
+   * </pre>
+   */
+  @Test
+  public void polymorphicInstancesWithoutParameterReference() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    var fOp = programOp.addOperation(new FuncOp(LOC, "f", FuncType.of(List.of(MaybeType.of()), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    var one = fOp.addOperation(new ConstantOp(LOC, 1L), 0);
+    fOp.addOperation(new ReturnOp(LOC, one.getResult()), 0);
+
+    var intArg = funcMainOp.addOperation(new ConstantOp(LOC, 42), 0);
+    funcMainOp.addOperation(new CallOp(LOC, "f", List.of(intArg.getResult()), List.of(), MaybeType.of()), 0);
+    var boolArg = funcMainOp.addOperation(new ConstantOp(LOC, true), 0);
+    funcMainOp.addOperation(new CallOp(LOC, "f", List.of(boolArg.getResult()), List.of(), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC), 0);
+
+    // Solving fails if the reconstructed operation does not verify
+    var solved = solve(programOp);
+    assertEquals(2, solved.getRight().stream()
+        .filter(op -> op.asOp() instanceof FuncOp func && func.getFuncName().equals("f")).count());
+  }
+
+  /**
+   * A function instance is shared by its callers, whether they are polymorphic
+   * themselves or not.
+   *
+   * <pre>
+   * (defn id [y] (return y))
+   * (defn f [x] (return (id x)))
+   * (defn main []
+   *   (f 42)
+   *   (id 7))
+   * </pre>
+   */
+  @Test
+  public void functionInstanceSharedByPolymorphicAndPlainCaller() {
+    ProgramOp programOp = new ProgramOp(LOC);
+
+    var idOp = programOp.addOperation(
+        new FuncOp(LOC, "id", FuncType.of(List.of(MaybeType.of()), MaybeType.of())));
+    idOp.addOperation(new ReturnOp(LOC, idOp.getRegion().getRegionValue(0).orElseThrow()), 0);
+
+    var fOp = programOp.addOperation(new FuncOp(LOC, "f", FuncType.of(List.of(MaybeType.of()), MaybeType.of())));
+    FuncOp funcMainOp = programOp.addOperation(new FuncOp(LOC, "main"));
+    Value x = fOp.getRegion().getRegionValue(0).orElseThrow();
+    var inner = fOp.addOperation(new CallOp(LOC, "id", List.of(x), List.of(), MaybeType.of()), 0);
+    fOp.addOperation(new ReturnOp(LOC, inner.getOutputValue().orElseThrow()), 0);
+
+    var fArg = funcMainOp.addOperation(new ConstantOp(LOC, 42), 0);
+    funcMainOp.addOperation(new CallOp(LOC, "f", List.of(fArg.getResult()), List.of(), MaybeType.of()), 0);
+    var idArg = funcMainOp.addOperation(new ConstantOp(LOC, 7), 0);
+    funcMainOp.addOperation(new CallOp(LOC, "id", List.of(idArg.getResult()), List.of(), MaybeType.of()), 0);
+    funcMainOp.addOperation(new ReturnOp(LOC), 0);
+
+    var solved = solve(programOp);
+    assertEquals(1, solved.getRight().stream()
+        .filter(op -> op.asOp() instanceof FuncOp func && func.getFuncName().equals("id")).count());
   }
 }

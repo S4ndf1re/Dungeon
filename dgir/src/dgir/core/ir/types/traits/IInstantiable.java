@@ -1,5 +1,6 @@
 package dgir.core.ir.types.traits;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import dgir.core.ir.types.Expression;
@@ -91,20 +92,38 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
    *                 instantioation Substs
    */
   public default E instantiate(EngineT engine, InstEnv<E, T, S> env, S solutionContext) {
+    // The memo and hash consing are keyed by the solution restricted to the type
+    // variables deciding this instance: the ones reachable from this expression,
+    // so equal instances reached under different (caller) solutions are shared,
+    // and the ones of the enclosing function's signature, as everything within a
+    // function belongs to that function's instance, even if its own type does not
+    // mention them.
+    // TODO: this is O(n^3) in the worst case: for each of the n visits, restrictTo
+    // applies the solution (O(|S|)) to each reachable type variable (O(n)).
+    // Collecting the free type variables bottom up only removes the O(n) walk;
+    // apply also has to stop being linear in the solution.
+    var typeVars = new HashSet<>(env.getReachableTypeVars((E) this));
+    typeVars.addAll(env.getFunctionTypeVars());
+    return this.instantiate(engine, env, solutionContext, solutionContext.restrictTo(typeVars));
+  }
+
+  /**
+   * Instantiate this expression, using the given solution as the key of the memo
+   * and the hash consing.
+   *
+   * @param keySolution the solution identifying this instance
+   */
+  private E instantiate(EngineT engine, InstEnv<E, T, S> env, S solutionContext, S keySolution) {
     // NOTE(jan): it is not 100% certain, that this extra copy and solution
     // application is actually needed. Though one might make the argument, that in
     // later iterations of this code, the solution context may be redunant entirely.
     E exprCopy = ((E) this).copy();
     exprCopy.setInferredType(exprCopy.getInferredType().map(ty -> solutionContext.apply(ty)));
 
-    // The memo and hash consing are keyed by the solution restricted to the type
-    // variables reachable from this expression: only those decide its instance,
-    // so equal instances reached under different (caller) solutions are shared.
-    // TODO: this is an O(n^3) solution.
-    // I the future, it might help to build a
-    // "free var list" bottom up for every expression, to stay mostly O(n)
-    S keySolution = solutionContext.restrictTo(env.getReachableTypeVars((E) this));
-    E expr = env.getConsed(exprCopy, keySolution);
+    // Not hash consing: this expression is not an instance yet. It only gives every
+    // visit of this expression and key the same identity, for a recursive visit to
+    // find its way back through a cell.
+    E expr = env.getVisitIdentity(exprCopy, keySolution);
 
     // Variables must always be visited, while other epxressions must be
     // instantiated, as long as its not a recursive instantiation.
@@ -126,8 +145,11 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
     E instantiated = expr.instantiateInner(engine, env, solutionContext);
     instantiated.setInferredType(instantiated.getInferredType().map(ty -> solutionContext.apply(ty)));
 
-    env.getCellsForExpressions(expr).stream().forEach(e -> e.replaceIfMatches(expr, instantiated));
-    var instantiatedTarget = env.getConsed(instantiated, keySolution);
+    // The final instance is only known now: different expressions may result in an
+    // equal instance.
+    E instance = env.getConsed(instantiated, keySolution);
+
+    env.getCellsForExpressions(expr).stream().forEach(e -> e.replaceIfMatches(expr, instance));
     // The beta-reduction for variables.
     // When the variable is in scope, actually replace the returned
     // expression with the referenced instantiated Expr instance.
@@ -135,8 +157,8 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
     // as those are not bound to concrete expressions.
     //
     // FUTURE_WORK(jan): return a fully beta-reduced expression tree
-    if (instantiatedTarget instanceof IVariable) {
-      var instantiatedVariable = (IVariable<E, T>) instantiatedTarget;
+    if (instance instanceof IVariable) {
+      var instantiatedVariable = (IVariable<E, T>) instance;
       var referencedFromEnv = env.getExprAndPosition(instantiatedVariable.getReferencedVariable());
       if (referencedFromEnv.isPresent()) {
         var scopeExpression = env.getScopeExpression(instantiatedVariable.getReferencedVariable());
@@ -144,18 +166,28 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
         var referencedExprAsExpr = engine.asExpression(referencedFromEnv.get().getLeft());
         var referencedInferredType = referencedExprAsExpr.getInferredType();
 
-        if (referencedInferredType.isPresent() && instantiatedTarget.getInferredType().isPresent()) {
+        if (referencedInferredType.isPresent() && instance.getInferredType().isPresent()) {
           S finalSolutionCtx = solutionContext.expand(engine, referencedExprAsExpr,
-              instantiatedTarget.getInferredType().get());
+              instance.getInferredType().get());
 
           var copiedExpr = referencedExprAsExpr.copy();
           copiedExpr.setParentScopeExpression(scopeExpression, referencedFromEnv.map(e -> e.getRight()));
 
-          E instantiatedReferenced = copiedExpr.instantiate(engine, env, finalSolutionCtx);
+          // A referenced function is its own instance, independent of the function
+          // calling it: only the type variables reachable from it decide its key,
+          // and it starts a new enclosing function for everything within it.
+          E instantiatedReferenced;
+          if (copiedExpr.isA(IAbstraction.class)) {
+            IInstantiable<E, T, S, EngineT> function = copiedExpr;
+            instantiatedReferenced = function.instantiate(engine, env.forFunction(copiedExpr), finalSolutionCtx,
+                finalSolutionCtx.restrictTo(env.getReachableTypeVars(copiedExpr)));
+          } else {
+            instantiatedReferenced = copiedExpr.instantiate(engine, env, finalSolutionCtx);
+          }
 
           // After instantiation, return the actual expression not the variable!
           // NOTE: the instantiatedReferenced is already hash-consed
-          env.setSolution(instantiatedTarget, keySolution, instantiatedReferenced);
+          env.setSolution(instance, keySolution, instantiatedReferenced);
           env.setSolution(expr, keySolution, instantiatedReferenced);
           return instantiatedReferenced;
         } else {
@@ -164,9 +196,9 @@ public interface IInstantiable<E extends Expression<E, T> & IInstantiable<E, T, 
       }
     }
 
-    env.setSolution(expr, keySolution, instantiatedTarget);
-    env.setSolution(instantiatedTarget, keySolution, instantiatedTarget);
-    return instantiatedTarget;
+    env.setSolution(expr, keySolution, instance);
+    env.setSolution(instance, keySolution, instance);
+    return instance;
   }
 
 }

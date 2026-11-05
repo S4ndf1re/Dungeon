@@ -368,4 +368,77 @@ public class AlgorithmWTest {
     assert firstAbs != secondAbs;
     assert thirdAbs != secondAbs;
   }
+
+  /**
+   * let id = \\x -> x
+   * in let alias = id
+   * in (alias 1, id true, id 2)
+   */
+  @Test
+  public void instancesReachedThroughAliasAreDistinctPerType() {
+    var elements = solveIdAliasTuple(
+        (id, alias) -> new Tuple(
+            new App(new Var(alias), new Lit(new Literal.Int(1))),
+            new App(new Var(id), new Lit(new Literal.Bool(true))),
+            new App(new Var(id), new Lit(new Literal.Int(2)))));
+
+    var first = ((App) elements.get(0)).func();
+    var second = ((App) elements.get(1)).func();
+    var third = ((App) elements.get(2)).func();
+
+    assert first == third;
+    assert first != second;
+    assert !first.getInferredType().equals(second.getInferredType());
+  }
+
+  /**
+   * let id = \\x -> x
+   * in let alias = id
+   * in (id 1, id 1)
+   */
+  @Test
+  public void equalExpressionsShareOneInstance() {
+    var elements = solveIdAliasTuple(
+        (id, alias) -> new Tuple(
+            new App(new Var(id), new Lit(new Literal.Int(1))),
+            new App(new Var(id), new Lit(new Literal.Int(1)))));
+
+    assert elements.get(0) == elements.get(1);
+  }
+
+  /**
+   * let id = \\x -> x
+   * in let alias = id
+   * in (alias 1, id 1)
+   *
+   * Different expressions resulting in an equal instance.
+   */
+  @Test
+  public void differentExpressionsWithEqualInstanceShareOneInstance() {
+    var elements = solveIdAliasTuple(
+        (id, alias) -> new Tuple(
+            new App(new Var(alias), new Lit(new Literal.Int(1))),
+            new App(new Var(id), new Lit(new Literal.Int(1)))));
+
+    assert ((App) elements.get(0)).func() == ((App) elements.get(1)).func();
+    assert elements.get(0) == elements.get(1);
+  }
+
+  private static List<Expr> solveIdAliasTuple(
+      java.util.function.BiFunction<Symbol<Expr, AlgorithmWType>, Symbol<Expr, AlgorithmWType>, Expr> body) {
+    var solver = new AlgorithmWInference().getNewSolverInstance();
+
+    var id = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var alias = Symbol.<Expr, AlgorithmWType>of(new Value());
+    var x = Symbol.<Expr, AlgorithmWType>of(new Value());
+
+    Expr expr = new LetRec(
+        id,
+        new Abs(x, new Var(x)),
+        new LetRec(alias, new Var(id), body.apply(id, alias)));
+
+    var outer = (LetRec) solver.solve(expr).instantiated();
+    var inner = (LetRec) outer.body();
+    return ((Tuple) inner.body()).elements();
+  }
 }

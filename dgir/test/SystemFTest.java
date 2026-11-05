@@ -347,4 +347,70 @@ public class SystemFTest {
     assert firstAbs != secondAbs;
     assert thirdAbs != secondAbs;
   }
+
+  /**
+   * let id = /\\a. \\x: a -> x
+   * in (id 1, id true, id 2)
+   */
+  @Test
+  public void instancesOfImplicitApplicationsAreDistinctPerType() {
+    var elements = solveIdTuple(
+        id -> new Tuple(
+            new App(new Var(id), new LitExpr(new Literal.Int(1))),
+            new App(new Var(id), new LitExpr(new Literal.Bool(true))),
+            new App(new Var(id), new LitExpr(new Literal.Int(2)))));
+
+    var first = ((App) elements.get(0)).fun();
+    var second = ((App) elements.get(1)).fun();
+    var third = ((App) elements.get(2)).fun();
+
+    assert first == third;
+    assert first != second;
+    assert !first.getInferredType().equals(second.getInferredType());
+  }
+
+  /**
+   * let id = /\\a. \\x: a -> x
+   * in (id 1, id 1)
+   */
+  @Test
+  public void equalExpressionsShareOneInstance() {
+    var elements = solveIdTuple(
+        id -> new Tuple(
+            new App(new Var(id), new LitExpr(new Literal.Int(1))),
+            new App(new Var(id), new LitExpr(new Literal.Int(1)))));
+
+    assert elements.get(0) == elements.get(1);
+  }
+
+  /**
+   * let id = /\\a. \\x: a -> x
+   * in (id [int] 1, id 1)
+   *
+   * Different expressions resulting in an equal instance.
+   */
+  @Test
+  public void differentExpressionsWithEqualInstanceShareOneInstance() {
+    var elements = solveIdTuple(
+        id -> new Tuple(
+            new App(new TApp(new Var(id), new SystemFType.Lit(TypeIdent.TYPE_IDENT_INT)),
+                new LitExpr(new Literal.Int(1))),
+            new App(new Var(id), new LitExpr(new Literal.Int(1)))));
+
+    assert ((App) elements.get(0)).fun() == ((App) elements.get(1)).fun();
+    assert elements.get(0) == elements.get(1);
+  }
+
+  private static List<Expr> solveIdTuple(Function<Symbol<Expr, SystemFType>, Expr> body) {
+    var solver = new SystemFInference().getNewSolverInstance();
+
+    var a = new TypeVar<SystemFType>();
+    var id = Symbol.<Expr, SystemFType>of(new Value());
+    var x = Symbol.<Expr, SystemFType>of(new Value());
+
+    Expr expr = new Let(id, new TAbs(a, new Abs(x, new SystemFType.Var(a), new Var(x))), body.apply(id));
+
+    var let = (Let) solver.solve(expr).instantiated();
+    return ((Tuple) let.body()).elements();
+  }
 }
