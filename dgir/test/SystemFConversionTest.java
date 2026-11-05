@@ -142,6 +142,68 @@ public class SystemFConversionTest {
   }
 
   @Test
+  public void multiParameterFuncRejectsReturnNotMatchingAnnotation() {
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    ProgramOp programOp = entry.getLeft();
+
+    // (defn f [a: int64 b: int64] : int32 (return a))
+    MaybeType int64 = MaybeType.of((dgir.core.ir.Type) IntegerT.INT64());
+    FuncOp f = programOp.addOperation(new FuncOp(LOC, "f",
+        FuncType.of(List.of(int64, int64), MaybeType.of((dgir.core.ir.Type) IntegerT.INT32()))));
+    f.addOperation(new ReturnOp(LOC, f.getRegion().getRegionValue(0).orElseThrow()), 0);
+    entry.getRight().addOperation(new ReturnOp(LOC), 0);
+
+    assertThrows(TypingException.SubtypingFailed.class, () -> solve(programOp));
+  }
+
+  /**
+   * Builds {@code g}, which calls {@code f} before {@code f} is bound. The call
+   * solves the type variable of {@code f} to an arrow, hence the abstraction of
+   * {@code f} goes through {@code Abs.check} rather than {@code Abs.infer}.
+   */
+  private static ProgramOp buildProgramCallingAnnotatedFuncBeforeItsBinding(MaybeType fOutput) {
+    Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
+    ProgramOp programOp = entry.getLeft();
+    MaybeType int64 = MaybeType.of((dgir.core.ir.Type) IntegerT.INT64());
+
+    // (defn g [] (f 1l))
+    FuncOp g = programOp.addOperation(new FuncOp(LOC, "g", FuncType.of(List.of(), MaybeType.of())));
+    var argument = g.addOperation(new ConstantOp(LOC, 1L), 0);
+    g.addOperation(new CallOp(LOC, "f", List.of(argument.getResult()), List.of(), MaybeType.of()), 0);
+    g.addOperation(new ReturnOp(LOC), 0);
+
+    // (defn f [a: int64] : fOutput (return 2l))
+    FuncOp f = programOp.addOperation(new FuncOp(LOC, "f", FuncType.of(List.of(int64), fOutput)));
+    var result = f.addOperation(new ConstantOp(LOC, 2L), 0);
+    f.addOperation(new ReturnOp(LOC, result.getResult()), 0);
+
+    // (defn main [] (g))
+    entry.getRight().addOperation(new CallOp(LOC, "g", List.of(), List.of(), MaybeType.of()), 0);
+    entry.getRight().addOperation(new ReturnOp(LOC), 0);
+    return programOp;
+  }
+
+  @Test
+  public void funcCheckedAgainstArrowRejectsReturnNotMatchingAnnotation() {
+    var programOp = buildProgramCallingAnnotatedFuncBeforeItsBinding(
+        MaybeType.of((dgir.core.ir.Type) IntegerT.INT32()));
+
+    assertThrows(TypingException.SubtypingFailed.class, () -> solve(programOp));
+  }
+
+  @Test
+  public void funcCheckedAgainstArrowAcceptsReturnMatchingAnnotation() {
+    var programOp = buildProgramCallingAnnotatedFuncBeforeItsBinding(
+        MaybeType.of((dgir.core.ir.Type) IntegerT.INT64()));
+
+    var solved = solve(programOp);
+
+    // The calls to g and f + the synthetic call to main inserted by the
+    // ProgramOp conversion
+    assertEquals(3, countOps(solved.getRight(), CallOp.class), "rebuilt call ops missing from result tree");
+  }
+
+  @Test
   public void directCallReconstructsCallOp() {
     Pair<ProgramOp, FuncOp> entry = DgirTestUtils.createProgramOpWithEntryFunc();
     ProgramOp programOp = entry.getLeft();
