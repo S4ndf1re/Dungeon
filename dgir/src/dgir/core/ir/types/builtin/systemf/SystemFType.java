@@ -236,7 +236,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
-      return new SystemFType.Arrow(
+      return new SystemFType.Arrow(this.location,
           this.from.substType(tyVar, replacement),
           this.to.substType(tyVar, replacement));
     }
@@ -328,7 +328,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
         // The type variable is shadowed by the ForAll binder
         return this;
       } else {
-        return new SystemFType.ForAll(
+        return new SystemFType.ForAll(this.location,
             this.boundVar,
             this.body.substType(tyVar, replacement));
       }
@@ -425,7 +425,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
-      return new Lit(this.ident, this.parameters.stream().map(param -> param.substType(tyVar, replacement)).toList());
+      return new Lit(this.location, this.ident, this.parameters.stream().map(param -> param.substType(tyVar, replacement)).toList());
     }
 
     @Override
@@ -463,7 +463,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
-      return new NumericType(this.size);
+      return new NumericType(this.location, this.size);
     }
 
     @Override
@@ -536,7 +536,7 @@ public abstract sealed class SystemFType extends Type<SystemFType> {
 
     @Override
     public SystemFType substType(TypeVar<SystemFType> tyVar, SystemFType replacement) {
-      return new SystemFType.Tuple(
+      return new SystemFType.Tuple(this.location,
           this.elements.stream().map(elem -> elem.substType(tyVar, replacement)).toList());
     }
 

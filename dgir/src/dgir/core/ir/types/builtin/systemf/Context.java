@@ -156,17 +156,17 @@ public class Context extends ScopeLike<SystemFType>
         return type;
       }
     } else if (type instanceof SystemFType.Arrow arrow) {
-      return new SystemFType.Arrow(
+      return new SystemFType.Arrow(arrow.location,
           this.applyOnce(arrow.from),
           this.applyOnce(arrow.to));
     } else if (type instanceof SystemFType.ForAll forAll) {
-      return new SystemFType.ForAll(
+      return new SystemFType.ForAll(forAll.location,
           forAll.boundVar,
           this.applyOnce(forAll.body));
     } else if (type instanceof SystemFType.Lit lit) {
-      return new SystemFType.Lit(lit.ident, lit.parameters.stream().map(param -> this.applyOnce(param)).toList());
+      return new SystemFType.Lit(lit.location, lit.ident, lit.parameters.stream().map(param -> this.applyOnce(param)).toList());
     } else if (type instanceof SystemFType.Tuple tuple) {
-      return new SystemFType.Tuple(tuple.elements.stream().map(this::applyOnce).toList());
+      return new SystemFType.Tuple(tuple.location, tuple.elements.stream().map(this::applyOnce).toList());
     }
     return type;
   }

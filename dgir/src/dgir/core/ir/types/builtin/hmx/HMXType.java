@@ -238,7 +238,7 @@ public abstract sealed class HMXType extends Type<HMXType> {
       if (assigendType.isPresent()) {
         return assigendType.get().deref();
       }
-      return new HMXType.Var(this.tyVar.find());
+      return new HMXType.Var(this.location, this.tyVar.find());
     }
 
     @Override
@@ -324,7 +324,7 @@ public abstract sealed class HMXType extends Type<HMXType> {
 
     @Override
     public HMXType deref() {
-      return new HMXType.Arrow(this.from.deref(), this.to.deref());
+      return new HMXType.Arrow(this.location, this.from.deref(), this.to.deref());
     }
   }
 
@@ -406,7 +406,7 @@ public abstract sealed class HMXType extends Type<HMXType> {
 
     @Override
     public HMXType deref() {
-      return new HMXType.LitType(this.tyName, this.parameters.stream().map(p -> p.deref()).toList());
+      return new HMXType.LitType(this.location, this.tyName, this.parameters.stream().map(p -> p.deref()).toList());
     }
   }
 
@@ -460,7 +460,7 @@ public abstract sealed class HMXType extends Type<HMXType> {
 
     @Override
     public HMXType deref() {
-      return new HMXType.NumericType(this.size);
+      return new HMXType.NumericType(this.location, this.size);
     }
   }
 
@@ -525,7 +525,7 @@ public abstract sealed class HMXType extends Type<HMXType> {
 
     @Override
     public HMXType deref() {
-      return new HMXType.Tuple(this.elements.stream().map(e -> e.deref()).toList());
+      return new HMXType.Tuple(this.location, this.elements.stream().map(e -> e.deref()).toList());
     }
   }
 }

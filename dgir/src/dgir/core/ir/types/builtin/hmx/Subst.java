@@ -59,11 +59,11 @@ public final record Subst(HashMap<TypeVar<HMXType>, HMXType> types)
         return type;
       }
     } else if (type instanceof HMXType.Arrow arrow) {
-      return new HMXType.Arrow(apply(arrow.from), apply(arrow.to)).deref();
+      return new HMXType.Arrow(arrow.location, apply(arrow.from), apply(arrow.to)).deref();
     } else if (type instanceof HMXType.LitType) {
       return type.deref();
     } else if (type instanceof HMXType.Tuple tuple) {
-      return new HMXType.Tuple(tuple.elements.stream().map(this::apply).toList());
+      return new HMXType.Tuple(tuple.location, tuple.elements.stream().map(this::apply).toList());
     } else {
       throw new TypingException.UnknownType(type);
     }

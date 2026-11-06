@@ -127,7 +127,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
       if (assigendType.isPresent()) {
         return assigendType.get().deref();
       }
-      return new AlgorithmWType.Var(this.tyVar.find());
+      return new AlgorithmWType.Var(this.location, this.tyVar.find());
     }
 
     @Override
@@ -213,7 +213,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
     @Override
     public AlgorithmWType deref() {
-      return new AlgorithmWType.Arrow(this.from.deref(), this.to.deref());
+      return new AlgorithmWType.Arrow(this.location, this.from.deref(), this.to.deref());
     }
   }
 
@@ -294,7 +294,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
     @Override
     public AlgorithmWType deref() {
-      return new AlgorithmWType.LitType(this.tyName, this.parameters.stream().map(p -> p.deref()).toList());
+      return new AlgorithmWType.LitType(this.location, this.tyName, this.parameters.stream().map(p -> p.deref()).toList());
     }
   }
 
@@ -348,7 +348,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
     @Override
     public AlgorithmWType deref() {
-      return new AlgorithmWType.NumericType(this.size);
+      return new AlgorithmWType.NumericType(this.location, this.size);
     }
   }
 
@@ -412,7 +412,7 @@ public abstract sealed class AlgorithmWType extends Type<AlgorithmWType> {
 
     @Override
     public AlgorithmWType deref() {
-      return new AlgorithmWType.Tuple(this.elements.stream().map(e -> e.deref()).toList());
+      return new AlgorithmWType.Tuple(this.location, this.elements.stream().map(e -> e.deref()).toList());
     }
   }
 }

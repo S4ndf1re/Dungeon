@@ -49,11 +49,11 @@ public final record Subst(HashMap<TypeVar<AlgorithmWType>, AlgorithmWType> types
         return type.deref();
       }
     } else if (type instanceof AlgorithmWType.Arrow arrow) {
-      return new AlgorithmWType.Arrow(apply(arrow.from), apply(arrow.to)).deref();
+      return new AlgorithmWType.Arrow(arrow.location, apply(arrow.from), apply(arrow.to)).deref();
     } else if (type instanceof AlgorithmWType.LitType) {
       return type.deref();
     } else if (type instanceof AlgorithmWType.Tuple tuple) {
-      return new AlgorithmWType.Tuple(tuple.elements.stream().map(this::apply).toList());
+      return new AlgorithmWType.Tuple(tuple.location, tuple.elements.stream().map(this::apply).toList());
     } else {
       throw new TypingException.UnknownType(type);
     }
