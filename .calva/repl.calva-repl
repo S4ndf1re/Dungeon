@@ -16,23 +16,6 @@
 
 (when-let [requires (resolve 'clojure.main/repl-requires)] (clojure.core/apply clojure.core/require @requires))
 clj꞉user꞉> 
-clj꞉core-test꞉> 
-fib-test
-clj꞉core-test꞉> 
-fib-test
-clj꞉core-test꞉> 
-fib-test
-clj꞉core-test꞉> 
-(testing "Unannotated Function Test System-F"
-  (unannotated-function-call-test))
-clj꞉core-test꞉> 
-(testing "Fib Test System-F"
-  (fib-test))
-clj꞉core-test꞉> 
-fib-test
-clj꞉core-test꞉> 
-fib-test
-clj꞉core-test꞉> 
 (when-let [requires (resolve 'clojure.main/repl-requires)] (clojure.core/apply clojure.core/require @requires))
 clj꞉user꞉> 
-clj꞉core-test꞉> 
+clj꞉ast.functions꞉> 

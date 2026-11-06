@@ -1,7 +1,7 @@
 (defn fib [a: int64]
   (if (<= a 1)
    (return a)
-   (return (+ (fib (- a 1)) (fib (- a 2))))
+   (return (+ (fib (- a 1l)) (fib (- a 2l))))
    )
 ) : int64
 

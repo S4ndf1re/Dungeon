@@ -98,8 +98,6 @@
 (defn fib-test []
   (infer-script (slurp (resource "fib.dg")) (SystemFInference.)))
 
-(fib-test)
-
 ; (while-loop-test)
 ; (simple-test-fn)
 ; (function-def-test-fn)
@@ -112,7 +110,8 @@
 ; (subtyped-annotation-recursive-failing-function-test)
 ; (subtyped-annotation-recursive-failing-function-test)
 ; (subtyped-annotation-function-test)
-;; (annotated-function-call-test)
+; (annotated-function-call-test)
+; (fib-test)
 
 (deftest simple-sexpr-parse
   (testing "Test if a simple sexpr parses"

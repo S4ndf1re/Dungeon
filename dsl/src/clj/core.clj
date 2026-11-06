@@ -87,6 +87,7 @@
       (lex/add-const :continue "continue")
       (lex/add-const :set "set")
       (lex/add-const :assert "assert")
+      (lex/add-const :print "print")
       ;; Symbols
       (lex/add-const :colon ":")
       (lex/add-const :plus "+")
@@ -144,6 +145,9 @@
                 (com/->Do (tok/location children)
                           (:data children))
                 (:data ret-type)))
+
+(defn print-to-ast [loc [_ _ args _]]
+  (func/->FnCall loc (com/->Ident loc "print") [] (:data args)))
 
 (defn fn-call-to-ast [loc [_ ident args _]]
   (func/->FnCall loc
@@ -248,6 +252,7 @@
                                [:true true-value]
                                [:false false-value]])
       (par/add-rule :SExprFuncCall [[:lparen :ID :SExpr* :rparen fn-call-to-ast]
+                                    [:lparen :print :SExpr* :rparen print-to-ast]
                                     [:lparen :ID :colon :lbrack :TypeApp* :rbrack :SExpr* :rparen fn-call-with-type-apps-to-ast]])
       (par/add-rule :SExprBinOp [:lparen :BinOp :SExpr :SExpr :rparen bin-call-to-ast])
       (par/add-rule :SExprUnaryOp [:lparen :UnaryOp :SExpr :rparen unary-call-to-ast])

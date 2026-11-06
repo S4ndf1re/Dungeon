@@ -11,7 +11,8 @@
            dgir.dialect.func.FuncOps$CallOp
            dgir.dialect.func.FuncOps$FuncOp
            dgir.dialect.func.FuncTypes$FuncType
-           [java.util Optional]))
+           [dgir.dialect.io IoOps$PrintOp]
+           [java.util List Optional]))
 
 (defn new-arg
   ([loc ident] (new-arg loc ident nil))
@@ -118,6 +119,9 @@
            (com/token-location-to-ir-location location)
            ^Value (first params)
            ArithAttrs$UnaryModeAttr$UnaryMode/LOGICAL_COMPLEMENT)
+    "print" (IoOps$PrintOp.
+             (com/token-location-to-ir-location location)
+             ^List params)
     (FuncOps$CallOp.
      (com/token-location-to-ir-location location)
      (:ident ident)
