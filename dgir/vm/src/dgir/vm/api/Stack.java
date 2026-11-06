@@ -4,41 +4,55 @@ import dgir.core.ir.Operation;
 import dgir.core.ir.Value;
 import dgir.core.ir.ValueOperand;
 import java.util.*;
+
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A scoped, allocation-efficient store that maps {@link Value} objects to their runtime objects.
+ * A scoped, allocation-efficient store that maps {@link Value} objects to their
+ * runtime objects.
  *
  * <h2>Design</h2>
  *
- * <p>The store models two nested runtime concepts:
+ * <p>
+ * The store models two nested runtime concepts:
  *
  * <ol>
- *   <li><b>Call frames</b> represent traditional function-call stack frames.
- *   <li><b>Scopes</b> live inside call frames and represent lexical regions opened by operations.
+ * <li><b>Call frames</b> represent traditional function-call stack frames.
+ * <li><b>Scopes</b> live inside call frames and represent lexical regions
+ * opened by operations.
  * </ol>
  *
- * <p>Each scope records the {@link Operation} that opened it so higher layers can associate scope
- * teardown with the operation that may receive an output value. Popping a call frame closes all of
+ * <p>
+ * Each scope records the {@link Operation} that opened it so higher layers can
+ * associate scope
+ * teardown with the operation that may receive an output value. Popping a call
+ * frame closes all of
  * its scopes in innermost-to-outermost order.
  *
  * <h2>Data structures</h2>
  *
  * <ul>
- *   <li><b>{@link IdentityHashMap}</b> as the central key→value map. {@link Value} has no custom
- *       {@code hashCode}/{@code equals}, so identity comparison is both semantically correct and
- *       significantly faster than a general {@link HashMap}.
- *   <li><b>Flat {@code Value[] frameKeys} array</b> — a write-log that records, in insertion order,
- *       which keys were first written while a scope was live. Each scope stores the write-log start
- *       index that belongs to it, so closing a scope is a forward scan followed by a write-head
- *       rewind.
- *   <li><b>Parallel primitive/object arrays</b> for call-frame and scope metadata — zero heap
- *       allocation per push/pop in the common case.
+ * <li><b>{@link IdentityHashMap}</b> as the central key→value map.
+ * {@link Value} has no custom
+ * {@code hashCode}/{@code equals}, so identity comparison is both semantically
+ * correct and
+ * significantly faster than a general {@link HashMap}.
+ * <li><b>Flat {@code Value[] frameKeys} array</b> — a write-log that records,
+ * in insertion order,
+ * which keys were first written while a scope was live. Each scope stores the
+ * write-log start
+ * index that belongs to it, so closing a scope is a forward scan followed by a
+ * write-head
+ * rewind.
+ * <li><b>Parallel primitive/object arrays</b> for call-frame and scope metadata
+ * — zero heap
+ * allocation per push/pop in the common case.
  * </ul>
  */
 public class Stack {
 
-  public record ClosedScope(@NotNull Operation opener, boolean isIsolatedFromAbove) {}
+  public record ClosedScope(@NotNull Operation opener, boolean isIsolatedFromAbove) {
+  }
 
   public record ClosedCallFrame(@NotNull List<@NotNull ClosedScope> closedScopes) {
     public ClosedCallFrame {
@@ -51,8 +65,10 @@ public class Stack {
   // =========================================================================
 
   /**
-   * Maps each live {@link Value} to its current runtime object. Uses {@link IdentityHashMap}
-   * because {@link Value} has no custom {@code hashCode}/{@code equals} — identity comparison is
+   * Maps each live {@link Value} to its current runtime object. Uses
+   * {@link IdentityHashMap}
+   * because {@link Value} has no custom {@code hashCode}/{@code equals} —
+   * identity comparison is
    * both correct and faster than a general {@link HashMap}.
    */
   private final @NotNull IdentityHashMap<Value, Object> values = new IdentityHashMap<>();
@@ -61,7 +77,10 @@ public class Stack {
   // Call-frame descriptor stack
   // =========================================================================
 
-  /** {@code callFrameScopeStart[i]} is the scope depth at which call frame {@code i} begins. */
+  /**
+   * {@code callFrameScopeStart[i]} is the scope depth at which call frame
+   * {@code i} begins.
+   */
   private int[] callFrameScopeStart = new int[16];
 
   /** Number of currently live call frames. */
@@ -71,7 +90,9 @@ public class Stack {
   // Scope descriptor stack
   // =========================================================================
 
-  /** {@code scopeWriteStart[i]} is the write-log start index for scope {@code i}. */
+  /**
+   * {@code scopeWriteStart[i]} is the write-log start index for scope {@code i}.
+   */
   private int[] scopeWriteStart = new int[16];
 
   /** Isolation flag for each live scope. */
@@ -87,12 +108,17 @@ public class Stack {
   // Write-log
   // =========================================================================
 
+  private record WriteLogKey(Value value, Object previous) {
+  }
+
   /**
-   * Flat array recording, in insertion order, which {@link Value} keys were first written while a
-   * live scope was active. The slice {@code frameKeys[scopeWriteStart[s]..writeHead)} belongs to
+   * Flat array recording, in insertion order, which {@link Value} keys were first
+   * written while a
+   * live scope was active. The slice
+   * {@code frameKeys[scopeWriteStart[s]..writeHead)} belongs to
    * scope {@code s} (the innermost scope when popping that scope).
    */
-  private Value[] frameKeys = new Value[64];
+  private WriteLogKey[] frameKeys = new WriteLogKey[64];
 
   /** Next free slot in {@link #frameKeys}. */
   private int writeHead = 0;
@@ -112,15 +138,17 @@ public class Stack {
   /**
    * Closes the innermost call frame and all scopes contained in it.
    *
-   * @return metadata for the scopes closed by the frame pop, innermost scope first.
+   * @return metadata for the scopes closed by the frame pop, innermost scope
+   *         first.
    */
   public @NotNull Optional<ClosedCallFrame> popCallFrame() {
-    if (callFrameTop == 0) return Optional.empty();
+    if (callFrameTop == 0)
+      return Optional.empty();
 
     int scopeStart = callFrameScopeStart[callFrameTop - 1];
     List<ClosedScope> closedScopes = new ArrayList<>(scopeTop - scopeStart);
     while (scopeTop > scopeStart) {
-      closedScopes.add(popScope().orElseThrow());
+      closedScopes.add(popScope(true).orElseThrow());
     }
     callFrameTop--;
     return Optional.of(new ClosedCallFrame(closedScopes));
@@ -138,9 +166,10 @@ public class Stack {
   /**
    * Opens a new scope inside the current call frame.
    *
-   * @param opener the operation that opened the scope.
-   * @param isIsolatedFromAbove whether lookups should stop at this scope boundary when walking
-   *     outward via {@link #getVisibleValues()}.
+   * @param opener              the operation that opened the scope.
+   * @param isIsolatedFromAbove whether lookups should stop at this scope boundary
+   *                            when walking
+   *                            outward via {@link #getVisibleValues()}.
    */
   public void pushScope(@NotNull Operation opener, boolean isIsolatedFromAbove) {
     assert callFrameTop > 0 : "Cannot open a scope outside of a call frame.";
@@ -156,20 +185,32 @@ public class Stack {
     scopeTop++;
   }
 
+  public @NotNull Optional<ClosedScope> popScope() {
+    return popScope(false);
+  }
+
   /**
    * Closes the innermost scope and removes all value bindings created inside it.
    *
-   * @return metadata for the closed scope, or {@link Optional#empty()} if no scope is open.
+   * @return metadata for the closed scope, or {@link Optional#empty()} if no
+   *         scope is open.
    */
-  public @NotNull Optional<ClosedScope> popScope() {
-    if (scopeTop == 0) return Optional.empty();
+  public @NotNull Optional<ClosedScope> popScope(boolean applyPreviousValues) {
+    if (scopeTop == 0)
+      return Optional.empty();
     scopeTop--;
 
     boolean isolated = scopeIsolated[scopeTop];
     Operation opener = scopeOpeners[scopeTop];
     int start = scopeWriteStart[scopeTop];
     for (int i = start; i < writeHead; i++) {
-      values.remove(frameKeys[i]);
+      var frameKeyValue = frameKeys[i];
+      // No previous value was assigned!
+      if (frameKeyValue.previous == null) {
+        values.remove(frameKeyValue.value);
+      } else if(applyPreviousValues) {
+        values.put(frameKeyValue.value, frameKeyValue.previous);
+      }
       frameKeys[i] = null; // release reference for GC
     }
     writeHead = start;
@@ -189,11 +230,15 @@ public class Stack {
   /**
    * Binds {@code object} to {@code value} in the current scope.
    *
-   * <p>If {@code value} was already bound in any live scope the binding is updated in-place; the
-   * write-log is <em>not</em> updated again so the key is only removed once when the scope that
-   * originally introduced it is popped.
+   * <p>
+   * Every call appends an entry to the write-log of the current scope, holding
+   * the {@code value} and the object it was bound to before this call
+   * ({@code null} if it was unbound). If {@code value} was already bound in an
+   * outer scope (or earlier in this one), the binding is therefore shadowed
+   * rather than silently overwritten, and the previous object is available to be
+   * restored when the current scope is popped.
    *
-   * @param value the value to bind.
+   * @param value  the value to bind.
    * @param object the runtime object to associate with {@code value}.
    * @throws AssertionError if no scope is open.
    */
@@ -201,11 +246,11 @@ public class Stack {
     Object previous = values.put(value, object);
     if (previous == null) {
       assert scopeTop > 0 : "Cannot set a value outside of an open scope.";
-      if (writeHead == frameKeys.length) {
-        frameKeys = Arrays.copyOf(frameKeys, frameKeys.length * 2);
-      }
-      frameKeys[writeHead++] = value;
     }
+    if (writeHead == frameKeys.length) {
+      frameKeys = Arrays.copyOf(frameKeys, frameKeys.length * 2);
+    }
+    frameKeys[writeHead++] = new WriteLogKey(value, previous);
   }
 
   /**
@@ -233,7 +278,8 @@ public class Stack {
   }
 
   /**
-   * Returns the runtime object bound to {@code value} as an instance of {@code clazz}.
+   * Returns the runtime object bound to {@code value} as an instance of
+   * {@code clazz}.
    *
    * @param value the value to look up.
    * @param clazz the expected runtime type of the bound object.
@@ -245,11 +291,12 @@ public class Stack {
   }
 
   /**
-   * Returns the runtime object bound to the value referenced by {@code operand} as an instance of
+   * Returns the runtime object bound to the value referenced by {@code operand}
+   * as an instance of
    * {@code clazz}.
    *
    * @param operand the operand to look up; must reference a value.
-   * @param clazz the expected runtime type of the bound object.
+   * @param clazz   the expected runtime type of the bound object.
    * @return the bound object cast to {@code clazz}.
    * @param <T> the expected type.
    */
@@ -276,11 +323,15 @@ public class Stack {
   // =========================================================================
 
   /**
-   * Returns all value bindings that are visible in the current scope as an unmodifiable,
-   * insertion-ordered map. Walks the scope chain from innermost to outermost and stops at the first
+   * Returns all value bindings that are visible in the current scope as an
+   * unmodifiable,
+   * insertion-ordered map. Walks the scope chain from innermost to outermost and
+   * stops at the first
    * isolated scope boundary.
    *
-   * <p>Intended for DAP {@code VariablesResponse} population and is safe to call from any thread
+   * <p>
+   * Intended for DAP {@code VariablesResponse} population and is safe to call
+   * from any thread
    * while the VM is paused.
    *
    * @return a snapshot of visible value bindings, innermost scope first.
@@ -291,10 +342,12 @@ public class Stack {
       int start = scopeWriteStart[s];
       int end = (s + 1 < scopeTop) ? scopeWriteStart[s + 1] : writeHead;
       for (int i = start; i < end; i++) {
-        Value v = frameKeys[i];
-        if (v != null) result.putIfAbsent(v, values.get(v));
+        Value v = frameKeys[i].value;
+        if (v != null)
+          result.putIfAbsent(v, values.get(v));
       }
-      if (scopeIsolated[s]) break;
+      if (scopeIsolated[s])
+        break;
     }
     return Collections.unmodifiableMap(result);
   }
