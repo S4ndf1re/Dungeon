@@ -52,7 +52,9 @@
            ; _ (.printOp underlying-op)
            resultOp (cast BuiltinOps$ProgramOp (.asOp underlying-op))]
        (.init vm resultOp)
-       (.run vm)))))
+       ;; VM.run swallows execution errors (prints them and returns false),
+       ;; so the result must be asserted for the test to fail.
+       (t/is (.run vm) "VM execution aborted")))))
 
 (defn simple-test-fn []
   (par/run-lr-1 parser "(add (mul 1 3) 2)" "test"))

@@ -9,6 +9,4 @@
 
 (defn main []
   (assert (= (bar 0) 10))
-  ;; (assert (= (bar 10) 10))
-  ;; Hence, this call fill fail!
   (assert (= (bar2 11l) 11)))
