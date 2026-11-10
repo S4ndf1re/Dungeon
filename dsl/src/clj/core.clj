@@ -88,6 +88,7 @@
       (lex/add-const :set "set")
       (lex/add-const :assert "assert")
       (lex/add-const :print "print")
+      (lex/add-const :read "read")
       ;; Symbols
       (lex/add-const :colon ":")
       (lex/add-const :plus "+")
@@ -214,6 +215,7 @@
 (defn let-to-ast [loc [_ _ _ bindings _ body  _]] (com/->Let loc (:data bindings) (com/->Do (tok/location body) (:data body))))
 (defn assert-to-ast [loc [_ _ condition _]] (cf/->Assert loc (:data condition) nil))
 (defn assert-with-message-to-ast [loc [_ _ condition msg _]] (cf/->Assert loc (:data condition) (:data msg)))
+(defn read-to-ast [loc [_ _ type-arg _]] (func/->Read loc (:data type-arg)))
 (defn return-to-ast [loc [_ _ expr _]] (cf/->Return loc (:data expr)))
 (defn break-to-ast [loc [_ _ _]] (cf/->Break loc))
 (defn continue-to-ast [loc [_ _ _]] (cf/->Continue loc))
@@ -252,7 +254,8 @@
                                [:true true-value]
                                [:false false-value]])
       (par/add-rule :SExprFuncCall [[:lparen :ID :SExpr* :rparen fn-call-to-ast]
-                                    [:lparen :print :SExpr* :rparen print-to-ast]
+                                    [:lparen :print :SExpr+ :rparen print-to-ast]
+                                    [:lparen :read :Type :rparen read-to-ast]
                                     [:lparen :ID :colon :lbrack :TypeApp* :rbrack :SExpr* :rparen fn-call-with-type-apps-to-ast]])
       (par/add-rule :SExprBinOp [:lparen :BinOp :SExpr :SExpr :rparen bin-call-to-ast])
       (par/add-rule :SExprUnaryOp [:lparen :UnaryOp :SExpr :rparen unary-call-to-ast])

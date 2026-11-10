@@ -2,6 +2,7 @@ package dgir.dialect.io;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -13,6 +14,7 @@ import dgir.core.ir.types.TypeIdent;
 import dgir.core.ir.types.TypeVar;
 import dgir.core.ir.types.compatibility.ConverterRegistry;
 import dgir.core.ir.types.traits.IApplication;
+import dgir.core.ir.types.builtin.systemf.Context;
 import dgir.core.ir.types.builtin.systemf.Entry;
 import dgir.core.ir.types.builtin.systemf.Expr;
 import dgir.core.ir.types.builtin.systemf.SystemFInference;
@@ -60,7 +62,6 @@ public final class IoSystemFConversion {
 
     result.setInstantiateOperationCallback(instantiatedExpr -> {
       assert instantiatedExpr instanceof IApplication;
-      @SuppressWarnings("unchecked")
       var argExprs = ((IApplication<Expr, SystemFType>) instantiatedExpr).getAllApplicationParameters();
 
       return new IoOps.PrintOp(op.getLocation(),
@@ -78,9 +79,14 @@ public final class IoSystemFConversion {
 
     var consoleInOp = (IoOps.ConsoleInOp) op.asOp();
 
+    var resultType = engine.generalNominalTypeToInferenceType(
+        consoleInOp.getResult().getType().getAsKnownOrThrow().asParameterizedNominalType(),
+        Optional.of(engine.getStartContext()));
+    engine.setStartContext((Context) resultType.getRight().get());
+
     var fnType = engine.ArrowChain(
         new SystemFType.Lit(TypeIdent.TYPE_IDENT_UNIT),
-        new SystemFType.Lit(TypeIdent.TYPE_IDENT_STRING));
+        resultType.getLeft());
 
     var result = OperationExprConversionUtils.buildAnnotatedApplication(
         engine,

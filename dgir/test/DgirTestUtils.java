@@ -24,8 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Set;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -245,22 +243,6 @@ public class DgirTestUtils {
   }
 
   /**
-   * Find the root of a reconstructed operation tree: prefer the rebuilt
-   * program op, otherwise the first operation without a parent.
-   *
-   * @return the root operation, or {@code null} if none could be determined.
-   */
-  public static Operation findRebuiltRoot(List<Operation> ops) {
-    return ops.stream()
-        .filter(op -> op.asOp() instanceof ProgramOp)
-        .findFirst()
-        .orElseGet(() -> ops.stream()
-            .filter(op -> op.getParentOperation().isEmpty())
-            .findFirst()
-            .orElse(null));
-  }
-
-  /**
    * Export the operation-side artifacts of a type inference run: the original
    * operation tree that preceded the inference ({@code .input.cfg}) and the
    * reconstructed operation tree that postcedes it ({@code .output.cfg}).
@@ -272,12 +254,7 @@ public class DgirTestUtils {
       String stagePrefix, Operation inputOp, E solvedExpr) {
     saveDotCfg(stagePrefix + ".input.cfg", inputOp);
 
-    List<Operation> ops = new ArrayList<>();
-    new Expression.ExpressionVisitor<E, T>(
-        Expression.ExpressionVisitor.VisitOrder.POST_ORDER,
-        Expression.ExpressionVisitor.VisitGetChildrenOption.ALL_CHILDREN)
-        .visit(solvedExpr, e -> e.getUnderlyingOperation().ifPresent(ops::add));
-    saveDotCfg(stagePrefix + ".output.cfg", findRebuiltRoot(ops));
+    saveDotCfg(stagePrefix + ".output.cfg", solvedExpr.getUnderlyingOperation().get());
   }
 
   public static String compareSerializedOperations(

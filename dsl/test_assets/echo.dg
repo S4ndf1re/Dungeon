@@ -1,0 +1,6 @@
+(defn main []
+
+(let [a (read int32)]
+  ; (print "Echo: %d\n" a)
+)
+)

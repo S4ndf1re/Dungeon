@@ -12,6 +12,7 @@
            dgir.dialect.func.FuncOps$FuncOp
            dgir.dialect.func.FuncTypes$FuncType
            [dgir.dialect.io IoOps$PrintOp]
+           [dgir.dialect.io IoOps$ConsoleInOp]
            [java.util List Optional]))
 
 (defn new-arg
@@ -142,6 +143,17 @@
           ;; Make sure the arg-list is actually not null
           _ (when (contains? arg-values nil) (throw (ex-info (str "Argument Value must never contain nil values " location) {:arguments params})))
           call-op (build-call-op-from-ident location fn-ident type-applications arg-values)]
+      (em/add-expression context call-op)
+      (.orElse (.getOutputValue call-op) nil)))
+  (is-jump [_this] false))
+
+(defrecord Read [location type-ident]
+  AstNode
+  (validate [_this] (ast/validate type-ident))
+  (emit [_this context]
+    ;; TODO: this function call needs special handling based on builtin operations (+, -, *, /, etc.)
+    ;; NOTE: the emission has side effects, the mapv is only present for the actuall operator values!
+    (let [call-op (IoOps$ConsoleInOp. (com/token-location-to-ir-location location) (Type/fromParameterizedIdent (:ident type-ident)))]
       (em/add-expression context call-op)
       (.orElse (.getOutputValue call-op) nil)))
   (is-jump [_this] false))

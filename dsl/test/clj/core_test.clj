@@ -8,6 +8,7 @@
    [filebuffer :as fb]
    [glr-parser.parser.parser :as par])
   (:import
+   [dgir.vm.dialect.io IoRunners$ConsoleInRunner]
    [dgir.core.ir.types.builtin.systemf SystemFInference]
    [dgir.core.ir.types.builtin.hmx HMXInference]
    [dgir.core.ir.types.compatibility ExprOrOperator]
@@ -15,7 +16,7 @@
    [dgir.vm.api VM]
    [java.io OutputStream PrintStream]))
 
-(defn ->repl-stream ^PrintStream [writer]
+(defn ->repl-out ^PrintStream [writer]
   (PrintStream.
    (proxy [OutputStream] []
      (write ([b]        (.write writer (char b)))
@@ -23,8 +24,22 @@
      (flush [] (.flush writer)))
    true)) ; autoflush
 
-(System/setOut (->repl-stream *out*))
-(System/setErr (->repl-stream *err*))
+(defn ->repl-in ^java.io.InputStream [reader]
+  (proxy [java.io.InputStream] []
+    (read
+      ([] (.read reader))
+      ([bs off l]
+       (let [c (.read reader)]
+         (if (neg? c)
+           -1
+           (let [s (.getBytes (str (char c)) "UTF-8")]
+             (System/arraycopy s 0 bs off (min l (count s)))
+             (min l (count s)))))))))
+
+(IoRunners$ConsoleInRunner/setInputStream (->repl-in *in*))
+
+(System/setOut (->repl-out *out*))
+(System/setErr (->repl-out *err*))
 
 (def parser (-> (c/build-lexer) (c/build-parser)))
 
@@ -97,6 +112,11 @@
 
 (defn fib-test []
   (infer-script (slurp (resource "fib.dg")) (SystemFInference.)))
+
+(defn echo-test []
+  (infer-script (slurp (resource "echo.dg")) (SystemFInference.)))
+
+(echo-test)
 
 (deftest simple-sexpr-parse
   (testing "Test if a simple sexpr parses"
