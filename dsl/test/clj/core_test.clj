@@ -113,10 +113,15 @@
 (defn fib-test []
   (infer-script (slurp (resource "fib.dg")) (SystemFInference.)))
 
-(defn echo-test []
-  (infer-script (slurp (resource "echo.dg")) (SystemFInference.)))
+; (defn echo-test-systemf []
+;   (infer-script (slurp (resource "echo.dg")) (SystemFInference.)))
+;
+; (defn echo-test-hmx []
+;   (infer-script (slurp (resource "echo.dg")) (HMXInference.)))
 
-(echo-test)
+; Uncomment, when input may be required
+; (echo-test-systemf)
+; (echo-test-hmx)
 
 (deftest simple-sexpr-parse
   (testing "Test if a simple sexpr parses"
