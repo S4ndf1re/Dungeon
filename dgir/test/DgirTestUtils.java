@@ -47,6 +47,11 @@ public class DgirTestUtils {
   private static final Pattern UUID_PATTERN = Pattern.compile(
       "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
+  /** Output directory for a test: {@code <savePath><Class.method>/}. */
+  private static String testDir(String callerName) {
+    return savePath + callerName + "/";
+  }
+
   public static boolean testValidityAndSerialization(Op op) {
     String result = mapper.writeValueAsString(op);
     if (printResult)
@@ -67,15 +72,16 @@ public class DgirTestUtils {
                     + stackFrame.getMethodName())
             .orElse("unknown"));
 
-    // Ensure the output directory exists before writing files
+    // Ensure the per-test output directory exists before writing files
+    String testDir = testDir(callerName);
     try {
-      Files.createDirectories(Paths.get(savePath));
+      Files.createDirectories(Paths.get(testDir));
     } catch (IOException e) {
-      System.out.println("Failed to create output directory '" + savePath + "': " + e);
+      System.out.println("Failed to create output directory '" + testDir + "': " + e);
     }
 
     if (saveResult) {
-      String filePath = savePath + callerName + ".json";
+      String filePath = testDir + "result.json";
       try {
         BufferedWriter writer = Files.newBufferedWriter(Paths.get(filePath), UTF_8);
         writer.write(result);
@@ -105,7 +111,7 @@ public class DgirTestUtils {
 
       // Save the cfg to a file with the caller name as the file name
       if (saveCfg) {
-        String filePath = savePath + callerName + ".dot";
+        String filePath = testDir + "cfg.dot";
         try {
           BufferedWriter writer = Files.newBufferedWriter(Paths.get(filePath), UTF_8);
           writer.write(cfg.toString());
@@ -119,7 +125,7 @@ public class DgirTestUtils {
       // Generate an image of the cfg and save it to a file with the caller name as
       // the file name
       if (saveCfgImage) {
-        String filePath = savePath + callerName + ".png";
+        String filePath = testDir + "cfg.png";
         try {
           Graphviz.fromString(cfg.toString())
               .engine(Engine.DOT)
@@ -176,8 +182,8 @@ public class DgirTestUtils {
 
   /**
    * Save the given dot string and its rendered PNG image in
-   * {@link #savePath}, named after the calling test method ({@code
-   * <TestClass>.<testMethod><suffix>.dot/.png}). Helper frames (e.g. shared
+   * {@link #savePath}/{@code <TestClass>.<testMethod>/}, named after the suffix
+   * ({@code <suffix>.dot/.png}). Helper frames (e.g. shared
    * {@code solve} methods) are skipped so the file name always refers to the
    * actual unit test.
    */
@@ -201,13 +207,17 @@ public class DgirTestUtils {
                     + stackFrame.getMethodName())
             .orElse("unknown"));
 
-    // Ensure the output directory exists before writing files
+    // Ensure the per-test output directory exists before writing files
+    String testDir = testDir(callerName);
     try {
-      Files.createDirectories(Paths.get(savePath));
+      Files.createDirectories(Paths.get(testDir));
     } catch (IOException e) {
-      System.out.println("Failed to create output directory '" + savePath + "': " + e);
+      System.out.println("Failed to create output directory '" + testDir + "': " + e);
     }
-    Path dotFile = Paths.get(savePath + callerName + suffix + ".dot");
+    String baseName = suffix.startsWith(".") ? suffix.substring(1) : suffix;
+    if (baseName.isEmpty())
+      baseName = "graph";
+    Path dotFile = Paths.get(testDir + baseName + ".dot");
     try (BufferedWriter writer = Files.newBufferedWriter(dotFile, StandardCharsets.UTF_8)) {
       writer.write(dot);
       System.out.println("Saved dot to " + dotFile);
@@ -215,7 +225,7 @@ public class DgirTestUtils {
       System.out.println("Failed to save dot to " + dotFile + ": " + e.getMessage());
     }
 
-    Path pngFile = Paths.get(savePath + callerName + suffix + ".png");
+    Path pngFile = Paths.get(testDir + baseName + ".png");
     try {
       Graphviz.fromString(dot).engine(Engine.DOT).render(Format.PNG).toFile(pngFile.toFile());
       System.out.println("Saved image to " + pngFile);
